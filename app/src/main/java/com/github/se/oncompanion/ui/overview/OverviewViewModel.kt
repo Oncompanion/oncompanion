@@ -9,8 +9,8 @@ import androidx.lifecycle.viewModelScope
 import com.github.se.oncompanion.domain.carecircle.CareAccess
 import com.github.se.oncompanion.domain.carecircle.ResolveCareCircleAccess
 import com.github.se.oncompanion.domain.planning.CarePlanning
-import com.github.se.oncompanion.domain.planning.DEFAULT_PLANNING_DURATION
 import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
+import com.github.se.oncompanion.domain.planning.endOrDefault
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.signedInUid
@@ -425,13 +425,6 @@ class OverviewViewModel(
           item.toEntry(time = start.toLocalTime(), status = status)
         }
   }
-
-  /**
-   * When a timed entry ends: Planning gives every entry an end, so the [DEFAULT_PLANNING_DURATION]
-   * here only covers one built without it.
-   */
-  private fun PlanningTiming.Timed.endOrDefault(): Instant =
-      end ?: instant + DEFAULT_PLANNING_DURATION
 
   /** When a timed entry ends, in [zoneId]. */
   private fun PlanningItem.endIn(): LocalDateTime =

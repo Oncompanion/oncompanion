@@ -2,7 +2,7 @@
 
 package com.github.se.oncompanion.ui.planning
 
-import com.github.se.oncompanion.domain.planning.DEFAULT_PLANNING_DURATION
+import com.github.se.oncompanion.domain.planning.endOrDefault
 import com.github.se.oncompanion.model.planning.PlanningTiming
 import java.time.Instant
 import java.time.ZoneId
@@ -25,11 +25,12 @@ enum class PlanningStatus {
 /**
  * Where this appointment or event stands at [now], "today" being the day of [now] in [zoneId], the
  * phone's time zone Planning is shown in. It is over at its end; without one (a hand-built entry:
- * the Planning sources always give one), it lasts [DEFAULT_PLANNING_DURATION], as on the Overview.
+ * the Planning sources always give one), it lasts as long as [endOrDefault] says, as on the
+ * Overview.
  */
 fun PlanningTiming.Timed.statusAt(now: Instant, zoneId: ZoneId): PlanningStatus =
     when {
-      now >= (end ?: instant + DEFAULT_PLANNING_DURATION) -> PlanningStatus.PAST
+      now >= endOrDefault() -> PlanningStatus.PAST
       now >= instant -> PlanningStatus.HAPPENING_NOW
       dateIn(zoneId) == now.atZone(zoneId).toLocalDate() -> PlanningStatus.TODAY
       else -> PlanningStatus.UPCOMING

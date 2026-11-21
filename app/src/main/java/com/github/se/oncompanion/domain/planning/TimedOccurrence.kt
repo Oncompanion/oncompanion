@@ -14,9 +14,19 @@ import java.time.Instant
 val DEFAULT_PLANNING_DURATION: Duration = Duration.ofHours(1)
 
 /**
+ * When this entry ends: its [end], or [DEFAULT_PLANNING_DURATION] after it starts without one. The
+ * one place that rule is written: Planning, its status and the Overview all read an entry's end
+ * here, so an entry built without one (in a test or a preview) lasts as long everywhere.
+ */
+fun PlanningTiming.Timed.endOrDefault(): Instant = end ?: instant + DEFAULT_PLANNING_DURATION
+
+/**
  * The timing of an entry that starts at [start] and ends at [end], or [DEFAULT_PLANNING_DURATION]
  * later when [end] is unknown or not after [start] (a typo in the console shouldn't hide an event).
  * Every Planning source builds its timed entries here, so they all get an end the same way.
  */
 fun timedOccurrence(start: Instant, end: Instant? = null): PlanningTiming.Timed =
-    PlanningTiming.Timed(start, end?.takeIf { it > start } ?: start + DEFAULT_PLANNING_DURATION)
+    PlanningTiming.Timed(
+        start,
+        PlanningTiming.Timed(start, end?.takeIf { it > start }).endOrDefault(),
+    )
