@@ -221,6 +221,8 @@ class DoseCountTest {
               // As written: a condition it doesn't know, a maximum, a range, less than daily, or
               // nothing it understands
               "en cas de toux, 3x/j" to null,
+              // Two counts that disagree, with a condition: as written, not "If nauseous"
+              "1-1-1 si nausées, 2x/j" to null,
               "max 3x/j si nausées" to null,
               "1 à 2 fois par jour" to null,
               "1x/semaine" to null,

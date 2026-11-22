@@ -39,8 +39,10 @@ object DoseCount {
     if (condition == null && OTHER_CONDITION.containsMatchIn(text)) return null
     // Every wording that says a count must agree; "daily" alone only counts when none other does
     val counts = readers.mapNotNull { read -> read(text) }.distinct()
+    // Two counts that disagree: rewording would hide both
+    if (counts.size > 1) return null
     val count =
-        (if (counts.isEmpty()) onceADay(text) else counts.singleOrNull())
+        (counts.singleOrNull() ?: onceADay(text))
             // More than can be recorded, one an hour, is a misreading
             ?.takeIf { it in 1..MAX_TAKEN_PER_DAY }
     return if (count == null && condition == null) null else DailyDoses(count, condition)
