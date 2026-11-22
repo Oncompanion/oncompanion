@@ -266,7 +266,10 @@ search dependency added to this form.
 AppointmentFormViewModel takes appointment/auth repositories from their providers by default;
 tests can still inject fakes directly. PlanningViewModel now follows the same provider convention,
 uses system clock/zone defaults and always observes a non-null authentication repository.
-AppNavHost passes only saved state or the initial date, never repositories.
+AppNavHost passes only saved state, the initial date or a clock, never repositories. The clock
+defaults to the system one; tests pass a fixed one (`PlannedDay.clock` in Robolectric tests,
+`noonOn(day)` in connected ones) so Overview, Planning, the event page and the appointment form
+agree on "now".
 
 A local save returns a saved-day result to the existing Planning entry, selects that day (including
 another week), consumes the result and removes the form. The live appointment source supplies the

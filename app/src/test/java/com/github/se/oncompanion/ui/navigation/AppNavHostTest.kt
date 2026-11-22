@@ -86,10 +86,12 @@ import com.github.se.oncompanion.model.user.UserProfile
 import com.github.se.oncompanion.model.user.UserProfileRepository
 import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import com.github.se.oncompanion.resources.C
+import com.github.se.oncompanion.ui.PlannedDay
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.auth.FakeGoogleCredentialProvider
 import com.github.se.oncompanion.ui.auth.GoogleCredentialProvider
 import com.github.se.oncompanion.ui.overview.OverviewShortcut
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -160,6 +162,7 @@ class AppNavHostTest {
       symptomRepository: SymptomRepository = FakeSymptomRepository(),
       credentialProvider: GoogleCredentialProvider = FakeGoogleCredentialProvider(),
       restoration: StateRestorationTester? = null,
+      clock: Clock = Clock.systemDefaultZone(),
   ) {
     PlanningRepositoryProvider.repository = planningRepository
     // The Overview and Planning read the user's role: a test that sets no profiles gets a patient,
@@ -179,7 +182,11 @@ class AppNavHostTest {
     if (restoration != null) {
       restoration.setContent {
         activity = checkNotNull(LocalActivity.current)
-        AppNavHost(startRoute = startRoute ?: Route.AUTH, credentialProvider = credentialProvider)
+        AppNavHost(
+            startRoute = startRoute ?: Route.AUTH,
+            credentialProvider = credentialProvider,
+            clock = clock,
+        )
       }
       return
     }
@@ -190,12 +197,17 @@ class AppNavHostTest {
             navigatorProvider.addNavigator(ComposeNavigator())
           }
       if (startRoute == null) {
-        AppNavHost(navController = navController, credentialProvider = credentialProvider)
+        AppNavHost(
+            navController = navController,
+            credentialProvider = credentialProvider,
+            clock = clock,
+        )
       } else {
         AppNavHost(
             navController = navController,
             startRoute = startRoute,
             credentialProvider = credentialProvider,
+            clock = clock,
         )
       }
     }
@@ -1588,12 +1600,17 @@ class AppNavHostTest {
               listOf("Ondansetron", "Dexamethasone", "Paracetamol").map {
                 PlanningItem(
                     PlanningSource.Medication("rx", it),
-                    PlanningTiming.DateOnly(LocalDate.now()),
+                    PlanningTiming.DateOnly(PlannedDay.today),
                     it,
                 )
               }
         }
-    setNavHost(Route.OVERVIEW, medications, authRepository = signedInPatient())
+    setNavHost(
+        Route.OVERVIEW,
+        medications,
+        authRepository = signedInPatient(),
+        clock = PlannedDay.clock,
+    )
 
     for (link in listOf(C.Tag.overview_more_medications, C.Tag.overview_planning_link)) {
       // Browse next week from the Planning tab, then come back to the Overview
@@ -1623,7 +1640,7 @@ class AppNavHostTest {
   @Test
   fun planningAgendaKeepsScrollAndSingleObservationAcrossTabs() {
     val repository = FakePlanningRepository()
-    val instant = LocalDate.now().atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant()
+    val instant = PlannedDay.today.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant()
     val entries =
         (0 until 30).map {
           PlanningItem(
@@ -1633,7 +1650,12 @@ class AppNavHostTest {
           )
         }
     repository.items.value = entries
-    setNavHost(Route.OVERVIEW, repository, authRepository = signedInPatient())
+    setNavHost(
+        Route.OVERVIEW,
+        repository,
+        authRepository = signedInPatient(),
+        clock = PlannedDay.clock,
+    )
     composeTestRule.onNodeWithTag(Tab.PLANNING.testTag).performClick()
     composeTestRule
         .onNodeWithTag(C.Tag.planning_list)
@@ -2307,11 +2329,11 @@ class AppNavHostTest {
     composeTestRule.onNodeWithTag(C.Tag.events_list).assertIsDisplayed()
   }
 
-  /** An event a week from now, on a different week of Planning than the one it opens on. */
+  /** An event a week after [PlannedDay.today], on a different week of Planning than it opens on. */
   private fun eventNextWeek() =
-      FakeEventRepository.sampleEvents(LocalDate.now())
+      FakeEventRepository.sampleEvents(PlannedDay.today)
           .first()
-          .copy(startDateTime = LocalDate.now().plusWeeks(1).atTime(15, 0), endDateTime = null)
+          .copy(startDateTime = PlannedDay.today.plusWeeks(1).atTime(15, 0), endDateTime = null)
 
   /** A Planning source listing [event], whatever the event repository says about it. */
   private fun planningWith(event: Event) =
@@ -2356,6 +2378,7 @@ class AppNavHostTest {
         startRoute = Route.PLANNING,
         planningRepository = planningWith(event),
         eventRepository = FakeEventRepository(listOf(event)),
+        clock = PlannedDay.clock,
     )
 
     val heading = openEventFromNextWeek(event)
@@ -2385,6 +2408,7 @@ class AppNavHostTest {
         startRoute = Route.PLANNING,
         planningRepository = planningWith(event),
         eventRepository = FakeEventRepository(listOf(event)),
+        clock = PlannedDay.clock,
     )
     val heading = openEventFromNextWeek(event)
 
@@ -2401,6 +2425,7 @@ class AppNavHostTest {
         startRoute = Route.OVERVIEW,
         planningRepository = planningWith(event),
         eventRepository = FakeEventRepository(listOf(event)),
+        clock = PlannedDay.clock,
     )
     composeTestRule.onNodeWithTag(Tab.PLANNING.testTag).performClick()
     val heading = openEventFromNextWeek(event)
@@ -2428,6 +2453,7 @@ class AppNavHostTest {
         startRoute = Route.PLANNING,
         planningRepository = planningWith(event),
         eventRepository = FakeEventRepository(emptyList()),
+        clock = PlannedDay.clock,
     )
     val heading = openEventFromNextWeek(event)
 
@@ -2456,6 +2482,7 @@ class AppNavHostTest {
           careCircleInviteRepository = invites,
           authRepository = auth,
           eventRepository = FakeEventRepository(listOf(event)),
+          clock = PlannedDay.clock,
       )
       composeTestRule.waitUntil(timeoutMillis = 5_000) {
         composeTestRule
@@ -2476,6 +2503,41 @@ class AppNavHostTest {
   }
 
   /**
+   * The event page reads the same clock as Planning: an event that started this morning can't be
+   * confirmed anymore, whatever the real date.
+   */
+  @Test
+  fun planningEvent_thatStartedThisMorning_closesItsRegistration() {
+    val registrations = EventRegistrationRepositoryProvider.repository
+    EventRegistrationRepositoryProvider.repository = FakeEventRegistrationRepository()
+    try {
+      val event =
+          FakeEventRepository.sampleEvents(PlannedDay.today)
+              .first()
+              .copy(startDateTime = PlannedDay.today.atTime(9, 0), endDateTime = null)
+      setNavHost(
+          authRepository = signedInPatient(),
+          startRoute = Route.PLANNING,
+          planningRepository = planningWith(event),
+          eventRepository = FakeEventRepository(listOf(event)),
+          clock = PlannedDay.clock,
+      )
+
+      composeTestRule.onNodeWithText(event.title).performClick()
+
+      composeTestRule.waitUntil(timeoutMillis = 5_000) {
+        composeTestRule
+            .onAllNodesWithTag(C.Tag.event_detail_registration_closed)
+            .fetchSemanticsNodes()
+            .isNotEmpty()
+      }
+      composeTestRule.onNodeWithTag(C.Tag.event_detail_confirm).assertIsNotEnabled()
+    } finally {
+      EventRegistrationRepositoryProvider.repository = registrations
+    }
+  }
+
+  /**
    * Verifies the default Planning source reads the appointment, auth, event and registration
    * providers: it shows the appointments and only the events the patient confirmed (US-30).
    */
@@ -2489,13 +2551,13 @@ class AppNavHostTest {
         Appointment(
             id = "saved",
             title = "Saved consultation",
-            scheduledAt = LocalDate.now().atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant(),
+            scheduledAt = PlannedDay.today.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant(),
             type = AppointmentType.CONSULTATION,
         ),
     )
     AppointmentRepositoryProvider.repository = appointments
     // Two events later today: the patient confirmed only the first one
-    val today = LocalDate.now()
+    val today = PlannedDay.today
     val (confirmed, other) =
         FakeEventRepository.sampleEvents(today).take(2).map {
           it.copy(startDateTime = today.atTime(15, 0))
@@ -2510,6 +2572,7 @@ class AppNavHostTest {
           planningRepository = appPlanningRepository,
           authRepository = auth,
           eventRepository = FakeEventRepository(listOf(confirmed, other)),
+          clock = PlannedDay.clock,
       )
       composeTestRule.onNodeWithText("Saved consultation").assertIsDisplayed()
       composeTestRule.onNodeWithText(confirmed.title).assertIsDisplayed()
@@ -2531,7 +2594,7 @@ class AppNavHostTest {
         Appointment(
             id = "saved",
             title = "Saved consultation",
-            scheduledAt = LocalDate.now().atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant(),
+            scheduledAt = PlannedDay.today.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant(),
             type = AppointmentType.CONSULTATION,
         ),
     )
@@ -2546,6 +2609,7 @@ class AppNavHostTest {
           Route.PLANNING,
           planningRepository = appPlanningRepository,
           authRepository = auth,
+          clock = PlannedDay.clock,
       )
       composeTestRule.onNodeWithText("Saved consultation").assertIsDisplayed()
       composeTestRule.onNodeWithTag(C.Tag.planning_error).assertDoesNotExist()
