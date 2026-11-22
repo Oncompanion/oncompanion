@@ -149,6 +149,8 @@ class DoseCountTest {
               "two to three times a day" to null,
               "2 oder 3 mal täglich" to null,
               "zwei bis drei mal täglich" to null,
+              "2x–3x/j" to null,
+              "3x à 4x par jour" to null,
               // Two wordings that disagree
               "2x/j le matin" to null,
               // Meals aren't the same time of day everywhere
@@ -183,4 +185,45 @@ class DoseCountTest {
               "with food" to null,
           )
       )
+
+  @Test
+  fun describe_saysTheDosesADay_andTheConditionItKnows() =
+      listOf(
+              // A plain schedule, however it's written
+              "1-0-0" to DailyDoses(1, null),
+              "0-0-1" to DailyDoses(1, null),
+              "1-0-1" to DailyDoses(2, null),
+              "matin et soir" to DailyDoses(2, null),
+              "toutes les 8 heures" to DailyDoses(3, null),
+              "3x täglich" to DailyDoses(3, null),
+              // With a condition: the doses a day it says, and what for
+              "1-1-1 si nausées" to DailyDoses(3, DoseCondition.IF_NAUSEOUS),
+              "1 cp en cas de nausées, 3x/j" to DailyDoses(3, DoseCondition.IF_NAUSEOUS),
+              "3 times a day for pain" to DailyDoses(3, DoseCondition.IF_IN_PAIN),
+              "2x täglich bei Fieber" to DailyDoses(2, DoseCondition.IF_FEVERISH),
+              "si anxiété" to DailyDoses(null, DoseCondition.IF_ANXIOUS),
+              "1-0-1 si vomissements" to DailyDoses(2, DoseCondition.IF_VOMITING),
+              "once a day for sleep" to DailyDoses(1, DoseCondition.FOR_SLEEP),
+              "si besoin" to DailyDoses(null, DoseCondition.IF_NEEDED),
+              "1-0-1 si besoin" to DailyDoses(2, DoseCondition.IF_NEEDED),
+              "bei Bedarf" to DailyDoses(null, DoseCondition.IF_NEEDED),
+              "3x/j prn" to DailyDoses(3, DoseCondition.IF_NEEDED),
+              "3x/j p.r.n." to DailyDoses(3, DoseCondition.IF_NEEDED),
+              "Reserve 3x/Tag" to DailyDoses(3, DoseCondition.IF_NEEDED),
+              "3x täglich nach Bedarf" to DailyDoses(3, DoseCondition.IF_NEEDED),
+              "3x/day if pain" to DailyDoses(3, DoseCondition.IF_IN_PAIN),
+              "3 times a day if nauseous" to DailyDoses(3, DoseCondition.IF_NAUSEOUS),
+              "3x täglich nach Erbrechen" to DailyDoses(3, DoseCondition.IF_VOMITING),
+              // As written: a condition it doesn't know, a maximum, a range, less than daily, or
+              // nothing it understands
+              "en cas de toux, 3x/j" to null,
+              "max 3x/j si nausées" to null,
+              "1 à 2 fois par jour" to null,
+              "1x/semaine" to null,
+              "with food" to null,
+              null to null,
+          )
+          .forEach { (frequency, expected) ->
+            assertEquals("\"$frequency\"", expected, DoseCount.describe(frequency))
+          }
 }

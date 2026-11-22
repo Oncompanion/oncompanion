@@ -18,28 +18,43 @@ import com.github.se.oncompanion.model.medication.scan.comparable
  */
 object DoseCount {
 
-  /** The number of doses a day [frequency] says, or `null` if it doesn't say one plainly. */
-  fun of(frequency: String?): Int? {
+  /**
+   * The number of doses a day [frequency] says, or `null` if it doesn't say one plainly, or says
+   * they're taken only on a condition: there is then nothing to tick each day.
+   */
+  fun of(frequency: String?): Int? = describe(frequency)?.takeIf { it.condition == null }?.perDay
+
+  /**
+   * [frequency] as the Overview can say it: its doses a day and the condition they're taken on, or
+   * `null` to show it as written. That is when it says neither, says a condition the app doesn't
+   * know ("en cas de toux"), a maximum, a range, or less often than daily: rewording those could
+   * lose what the prescription says.
+   */
+  fun describe(frequency: String?): DailyDoses? {
     if (frequency.isNullOrBlank()) return null
     val text = comparable(frequency).replace(DASHES, "-")
     if (saysNoDailyCount(text)) return null
+    val condition =
+        CONDITIONS.entries.firstOrNull { (_, words) -> words.any { it.containsMatchIn(text) } }?.key
+    if (condition == null && OTHER_CONDITION.containsMatchIn(text)) return null
     // Every wording that says a count must agree; "daily" alone only counts when none other does
     val counts = readers.mapNotNull { read -> read(text) }.distinct()
-    val count = if (counts.isEmpty()) onceADay(text) else counts.singleOrNull()
-    // More than can be recorded, one an hour, is a misreading
-    return count?.takeIf { it in 1..MAX_TAKEN_PER_DAY }
+    val count =
+        (if (counts.isEmpty()) onceADay(text) else counts.singleOrNull())
+            // More than can be recorded, one an hour, is a misreading
+            ?.takeIf { it in 1..MAX_TAKEN_PER_DAY }
+    return if (count == null && condition == null) null else DailyDoses(count, condition)
   }
 
   /**
-   * [text] says the doses are taken only if needed, up to a maximum, as a range or less often than
-   * daily: whatever number it also says isn't a count of doses to take each day.
+   * [text] says the doses are taken up to a maximum, as a range or less often than daily: whatever
+   * number it also says isn't a count of doses to take each day.
    */
   private fun saysNoDailyCount(text: String): Boolean {
     // Without the Swiss scheme, so "1-0-1" isn't read as a range
     val withoutScheme = SCHEME.replace(text, " ")
-    return listOf(IF_NEEDED, UP_TO, LESS_THAN_DAILY).any { words ->
-      words.any { it.containsMatchIn(text) }
-    } || RANGE.any { it.containsMatchIn(withoutScheme) }
+    return listOf(UP_TO, LESS_THAN_DAILY).any { words -> words.any { it.containsMatchIn(text) } } ||
+        RANGE.any { it.containsMatchIn(withoutScheme) }
   }
 
   /** "1-0-1", "1-1-1-1": one dose at each time of the day whose number isn't 0. */
@@ -92,17 +107,44 @@ object DoseCount {
 
   private const val HOURS_IN_A_DAY = 24
 
-  private val IF_NEEDED =
-      listOf(
-          // "Reserve" alone is the German for it, "en réserve" the French
-          Regex("""\b(?:si besoin|au besoin|selon (?:le )?besoin|reserve|si necessaire)\b"""),
-          Regex("""\ben cas de\b"""),
-          Regex("""\b(?:if|as|when) (?:needed|required|necessary)\b|\bp\.?r\.?n\b"""),
-          Regex("""\b(?:for|if) (?:pain|nausea|nauseous|fever|anxiety|vomiting|sleep)\b"""),
-          Regex("""\b(?:bei|nach) (?:bedarf|schmerzen|ubelkeit|fieber|erbrechen|angst)\b"""),
-          Regex("""\bfalls notig\b"""),
-          Regex("""\bsi (?:nausees?|douleurs?|fievre|anxiete)\b"""),
+  /** The conditions a medication is taken on, the symptoms before plain "if needed". */
+  private val CONDITIONS =
+      linkedMapOf(
+          DoseCondition.IF_NAUSEOUS to
+              listOf(
+                  Regex("""\b(?:si|en cas de) nausees?\b|\b(?:bei|nach) ubelkeit\b"""),
+                  Regex("""\b(?:for|if) (?:nausea|nauseous)\b"""),
+              ),
+          DoseCondition.IF_IN_PAIN to
+              listOf(
+                  Regex("""\b(?:si|en cas de) douleurs?\b|\b(?:bei|nach) schmerzen\b"""),
+                  Regex("""\b(?:for|if) pain\b"""),
+              ),
+          DoseCondition.IF_FEVERISH to
+              listOf(Regex("""\b(?:si|en cas de) fievre\b|\b(?:for|if) fever\b|\bbei fieber\b""")),
+          DoseCondition.IF_ANXIOUS to
+              listOf(
+                  Regex("""\b(?:si|en cas de) anxiete\b|\b(?:for|if) anxiety\b|\bbei angst\b""")
+              ),
+          DoseCondition.IF_VOMITING to
+              listOf(
+                  Regex("""\b(?:si|en cas de) vomissements?\b|\b(?:bei|nach) erbrechen\b"""),
+                  Regex("""\b(?:for|if) vomiting\b"""),
+              ),
+          DoseCondition.FOR_SLEEP to listOf(Regex("""\b(?:for|if) sleep\b""")),
+          DoseCondition.IF_NEEDED to
+              listOf(
+                  // "Reserve" alone is the German for it, "en réserve" the French
+                  Regex(
+                      """\b(?:si besoin|au besoin|selon (?:le )?besoin|reserve|si necessaire)\b"""
+                  ),
+                  Regex("""\b(?:bei|nach) bedarf\b|\bfalls notig\b"""),
+                  Regex("""\b(?:if|as|when) (?:needed|required|necessary)\b|\bp\.?r\.?n\b"""),
+              ),
       )
+
+  /** A condition none of [CONDITIONS] says: "en cas de toux". */
+  private val OTHER_CONDITION = Regex("""\ben cas de\b""")
 
   /**
    * A maximum, not a schedule: "max 3x/j", "up to 4 times a day", "höchstens 2x täglich", "pas plus
@@ -115,13 +157,13 @@ object DoseCount {
       )
 
   /**
-   * A range: "1 à 2 fois par jour", "3-4 times a day", "1 or 2", "2 oder 3", "deux à trois fois",
-   * "two to three times". Looked for once the Swiss scheme is taken out, so "1-0-1" isn't read as
-   * one.
+   * A range: "1 à 2 fois par jour", "3-4 times a day", "2x-3x/j", "1 or 2", "2 oder 3", "deux à
+   * trois fois", "two to three times". Looked for once the Swiss scheme is taken out, so "1-0-1"
+   * isn't read as one.
    */
   private val RANGE =
       listOf(
-          Regex("""(?<!\d)\d{1,2}\s*(?:-|a|to|or|ou|bis|oder|od\.?)\s*\d{1,2}(?!\d)"""),
+          Regex("""(?<!\d)\d{1,2}\s*x?\s*(?:-|a|to|or|ou|bis|oder|od\.?)\s*\d{1,2}(?!\d)"""),
           // In words, one pattern per language
           Regex("""\b(?:une?|deux|trois|quatre) (?:a|ou) (?:deux|trois|quatre|cinq|six)\b"""),
           Regex("""\b(?:one|two|three|four) (?:to|or) (?:two|three|four|five|six)\b"""),
