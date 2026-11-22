@@ -122,11 +122,10 @@ object DoseCount {
   private val RANGE =
       listOf(
           Regex("""(?<!\d)\d{1,2}\s*(?:-|a|to|or|ou|bis|oder|od\.?)\s*\d{1,2}(?!\d)"""),
-          Regex(
-              """\b(?:une?|deux|trois|quatre|one|two|three|four|eine?|zwei|drei|vier)\s+""" +
-                  """(?:a|to|or|ou|bis|oder)\s+""" +
-                  """(?:deux|trois|quatre|cinq|six|two|three|four|five|zwei|drei|vier|funf|sechs)\b"""
-          ),
+          // In words, one pattern per language
+          Regex("""\b(?:une?|deux|trois|quatre) (?:a|ou) (?:deux|trois|quatre|cinq|six)\b"""),
+          Regex("""\b(?:one|two|three|four) (?:to|or) (?:two|three|four|five|six)\b"""),
+          Regex("""\b(?:eine?|zwei|drei|vier) (?:bis|oder) (?:zwei|drei|vier|funf|sechs)\b"""),
       )
 
   /** Dashes other than "-": "1–2" is then a range, and "1–0–1" the Swiss scheme. */

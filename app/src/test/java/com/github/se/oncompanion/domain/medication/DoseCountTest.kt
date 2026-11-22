@@ -148,6 +148,7 @@ class DoseCountTest {
               "deux à trois fois par jour" to null,
               "two to three times a day" to null,
               "2 oder 3 mal täglich" to null,
+              "zwei bis drei mal täglich" to null,
               // Two wordings that disagree
               "2x/j le matin" to null,
               // Meals aren't the same time of day everywhere
