@@ -21,20 +21,25 @@ object DoseCount {
   /** The number of doses a day [frequency] says, or `null` if it doesn't say one plainly. */
   fun of(frequency: String?): Int? {
     if (frequency.isNullOrBlank()) return null
-    val text = comparable(frequency)
-    if (
-        IF_NEEDED.any { it.containsMatchIn(text) } ||
-            UP_TO.containsMatchIn(text) ||
-            RANGE.containsMatchIn(SCHEME.replace(text, " ")) ||
-            LESS_THAN_DAILY.any { it.containsMatchIn(text) }
-    ) {
-      return null
-    }
+    val text = comparable(frequency).replace(DASHES, "-")
+    if (saysNoDailyCount(text)) return null
     // Every wording that says a count must agree; "daily" alone only counts when none other does
     val counts = readers.mapNotNull { read -> read(text) }.distinct()
     val count = if (counts.isEmpty()) onceADay(text) else counts.singleOrNull()
     // More than can be recorded, one an hour, is a misreading
     return count?.takeIf { it in 1..MAX_TAKEN_PER_DAY }
+  }
+
+  /**
+   * [text] says the doses are taken only if needed, up to a maximum, as a range or less often than
+   * daily: whatever number it also says isn't a count of doses to take each day.
+   */
+  private fun saysNoDailyCount(text: String): Boolean {
+    // Without the Swiss scheme, so "1-0-1" isn't read as a range
+    val withoutScheme = SCHEME.replace(text, " ")
+    return listOf(IF_NEEDED, UP_TO, LESS_THAN_DAILY).any { words ->
+      words.any { it.containsMatchIn(text) }
+    } || RANGE.any { it.containsMatchIn(withoutScheme) }
   }
 
   /** "1-0-1", "1-1-1-1": one dose at each time of the day whose number isn't 0. */
@@ -89,21 +94,43 @@ object DoseCount {
 
   private val IF_NEEDED =
       listOf(
-          Regex("""\b(?:si besoin|au besoin|en reserve|si necessaire|en cas de)\b"""),
-          Regex("""\b(?:if|as|when) (?:needed|required|necessary)\b|\bprn\b"""),
-          Regex("""\bfor (?:pain|nausea|fever|anxiety|sleep)\b"""),
-          Regex("""\bbei (?:bedarf|schmerzen|ubelkeit|fieber|erbrechen|angst)\b|\bfalls notig\b"""),
+          // "Reserve" alone is the German for it, "en réserve" the French
+          Regex("""\b(?:si besoin|au besoin|selon (?:le )?besoin|reserve|si necessaire)\b"""),
+          Regex("""\ben cas de\b"""),
+          Regex("""\b(?:if|as|when) (?:needed|required|necessary)\b|\bp\.?r\.?n\b"""),
+          Regex("""\b(?:for|if) (?:pain|nausea|nauseous|fever|anxiety|vomiting|sleep)\b"""),
+          Regex("""\b(?:bei|nach) (?:bedarf|schmerzen|ubelkeit|fieber|erbrechen|angst)\b"""),
+          Regex("""\bfalls notig\b"""),
           Regex("""\bsi (?:nausees?|douleurs?|fievre|anxiete)\b"""),
       )
 
-  /** A maximum, not a schedule: "max 3x/j", "up to 4 times a day", "höchstens 2x täglich". */
-  private val UP_TO = Regex("""\b(?:max|maximum|up to|jusqu.?a|au plus|hochstens|bis zu)\b""")
+  /**
+   * A maximum, not a schedule: "max 3x/j", "up to 4 times a day", "höchstens 2x täglich", "pas plus
+   * de 3x/j", "no more than 4 times a day", "bis 3x täglich".
+   */
+  private val UP_TO =
+      listOf(
+          Regex("""\b(?:max|maximum|up to|jusqu.?a|au plus|pas plus de|hochstens|bis zu)\b"""),
+          Regex("""\b(?:(?:no|not) more than|at most)\b|\bbis\s+(?=\d)"""),
+      )
 
   /**
-   * A range: "1 à 2 fois par jour", "3-4 times a day", "1 or 2", "1 od. 2". Looked for once the
-   * Swiss scheme is taken out, so "1-0-1" isn't read as one.
+   * A range: "1 à 2 fois par jour", "3-4 times a day", "1 or 2", "2 oder 3", "deux à trois fois",
+   * "two to three times". Looked for once the Swiss scheme is taken out, so "1-0-1" isn't read as
+   * one.
    */
-  private val RANGE = Regex("""(?<!\d)\d{1,2}\s*(?:-|a|to|or|ou|bis|od\.?)\s*\d{1,2}(?!\d)""")
+  private val RANGE =
+      listOf(
+          Regex("""(?<!\d)\d{1,2}\s*(?:-|a|to|or|ou|bis|oder|od\.?)\s*\d{1,2}(?!\d)"""),
+          Regex(
+              """\b(?:une?|deux|trois|quatre|one|two|three|four|eine?|zwei|drei|vier)\s+""" +
+                  """(?:a|to|or|ou|bis|oder)\s+""" +
+                  """(?:deux|trois|quatre|cinq|six|two|three|four|five|zwei|drei|vier|funf|sechs)\b"""
+          ),
+      )
+
+  /** Dashes other than "-": "1–2" is then a range, and "1–0–1" the Swiss scheme. */
+  private val DASHES = Regex("""[‐-―−]""")
 
   private val LESS_THAN_DAILY =
       listOf(
