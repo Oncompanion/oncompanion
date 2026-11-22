@@ -728,6 +728,26 @@ class AddSymptomViewModelTest {
       }
 
   @Test
+  fun editing_keepsTheStrengthOfEachSymptomStillInTheEntry() =
+      runTest(dispatcher) {
+        val withStrengths =
+            logged.copy(
+                types = listOf(SymptomType.FATIGUE, SymptomType.NAUSEA),
+                strengths = mapOf(SymptomType.FATIGUE to 6, SymptomType.NAUSEA to 3),
+            )
+        val viewModel = editing(withStrengths)
+        advanceUntilIdle()
+        // Only the notes change, then nausea is removed: its strength goes with it
+        viewModel.onNotesChange("Better after a nap")
+        viewModel.toggleType(SymptomType.NAUSEA)
+
+        viewModel.save()
+        advanceUntilIdle()
+
+        assertEquals(mapOf(SymptomType.FATIGUE to 6), savedEntry().strengths)
+      }
+
+  @Test
   fun editing_withoutTouchingTheDayOrTime_keepsTheExactMoment() =
       runTest(dispatcher) {
         val viewModel = editing()
