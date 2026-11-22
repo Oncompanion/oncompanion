@@ -80,7 +80,8 @@ fun weekSummaryOf(days: List<JournalDay>, today: LocalDate): WeekSummary? {
   return WeekSummary(weekDays, entries.size, mostOften)
 }
 
-/** [name] without case or extra spaces, to compare two names of "Other". */
-private fun sameName(name: String): String = name.trim().lowercase().split(SPACES).joinToString(" ")
+/** [name] without case or extra spaces, to compare two names of a symptom. */
+internal fun sameName(name: String): String =
+    name.trim().lowercase().split(SPACES).joinToString(" ")
 
 private val SPACES = Regex("""\s+""")

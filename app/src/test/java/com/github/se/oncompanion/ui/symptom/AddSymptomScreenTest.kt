@@ -200,6 +200,25 @@ class AddSymptomScreenTest {
   }
 
   @Test
+  fun otherNamedAfterASymptomOfTheList_saysToPickIt_andSaveIsDisabled() {
+    setContent(
+        empty.copy(
+            types = listOf(SymptomType.OTHER),
+            otherName = "nausea",
+            otherNameListedAs = SymptomType.NAUSEA,
+        )
+    )
+
+    scrolledTo(C.Tag.symptom_add_other_name)
+        .assert(
+            hasText(
+                string(R.string.symptom_add_other_name_listed, string(R.string.symptom_type_nausea))
+            )
+        )
+    node(C.Tag.symptom_add_save).assertIsNotEnabled()
+  }
+
+  @Test
   fun typingTheName_reportsIt_andANamedOtherCanBeSaved() {
     setContent(empty.copy(types = listOf(SymptomType.OTHER)))
 
@@ -768,7 +787,13 @@ class AddSymptomScreenTest {
           runBlocking { it.signInWithGoogle("token") }
         }
     val viewModel =
-        AddSymptomViewModel(auth, repository, clock, speechRecognizer = FakeSpeechRecognizer())
+        AddSymptomViewModel(
+            auth,
+            repository,
+            clock,
+            speechRecognizer = FakeSpeechRecognizer(),
+            symptomName = { context.getString(it.label) },
+        )
     var savedCount = 0
     composeTestRule.setContent {
       AddSymptomScreen(viewModel = viewModel, onBack = {}, onSaved = { savedCount++ })
@@ -805,6 +830,7 @@ class AddSymptomScreenTest {
             clock,
             symptomId = logged.id,
             speechRecognizer = FakeSpeechRecognizer(),
+            symptomName = { context.getString(it.label) },
         )
     var savedCount = 0
     composeTestRule.setContent {

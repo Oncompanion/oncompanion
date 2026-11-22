@@ -71,6 +71,8 @@ data class EditedSymptom(val entry: SymptomEntry, val date: LocalDate, val time:
  *   midnight
  * @property time the time the user chose, or `null` for the current time
  * @property otherName which symptom [SymptomType.OTHER] is ("Hiccups"); required when it is picked
+ * @property otherNameListedAs the symptom of the list [otherName] already names ("Nausea"), if any:
+ *   it is picked there, so one entry never names it twice
  * @property notes free text
  * @property isInFuture the chosen day and time are later than now, which can't be saved
  * @property save where saving the symptom is; once [SavePhase.SAVED], the form is done
@@ -91,6 +93,7 @@ data class AddSymptomUiState(
     val date: LocalDate? = null,
     val time: LocalTime? = null,
     val otherName: String = "",
+    val otherNameListedAs: SymptomType? = null,
     val notes: String = "",
     val isInFuture: Boolean = false,
     val save: SavePhase = SavePhase.EDITING,
@@ -133,6 +136,10 @@ data class AddSymptomUiState(
   val isMissingOtherName: Boolean
     get() = isOtherPicked && otherName.isBlank()
 
+  /** "Other" is named after a symptom of the list, which can't be saved: it's picked there. */
+  val isOtherNameListed: Boolean
+    get() = isOtherPicked && otherNameListedAs != null
+
   /** The name saved with the symptom: only with "Other", without the spaces around it. */
   val savedOtherName: String?
     get() = otherName.trim().ifEmpty { null }?.takeIf { isOtherPicked }
@@ -150,6 +157,7 @@ data class AddSymptomUiState(
         isFormShown &&
             types.isNotEmpty() &&
             !isMissingOtherName &&
+            !isOtherNameListed &&
             !isInFuture &&
             save == SavePhase.EDITING &&
             hasChanges
@@ -174,6 +182,8 @@ data class AddSymptomUiState(
  * @param speechRecognizer listens when the symptom is dictated (US-44)
  * @param locale the phone's language: a symptom is dictated in French on a French phone, in English
  *   otherwise
+ * @param symptomName the name of each symptom of the list, as the form shows it, so "Other" isn't
+ *   named after one of them
  * @param picked a symptom already ticked when logging a new one (a check-in tile on the Overview);
  *   the user can still untick it. Ignored when editing
  */
@@ -187,6 +197,7 @@ class AddSymptomViewModel(
     private val speechRecognizer: SpeechRecognizer = SpeechRecognizerProvider.recognizer,
     private val locale: Locale = Locale.getDefault(),
     picked: SymptomType? = null,
+    private val symptomName: (SymptomType) -> String,
 ) : ViewModel() {
 
   /** The first name a caregiver's symptom is signed with. */
@@ -252,6 +263,7 @@ class AddSymptomViewModel(
         date = edited.date,
         time = edited.time,
         otherName = entry.otherName.orEmpty(),
+        otherNameListedAs = listedAs(entry.otherName.orEmpty()),
         notes = entry.notes.orEmpty(),
     )
   }
@@ -299,17 +311,24 @@ class AddSymptomViewModel(
   }
 
   /**
-   * Names the "Other" symptom; a name longer than an entry can store is cut, after the spaces before
-   * it, which aren't saved.
+   * Names the "Other" symptom; a name longer than an entry can store is cut, after the spaces
+   * before it, which aren't saved.
    */
   fun onOtherNameChange(name: String) {
-    edit { it.copy(otherName = name.trimStart().take(SymptomEntry.MAX_OTHER_NAME_LENGTH)) }
+    val otherName = name.trimStart().take(SymptomEntry.MAX_OTHER_NAME_LENGTH)
+    edit { it.copy(otherName = otherName, otherNameListedAs = listedAs(otherName)) }
   }
 
   /** Text longer than an entry can store is cut, after the spaces before it, which aren't saved. */
   fun onNotesChange(notes: String) {
     edit { it.copy(notes = notes.trimStart().take(SymptomEntry.MAX_NOTES_LENGTH)) }
   }
+
+  /** The symptom of the list called [name], however it's typed ("nausea", " Nausea "). */
+  private fun listedAs(name: String): SymptomType? =
+      SymptomType.entries.firstOrNull {
+        it != SymptomType.OTHER && sameName(symptomName(it)) == sameName(name)
+      }
 
   /**
    * Saves the symptom for the signed-in user, if [AddSymptomUiState.canSave]: a new one, or the

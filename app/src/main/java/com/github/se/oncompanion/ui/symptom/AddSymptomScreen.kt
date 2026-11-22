@@ -452,7 +452,7 @@ private fun SymptomFields(
       FormGroup(R.string.symptom_add_types) {
         TypeChips(uiState.types, onToggleType)
         // Under the chips, as soon as "Other" is picked: it can't be saved without a name
-        if (uiState.isOtherPicked) OtherNameField(uiState.otherName, onOtherNameChange)
+        if (uiState.isOtherPicked) OtherNameField(uiState, onOtherNameChange)
       }
       FormGroup(R.string.symptom_add_intensity) {
         IntensitySlider(uiState.intensity, onIntensityChange, onClearIntensity)
@@ -719,14 +719,22 @@ private fun WhenField(
 
 /**
  * "Which symptom?", the name of the "Other" symptom, required to save it (Figma: "Check-in · Other,
- * not named yet").
+ * not named yet"). A name of the list says to pick that symptom instead.
  */
 @Composable
-private fun OtherNameField(name: String, onOtherNameChange: (String) -> Unit) {
+private fun OtherNameField(uiState: AddSymptomUiState, onOtherNameChange: (String) -> Unit) {
+  val listedAs = uiState.otherNameListedAs
   LakeTextField(
-      value = name,
+      value = uiState.otherName,
       onValueChange = onOtherNameChange,
       placeholder = { Text(stringResource(R.string.symptom_add_other_name_placeholder)) },
+      supportingText =
+          listedAs?.let {
+            {
+              Text(stringResource(R.string.symptom_add_other_name_listed, stringResource(it.label)))
+            }
+          },
+      isError = listedAs != null,
       singleLine = true,
       keyboardOptions =
           KeyboardOptions(
