@@ -7,7 +7,8 @@ import java.time.Instant
 
 /**
  * The symptoms the user can pick from (Figma: "Log symptoms"). With [OTHER], the notes say which
- * symptom it was.
+ * symptom it was. Keep in sync with the two lists of symptoms in `firestore.rules`
+ * (`isValidSymptom`): one missing from the strengths' list would refuse every edit.
  */
 enum class SymptomType {
   FATIGUE,
@@ -24,7 +25,8 @@ enum class SymptomType {
 /**
  * What the user logged at one moment, stored at `/users/{uid}/symptoms/{id}`: one or more symptoms
  * felt together, how strong each one was and notes. The app only records what the user entered: it
- * never interprets a strength, nor combines them into one.
+ * never interprets a strength, and stores nothing combined from them (a screen may show the
+ * strongest symptom of a day, as the week chart does).
  *
  * @property id the document ID; empty for an entry that isn't saved yet
  * @property types the symptoms felt, at least one and each at most once, in the order the user
@@ -32,7 +34,9 @@ enum class SymptomType {
  * @property strengths how strong each symptom was, from [MIN_INTENSITY] to [MAX_INTENSITY], for
  *   those the user gave a strength (Overview UX Refactor, #543); a symptom without one is absent
  * @property intensity how bad the user felt overall, from [MIN_INTENSITY] to [MAX_INTENSITY], or
- *   `null`: entries saved before [strengths] existed have it, and older app versions still write it
+ *   `null`. Only for entries saved before [strengths] existed and those older app versions write:
+ *   once the form asks a strength per symptom (#543) it stops writing it, and an edit that gives
+ *   strengths clears it
  * @property occurredAt when the user felt it (defaults to now when logging, can be earlier but not
  *   later, see [isValid])
  * @property notes free text; required with [SymptomType.OTHER], to say which symptom it was

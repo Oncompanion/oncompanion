@@ -143,7 +143,9 @@ service cloud.firestore {
                                   'createdAt', 'addedBy', 'addedByName', 'editedBy',
                                   'editedByName'])
           && data.keys().hasAll(['types', 'occurredAt', 'createdAt'])
-          // One or more symptoms, each at most once
+          // One or more symptoms, each at most once. This list and the strengths' keys below are
+          // SymptomType: keep both in sync with it (a symptom missing from the strengths' list would
+          // refuse every edit, since an edit writes a strength for each symptom)
           && data.types is list
           && data.types.size() >= 1
           && data.types.toSet().size() == data.types.size()
