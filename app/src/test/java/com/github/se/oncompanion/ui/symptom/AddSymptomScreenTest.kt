@@ -193,14 +193,9 @@ class AddSymptomScreenTest {
   fun otherNotNamedYet_asksWhichSymptom_andSaveIsDisabled() {
     setContent(empty.copy(types = listOf(SymptomType.OTHER)))
 
+    // One field, as in Figma: the placeholder asks, without a label or a helper text
     scrolledTo(C.Tag.symptom_add_other_name)
-        .assert(hasText(string(R.string.symptom_add_other_name)))
-        .assert(hasText(string(R.string.symptom_add_other_name_required)))
-    // Material shows the placeholder once the field is focused
-    node(C.Tag.symptom_add_other_name).performClick()
-    composeTestRule
-        .onNodeWithText(string(R.string.symptom_add_other_name_placeholder))
-        .assertExists()
+        .assert(hasText(string(R.string.symptom_add_other_name_placeholder)))
     node(C.Tag.symptom_add_save).assertIsNotEnabled()
   }
 

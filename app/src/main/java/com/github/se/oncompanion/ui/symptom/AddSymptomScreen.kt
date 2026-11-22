@@ -717,15 +717,16 @@ private fun WhenField(
   }
 }
 
-/** "Which symptom?", the name of the "Other" symptom, required to save it. */
+/**
+ * "Which symptom?", the name of the "Other" symptom, required to save it (Figma: "Check-in · Other,
+ * not named yet").
+ */
 @Composable
 private fun OtherNameField(name: String, onOtherNameChange: (String) -> Unit) {
   LakeTextField(
       value = name,
       onValueChange = onOtherNameChange,
-      label = { Text(stringResource(R.string.symptom_add_other_name)) },
       placeholder = { Text(stringResource(R.string.symptom_add_other_name_placeholder)) },
-      supportingText = { Text(stringResource(R.string.symptom_add_other_name_required)) },
       singleLine = true,
       keyboardOptions =
           KeyboardOptions(
