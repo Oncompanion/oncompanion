@@ -8,6 +8,7 @@ import com.github.se.oncompanion.model.session.RejectedWrites
 import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.assertEachRejectionIsReported
+import com.github.se.oncompanion.utils.assertReturnsWithoutServer
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Source
@@ -189,10 +190,9 @@ class TakenDosesRepositoryFirestoreTest {
           async(Dispatchers.IO) {
             withTimeout(10_000) { repository.observeDay(aliceUid, today).first { it.isNotEmpty() } }
           }
-      val start = System.currentTimeMillis()
-      withTimeout(5_000) { repository.setTaken(aliceUid, today, "ondansetron", 1) }
-      val elapsed = System.currentTimeMillis() - start
-      assertTrue("setTaken took $elapsed ms", elapsed < 1_000)
+      assertReturnsWithoutServer("setTaken") {
+        repository.setTaken(aliceUid, today, "ondansetron", 1)
+      }
       assertEquals(mapOf("ondansetron" to 1), observed.await())
     } finally {
       db.enableNetwork().await()
