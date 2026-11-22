@@ -9,10 +9,11 @@ import com.github.se.oncompanion.model.medication.scan.comparable
  * (US-28). The frequency is free text, typed by the patient or kept as read from a scanned
  * prescription, so English, French and German wordings and the Swiss scheme are read.
  *
- * It only counts what the text says plainly: anything taken only if needed, less often than daily
- * (weekly, every few days, a cycle) or not understood has no count, since a wrong number of doses
- * would be worse than none. The scanner's word lists say whether a text is a frequency at all; this
- * answers another question, how many a day, and shares their text cleanup ([comparable]).
+ * It only counts what the text says plainly: anything taken only if needed, up to a maximum or as a
+ * range of doses, less often than daily (weekly, every few days, a cycle) or not understood has no
+ * count, since a wrong number of doses would be worse than none. Two wordings that disagree ("2x/j
+ * le matin") have none either. The scanner's word lists say whether a text is a frequency at all;
+ * this answers another question, how many a day, and shares their text cleanup ([comparable]).
  */
 object DoseCount {
 
@@ -25,12 +26,15 @@ object DoseCount {
     val text = comparable(frequency)
     if (
         IF_NEEDED.any { it.containsMatchIn(text) } ||
+            UP_TO.containsMatchIn(text) ||
+            RANGE.containsMatchIn(SCHEME.replace(text, " ")) ||
             LESS_THAN_DAILY.any { it.containsMatchIn(text) }
     ) {
       return null
     }
-    // The most explicit wording first: a scheme or a number beats the times of day named after it
-    val count = readers.firstNotNullOfOrNull { read -> read(text) }
+    // Every wording that says a count must agree; "daily" alone only counts when none other does
+    val counts = readers.mapNotNull { read -> read(text) }.distinct()
+    val count = if (counts.isEmpty()) onceADay(text) else counts.singleOrNull()
     return count?.takeIf { it in 1..MAX_PER_DAY }
   }
 
@@ -59,16 +63,20 @@ object DoseCount {
 
   /**
    * "matin et soir", "morning, noon and evening", "abends": one dose at each time named. "Le soir
-   * au coucher" names one time twice, so it counts once.
+   * au coucher" names one time twice, so it counts once. A meal isn't a time of day everywhere
+   * ("dîner" is lunch in Switzerland and dinner in France), so a text naming one isn't counted
+   * here.
    */
   private fun namedTimes(text: String): Int? {
+    if (MEALS.containsMatchIn(text)) return null
     val named = AT_BEDTIME_IN_THE_EVENING.replace(text, "soir")
     return TIMES_OF_DAY.count { it.containsMatchIn(named) }.takeIf { it > 0 }
   }
 
   /**
-   * Once a day, said without a number of times ("daily", "1 par jour", "par jour" alone). Not after
-   * a number other than 1 ("2 daily"): it can mean two tablets at once or twice a day.
+   * Once a day, said without a number of times ("daily", "1 par jour", "par jour" alone), when no
+   * other wording says a count. Not after a number other than 1 ("2 daily"): it can mean two
+   * tablets at once or twice a day.
    */
   private fun onceADay(text: String): Int? =
       1.takeIf {
@@ -76,16 +84,27 @@ object DoseCount {
       }
 
   private val readers: List<(String) -> Int?> =
-      listOf(::schemeCount, ::timesADay, ::wordCount, ::everyFewHours, ::namedTimes, ::onceADay)
+      listOf(::schemeCount, ::timesADay, ::wordCount, ::everyFewHours, ::namedTimes)
 
   private const val HOURS_IN_A_DAY = 24
 
   private val IF_NEEDED =
       listOf(
-          Regex("""\b(?:si besoin|au besoin|en reserve|if needed|as needed|when needed|prn)\b"""),
-          Regex("""\b(?:bei bedarf)\b"""),
+          Regex("""\b(?:si besoin|au besoin|en reserve|si necessaire|en cas de)\b"""),
+          Regex("""\b(?:if|as|when) (?:needed|required|necessary)\b|\bprn\b"""),
+          Regex("""\bfor (?:pain|nausea|fever|anxiety|sleep)\b"""),
+          Regex("""\bbei (?:bedarf|schmerzen|ubelkeit|fieber|erbrechen|angst)\b|\bfalls notig\b"""),
           Regex("""\bsi (?:nausees?|douleurs?|fievre|anxiete)\b"""),
       )
+
+  /** A maximum, not a schedule: "max 3x/j", "up to 4 times a day", "höchstens 2x täglich". */
+  private val UP_TO = Regex("""\b(?:max|maximum|up to|jusqu.?a|au plus|hochstens|bis zu)\b""")
+
+  /**
+   * A range: "1 à 2 fois par jour", "3-4 times a day", "1 or 2", "1 od. 2". Looked for once the
+   * Swiss scheme is taken out, so "1-0-1" isn't read as one.
+   */
+  private val RANGE = Regex("""(?<!\d)\d{1,2}\s*(?:-|a|to|or|ou|bis|od\.?)\s*\d{1,2}(?!\d)""")
 
   private val LESS_THAN_DAILY =
       listOf(
@@ -105,8 +124,8 @@ object DoseCount {
           Regex(
               """\b(\d{1,2})\s*(?:x|fois|times|mal)\s*(?:/|par|per|a|pro)?\s*(?:jour|j|day|d|tag)\b"""
           ),
-          // "x" or "mal" is needed: "2 daily" can mean two tablets once a day
-          Regex("""\b(\d{1,2})\s*(?:x|mal)\s*(?:taglich|daily|quotidien(?:ne)?)\b"""),
+          // "x", "times" or "mal" is needed: "2 daily" can mean two tablets once a day
+          Regex("""\b(\d{1,2})\s*(?:x|mal|times|fois)\s*(?:taglich|daily|quotidien(?:ne)?)\b"""),
           Regex("""(?:\bx\s*)?\b(\d{1,2})\s*/\s*(?:jour|j|day|d)\b"""),
       )
 
@@ -116,7 +135,8 @@ object DoseCount {
           Regex("""\btwice\s+(?:a|per)\s+day\b|\btwice daily\b""") to 2,
           Regex("""\bthree times\s+(?:a|per)\s+day\b|\bthree times daily\b""") to 3,
           Regex("""\bfour times\s+(?:a|per)\s+day\b|\bfour times daily\b""") to 4,
-          Regex("""\bune fois par jour\b|\beinmal taglich\b|\b(?:qd|od)\b""") to 1,
+          // Not "od": also the right eye on eye drops, and "oder" in German
+          Regex("""\bune fois par jour\b|\beinmal taglich\b|\bqd\b""") to 1,
           Regex("""\bdeux fois par jour\b|\bzweimal taglich\b|\bbid\b""") to 2,
           Regex("""\btrois fois par jour\b|\bdreimal taglich\b|\btid\b""") to 3,
           Regex("""\bquatre fois par jour\b|\bviermal taglich\b|\bqid\b""") to 4,
@@ -134,9 +154,16 @@ object DoseCount {
   private val TIMES_OF_DAY =
       listOf(
           Regex("""\b(?:matin|morning|morgens)\b"""),
-          Regex("""\b(?:midi|noon|lunch|mittags)\b"""),
+          Regex("""\b(?:midi|noon|mittags)\b"""),
           Regex("""\b(?:soir|evening|abends)\b"""),
-          Regex("""\b(?:coucher|nuit|night|bedtime|zur nacht)\b"""),
+          Regex("""\b(?:coucher|nuit|night|bedtime|zur nacht|nachts)\b"""),
+      )
+
+  /** Meals, which aren't at the same time of day everywhere, so never counted as one. */
+  private val MEALS =
+      Regex(
+          """\b(?:breakfast|lunch|dinner|supper|meals?|repas|dejeuner|diner|souper|""" +
+              """fruhstuck|mittagessen|abendessen|mahlzeit(?:en)?)\b"""
       )
 
   private val NUMBER_BEFORE_DAILY =
