@@ -6,6 +6,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.model.session.RejectedWrites
 import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
+import com.github.se.oncompanion.utils.assertReturnsOffline
+import com.github.se.oncompanion.utils.assertReturnsWithoutServer
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Source
@@ -93,13 +95,6 @@ class SymptomRepositoryFirestoreTest {
   private suspend fun observeListOnce() =
       withTimeout(10_000) { repository.observeSymptoms(aliceUid).first() }
 
-  /** Runs [block] and returns how long it took, in milliseconds. */
-  private suspend fun timed(block: suspend () -> Unit): Long {
-    val start = System.currentTimeMillis()
-    block()
-    return System.currentTimeMillis() - start
-  }
-
   // ---- add / observe ----
 
   @Test
@@ -133,6 +128,107 @@ class SymptomRepositoryFirestoreTest {
     assertNull(stored.intensity)
   }
 
+  /** Fatigue and nausea, each with its own strength, as the form saves them since #543. */
+  private fun withStrengths() =
+      SymptomEntry(
+          types = listOf(SymptomType.FATIGUE, SymptomType.NAUSEA),
+          strengths = mapOf(SymptomType.FATIGUE to 5, SymptomType.NAUSEA to 3),
+          occurredAt = Instant.parse("2026-10-05T09:30:00Z"),
+      )
+
+  @Test
+  fun strengths_roundTrip_andAreStoredBySymptomName(): Unit = runBlocking {
+    val id = repository.addSymptom(aliceUid, withStrengths())
+    awaitServerAck()
+
+    assertSameContent(withStrengths(), observeOnce(id))
+    val snapshot =
+        withTimeout(10_000) {
+          db.collection(symptomsPath(aliceUid)).document(id).get(Source.SERVER).await()
+        }
+    assertEquals(
+        mapOf("FATIGUE" to 5L, "NAUSEA" to 3L),
+        snapshot.get(SymptomRepositoryFirestore.FIELD_STRENGTHS),
+    )
+  }
+
+  @Test
+  fun anEdit_canChangeOrRemoveTheStrengths(): Unit = runBlocking {
+    val id = repository.addSymptom(aliceUid, withStrengths())
+    awaitServerAck()
+
+    listOf(mapOf(SymptomType.NAUSEA to 8), emptyMap()).forEach { strengths ->
+      val edited = withStrengths().copy(id = id, strengths = strengths)
+      repository.updateSymptom(aliceUid, edited)
+      awaitServerAck()
+      assertSameContent(edited, observeOnce(id))
+    }
+  }
+
+  @Test
+  fun anOfflineEdit_replacesTheStrengths_atOnceAndOnTheServer(): Unit = runBlocking {
+    val id = repository.addSymptom(aliceUid, withStrengths())
+    awaitServerAck()
+    val edited = withStrengths().copy(id = id, strengths = mapOf(SymptomType.NAUSEA to 7))
+    db.disableNetwork().await()
+    try {
+      withTimeout(5_000) { repository.updateSymptom(aliceUid, edited) }
+      assertSameContent(edited, observeOnce(id))
+    } finally {
+      db.enableNetwork().await()
+    }
+    awaitServerAck()
+    val server =
+        withTimeout(10_000) {
+          db.collection(symptomsPath(aliceUid)).document(id).get(Source.SERVER).await()
+        }
+    // Fatigue's strength is removed as 0, which a deletion inside a map wouldn't show offline
+    val saved = server.get(SymptomRepositoryFirestore.FIELD_STRENGTHS) as Map<*, *>
+    assertEquals(7L, saved["NAUSEA"])
+    assertEquals(0L, saved["FATIGUE"])
+  }
+
+  @Test
+  fun aStrengthThatDoesntFit_isLeftOut_andTheEntryStillShows(): Unit = runBlocking {
+    EmulatorTestData.createRawDocument(
+        symptomsPath(aliceUid),
+        "mixed",
+        """{"types": {"arrayValue": {"values": [{"stringValue": "FATIGUE"}]}},
+           "strengths": {"mapValue": {"fields": {
+              "FATIGUE": {"integerValue": "4"},
+              "NAUSEA": {"integerValue": "6"},
+              "COUGH": {"integerValue": "2"}}}},
+           "occurredAt": {"timestampValue": "2026-10-01T00:00:00Z"},
+           "createdAt": {"timestampValue": "2026-10-01T00:00:00Z"}}""",
+    )
+    EmulatorTestData.createRawDocument(
+        symptomsPath(aliceUid),
+        "outOfRange",
+        """{"types": {"arrayValue": {"values": [{"stringValue": "PAIN"}]}},
+           "strengths": {"mapValue": {"fields": {
+              "PAIN": {"integerValue": "12"}}}},
+           "intensity": {"integerValue": "5"},
+           "occurredAt": {"timestampValue": "2026-10-01T00:00:00Z"},
+           "createdAt": {"timestampValue": "2026-10-01T00:00:00Z"}}""",
+    )
+
+    // Nausea was removed by an older app version, and cough is unknown: only fatigue's is kept
+    assertEquals(mapOf(SymptomType.FATIGUE to 4), observeOnce("mixed")!!.strengths)
+    val outOfRange = observeOnce("outOfRange")!!
+    assertEquals(emptyMap<SymptomType, Int>(), outOfRange.strengths)
+    assertEquals(5, outOfRange.intensity)
+  }
+
+  @Test
+  fun anEntryFromBefore_keepsItsOneIntensity_andNoStrengths(): Unit = runBlocking {
+    val id = repository.addSymptom(aliceUid, fatigue())
+    awaitServerAck()
+
+    val stored = observeOnce(id)!!
+    assertEquals(7, stored.intensity)
+    assertEquals(emptyMap<SymptomType, Int>(), stored.strengths)
+  }
+
   @Test
   fun fieldsAreWrittenWithTheExpectedTypes(): Unit = runBlocking {
     val id = repository.addSymptom(aliceUid, fatigue())
@@ -155,6 +251,7 @@ class SymptomRepositoryFirestoreTest {
   @Test
   fun collectionAndFieldConstantsMatchSpec() {
     assertEquals("users", SymptomRepositoryFirestore.USERS_COLLECTION)
+    assertEquals("strengths", SymptomRepositoryFirestore.FIELD_STRENGTHS)
     assertEquals("symptoms", SymptomRepositoryFirestore.COLLECTION)
     assertEquals("types", SymptomRepositoryFirestore.FIELD_TYPES)
     assertEquals("intensity", SymptomRepositoryFirestore.FIELD_INTENSITY)
@@ -286,10 +383,9 @@ class SymptomRepositoryFirestoreTest {
     awaitServerAck()
     EmulatorTestData.signIn("alice")
 
-    val elapsed = timed {
-      withTimeout(5_000) { repository.updateSymptom(bobUid, editedToHiccups(id)) }
+    assertReturnsOffline(db, "updateSymptom") {
+      repository.updateSymptom(bobUid, editedToHiccups(id))
     }
-    assertTrue("updateSymptom took $elapsed ms", elapsed < 1_000)
     awaitServerAck()
     awaitRejectionReported()
 
@@ -307,10 +403,9 @@ class SymptomRepositoryFirestoreTest {
     awaitServerAck()
     db.disableNetwork().await()
     try {
-      val elapsed = timed {
-        withTimeout(5_000) { repository.updateSymptom(aliceUid, editedToHiccups(id)) }
+      assertReturnsWithoutServer("updateSymptom") {
+        repository.updateSymptom(aliceUid, editedToHiccups(id))
       }
-      assertTrue("updateSymptom took $elapsed ms", elapsed < 1_000)
 
       // Shown in the detail and the journal while still offline
       assertSameContent(hiccups(), observeOnce(id))
@@ -392,8 +487,7 @@ class SymptomRepositoryFirestoreTest {
     EmulatorTestData.signIn("alice")
 
     lateinit var id: String
-    val elapsed = timed { withTimeout(5_000) { id = repository.addSymptom(bobUid, fatigue()) } }
-    assertTrue("addSymptom took $elapsed ms", elapsed < 1_000)
+    assertReturnsOffline(db, "addSymptom") { id = repository.addSymptom(bobUid, fatigue()) }
 
     awaitServerAck()
     awaitRejectionReported()
@@ -413,8 +507,7 @@ class SymptomRepositoryFirestoreTest {
     awaitServerAck()
     EmulatorTestData.signIn("alice")
 
-    val elapsed = timed { withTimeout(5_000) { repository.deleteSymptom(bobUid, id) } }
-    assertTrue("deleteSymptom took $elapsed ms", elapsed < 1_000)
+    assertReturnsOffline(db, "deleteSymptom") { repository.deleteSymptom(bobUid, id) }
     awaitServerAck()
     awaitRejectionReported()
 
@@ -498,8 +591,7 @@ class SymptomRepositoryFirestoreTest {
           async(Dispatchers.IO) {
             withTimeout(10_000) { repository.observeSymptoms(aliceUid).first { it.isNotEmpty() } }
           }
-      val elapsed = timed { withTimeout(5_000) { id = repository.addSymptom(aliceUid, fatigue()) } }
-      assertTrue("addSymptom took $elapsed ms", elapsed < 1_000)
+      assertReturnsWithoutServer("addSymptom") { id = repository.addSymptom(aliceUid, fatigue()) }
 
       val offline = observed.await().single()
       assertSameContent(fatigue(), offline)
@@ -521,8 +613,7 @@ class SymptomRepositoryFirestoreTest {
     awaitServerAck()
     db.disableNetwork().await()
     try {
-      val elapsed = timed { withTimeout(5_000) { repository.deleteSymptom(aliceUid, id) } }
-      assertTrue("deleteSymptom took $elapsed ms", elapsed < 1_000)
+      assertReturnsWithoutServer("deleteSymptom") { repository.deleteSymptom(aliceUid, id) }
 
       // Gone from the journal while still offline
       assertEquals(emptyList<SymptomEntry>(), observeListOnce())
