@@ -158,9 +158,9 @@ fun OverviewScreen(
     onSwitchPatient: () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-  // The ViewModel outlives navigation and backgrounding: keep the date, greeting and statuses
-  // current when the Overview comes back, and move to the new day at each midnight while it is on
-  // screen
+  // The ViewModel outlives navigation and backgrounding: keep the date, greeting, Next up and
+  // statuses current when the Overview comes back, and while it is on screen each time an entry
+  // starts or ends and at midnight
   LifecycleResumeEffect(viewModel) {
     val following = viewModel.followToday()
     onPauseOrDispose { following.cancel() }
@@ -217,8 +217,14 @@ fun OverviewContent(
     onSwitchPatient: () -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
 ) {
-  Scaffold(modifier = modifier.testTag(C.Tag.overview_screen), bottomBar = bottomBar) { innerPadding
-    ->
+  Scaffold(
+      modifier = modifier.testTag(C.Tag.overview_screen),
+      bottomBar = bottomBar,
+      // The patient's day sits on the stone page; the caregiver's comes later
+      containerColor =
+          if (caregiverOf == null) MaterialTheme.lakeColors.stone.page
+          else MaterialTheme.colorScheme.background,
+  ) { innerPadding ->
     val layoutDirection = LocalLayoutDirection.current
     // The header draws behind the status bar, so the top inset is kept inside it
     Box(
