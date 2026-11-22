@@ -22,6 +22,7 @@ import com.github.se.oncompanion.ui.theme.OncompanionTheme
 import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.EndToEndTestDriver
 import com.github.se.oncompanion.utils.FirebaseEmulator
+import com.github.se.oncompanion.utils.noonOn
 import com.google.firebase.firestore.Source
 import java.io.File
 import java.time.*
@@ -59,11 +60,7 @@ class AppointmentEditTest {
     val repository = AppointmentRepositoryFirestore(db)
     val today = LocalDate.now()
     // Planning starts from this clock, so a run crossing midnight can't open it on another day
-    val clock =
-        Clock.fixed(
-            today.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant(),
-            ZoneId.systemDefault(),
-        )
+    val clock = noonOn(today)
     val day = today.plusDays(1)
     val original = runBlocking {
       withTimeout(10_000) {

@@ -24,9 +24,9 @@ import com.github.se.oncompanion.ui.theme.OncompanionTheme
 import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.awaitDisplayed
+import com.github.se.oncompanion.utils.noonOn
 import com.google.firebase.firestore.Source
 import java.io.File
-import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.runBlocking
@@ -57,11 +57,7 @@ class PlanningMedicationsTest {
     val repository = MedicationRepositoryFirestore(db)
     val today = LocalDate.now()
     // Planning starts from this clock, so a run crossing midnight can't open it on another day
-    val clock =
-        Clock.fixed(
-            today.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant(),
-            ZoneId.systemDefault(),
-        )
+    val clock = noonOn(today)
     val a =
         Medication(
             "a",
