@@ -108,8 +108,14 @@ class TakenDosesRepositoryFirestoreTest {
 
   @Test
   fun aCaregiverSeeingPrescriptions_readsThePatientsDay(): Unit = runBlocking {
-    repository.setTaken(aliceUid, today, "ondansetron", 2)
-    awaitServerAck()
+    // On the server only: a caregiver's phone has none of the patient's ticks cached, so the server
+    // has to decide whether carol may read them
+    EmulatorTestData.createRawDocument(
+        daysPath(aliceUid),
+        "2026-11-21",
+        """{"taken": {"mapValue": {"fields": {"ondansetron": {"integerValue": "2"}}}},
+           "updatedAt": {"timestampValue": "2026-11-21T08:00:00Z"}}""",
+    )
     val carolUid = EmulatorTestData.createUser("doses-repo-carol")
     EmulatorTestData.replaceRawDocument(
         "users/$aliceUid/${CareCircleRepositoryFirestore.COLLECTION}",
