@@ -32,6 +32,7 @@ import com.github.se.oncompanion.ui.theme.OncompanionTheme
 import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.awaitDisplayed
+import com.github.se.oncompanion.utils.noonOn
 import com.google.firebase.firestore.Source
 import java.io.File
 import java.time.LocalDate
@@ -62,6 +63,9 @@ class PlanningAppointmentsTest {
   fun cachedAppointmentAppearsThroughDefaultPlanningWiringOffline() {
     val db = FirebaseEmulator.firestore
     val repository = AppointmentRepositoryFirestore(db)
+    val today = LocalDate.now()
+    // Planning starts from this clock, so a run crossing midnight can't open it on another day
+    val clock = noonOn(today)
     runBlocking {
       withTimeout(10_000) {
         db.enableNetwork().await()
@@ -71,8 +75,7 @@ class PlanningAppointmentsTest {
             Appointment(
                 title = "Offline consultation",
                 type = AppointmentType.CONSULTATION,
-                scheduledAt =
-                    LocalDate.now().atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant(),
+                scheduledAt = today.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant(),
                 location = "HUG",
                 notes = "Bring appointment documents",
             ),
@@ -89,7 +92,9 @@ class PlanningAppointmentsTest {
       }
     }
     // No provider is replaced: the app's own repositories read the emulator
-    compose.setContent { OncompanionTheme { AppNavHost(startRoute = Route.PLANNING) } }
+    compose.setContent {
+      OncompanionTheme { AppNavHost(startRoute = Route.PLANNING, clock = clock) }
+    }
     awaitPlanning()
     compose.awaitDisplayed(hasText("Offline consultation"))
     compose.onNodeWithText("Offline consultation").assertIsDisplayed()

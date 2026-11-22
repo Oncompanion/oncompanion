@@ -319,6 +319,9 @@ class AddSymptomViewModel(
             types = state.types,
             occurredAt = state.effectiveOccurredAt(ZonedDateTime.now(clock)),
             intensity = state.intensity,
+            // The form doesn't ask a strength per symptom yet: an edit keeps those saved, for the
+            // symptoms still in the entry, or saving would erase them (#543)
+            strengths = state.edited?.entry?.strengths.orEmpty().filterKeys { it in state.types },
             notes = state.notes.trim().ifEmpty { null },
         )
     _uiState.update { it.copy(save = SavePhase.SAVING, error = null) }
