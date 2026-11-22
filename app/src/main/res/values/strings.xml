@@ -116,6 +116,13 @@
         <item quantity="other">%1$d prescriptions to confirm</item>
     </plurals>
 
+    <!-- Caregiver Overview: the caregiver's own home, with the day of the patient they follow -->
+    <string name="caregiver_overview_day">%1$s\'s day</string>
+    <string name="caregiver_overview_shared_only">You see what %1$s chose to share. Only %1$s can change it.</string>
+    <!-- On the locked card of a section the patient doesn't share, under its name -->
+    <string name="caregiver_overview_private">%1$s keeps this private</string>
+    <string name="caregiver_overview_error_title">Couldn\'t load %1$s\'s day</string>
+
     <!-- Symptoms -->
     <string name="symptom_type_fatigue">Fatigue</string>
     <string name="symptom_type_nausea">Nausea</string>

@@ -400,7 +400,7 @@ private fun CareTitle(
 
 /** "Good morning, Alex" and today's date, on the header. */
 @Composable
-private fun Greeting(firstName: String?, now: LocalDateTime, titleStyle: TextStyle) {
+internal fun Greeting(firstName: String?, now: LocalDateTime, titleStyle: TextStyle) {
   val name = firstName?.takeIf { it.isNotBlank() }
   val greeting =
       when (now.hour) {
@@ -469,7 +469,7 @@ private val tilePadding = 8.dp
  * Prescriptions shows a badge with how many wait for the patient ([prescriptionsToConfirm], US-43).
  */
 @Composable
-private fun Shortcuts(
+internal fun Shortcuts(
     onShortcutClick: (OverviewShortcut) -> Unit,
     tiles: List<OverviewShortcut>,
     prescriptionsToConfirm: Int = 0,

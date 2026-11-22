@@ -133,6 +133,14 @@ object C {
     const val overview_journal_link = "overview_journal_link"
     const val overview_prescriptions_badge = "overview_prescriptions_badge"
 
+    // Caregiver Overview
+    const val caregiver_overview_screen = "caregiver_overview_screen"
+    const val caregiver_overview_day_title = "caregiver_overview_day_title"
+    const val caregiver_overview_shared_only = "caregiver_overview_shared_only"
+    const val caregiver_overview_loading = "caregiver_overview_loading"
+    const val caregiver_overview_error = "caregiver_overview_error"
+    const val caregiver_overview_retry = "caregiver_overview_retry"
+
     const val bottom_navigation_bar = "bottom_navigation_bar"
     const val bottom_navigation_tab_overview = "bottom_navigation_tab_overview"
     const val bottom_navigation_tab_planning = "bottom_navigation_tab_planning"
@@ -301,6 +309,9 @@ object C {
 
     /** A check-in tile on the Overview, by its symptom type's name. */
     fun overviewCheckIn(type: String) = "overview_check_in_$type"
+
+    /** The locked card of a section the patient keeps private, by its [CarePermission] name. */
+    fun caregiverOverviewPrivate(section: String) = "caregiver_overview_private_$section"
 
     fun symptomJournalItem(symptomId: String) = "symptom_journal_item_$symptomId"
 
