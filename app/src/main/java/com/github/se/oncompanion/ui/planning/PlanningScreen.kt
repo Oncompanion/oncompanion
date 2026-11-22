@@ -40,6 +40,7 @@ import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.NotSharedMessage
 import com.github.se.oncompanion.ui.common.isCompactHeight
+import com.github.se.oncompanion.ui.navigation.BottomBarUiState
 import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Tab
@@ -65,6 +66,7 @@ data class PlanningActions(
  * The Planning tab, collecting calendar state and reusing the app's bottom navigation.
  *
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
+ * @param bottomBar what the bottom bar shows on every tab: its tabs and the Prescriptions badge
  */
 @Composable
 fun PlanningScreen(
@@ -76,6 +78,7 @@ fun PlanningScreen(
     onOpenEvent: (String) -> Unit,
     onOpenMedication: (String, String) -> Unit,
     caregiverOf: String? = null,
+    bottomBar: BottomBarUiState = BottomBarUiState(),
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val openItem: (PlanningItem) -> Unit = {
@@ -103,7 +106,11 @@ fun PlanningScreen(
           ),
       modifier = modifier,
       bottomBar = {
-        BottomNavigationBar(Tab.PLANNING, { navigationActions.navigateToTab(it.route) })
+        BottomNavigationBar(
+            Tab.PLANNING,
+            { navigationActions.navigateToTab(it.route) },
+            state = bottomBar,
+        )
       },
       caregiverOf = caregiverOf,
   )

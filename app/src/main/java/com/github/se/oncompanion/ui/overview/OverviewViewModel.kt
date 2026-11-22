@@ -13,11 +13,7 @@ import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
 import com.github.se.oncompanion.domain.planning.endOrDefault
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
-import com.github.se.oncompanion.model.auth.signedInUid
 import com.github.se.oncompanion.model.carecircle.CarePermission
-import com.github.se.oncompanion.model.medication.MedicationRepository
-import com.github.se.oncompanion.model.medication.MedicationRepositoryProvider
-import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningRange
 import com.github.se.oncompanion.model.planning.PlanningSource
@@ -143,8 +139,6 @@ data class TodayMedication(
  * @property hasError true if it couldn't be loaded
  * @property isNotShared in caregiver mode, the patient doesn't share their planning: no entries
  * @property sharedSections in caregiver mode, the sections behind the shortcuts the patient shares
- * @property prescriptionsToConfirm for the patient, how many prescriptions a caregiver added wait
- *   for them (US-43), shown on the Prescriptions shortcut
  */
 data class OverviewUiState(
     val now: LocalDateTime,
@@ -157,7 +151,6 @@ data class OverviewUiState(
     val hasError: Boolean = false,
     val isNotShared: Boolean = false,
     val sharedSections: Set<CarePermission> = emptySet(),
-    val prescriptionsToConfirm: Int = 0,
 )
 
 /**
@@ -172,7 +165,6 @@ data class OverviewUiState(
  * @param zoneId the time zone the day is shown in
  * @param patientUid in caregiver mode, the patient whose day is shown; null for the user's own
  * @param resolveAccess which sections the patient shares, for the shortcuts
- * @param medicationRepository the patient's prescriptions, for how many wait for them
  */
 class OverviewViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
@@ -183,8 +175,6 @@ class OverviewViewModel(
     private val patientUid: String? = null,
     private val resolveAccess: ResolveCareCircleAccess =
         ResolveCareCircleAccess(auth = authRepository),
-    private val medicationRepository: MedicationRepository =
-        MedicationRepositoryProvider.repository,
 ) : ViewModel() {
 
   private val _uiState = MutableStateFlow(OverviewUiState(now = now()))
@@ -195,9 +185,6 @@ class OverviewViewModel(
   /** Follows which sections the patient shares, in caregiver mode. */
   private var sharedObservation: Job? = null
 
-  /** Follows how many prescriptions wait for the patient, in patient mode. */
-  private var countObservation: Job? = null
-
   /**
    * The planning entries as the repository gave them; what they show depends on the time. A flow,
    * so [followToday] plans its next refresh again when they change.
@@ -207,28 +194,6 @@ class OverviewViewModel(
   init {
     loadFirstName()
     loadDay()
-  }
-
-  /**
-   * Follows how many prescriptions a caregiver added wait for the patient (US-43), from the
-   * device's cache when offline. It is only a reminder: if they can't be read, no badge shows until
-   * Retry.
-   */
-  private fun countPrescriptionsToConfirm() {
-    countObservation?.cancel()
-    val uid = authRepository.signedInUid(TAG) ?: return
-    countObservation = viewModelScope.launch {
-      try {
-        medicationRepository.observePrescriptions(uid).collect { prescriptions ->
-          val waiting = prescriptions.count { it.confirmation == PrescriptionConfirmation.PENDING }
-          _uiState.update { it.copy(prescriptionsToConfirm = waiting) }
-        }
-      } catch (e: CancellationException) {
-        throw e
-      } catch (e: Exception) {
-        Log.w(TAG, "Couldn't count the prescriptions to confirm", e)
-      }
-    }
   }
 
   /**
@@ -254,12 +219,11 @@ class OverviewViewModel(
   /**
    * Starts (or, after an error, restarts) observing the planning data from today to [LOOKAHEAD]
    * later, so the next appointment is found even months ahead, as between two oncology check-ups.
-   * In caregiver mode, it also (re)starts following the shared sections; for the patient, how many
-   * prescriptions wait for them.
+   * In caregiver mode, it also (re)starts following the shared sections.
    */
   fun loadDay() {
     dayObservation?.cancel()
-    if (patientUid != null) followSharedSections(patientUid) else countPrescriptionsToConfirm()
+    if (patientUid != null) followSharedSections(patientUid)
     val now = now()
     _uiState.update { it.copy(now = now, isLoading = true, hasError = false) }
     val today = now.toLocalDate()
