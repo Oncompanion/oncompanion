@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.events
@@ -636,6 +637,48 @@ class EventDetailViewModelTest {
 
     viewModel.requestRemoval()
     assertFalse(viewModel.uiState.value.isConfirmingRemoval)
+  }
+
+  @Test
+  fun caregiverWithRemovalPermission_removesOnlyTheFollowedPatientsConfirmation() {
+    val events = setOf(CarePermission.EVENTS)
+    val patient = FollowedPatient(CarePermission.EVENTS, canAdd = events, canEditAndDelete = events)
+    registrations.confirm("patient", "yoga")
+    registrations.confirm("caregiver", "yoga")
+    val viewModel = caregiverViewModel(patient)
+
+    viewModel.requestRemoval()
+    assertTrue(viewModel.uiState.value.isConfirmingRemoval)
+    viewModel.cancelRemoval()
+    viewModel.removeRegistration()
+    assertEquals(setOf("yoga"), registrations.registeredEventIds("patient"))
+
+    viewModel.requestRemoval()
+    viewModel.removeRegistration()
+    ShadowLooper.idleMainLooper()
+
+    assertTrue(registrations.registeredEventIds("patient").isEmpty())
+    assertEquals(setOf("yoga"), registrations.registeredEventIds("caregiver"))
+    assertEquals(RegistrationStatus.CAN_CONFIRM, viewModel.uiState.value.registration)
+  }
+
+  @Test
+  fun caregiverLosingRemovalPermission_closesDialogAndKeepsConfirmation() {
+    val events = setOf(CarePermission.EVENTS)
+    val patient = FollowedPatient(CarePermission.EVENTS, canAdd = events, canEditAndDelete = events)
+    registrations.confirm("patient", "yoga")
+    val viewModel = caregiverViewModel(patient)
+    viewModel.requestRemoval()
+
+    patient.shares(CarePermission.EVENTS, canAdd = events)
+    ShadowLooper.idleMainLooper()
+    viewModel.removeRegistration()
+
+    val state = viewModel.uiState.value
+    assertTrue(state.caregiverCanConfirm)
+    assertFalse(state.caregiverCanRemove)
+    assertFalse(state.isConfirmingRemoval)
+    assertEquals(setOf("yoga"), registrations.registeredEventIds("patient"))
   }
 
   @Test
