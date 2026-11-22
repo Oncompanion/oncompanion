@@ -139,10 +139,13 @@ service cloud.firestore {
     // Keep the limits in sync with SymptomEntry (MIN_INTENSITY, MAX_INTENSITY, MAX_NOTES_LENGTH,
     // MAX_CLOCK_DRIFT).
     function isValidSymptom(data) {
-      return data.keys().hasOnly(['types', 'intensity', 'occurredAt', 'notes', 'createdAt',
-                                  'addedBy', 'addedByName', 'editedBy', 'editedByName'])
+      return data.keys().hasOnly(['types', 'intensity', 'strengths', 'occurredAt', 'notes',
+                                  'createdAt', 'addedBy', 'addedByName', 'editedBy',
+                                  'editedByName'])
           && data.keys().hasAll(['types', 'occurredAt', 'createdAt'])
-          // One or more symptoms, each at most once
+          // One or more symptoms, each at most once. This list and the strengths' keys below are
+          // SymptomType: keep both in sync with it (a symptom missing from the strengths' list would
+          // refuse every edit, since an edit writes a strength for each symptom)
           && data.types is list
           && data.types.size() >= 1
           && data.types.toSet().size() == data.types.size()
@@ -151,6 +154,17 @@ service cloud.firestore {
           // The intensity is optional
           && (data.get('intensity', null) == null
               || (data.intensity is int && data.intensity >= 1 && data.intensity <= 10))
+          // A strength per symptom (#543), optional, each a whole number from 1 to 10, or 0 for a
+          // strength an edit removed (a deletion inside a map doesn't show offline). Its keys are
+          // checked against every symptom, not this entry's: an older app version doesn't know
+          // strengths, and removing a symptom there must stay allowed (the app ignores the strength
+          // of a symptom no longer in the entry).
+          && (data.get('strengths', null) == null
+              || (data.strengths is map
+                  && data.strengths.keys().hasOnly(['FATIGUE', 'NAUSEA', 'PAIN', 'FEVER',
+                                                    'HEADACHE', 'APPETITE_LOSS', 'SLEEP_PROBLEMS',
+                                                    'BREATHLESSNESS', 'OTHER'])
+                  && data.strengths.values().hasOnly([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])))
           && data.occurredAt is timestamp
           // Not in the future (it would stay at the top of the journal), with 5 minutes of margin
           // for a phone clock ahead of the server's. Offline writes reach the server later, so

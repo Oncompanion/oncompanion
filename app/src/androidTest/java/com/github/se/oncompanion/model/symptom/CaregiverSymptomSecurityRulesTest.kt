@@ -91,6 +91,16 @@ class CaregiverSymptomSecurityRulesTest {
   }
 
   @Test
+  fun caregiverAllowedToAdd_givesEachSymptomAStrength_withinTheSameLimits(): Unit = runBlocking {
+    allowed(
+        journal(aliceUid)
+            .document()
+            .set(carolsSymptom("strengths" to mapOf("NAUSEA" to 6), "intensity" to null))
+    )
+    denied(journal(aliceUid).document().set(carolsSymptom("strengths" to mapOf("NAUSEA" to 11))))
+  }
+
+  @Test
   fun caregiverWithoutCanAdd_orNotSeeingSymptoms_cantAdd(): Unit = runBlocking {
     shareWithCarol(see = listOf("SYMPTOMS"), add = emptyList())
     denied(journal(aliceUid).document().set(carolsSymptom()))
