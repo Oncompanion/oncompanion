@@ -240,6 +240,12 @@ class AddSymptomViewModelTest {
 
         viewModel.onOtherNameChange("h".repeat(41))
         assertEquals("h".repeat(40), viewModel.state.otherName)
+        // The spaces before it don't use up the 40 characters
+        val name = "Burning feeling in both hands and feet"
+        viewModel.onOtherNameChange("     $name")
+        assertEquals(name, viewModel.state.otherName)
+        viewModel.onOtherNameChange(" ".repeat(40) + "a")
+        assertEquals("a", viewModel.state.otherName)
 
         viewModel.onOtherNameChange("  Hiccups ")
         viewModel.save()
@@ -267,8 +273,11 @@ class AddSymptomViewModelTest {
     val viewModel = viewModel()
 
     viewModel.onNotesChange("a".repeat(SymptomEntry.MAX_NOTES_LENGTH + 10))
-
     assertEquals(SymptomEntry.MAX_NOTES_LENGTH, viewModel.state.notes.length)
+
+    // The spaces before them don't use up the limit
+    viewModel.onNotesChange("   " + "b".repeat(SymptomEntry.MAX_NOTES_LENGTH))
+    assertEquals("b".repeat(SymptomEntry.MAX_NOTES_LENGTH), viewModel.state.notes)
   }
 
   // ----- When -----

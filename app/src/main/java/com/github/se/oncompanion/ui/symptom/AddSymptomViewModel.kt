@@ -298,14 +298,17 @@ class AddSymptomViewModel(
     return Duration.between(now, now.truncatedTo(ChronoUnit.MINUTES).plusMinutes(1))
   }
 
-  /** Names the "Other" symptom; a name longer than an entry can store is cut. */
+  /**
+   * Names the "Other" symptom; a name longer than an entry can store is cut, after the spaces before
+   * it, which aren't saved.
+   */
   fun onOtherNameChange(name: String) {
-    edit { it.copy(otherName = name.take(SymptomEntry.MAX_OTHER_NAME_LENGTH)) }
+    edit { it.copy(otherName = name.trimStart().take(SymptomEntry.MAX_OTHER_NAME_LENGTH)) }
   }
 
-  /** Text longer than an entry can store is cut. */
+  /** Text longer than an entry can store is cut, after the spaces before it, which aren't saved. */
   fun onNotesChange(notes: String) {
-    edit { it.copy(notes = notes.take(SymptomEntry.MAX_NOTES_LENGTH)) }
+    edit { it.copy(notes = notes.trimStart().take(SymptomEntry.MAX_NOTES_LENGTH)) }
   }
 
   /**
