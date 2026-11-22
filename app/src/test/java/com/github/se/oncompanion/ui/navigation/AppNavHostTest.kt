@@ -344,12 +344,10 @@ class AppNavHostTest {
     composeTestRule.onNodeWithTag(C.Tag.join_circle_continue).performScrollTo().performClick()
 
     // "Whose care?" chooses Marie by itself, the only patient, and opens her Overview
-    composeTestRule.waitUntil(timeoutMillis = 5_000) {
-      composeTestRule.onAllNodesWithTag(C.Tag.overview_screen).fetchSemanticsNodes().isNotEmpty()
-    }
+    waitForTag(C.Tag.caregiver_overview_screen)
     composeTestRule
-        .onNodeWithTag(C.Tag.overview_whose_care)
-        .assertTextContains(context.getString(R.string.overview_care_of, "Marie"))
+        .onNodeWithTag(C.Tag.caregiver_overview_day_title)
+        .assertTextContains(context.getString(R.string.caregiver_overview_day, "Marie"))
     composeTestRule.runOnIdle {
       assertEquals("patient", invites.joinedCircles("caregiver").single().patientUid)
     }
@@ -425,8 +423,8 @@ class AppNavHostTest {
 
     composeTestRule.onNodeWithTag(C.Tag.whoseCarePatient("p-paul")).performClick()
     composeTestRule
-        .onNodeWithTag(C.Tag.overview_whose_care)
-        .assertTextContains(context.getString(R.string.overview_care_of, "Paul"))
+        .onNodeWithTag(C.Tag.caregiver_overview_day_title)
+        .assertTextContains(context.getString(R.string.caregiver_overview_day, "Paul"))
   }
 
   /** Waits until a node with [tag] is on screen. */
@@ -567,7 +565,7 @@ class AppNavHostTest {
     }
     composeTestRule.onNodeWithTag(C.Tag.whoseCarePatient("p-paul")).performClick()
 
-    // "Paul's care ▾" opens the list again, to choose Anne instead
+    // The header's "Whose care?" opens the list again, to choose Anne instead
     composeTestRule.onNodeWithTag(C.Tag.overview_whose_care).performClick()
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
@@ -577,8 +575,8 @@ class AppNavHostTest {
     }
     composeTestRule.onNodeWithTag(C.Tag.whoseCarePatient("p-anne")).performClick()
     composeTestRule
-        .onNodeWithTag(C.Tag.overview_whose_care)
-        .assertTextContains(context.getString(R.string.overview_care_of, "Anne"))
+        .onNodeWithTag(C.Tag.caregiver_overview_day_title)
+        .assertTextContains(context.getString(R.string.caregiver_overview_day, "Anne"))
     composeTestRule.onNodeWithTag(C.Tag.overview_shortcuts).assertDoesNotExist()
 
     // Without the patient's permission, a caregiver can't add appointments
@@ -857,7 +855,7 @@ class AppNavHostTest {
   }
 
   @Test
-  fun caregiverMode_planningNotShared_saysSoOnTheOverviewAndPlanning() {
+  fun caregiverMode_planningNotShared_isLockedOnTheOverview_andSaidOnPlanning() {
     val (auth, invites, circles) = followingCaregiver("p-anne" to "Anne")
     val planning = FakePlanningRepository()
     setNavHost(
@@ -873,9 +871,8 @@ class AppNavHostTest {
             "Anne",
             context.getString(R.string.permission_planning),
         )
-    composeTestRule.waitUntil(timeoutMillis = 5_000) {
-      composeTestRule.onAllNodesWithText(notShared).fetchSemanticsNodes().isNotEmpty()
-    }
+    // The caregiver's own Overview locks the planning card
+    waitForTag(C.Tag.caregiverOverviewPrivate(CarePermission.PLANNING.name))
     composeTestRule.onNodeWithTag(Tab.PLANNING.testTag).performClick()
     composeTestRule.onNodeWithTag(C.Tag.planning_screen).assertIsDisplayed()
     composeTestRule.onNodeWithText(notShared).assertIsDisplayed()

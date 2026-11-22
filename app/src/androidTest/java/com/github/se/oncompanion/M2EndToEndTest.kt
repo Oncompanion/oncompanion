@@ -746,9 +746,10 @@ class M2EndToEndTest {
 
   private fun patientGreeting() = hasTestTag(C.Tag.overview_greeting) and text(patient.firstName)
 
+  /** "Anne's day" on the caregiver's own Overview. */
   private fun caregiverTitle() =
-      hasTestTag(C.Tag.overview_whose_care) and
-          text(compose.activity.getString(R.string.overview_care_of, patient.firstName))
+      hasTestTag(C.Tag.caregiver_overview_day_title) and
+          text(compose.activity.getString(R.string.caregiver_overview_day, patient.firstName))
 
   private fun text(value: String) =
       hasText(value, substring = true) or hasAnyDescendant(hasText(value, substring = true))
