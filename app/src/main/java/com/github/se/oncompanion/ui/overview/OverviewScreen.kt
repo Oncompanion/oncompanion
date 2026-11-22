@@ -174,6 +174,7 @@ fun OverviewScreen(
       onOpenEvent = onOpenEvent,
       onLogSymptom = { navigationActions.navigateTo(Screen.symptomAdd(it)) },
       onTickDose = viewModel::tickDose,
+      onOpenDoses = viewModel::openDoses,
       onRetry = viewModel::loadDay,
       modifier = modifier,
       caregiverOf = caregiverOf,
@@ -185,6 +186,15 @@ fun OverviewScreen(
         )
       },
   )
+  uiState.dosesSheet?.let { sheet ->
+    OverviewDosesSheet(
+        sheet,
+        onLess = viewModel::lessDoses,
+        onMore = viewModel::moreDoses,
+        onDone = viewModel::saveDoses,
+        onClose = viewModel::closeDoses,
+    )
+  }
 }
 
 /**
@@ -198,6 +208,7 @@ fun OverviewScreen(
  * @param onOpenAppointment opens the recorded appointment directly
  * @param onOpenEvent opens the event shown in the patient's "Next up"
  * @param onTickDose ticks a dose of one of the patient's medications, by its ID
+ * @param onOpenDoses opens the sheet to correct the doses of one, by its ID
  * @param onLogSymptom opens the symptom form from the patient's check-in, with that symptom picked
  *   or empty for `null`
  * @param onRetry reloads the day after an error
@@ -216,6 +227,7 @@ fun OverviewContent(
     onOpenEvent: (String) -> Unit = {},
     onLogSymptom: (SymptomType?) -> Unit = {},
     onTickDose: (String) -> Unit = {},
+    onOpenDoses: (String) -> Unit = {},
     caregiverOf: String? = null,
     onSwitchPatient: () -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
@@ -274,6 +286,7 @@ fun OverviewContent(
                     onOpenEvent,
                     modifier = if (overlaps) Modifier.overlapLayout() else Modifier,
                     onTickDose = onTickDose,
+                    onOpenDoses = onOpenDoses,
                 )
             else -> {
               NextAppointmentCard(

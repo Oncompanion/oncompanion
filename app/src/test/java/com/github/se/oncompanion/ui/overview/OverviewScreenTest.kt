@@ -20,7 +20,6 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -511,19 +510,19 @@ class OverviewScreenTest {
   fun doseRows_showTheCountAndButton_thatSayWhereThePatientIs() {
     var state by mutableStateOf(loaded)
     composeTestRule.setContent { OverviewContent(state, {}, {}, {}, {}) }
-    // (doses a day, taken) to (count shown, button's description, button enabled)
+    // (doses a day, taken) to (count shown, button's description)
     listOf(
-            (3 to 0) to Triple("0 of 3", "Tick a dose of Medication m, 0 of 3 taken", true),
-            (3 to 1) to Triple("1 of 3", "Tick a dose of Medication m, 1 of 3 taken", true),
-            // Several a day, all taken: correcting comes with the sheet
-            (3 to 3) to Triple("All taken", "All doses of Medication m taken today", false),
+            (3 to 0) to ("0 of 3" to "Tick a dose of Medication m, 0 of 3 taken"),
+            (3 to 1) to ("1 of 3" to "Tick a dose of Medication m, 1 of 3 taken"),
+            // Several a day, all taken: the check opens the sheet to correct them
+            (3 to 3) to ("All taken" to "All doses of Medication m taken today, correct them"),
             // Once a day: no count, the button toggles
-            (1 to 0) to Triple(null, "Tick Medication m as taken", true),
-            (1 to 1) to Triple(null, "Medication m taken today, untick it", true),
+            (1 to 0) to (null to "Tick Medication m as taken"),
+            (1 to 1) to (null to "Medication m taken today, untick it"),
         )
         .forEach { (input, expected) ->
           val (doses, taken) = input
-          val (count, description, enabled) = expected
+          val (count, description) = expected
           state =
               loaded.copy(
                   todayMedications = listOf(medication("m", dosesPerDay = doses, taken = taken))
@@ -539,38 +538,47 @@ class OverviewScreenTest {
             if (text == count) node.assertIsDisplayed() else node.assertDoesNotExist()
           }
           val button = composeTestRule.onNodeWithTag(C.Tag.overviewDoseButton("m"))
-          button.assertContentDescriptionEquals(description).assertHeightIsAtLeast(48.dp)
-          if (enabled) button.assertIsEnabled() else button.assertIsNotEnabled()
+          button
+              .assertContentDescriptionEquals(description)
+              .assertHeightIsAtLeast(48.dp)
+              .assertIsEnabled()
         }
   }
 
   @Test
-  fun theDoseButton_ticksItsMedication_andTheRowToo_whenTakenOnceADay() {
+  fun theDoseButton_ticks_andSeveralADay_theRowOrTheCheckOpensTheSheet() {
     val ticked = mutableListOf<String>()
+    val opened = mutableListOf<String>()
+    var medications by
+        mutableStateOf(
+            listOf(
+                medication("once", dosesPerDay = 1),
+                medication("several", frequency = "3 times a day", dosesPerDay = 3),
+            )
+        )
     composeTestRule.setContent {
       OverviewContent(
-          loaded.copy(
-              todayMedications =
-                  listOf(
-                      medication("once", dosesPerDay = 1),
-                      medication("several", frequency = "3 times a day", dosesPerDay = 3),
-                  )
-          ),
+          loaded.copy(todayMedications = medications),
           {},
           {},
           {},
           {},
           onTickDose = { ticked += it },
+          onOpenDoses = { opened += it },
       )
     }
 
     composeTestRule.onNodeWithTag(C.Tag.overviewDoseButton("once")).performClick()
     composeTestRule.onNodeWithTag(C.Tag.overviewMedication("once")).performClick()
     composeTestRule.onNodeWithTag(C.Tag.overviewDoseButton("several")).performClick()
-    // Several a day, the row itself does nothing yet: it will open the sheet
     composeTestRule.onNodeWithTag(C.Tag.overviewMedication("several")).performClick()
+    medications = listOf(medication("allTaken", dosesPerDay = 2, taken = 2))
+    composeTestRule.onNodeWithTag(C.Tag.overviewDoseButton("allTaken")).performClick()
 
-    composeTestRule.runOnIdle { assertEquals(listOf("id-once", "id-once", "id-several"), ticked) }
+    composeTestRule.runOnIdle {
+      assertEquals(listOf("id-once", "id-once", "id-several"), ticked)
+      assertEquals(listOf("id-several", "id-allTaken"), opened)
+    }
   }
 
   @Test
