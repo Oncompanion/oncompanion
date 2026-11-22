@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -150,6 +151,18 @@ class SymptomDetailScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.symptom_detail_error).assertDoesNotExist()
     composeTestRule.onNodeWithTag(C.Tag.symptom_detail_not_found).assertDoesNotExist()
     assertTextInside(context.getString(R.string.symptom_detail_title), C.Tag.symptom_detail_screen)
+  }
+
+  @Test
+  @Config(qualifiers = SMALL_LANDSCAPE_PHONE, fontScale = 2f)
+  fun error_at200PercentInShortLandscape_canScrollToRetry() {
+    var retries = 0
+    setContent(loaded.copy(hasError = true), onRetry = { retries++ })
+
+    val retry = composeTestRule.onNodeWithTag(C.Tag.symptom_detail_retry)
+    retry.performScrollTo().assertIsFullyVisible()
+    retry.performClick()
+    assertEquals(1, retries)
   }
 
   @Test

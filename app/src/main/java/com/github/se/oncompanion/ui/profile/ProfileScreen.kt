@@ -54,6 +54,7 @@ import com.github.se.oncompanion.ui.auth.rememberGoogleCredentialProvider
 import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.LakeMessageState
+import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.isCompactHeight
 import com.github.se.oncompanion.ui.theme.Spacing
 import java.time.ZoneId
@@ -153,10 +154,7 @@ fun ProfileContent(
                   modifier = bodyModifier,
               )
           ProfileUiState.Error ->
-              ProfileError(
-                  modifier = bodyModifier,
-                  onRetry = onRetry,
-              )
+              if (compact) ProfileError(onRetry) else MessageArea { ProfileError(onRetry) }
           is ProfileUiState.Loaded ->
               ProfileDetailsContent(
                   details = profile.details,
@@ -389,13 +387,12 @@ private fun ProfileLoading(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ProfileError(modifier: Modifier = Modifier, onRetry: () -> Unit) {
-  Box(modifier.testTag(C.Tag.profile_error), contentAlignment = Alignment.Center) {
-    LakeMessageState(
-        title = stringResource(R.string.profile_error),
-        actionLabel = stringResource(R.string.profile_retry),
-        onAction = onRetry,
-        actionTestTag = C.Tag.profile_retry,
-    )
-  }
+private fun ProfileError(onRetry: () -> Unit) {
+  LakeMessageState(
+      modifier = Modifier.testTag(C.Tag.profile_error),
+      title = stringResource(R.string.profile_error),
+      actionLabel = stringResource(R.string.profile_retry),
+      onAction = onRetry,
+      actionTestTag = C.Tag.profile_retry,
+  )
 }

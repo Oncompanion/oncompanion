@@ -244,6 +244,13 @@ remain separate work.
 
 ![Reminders (planned)](architecture-reminders.svg)
 
+## Replacement messages on short windows
+
+`ui/common/MessageArea` gives replacement content a bounded scroll area. It centers short messages
+and lets taller messages scroll to the final line or Retry. `LakeMessageState` supplies the message
+styling. Screens with an existing scroll container, such as Events and Overview, put their messages
+in that container.
+
 ## Offline mode
 
 Firestore's local cache is the offline store: writes are applied locally right away and synced when the connection returns, and repositories expose `Flow`s from snapshot listeners so the UI updates either way. No separate Room database is needed. Text recognition, reminders and on-device speech work without a network.

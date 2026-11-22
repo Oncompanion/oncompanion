@@ -374,12 +374,7 @@ internal fun PlanningAgenda(
     }
     if (state.isNotShared && caregiverOf != null) {
       // Keep calendar navigation available without showing the patient's unshared entries.
-      Column(
-          Modifier.fillMaxWidth()
-              .then(
-                  if (header != null) Modifier.verticalScroll(rememberScrollState()) else Modifier
-              )
-      ) {
+      Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
         header?.invoke()
         NotSharedMessage(caregiverOf, CarePermission.PLANNING)
       }
