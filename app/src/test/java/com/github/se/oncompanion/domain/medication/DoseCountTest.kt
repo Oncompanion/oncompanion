@@ -120,6 +120,8 @@ class DoseCountTest {
               "3x täglich bei Übelkeit" to null,
               "falls nötig 2x täglich" to null,
               "3x täglich nach Bedarf" to null,
+              "2x täglich nach Fieber" to null,
+              "2x täglich nach Angst" to null,
               "Reserve 3x/Tag" to null,
               "in Reserve 3x täglich" to null,
               "3x/j p.r.n." to null,
@@ -214,6 +216,8 @@ class DoseCountTest {
               "3x/day if pain" to DailyDoses(3, DoseCondition.IF_IN_PAIN),
               "3 times a day if nauseous" to DailyDoses(3, DoseCondition.IF_NAUSEOUS),
               "3x täglich nach Erbrechen" to DailyDoses(3, DoseCondition.IF_VOMITING),
+              "2x täglich nach Fieber" to DailyDoses(2, DoseCondition.IF_FEVERISH),
+              "2x täglich nach Angst" to DailyDoses(2, DoseCondition.IF_ANXIOUS),
               // As written: a condition it doesn't know, a maximum, a range, less than daily, or
               // nothing it understands
               "en cas de toux, 3x/j" to null,

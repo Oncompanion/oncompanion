@@ -121,10 +121,14 @@ object DoseCount {
                   Regex("""\b(?:for|if) pain\b"""),
               ),
           DoseCondition.IF_FEVERISH to
-              listOf(Regex("""\b(?:si|en cas de) fievre\b|\b(?:for|if) fever\b|\bbei fieber\b""")),
+              listOf(
+                  Regex("""\b(?:si|en cas de) fievre\b|\b(?:for|if) fever\b"""),
+                  Regex("""\b(?:bei|nach) fieber\b"""),
+              ),
           DoseCondition.IF_ANXIOUS to
               listOf(
-                  Regex("""\b(?:si|en cas de) anxiete\b|\b(?:for|if) anxiety\b|\bbei angst\b""")
+                  Regex("""\b(?:si|en cas de) anxiete\b|\b(?:for|if) anxiety\b"""),
+                  Regex("""\b(?:bei|nach) angst\b"""),
               ),
           DoseCondition.IF_VOMITING to
               listOf(
