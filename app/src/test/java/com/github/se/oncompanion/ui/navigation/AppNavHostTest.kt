@@ -2503,6 +2503,41 @@ class AppNavHostTest {
   }
 
   /**
+   * The event page reads the same clock as Planning: an event that started this morning can't be
+   * confirmed anymore, whatever the real date.
+   */
+  @Test
+  fun planningEvent_thatStartedThisMorning_closesItsRegistration() {
+    val registrations = EventRegistrationRepositoryProvider.repository
+    EventRegistrationRepositoryProvider.repository = FakeEventRegistrationRepository()
+    try {
+      val event =
+          FakeEventRepository.sampleEvents(PlannedDay.today)
+              .first()
+              .copy(startDateTime = PlannedDay.today.atTime(9, 0), endDateTime = null)
+      setNavHost(
+          authRepository = signedInPatient(),
+          startRoute = Route.PLANNING,
+          planningRepository = planningWith(event),
+          eventRepository = FakeEventRepository(listOf(event)),
+          clock = PlannedDay.clock,
+      )
+
+      composeTestRule.onNodeWithText(event.title).performClick()
+
+      composeTestRule.waitUntil(timeoutMillis = 5_000) {
+        composeTestRule
+            .onAllNodesWithTag(C.Tag.event_detail_registration_closed)
+            .fetchSemanticsNodes()
+            .isNotEmpty()
+      }
+      composeTestRule.onNodeWithTag(C.Tag.event_detail_confirm).assertIsNotEnabled()
+    } finally {
+      EventRegistrationRepositoryProvider.repository = registrations
+    }
+  }
+
+  /**
    * Verifies the default Planning source reads the appointment, auth, event and registration
    * providers: it shows the appointments and only the events the patient confirmed (US-30).
    */

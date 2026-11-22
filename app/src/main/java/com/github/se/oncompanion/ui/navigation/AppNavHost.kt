@@ -106,8 +106,8 @@ import java.time.LocalDate
  *
  * @param credentialProvider gets the Google ID token, for signing in and out; end-to-end tests pass
  *   one that signs in against the Auth emulator, as Google's account picker can't be driven
- * @param clock gives the current time to the screens that start from it (Overview, Planning, a new
- *   appointment); tests pass a fixed one so they don't depend on the day they run
+ * @param clock gives the current time to the screens that start from it (Overview, Planning, the
+ *   event page, a new appointment); tests pass a fixed one so they don't depend on the day they run
  */
 @Composable
 fun AppNavHost(
@@ -420,7 +420,9 @@ private fun SessionNavHost(
             // In caregiver mode, the chosen patient's registration, read-only, when they share
             // Events
             viewModel =
-                viewModel { EventDetailViewModel(eventId, patientUid = chosenPatient?.uid) },
+                viewModel {
+                  EventDetailViewModel(eventId, clock = clock, patientUid = chosenPatient?.uid)
+                },
             caregiverOf = chosenPatient?.firstName,
         )
       }
