@@ -31,7 +31,11 @@ interface TakenDosesRepository {
   suspend fun setTaken(uid: String, date: LocalDate, medicationId: String, count: Int)
 
   companion object {
-    /** At most one dose an hour is recorded. Keep in sync with `firestore.rules`. */
+    /**
+     * At most one dose an hour is recorded, and
+     * [com.github.se.oncompanion.domain.medication.DoseCount] counts no more. Keep in sync with
+     * `firestore.rules`.
+     */
     const val MAX_TAKEN_PER_DAY = 24
   }
 }

@@ -2,6 +2,7 @@
 
 package com.github.se.oncompanion.domain.medication
 
+import com.github.se.oncompanion.model.medication.TakenDosesRepository.Companion.MAX_TAKEN_PER_DAY
 import com.github.se.oncompanion.model.medication.scan.comparable
 
 /**
@@ -16,9 +17,6 @@ import com.github.se.oncompanion.model.medication.scan.comparable
  * this answers another question, how many a day, and shares their text cleanup ([comparable]).
  */
 object DoseCount {
-
-  /** Doses a day are counted up to this, one an hour; a larger number is a misreading. */
-  const val MAX_PER_DAY = 24
 
   /** The number of doses a day [frequency] says, or `null` if it doesn't say one plainly. */
   fun of(frequency: String?): Int? {
@@ -35,7 +33,8 @@ object DoseCount {
     // Every wording that says a count must agree; "daily" alone only counts when none other does
     val counts = readers.mapNotNull { read -> read(text) }.distinct()
     val count = if (counts.isEmpty()) onceADay(text) else counts.singleOrNull()
-    return count?.takeIf { it in 1..MAX_PER_DAY }
+    // More than can be recorded, one an hour, is a misreading
+    return count?.takeIf { it in 1..MAX_TAKEN_PER_DAY }
   }
 
   /** "1-0-1", "1-1-1-1": one dose at each time of the day whose number isn't 0. */
