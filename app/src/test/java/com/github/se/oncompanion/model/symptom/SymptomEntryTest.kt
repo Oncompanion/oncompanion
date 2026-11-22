@@ -97,6 +97,27 @@ class SymptomEntryTest {
   }
 
   @Test
+  fun eachStrength_belongsToASymptomOfTheEntry_andIsWithinBounds() {
+    val two = valid.copy(types = listOf(SymptomType.FATIGUE, SymptomType.NAUSEA))
+    listOf(
+            emptyMap<SymptomType, Int>() to true,
+            mapOf(SymptomType.FATIGUE to 5) to true,
+            mapOf(SymptomType.FATIGUE to 1, SymptomType.NAUSEA to 10) to true,
+            // Only a symptom of the entry has a strength
+            mapOf(SymptomType.PAIN to 5) to false,
+            mapOf(SymptomType.FATIGUE to 0) to false,
+            mapOf(SymptomType.NAUSEA to 11) to false,
+        )
+        .forEach { (strengths, isValid) ->
+          assertEquals(
+              "$strengths",
+              isValid,
+              two.copy(strengths = strengths).isValid(valid.occurredAt),
+          )
+        }
+  }
+
+  @Test
   fun notesAreOptional_withoutOther() {
     assertTrue(valid.copy(notes = null).isValid())
     assertTrue(valid.copy(notes = "").isValid())
