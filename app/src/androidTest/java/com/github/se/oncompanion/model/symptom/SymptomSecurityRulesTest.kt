@@ -88,7 +88,7 @@ class SymptomSecurityRulesTest {
     assertCreateAllowed(validSymptom().apply { put("strengths", emptyMap<String, Int>()) })
     assertCreateAllowed(validSymptom().apply { put("strengths", mapOf("FATIGUE" to 0)) })
     // Each refused write on a document of its own, so one can't hide another
-    listOf<Any?>(-1, 11, 5.5, "5", true).forEach { value ->
+    listOf<Any?>(-1, 11, 5.5, 5.0, "5", true).forEach { value ->
       try {
         assertCreateDenied(validSymptom().apply { put("strengths", mapOf("FATIGUE" to value)) })
       } catch (e: Throwable) {
@@ -102,7 +102,7 @@ class SymptomSecurityRulesTest {
   @Test
   fun anEdit_followsTheSameStrengthRules(): Unit = runBlocking {
     // Each refused edit on an entry of its own
-    listOf<Any?>(11, "5", mapOf("COUGH" to 5)).forEach { change ->
+    listOf<Any?>(11, 5.0, "5", mapOf("COUGH" to 5)).forEach { change ->
       val entry = symptoms(aliceUid).document()
       allowed(entry.set(validSymptom().apply { put("strengths", mapOf("FATIGUE" to 4)) }))
       val update =
