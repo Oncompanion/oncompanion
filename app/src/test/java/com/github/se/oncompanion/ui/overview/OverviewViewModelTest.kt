@@ -5,6 +5,8 @@ package com.github.se.oncompanion.ui.overview
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.domain.carecircle.FollowedPatient
+import com.github.se.oncompanion.domain.medication.DailyDoses
+import com.github.se.oncompanion.domain.medication.DoseCondition
 import com.github.se.oncompanion.domain.planning.MedicationPlanningSource
 import com.github.se.oncompanion.domain.planning.ObservePlanning
 import com.github.se.oncompanion.domain.planning.followedPlanning
@@ -534,6 +536,24 @@ class OverviewViewModelTest {
           val shown = vm.medication("m")
           assertEquals("$input", expected, shown.dosesPerDay to shown.taken)
         }
+  }
+
+  @Test
+  fun eachMedication_saysItsFrequencyInWords_whenItCan() {
+    val vm =
+        patientViewModel(
+            FakeTakenDosesRepository(),
+            medication("scheme", frequency = "1-0-0"),
+            medication("condition", frequency = "1-1-1 si nausées"),
+            medication("unknown", frequency = "en cas de toux"),
+        )
+    ShadowLooper.idleMainLooper()
+
+    assertEquals(DailyDoses(1, null), vm.medication("scheme").dailyDoses)
+    // Taken only if nauseous: said in words, but there is nothing to tick each day
+    assertEquals(DailyDoses(3, DoseCondition.IF_NAUSEOUS), vm.medication("condition").dailyDoses)
+    assertNull(vm.medication("condition").dosesPerDay)
+    assertNull(vm.medication("unknown").dailyDoses)
   }
 
   @Test

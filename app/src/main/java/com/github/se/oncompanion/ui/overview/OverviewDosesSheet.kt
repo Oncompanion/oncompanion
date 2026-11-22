@@ -109,7 +109,7 @@ internal fun DosesSheetBody(
       Text(
           stringResource(
               R.string.overview_doses_sheet_subtitle,
-              sheet.medication.frequency ?: "",
+              frequencyLabel(sheet.medication).orEmpty(),
           ),
           style = MaterialTheme.typography.bodyMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant,

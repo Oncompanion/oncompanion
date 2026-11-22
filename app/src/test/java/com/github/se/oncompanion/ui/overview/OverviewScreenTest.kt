@@ -43,6 +43,8 @@ import androidx.navigation.testing.TestNavHostController
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.R
+import com.github.se.oncompanion.domain.medication.DailyDoses
+import com.github.se.oncompanion.domain.medication.DoseCondition
 import com.github.se.oncompanion.domain.planning.ownPlanning
 import com.github.se.oncompanion.model.auth.AuthUser
 import com.github.se.oncompanion.model.carecircle.CarePermission
@@ -542,6 +544,45 @@ class OverviewScreenTest {
               .assertContentDescriptionEquals(description)
               .assertHeightIsAtLeast(48.dp)
               .assertIsEnabled()
+        }
+  }
+
+  @Test
+  fun theFrequencyChip_saysItInWords_orAsWritten() {
+    var state by mutableStateOf(loaded)
+    composeTestRule.setContent { OverviewContent(state, {}, {}, {}, {}) }
+    // (as written, in words) to the chip
+    listOf(
+            ("1-0-0" to DailyDoses(1, null)) to "Once a day",
+            ("1-0-1" to DailyDoses(2, null)) to "Twice a day",
+            ("1-1-1" to DailyDoses(3, null)) to "3 times a day",
+            ("1-1-1 si nausées" to DailyDoses(3, DoseCondition.IF_NAUSEOUS)) to
+                "3 times a day if nauseous",
+            ("si besoin" to DailyDoses(null, DoseCondition.IF_NEEDED)) to "If needed",
+            ("2x täglich bei Fieber" to DailyDoses(2, DoseCondition.IF_FEVERISH)) to
+                "Twice a day if feverish",
+            ("si douleurs" to DailyDoses(null, DoseCondition.IF_IN_PAIN)) to "If in pain",
+            ("si anxiété" to DailyDoses(null, DoseCondition.IF_ANXIOUS)) to "If anxious",
+            ("si vomissements" to DailyDoses(null, DoseCondition.IF_VOMITING)) to "If vomiting",
+            ("once a day for sleep" to DailyDoses(1, DoseCondition.FOR_SLEEP)) to
+                "Once a day for sleep",
+            // Nothing it can say in words: as written
+            ("max 3x/j" to null) to "max 3x/j",
+        )
+        .forEach { (input, chip) ->
+          val (frequency, inWords) = input
+          state =
+              loaded.copy(
+                  todayMedications =
+                      listOf(medication("m", frequency = frequency).copy(dailyDoses = inWords))
+              )
+          composeTestRule.waitForIdle()
+          composeTestRule
+              .onNode(
+                  hasText(chip) and hasAnyAncestor(hasTestTag(C.Tag.overviewMedication("m"))),
+                  useUnmergedTree = true,
+              )
+              .assertIsDisplayed()
         }
   }
 

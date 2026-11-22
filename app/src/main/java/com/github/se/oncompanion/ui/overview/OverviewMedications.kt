@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.R
+import com.github.se.oncompanion.domain.medication.DoseCondition
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.cardItem
@@ -98,7 +99,7 @@ internal fun MedicationRow(
 private fun DosesLine(medication: TodayMedication) {
   if (LocalDensity.current.fontScale >= LARGE_TEXT_SCALE) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-      medication.frequency?.let { FrequencyChip(it) }
+      frequencyLabel(medication)?.let { FrequencyChip(it) }
       medication.dosesPerDay?.let {
         DoseBar(it, medication.taken, Modifier.fillMaxWidth(), SEGMENT_HEIGHT)
       }
@@ -109,7 +110,7 @@ private fun DosesLine(medication: TodayMedication) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-      medication.frequency?.let { FrequencyChip(it) }
+      frequencyLabel(medication)?.let { FrequencyChip(it) }
       medication.dosesPerDay?.let {
         DoseBar(it, medication.taken, Modifier.weight(1f), SEGMENT_HEIGHT)
       }
@@ -186,6 +187,41 @@ private fun DoseButton(medication: TodayMedication, label: String, onClick: () -
     }
   }
 }
+
+/**
+ * The medication's frequency in the card's own words ("Once a day" for "1-0-0", "3 times a day if
+ * nauseous" for "1-1-1 si nausées"), or as written when it can't be reworded without losing
+ * something (see [com.github.se.oncompanion.domain.medication.DoseCount.describe]).
+ */
+@Composable
+internal fun frequencyLabel(medication: TodayMedication): String? {
+  val doses = medication.dailyDoses ?: return medication.frequency
+  val count =
+      when (val perDay = doses.perDay) {
+        null -> null
+        1 -> stringResource(R.string.overview_frequency_once)
+        2 -> stringResource(R.string.overview_frequency_twice)
+        else -> pluralStringResource(R.plurals.overview_frequency_times, perDay, perDay)
+      }
+  val condition = doses.condition?.let { stringResource(conditionText(it)) }
+  return when {
+    condition == null -> count
+    count == null -> condition.replaceFirstChar { it.uppercase() }
+    else -> stringResource(R.string.overview_frequency_with_condition, count, condition)
+  }
+}
+
+/** How the card says what a medication is taken on, after its doses a day. */
+private fun conditionText(condition: DoseCondition): Int =
+    when (condition) {
+      DoseCondition.IF_NEEDED -> R.string.overview_condition_if_needed
+      DoseCondition.IF_NAUSEOUS -> R.string.overview_condition_if_nauseous
+      DoseCondition.IF_IN_PAIN -> R.string.overview_condition_if_in_pain
+      DoseCondition.IF_FEVERISH -> R.string.overview_condition_if_feverish
+      DoseCondition.IF_ANXIOUS -> R.string.overview_condition_if_anxious
+      DoseCondition.IF_VOMITING -> R.string.overview_condition_if_vomiting
+      DoseCondition.FOR_SLEEP -> R.string.overview_condition_for_sleep
+    }
 
 /** What the dose button does and where the patient is, for TalkBack. */
 @Composable
