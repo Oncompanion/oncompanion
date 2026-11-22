@@ -70,7 +70,8 @@ data class EditedSymptom(val entry: SymptomEntry, val date: LocalDate, val time:
  *   day the time was chosen, so the entry doesn't move a day ahead if the form stays open past
  *   midnight
  * @property time the time the user chose, or `null` for the current time
- * @property notes free text; required when [SymptomType.OTHER] is picked
+ * @property otherName which symptom [SymptomType.OTHER] is ("Hiccups"); required when it is picked
+ * @property notes free text
  * @property isInFuture the chosen day and time are later than now, which can't be saved
  * @property save where saving the symptom is; once [SavePhase.SAVED], the form is done
  * @property error why the last save failed, until the screen has shown it
@@ -89,6 +90,7 @@ data class AddSymptomUiState(
     val intensity: Int? = null,
     val date: LocalDate? = null,
     val time: LocalTime? = null,
+    val otherName: String = "",
     val notes: String = "",
     val isInFuture: Boolean = false,
     val save: SavePhase = SavePhase.EDITING,
@@ -120,15 +122,20 @@ data class AddSymptomUiState(
             isWhenChanged ||
             types.toSet() != edited.entry.types.toSet() ||
             intensity != edited.entry.intensity ||
+            savedOtherName != edited.entry.otherName ||
             notes.trim().ifEmpty { null } != edited.entry.notes
 
-  /** "Other" is picked, so the notes have to say which symptom it was. */
-  val notesRequired: Boolean
+  /** "Other" is picked, so the user names it: the form asks "Which symptom?". */
+  val isOtherPicked: Boolean
     get() = SymptomType.OTHER in types
 
-  /** The notes are required but still empty. */
-  val isMissingNotes: Boolean
-    get() = notesRequired && notes.isBlank()
+  /** "Other" is picked but not named yet. */
+  val isMissingOtherName: Boolean
+    get() = isOtherPicked && otherName.isBlank()
+
+  /** The name saved with the symptom: only with "Other", without the spaces around it. */
+  val savedOtherName: String?
+    get() = otherName.trim().ifEmpty { null }?.takeIf { isOtherPicked }
 
   /** Neither a day nor a time is chosen: the symptom happens "now". */
   val isNow: Boolean
@@ -142,7 +149,7 @@ data class AddSymptomUiState(
     get() =
         isFormShown &&
             types.isNotEmpty() &&
-            !isMissingNotes &&
+            !isMissingOtherName &&
             !isInFuture &&
             save == SavePhase.EDITING &&
             hasChanges
@@ -244,6 +251,7 @@ class AddSymptomViewModel(
         intensity = entry.intensity,
         date = edited.date,
         time = edited.time,
+        otherName = entry.otherName.orEmpty(),
         notes = entry.notes.orEmpty(),
     )
   }
@@ -290,6 +298,11 @@ class AddSymptomViewModel(
     return Duration.between(now, now.truncatedTo(ChronoUnit.MINUTES).plusMinutes(1))
   }
 
+  /** Names the "Other" symptom; a name longer than an entry can store is cut. */
+  fun onOtherNameChange(name: String) {
+    edit { it.copy(otherName = name.take(SymptomEntry.MAX_OTHER_NAME_LENGTH)) }
+  }
+
   /** Text longer than an entry can store is cut. */
   fun onNotesChange(notes: String) {
     edit { it.copy(notes = notes.take(SymptomEntry.MAX_NOTES_LENGTH)) }
@@ -323,6 +336,7 @@ class AddSymptomViewModel(
             // symptoms still in the entry, or saving would erase them (#543)
             strengths = state.edited?.entry?.strengths.orEmpty().filterKeys { it in state.types },
             notes = state.notes.trim().ifEmpty { null },
+            otherName = state.savedOtherName,
         )
     _uiState.update { it.copy(save = SavePhase.SAVING, error = null) }
     viewModelScope.launch {

@@ -205,30 +205,62 @@ class AddSymptomViewModelTest {
   // ----- Notes -----
 
   @Test
-  fun other_requiresNotes_beforeSaving() {
+  fun other_needsItsName_beforeSaving_notesDontSayIt() {
     val viewModel = viewModel()
 
     viewModel.toggleType(SymptomType.OTHER)
-    assertTrue(viewModel.state.notesRequired)
-    assertTrue(viewModel.state.isMissingNotes)
-    assertFalse(viewModel.state.canSave)
-
-    viewModel.onNotesChange("   ")
+    assertTrue(viewModel.state.isOtherPicked)
+    assertTrue(viewModel.state.isMissingOtherName)
     assertFalse(viewModel.state.canSave)
 
     viewModel.onNotesChange("Hiccups")
-    assertFalse(viewModel.state.isMissingNotes)
+    viewModel.onOtherNameChange("   ")
+    assertFalse(viewModel.state.canSave)
+
+    viewModel.onOtherNameChange("Hiccups")
+    assertFalse(viewModel.state.isMissingOtherName)
     assertTrue(viewModel.state.canSave)
   }
 
   @Test
-  fun notesWithoutOther_areOptional() {
+  fun withoutOther_noNameIsAsked_andNotesAreOptional() {
     val viewModel = viewModel()
     viewModel.toggleType(SymptomType.PAIN)
 
-    assertFalse(viewModel.state.notesRequired)
-    assertFalse(viewModel.state.isMissingNotes)
+    assertFalse(viewModel.state.isOtherPicked)
+    assertFalse(viewModel.state.isMissingOtherName)
+    assertTrue(viewModel.state.canSave)
   }
+
+  @Test
+  fun theName_isCutAt40Characters_andSavedWithoutTheSpacesAround() =
+      runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.toggleType(SymptomType.OTHER)
+
+        viewModel.onOtherNameChange("h".repeat(41))
+        assertEquals("h".repeat(40), viewModel.state.otherName)
+
+        viewModel.onOtherNameChange("  Hiccups ")
+        viewModel.save()
+        advanceUntilIdle()
+        assertEquals("Hiccups", savedEntry().otherName)
+      }
+
+  @Test
+  fun aNameTyped_thenOtherUnpicked_isNotSaved() =
+      runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.toggleType(SymptomType.OTHER)
+        viewModel.onOtherNameChange("Hiccups")
+        viewModel.toggleType(SymptomType.PAIN)
+        viewModel.toggleType(SymptomType.OTHER)
+
+        viewModel.save()
+        advanceUntilIdle()
+        assertEquals(listOf(SymptomType.PAIN), savedEntry().types)
+        assertNull(savedEntry().otherName)
+      }
 
   @Test
   fun notesLongerThanAnEntryCanStore_areCut() {
@@ -791,43 +823,71 @@ class AddSymptomViewModelTest {
       }
 
   @Test
-  fun editing_tickingOther_withNotesAlreadyFilled_canBeSaved() =
+  fun editing_tickingOther_asksItsName_evenWithNotes_andSavesBoth() =
       runTest(dispatcher) {
         val viewModel = editing()
         advanceUntilIdle()
 
         viewModel.toggleType(SymptomType.OTHER)
-        assertFalse(viewModel.state.isMissingNotes)
-        assertTrue(viewModel.state.canSave)
+        assertTrue(viewModel.state.isMissingOtherName)
+        assertFalse(viewModel.state.canSave)
+        viewModel.onOtherNameChange("Hiccups")
         viewModel.save()
         advanceUntilIdle()
 
         assertEquals(listOf(SymptomType.FATIGUE, SymptomType.OTHER), savedEntry().types)
+        assertEquals("Hiccups", savedEntry().otherName)
         assertEquals("After lunch", savedEntry().notes)
       }
 
   @Test
-  fun editing_tickingOther_withoutNotes_cantBeSaved() =
+  fun editing_anOtherFromBefore_asksItsName_keepingItsNotes() =
       runTest(dispatcher) {
-        val viewModel = editing(logged.copy(notes = null))
+        // Saved before "Other" could be named: the notes said which symptom it was
+        val viewModel = editing(logged.copy(types = listOf(SymptomType.OTHER), notes = "Hiccups"))
         advanceUntilIdle()
 
-        viewModel.toggleType(SymptomType.OTHER)
+        assertEquals("", viewModel.state.otherName)
+        assertTrue(viewModel.state.isMissingOtherName)
+        assertFalse(viewModel.state.canSave)
+        assertEquals("Hiccups", viewModel.state.notes)
+      }
 
-        assertTrue(viewModel.state.isMissingNotes)
+  @Test
+  fun editing_onlyTheName_isAChange_andClearingItCantBeSaved() =
+      runTest(dispatcher) {
+        val viewModel =
+            editing(logged.copy(types = listOf(SymptomType.OTHER), otherName = "Hiccups"))
+        advanceUntilIdle()
+        assertEquals("Hiccups", viewModel.state.otherName)
+        assertFalse("nothing changed yet", viewModel.state.canSave)
+
+        viewModel.onOtherNameChange("Hiccups ")
+        assertFalse("the same name once trimmed", viewModel.state.canSave)
+        viewModel.onOtherNameChange("Cramps")
+        assertTrue(viewModel.state.canSave)
+        viewModel.onOtherNameChange(" ")
         assertFalse(viewModel.state.canSave)
       }
 
   @Test
-  fun editing_clearingTheNotesOfOther_cantBeSaved() =
+  fun editing_removingOther_savesNoName() =
       runTest(dispatcher) {
-        val viewModel = editing(logged.copy(types = listOf(SymptomType.OTHER), notes = "Hiccups"))
+        val viewModel =
+            editing(
+                logged.copy(
+                    types = listOf(SymptomType.FATIGUE, SymptomType.OTHER),
+                    otherName = "Hiccups",
+                )
+            )
         advanceUntilIdle()
 
-        viewModel.onNotesChange(" ")
+        viewModel.toggleType(SymptomType.OTHER)
+        viewModel.save()
+        advanceUntilIdle()
 
-        assertTrue(viewModel.state.isMissingNotes)
-        assertFalse(viewModel.state.canSave)
+        assertEquals(listOf(SymptomType.FATIGUE), savedEntry().types)
+        assertNull(savedEntry().otherName)
       }
 
   @Test
