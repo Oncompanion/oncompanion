@@ -288,7 +288,17 @@ class SymptomDetailScreenTest {
   }
 
   @Test
-  fun otherEntry_showsTheNotesSayingWhichSymptom() {
+  fun otherEntry_showsItsName_notOther() {
+    setContent(
+        loaded.copy(entry = fatigue.copy(types = listOf(SymptomType.OTHER), otherName = "Hiccups"))
+    )
+
+    assertTextInside("Hiccups", C.Tag.symptom_detail_screen)
+    composeTestRule.onNodeWithText("Other", substring = true).assertDoesNotExist()
+  }
+
+  @Test
+  fun otherEntry_fromBeforeItCouldBeNamed_staysOther_withItsNotes() {
     setContent(
         loaded.copy(entry = fatigue.copy(types = listOf(SymptomType.OTHER), notes = "Hiccups"))
     )

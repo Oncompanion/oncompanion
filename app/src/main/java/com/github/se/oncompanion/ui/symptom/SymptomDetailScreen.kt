@@ -272,7 +272,7 @@ private fun SymptomsSection(entry: SymptomEntry) {
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
       entry.types.forEach { type ->
-        LakeFilterChip(selected = true, onClick = null, label = stringResource(type.label))
+        LakeFilterChip(selected = true, onClick = null, label = entry.nameOf(type))
       }
     }
   }
