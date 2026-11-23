@@ -14,8 +14,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -56,8 +57,9 @@ class BottomBarViewModelTest {
   /** The count the bar shows, followed as a tab on screen does. */
   private fun TestScope.badgeOf(viewModel: BottomBarViewModel): () -> Int {
     backgroundScope.launch(dispatcher) { viewModel.uiState.collect {} }
+    // Not advanceUntilIdle: a failed read is retried for ever, so the queue is never idle
     return {
-      advanceUntilIdle()
+      runCurrent()
       viewModel.uiState.value.prescriptionsToReview
     }
   }
@@ -106,21 +108,32 @@ class BottomBarViewModelTest {
         assertEquals(2, badge())
       }
 
+  /** Lets the retry delay pass, then the count the bar shows. */
+  private fun TestScope.afterRetry(badge: () -> Int): Int {
+    advanceTimeBy(BottomBarViewModel.RETRY_DELAY_MS)
+    return badge()
+  }
+
   @Test
-  fun showsNoBadge_whenThePrescriptionsOrTheUserCantBeRead() =
+  fun hidesTheBadgeWhileAReadFails_andShowsItAgainOnceItWorks() =
       runTest(dispatcher) {
         auth.signInWithGoogle("patient")
         medications.seed("patient", prescription("waiting", PrescriptionConfirmation.PENDING))
 
-        // The prescriptions can't be read
+        // The prescriptions can't be read at first, then can: the badge comes back alone
         medications.readError = IllegalStateException("unavailable")
-        assertEquals(0, badgeOf(BottomBarViewModel(auth, medications))())
-
-        // Reading them fails once they are shown: the badge goes, and the next account still counts
+        val badge = badgeOf(BottomBarViewModel(auth, medications))
+        assertEquals(0, badge())
+        assertEquals("still failing", 0, afterRetry(badge))
         medications.readError = null
-        val running = BottomBarViewModel(auth, medications)
-        val badge = badgeOf(running)
-        assertEquals(1, badge())
+        assertEquals(1, afterRetry(badge))
+
+        // Reading them fails once shown: the badge goes, then comes back
+        medications.failRunningReads(IllegalStateException("access lost"))
+        assertEquals(0, badge())
+        assertEquals(1, afterRetry(badge))
+
+        // A failure doesn't hold up the next account: it gets its count at once
         medications.failRunningReads(IllegalStateException("access lost"))
         assertEquals(0, badge())
         auth.signOut()
@@ -128,8 +141,11 @@ class BottomBarViewModelTest {
         auth.signInWithGoogle("patient")
         assertEquals(1, badge())
 
-        // Who is signed in can't be read
+        // Who is signed in can't be read, then can
         auth.observeError = IllegalStateException("unavailable")
-        assertEquals(0, badgeOf(BottomBarViewModel(auth, medications))())
+        val other = badgeOf(BottomBarViewModel(auth, medications))
+        assertEquals(0, other())
+        auth.observeError = null
+        assertEquals(1, afterRetry(other))
       }
 }
