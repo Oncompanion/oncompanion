@@ -137,12 +137,15 @@ service cloud.firestore {
     }
 
     // Keep the limits in sync with SymptomEntry (MIN_INTENSITY, MAX_INTENSITY, MAX_NOTES_LENGTH,
-    // MAX_CLOCK_DRIFT).
+    // MAX_OTHER_NAME_LENGTH, MAX_CLOCK_DRIFT).
     function isValidSymptom(data) {
-      return data.keys().hasOnly(['types', 'intensity', 'occurredAt', 'notes', 'createdAt',
-                                  'addedBy', 'addedByName', 'editedBy', 'editedByName'])
+      return data.keys().hasOnly(['types', 'intensity', 'strengths', 'occurredAt', 'notes',
+                                  'otherName', 'createdAt', 'addedBy', 'addedByName', 'editedBy',
+                                  'editedByName'])
           && data.keys().hasAll(['types', 'occurredAt', 'createdAt'])
-          // One or more symptoms, each at most once
+          // One or more symptoms, each at most once. This list and the strengths' keys below are
+          // SymptomType: keep both in sync with it (a symptom missing from the strengths' list would
+          // refuse every edit, since an edit writes a strength for each symptom)
           && data.types is list
           && data.types.size() >= 1
           && data.types.toSet().size() == data.types.size()
@@ -151,14 +154,31 @@ service cloud.firestore {
           // The intensity is optional
           && (data.get('intensity', null) == null
               || (data.intensity is int && data.intensity >= 1 && data.intensity <= 10))
+          // A strength per symptom (#543), optional, each a whole number from 1 to 10, or 0 for a
+          // strength an edit removed (a deletion inside a map doesn't show offline). Its keys are
+          // checked against every symptom, not this entry's: an older app version doesn't know
+          // strengths, and removing a symptom there must stay allowed (the app ignores the strength
+          // of a symptom no longer in the entry).
+          && (data.get('strengths', null) == null
+              || (data.strengths is map
+                  && data.strengths.keys().hasOnly(['FATIGUE', 'NAUSEA', 'PAIN', 'FEVER',
+                                                    'HEADACHE', 'APPETITE_LOSS', 'SLEEP_PROBLEMS',
+                                                    'BREATHLESSNESS', 'OTHER'])
+                  && data.strengths.values().hasOnly([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])))
           && data.occurredAt is timestamp
           // Not in the future (it would stay at the top of the journal), with 5 minutes of margin
           // for a phone clock ahead of the server's. Offline writes reach the server later, so
           // request.time is then even later.
           && data.occurredAt <= request.time + duration.value(5, 'm')
           && optionalString(data, 'notes', 1000)
-          // With "Other", the notes say which symptom it was
+          // The name of the "Other" symptom (#545), never blank. Allowed without "Other": an older
+          // app version removing it from an entry keeps the name (the app then ignores it).
+          && optionalString(data, 'otherName', 40)
+          && (data.get('otherName', null) == null || data.otherName.trim().size() > 0)
+          // With "Other", its name says which symptom it was, or the notes do in entries from
+          // older app versions, which don't know the name
           && (!('OTHER' in data.types)
+              || data.get('otherName', null) != null
               || (data.get('notes', null) is string && data.notes.trim().size() > 0))
           && data.createdAt is timestamp;
     }
@@ -344,6 +364,30 @@ service cloud.firestore {
                       && confirmationOf(request.resource.data) == 'REJECTED'
                       && wasWaitingFor(uid, prescriptionId, request.resource.data)
                       && request.resource.data.createdAt == request.time;
+      }
+
+      // ---------- Doses taken ----------
+      // /users/{uid}/takenDoses/{day}: how many doses of each medication the patient ticked on a
+      // day (US-28), {taken: {<medicationId>: count}, updatedAt}, the day as yyyy-MM-dd. Only the
+      // patient records them; a caregiver who sees their prescriptions reads them. A count is a
+      // whole number from 0 to 24 (keep in sync with TakenDosesRepository.MAX_TAKEN_PER_DAY): how
+      // many doses a medication has comes from its frequency text, which the rules can't read, so
+      // the app keeps the count within it.
+      match /takenDoses/{day} {
+        function isValidTakenDoses(data) {
+          // A real month and day of the month (a February 30 is the app's to avoid)
+          return day.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+              && data.keys().hasOnly(['taken', 'updatedAt'])
+              && data.keys().hasAll(['taken', 'updatedAt'])
+              && data.taken is map
+              && data.taken.size() <= 100
+              && data.taken.values().hasOnly([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+                                              15, 16, 17, 18, 19, 20, 21, 22, 23, 24])
+              && data.updatedAt == request.time;
+        }
+        allow read: if canRead(uid, 'PRESCRIPTIONS');
+        allow create, update: if isOwner(uid) && isValidTakenDoses(request.resource.data);
+        allow delete: if isOwner(uid);
       }
 
       // ---------- Symptoms ----------

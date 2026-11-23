@@ -74,6 +74,63 @@ class SymptomSecurityRulesTest {
     denied(symptoms(aliceUid).document().set(data))
   }
 
+  // ---- strengths (#543) ----
+
+  @Test
+  fun eachSymptomCanHaveAStrength_aWholeNumberFrom1To10_or0ForOneRemoved() {
+    assertCreateAllowed(
+        validSymptom().apply {
+          put("types", listOf("FATIGUE", "NAUSEA"))
+          put("strengths", mapOf("FATIGUE" to 1, "NAUSEA" to 10))
+          remove("intensity")
+        }
+    )
+    assertCreateAllowed(validSymptom().apply { put("strengths", emptyMap<String, Int>()) })
+    assertCreateAllowed(validSymptom().apply { put("strengths", mapOf("FATIGUE" to 0)) })
+    // Each refused write on a document of its own, so one can't hide another
+    listOf<Any?>(-1, 11, 5.5, 5.0, "5", true).forEach { value ->
+      try {
+        assertCreateDenied(validSymptom().apply { put("strengths", mapOf("FATIGUE" to value)) })
+      } catch (e: Throwable) {
+        throw AssertionError("Not denied: a strength of $value", e)
+      }
+    }
+    assertCreateDenied(validSymptom().apply { put("strengths", mapOf("COUGH" to 5)) })
+    assertCreateDenied(validSymptom().apply { put("strengths", listOf(5)) })
+  }
+
+  @Test
+  fun anEdit_followsTheSameStrengthRules(): Unit = runBlocking {
+    // Each refused edit on an entry of its own
+    listOf<Any?>(11, 5.0, "5", mapOf("COUGH" to 5)).forEach { change ->
+      val entry = symptoms(aliceUid).document()
+      allowed(entry.set(validSymptom().apply { put("strengths", mapOf("FATIGUE" to 4)) }))
+      val update =
+          if (change is Map<*, *>) entry.update("strengths", change)
+          else entry.update("strengths.FATIGUE", change)
+      try {
+        denied(update)
+      } catch (e: Throwable) {
+        throw AssertionError("Not denied: $change", e)
+      }
+    }
+  }
+
+  @Test
+  fun anOlderAppCanStillRemoveASymptom_thatHasAStrength(): Unit = runBlocking {
+    val entry = symptoms(aliceUid).document()
+    allowed(
+        entry.set(
+            validSymptom().apply {
+              put("types", listOf("FATIGUE", "NAUSEA"))
+              put("strengths", mapOf("FATIGUE" to 4, "NAUSEA" to 6))
+            }
+        )
+    )
+    // An older version doesn't know strengths: its update() keeps them and drops only the type
+    allowed(entry.update("types", listOf("FATIGUE"), "intensity", 5))
+  }
+
   // ---- read / create ----
 
   @Test
@@ -222,6 +279,46 @@ class SymptomSecurityRulesTest {
           remove("notes")
         }
     )
+  }
+
+  // ---- the name of "Other" (#545) ----
+
+  private fun namedOther(): MutableMap<String, Any?> =
+      validOther().apply {
+        put("otherName", "Hiccups")
+        remove("notes")
+      }
+
+  @Test
+  fun otherWithAName_isAllowedWithoutNotes_upTo40Characters() {
+    assertCreateAllowed(namedOther())
+    assertCreateAllowed(namedOther().apply { put("types", listOf("FATIGUE", "OTHER")) })
+    assertCreateAllowed(namedOther().apply { put("otherName", "h".repeat(40)) })
+  }
+
+  @Test
+  fun aNameThatIsntShortText_isDenied_evenWithNotes() {
+    // The notes would be enough on their own, so only the name can be refused; each on its own
+    // document, so one can't hide another
+    listOf<Any?>("", "  ", "h".repeat(41), 42, listOf("Hiccups")).forEach { name ->
+      try {
+        assertCreateDenied(validOther().apply { put("otherName", name) })
+      } catch (e: Throwable) {
+        throw AssertionError("Not denied: a name of $name", e)
+      }
+    }
+  }
+
+  @Test
+  fun anOlderAppCanStillRemoveOther_leavingItsName(): Unit = runBlocking {
+    allowed(savedSymptom(namedOther()).update("types", listOf("FATIGUE")))
+  }
+
+  @Test
+  fun clearingTheNameOfOther_withoutNotes_isDenied(): Unit = runBlocking {
+    denied(savedSymptom(namedOther()).update("otherName", null))
+    // With notes, as an older app version wrote it, the name can go
+    allowed(savedSymptom(namedOther().apply { put("notes", "Hiccups") }).update("otherName", null))
   }
 
   @Test
