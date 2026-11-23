@@ -69,7 +69,7 @@ The signed APK is on the [Releases](https://github.com/Oncompanion/Oncompanion/r
 | Backend | Firebase Authentication (Google Sign-In), Cloud Firestore with its offline cache, Cloud Functions in TypeScript with App Check |
 | On device | ML Kit text recognition, Android speech recognition |
 | Tests | JUnit, Robolectric, Compose UI tests, Kaspresso, Firebase emulators |
-| Quality | ktfmt, Android lint, JaCoCo, SonarCloud (≥ 95% line coverage on `main`, as M3 requires) |
+| Quality | ktfmt, Android lint, JaCoCo, SonarCloud (≥ 95% line coverage on `main`) |
 
 ### Architecture
 
