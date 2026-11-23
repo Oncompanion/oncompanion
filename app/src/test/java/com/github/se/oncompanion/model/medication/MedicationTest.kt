@@ -24,7 +24,7 @@ class MedicationTest {
   fun constantsHaveSpecifiedValues() {
     assertEquals(100, Medication.MAX_TEXT_LENGTH)
     assertEquals(3650, Medication.MAX_DURATION_DAYS)
-    assertEquals(3, Medication.MAX_REMINDER_TIMES)
+    assertEquals(4, Medication.MAX_REMINDER_TIMES)
   }
 
   @Test
@@ -90,14 +90,21 @@ class MedicationTest {
   }
 
   @Test
-  fun reminderTimes_atMostThree_wholeMinutes_neverTwiceTheSame() {
+  fun reminderTimes_atMostFour_wholeMinutes_neverTwiceTheSame() {
     val nine = LocalTime.of(9, 0)
     val cases =
         listOf(
             emptyList<LocalTime>() to true,
             listOf(nine) to true,
             listOf(nine, LocalTime.of(13, 0), LocalTime.of(18, 30)) to true,
-            listOf(nine, LocalTime.of(12, 0), LocalTime.of(15, 0), LocalTime.of(18, 0)) to false,
+            listOf(nine, LocalTime.of(12, 0), LocalTime.of(15, 0), LocalTime.of(18, 0)) to true,
+            listOf(
+                nine,
+                LocalTime.of(12, 0),
+                LocalTime.of(15, 0),
+                LocalTime.of(18, 0),
+                LocalTime.of(21, 0),
+            ) to false,
             listOf(nine, nine) to false,
             listOf(LocalTime.of(9, 0, 30)) to false,
             listOf(LocalTime.of(9, 0, 0, 1)) to false,

@@ -46,8 +46,8 @@ data class Medication(
     const val MAX_TEXT_LENGTH = 100
     /** Keep in sync with `firestore.rules`. */
     const val MAX_DURATION_DAYS = 3650
-    /** One reminder per dose, for up to three doses a day as the form offers. */
-    const val MAX_REMINDER_TIMES = 3
+    /** One reminder per dose, for up to four doses a day ("qid", "every 6 hours"). */
+    const val MAX_REMINDER_TIMES = 4
 
     /** Whether a medication can last [days]: no end (`null`), or 1 to [MAX_DURATION_DAYS] days. */
     fun isValidDuration(days: Int?): Boolean = days == null || days in 1..MAX_DURATION_DAYS
