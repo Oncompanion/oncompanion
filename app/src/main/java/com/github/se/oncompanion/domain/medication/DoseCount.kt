@@ -22,18 +22,27 @@ object DoseCount {
    * The number of doses a day [frequency] says, or `null` if it doesn't say one plainly, or says
    * they're taken only on a condition: there is then nothing to tick each day.
    */
-  fun of(frequency: String?): Int? = describe(frequency)?.takeIf { it.condition == null }?.perDay
+  fun of(frequency: String?): Int? =
+      frequency?.let(::prepared)?.let(::read)?.takeIf { it.condition == null }?.perDay
 
   /**
    * [frequency] as the Overview can say it: its doses a day and the condition they're taken on, or
    * `null` to show it as written. That is when it says neither, says a condition the app doesn't
-   * know ("en cas de toux"), a maximum, a range, or less often than daily: rewording those could
-   * lose what the prescription says.
+   * know ("en cas de toux"), a maximum, a range, or less often than daily, or says anything else
+   * ("with food", "1 cp", "ou vomissements"): rewording those could lose what the prescription
+   * says.
    */
   fun describe(frequency: String?): DailyDoses? {
-    if (frequency.isNullOrBlank()) return null
-    val text = comparable(frequency).replace(DASHES, "-")
-    if (saysNoDailyCount(text)) return null
+    val text = frequency?.let(::prepared) ?: return null
+    return read(text)?.takeIf { saysNothingElse(text) }
+  }
+
+  /** [frequency] as the readers compare it: without accents or case, with plain dashes. */
+  private fun prepared(frequency: String): String = comparable(frequency).replace(DASHES, "-")
+
+  /** The doses a day and the condition [text] says, whatever else it also says. */
+  private fun read(text: String): DailyDoses? {
+    if (text.isBlank() || saysNoDailyCount(text)) return null
     val condition =
         CONDITIONS.entries.firstOrNull { (_, words) -> words.any { it.containsMatchIn(text) } }?.key
     if (condition == null && OTHER_CONDITION.containsMatchIn(text)) return null
@@ -46,6 +55,15 @@ object DoseCount {
             // More than can be recorded, one an hour, is a misreading
             ?.takeIf { it in 1..MAX_TAKEN_PER_DAY }
     return if (count == null && condition == null) null else DailyDoses(count, condition)
+  }
+
+  /**
+   * Once the wordings [read] understood are taken out of [text], only words like "and" or "le" are
+   * left: rewording it then loses nothing.
+   */
+  private fun saysNothingElse(text: String): Boolean {
+    val rest = UNDERSTOOD.fold(text) { left, words -> words.replace(left, " ") }
+    return WORDS.findAll(rest).all { it.value in FILLER }
   }
 
   /**
@@ -243,6 +261,23 @@ object DoseCount {
       Regex("""\b(?:[02-9]|\d{2,})\s*(?:daily|taglich|quotidien(?:ne)?)\b""")
 
   private val AT_BEDTIME_IN_THE_EVENING = Regex("""\bsoir\s+(?:au|avant le)\s+coucher\b""")
+
+  /** Every wording [read] understands, the Swiss scheme first so its digits aren't left alone. */
+  private val UNDERSTOOD: List<Regex> by lazy {
+    listOf(SCHEME, AT_BEDTIME_IN_THE_EVENING) +
+        TIMES_A_DAY +
+        WORD_COUNTS.keys +
+        EVERY_FEW_HOURS +
+        TIMES_OF_DAY +
+        DAILY +
+        CONDITIONS.values.flatten()
+  }
+
+  /** Words that only join the ones understood: "matin et soir", "le soir au coucher". */
+  private val FILLER =
+      setOf("and", "et", "und", "le", "la", "les", "l", "au", "a", "the", "in", "im", "am", "zur")
+
+  private val WORDS = Regex("""[\p{L}\d]+""")
 
   /**
    * Once a day without a number of times. "2 par jour" isn't read: it can mean two tablets at once.

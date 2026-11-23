@@ -20,6 +20,8 @@ class DoseCountTest {
               "Once a day" to 1,
               "once daily" to 1,
               "Twice a day" to 2,
+              // Words beyond the count don't change it
+              "Twice a day with food" to 2,
               "twice daily" to 2,
               "Three times a day" to 3,
               "four times per day" to 4,
@@ -196,11 +198,14 @@ class DoseCountTest {
               "0-0-1" to DailyDoses(1, null),
               "1-0-1" to DailyDoses(2, null),
               "matin et soir" to DailyDoses(2, null),
+              "le soir au coucher" to DailyDoses(1, null),
+              "morning and evening" to DailyDoses(2, null),
+              "1x täglich zur Nacht" to DailyDoses(1, null),
               "toutes les 8 heures" to DailyDoses(3, null),
               "3x täglich" to DailyDoses(3, null),
               // With a condition: the doses a day it says, and what for
               "1-1-1 si nausées" to DailyDoses(3, DoseCondition.IF_NAUSEOUS),
-              "1 cp en cas de nausées, 3x/j" to DailyDoses(3, DoseCondition.IF_NAUSEOUS),
+              "1-1-1 en cas de nausées" to DailyDoses(3, DoseCondition.IF_NAUSEOUS),
               "3 times a day for pain" to DailyDoses(3, DoseCondition.IF_IN_PAIN),
               "2x täglich bei Fieber" to DailyDoses(2, DoseCondition.IF_FEVERISH),
               "si anxiété" to DailyDoses(null, DoseCondition.IF_ANXIOUS),
@@ -223,6 +228,12 @@ class DoseCountTest {
               "en cas de toux, 3x/j" to null,
               // Two counts that disagree, with a condition: as written, not "If nauseous"
               "1-1-1 si nausées, 2x/j" to null,
+              // Anything else it says would be lost: as written
+              "Twice a day with food" to null,
+              "1 cp en cas de nausées, 3x/j" to null,
+              "3x/j si nausées ou vomissements" to null,
+              "3 times a day if coughing" to null,
+              "1-0-1 au repas" to null,
               "max 3x/j si nausées" to null,
               "1 à 2 fois par jour" to null,
               "1x/semaine" to null,
