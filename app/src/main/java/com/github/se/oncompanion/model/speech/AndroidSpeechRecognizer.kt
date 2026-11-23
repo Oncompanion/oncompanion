@@ -79,27 +79,38 @@ class AndroidSpeechRecognizer(
   // Android 13+ only: older phones can't say which languages they understand offline
   override suspend fun offlineSupport(language: SpeechLanguage): OfflineSpeech =
       if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) OfflineSpeech.UNKNOWN
-      else
-          withContext(mainDispatcher) {
-            // Whatever it answers, the phone got the last download request long ago (its dialog
-            // came up before the patient could tap Speak again): the recognizer that sent it can
-            // go, also when the patient cancelled that dialog
-            onDeviceSupport(language).also { releaseDownloader() }
-          }
+      else withContext(mainDispatcher) { onDeviceSupport(language).also(::afterDownloadAnswer) }
 
   override fun downloadForOffline(language: SpeechLanguage) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
     if (!AndroidRecognizer.isOnDeviceRecognitionAvailable(appContext)) return
     val recognizer = AndroidRecognizer.createOnDeviceSpeechRecognizer(appContext)
     recognizer.triggerModelDownload(recognizerIntent(language, appContext.packageName))
-    // Kept until the phone next answers offlineSupport: destroying it now could drop the request
-    // before it reaches the phone's speech service
+    // Kept until the phone has the request (see afterDownloadAnswer): destroying it now could
+    // drop the request before it reaches the phone's speech service
     releaseDownloader()
     downloader = recognizer
+    answersSinceDownload = 0
   }
 
   /** The recognizer that asked for the last download; see [downloadForOffline]. */
   private var downloader: AndroidRecognizer? = null
+
+  /** How many times the phone answered [offlineSupport] since the last download was asked for. */
+  private var answersSinceDownload = 0
+
+  /**
+   * Releases the recognizer that asked for the last download once the phone surely has the request.
+   * The first answer may come before the phone took it (the app asks again a second after the
+   * download when the phone shows no dialog), so still downloadable then doesn't mean the request
+   * was lost. The next answer comes at the next dictation: by then, a language still downloadable
+   * means the patient cancelled the phone's dialog, and the recognizer goes too.
+   */
+  private fun afterDownloadAnswer(support: OfflineSpeech) {
+    answersSinceDownload++
+    val phoneHasIt = support == OfflineSpeech.DOWNLOADING || support == OfflineSpeech.READY
+    if (phoneHasIt || answersSinceDownload > 1) releaseDownloader()
+  }
 
   private fun releaseDownloader() {
     downloader?.destroy()
