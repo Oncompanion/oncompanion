@@ -228,6 +228,13 @@ class DoseCountTest {
               "en cas de toux, 3x/j" to null,
               // Two counts that disagree, with a condition: as written, not "If nauseous"
               "1-1-1 si nausées, 2x/j" to null,
+              // Two counts in the same format that disagree: as written too
+              "3 times a day, 2 times a day if nauseous" to null,
+              "1-1-1, 1-0-1 si nausées" to null,
+              "every 8 hours, every 12 hours if in pain" to null,
+              "twice a day, three times a day if nauseous" to null,
+              // The same count said twice still agrees
+              "3x/j, 3x/j si nausées" to DailyDoses(3, DoseCondition.IF_NAUSEOUS),
               // Two conditions: saying one would hide the other
               "3 times a day if nauseous and if fever" to null,
               "1-1-1 si nausées, si fièvre" to null,

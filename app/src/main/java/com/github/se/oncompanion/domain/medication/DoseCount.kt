@@ -48,8 +48,9 @@ object DoseCount {
     if (conditions.size > 1) return null
     val condition = conditions.keys.singleOrNull()
     if (condition == null && OTHER_CONDITION.containsMatchIn(text)) return null
-    // Every wording that says a count must agree; "daily" alone only counts when none other does
-    val counts = readers.mapNotNull { read -> read(text) }.distinct()
+    // Every count said must agree, also two in the same format ("3 times a day, 2 times a day");
+    // "daily" alone only counts when none other does
+    val counts = readers.flatMap { read -> read(text) }.distinct()
     // Two counts that disagree: rewording would hide both
     if (counts.size > 1) return null
     val count =
@@ -79,28 +80,31 @@ object DoseCount {
         RANGE.any { it.containsMatchIn(withoutScheme) }
   }
 
-  /** "1-0-1", "1-1-1-1": one dose at each time of the day whose number isn't 0. */
-  private fun schemeCount(text: String): Int? =
-      SCHEME.find(text)
-          ?.groupValues
-          ?.drop(1)
-          ?.count { it.isNotEmpty() && it != "0" }
-          ?.takeIf { it > 0 }
+  /** "1-0-1", "1-1-1-1": one dose at each time of the day whose number isn't 0, for each scheme. */
+  private fun schemeCounts(text: String): List<Int> =
+      SCHEME.findAll(text)
+          .map { scheme -> scheme.groupValues.drop(1).count { it.isNotEmpty() && it != "0" } }
+          .filter { it > 0 }
+          .toList()
 
-  /** "3x/jour", "2 fois par jour", "3 times a day", "2x taglich", "2/j", "x 2/j". */
-  private fun timesADay(text: String): Int? = TIMES_A_DAY.firstNotNullOfOrNull {
-    it.find(text)?.groupValues?.get(1)?.toIntOrNull()
-  }
+  /** "3x/jour", "2 fois par jour", "3 times a day", "2x taglich", "2/j", "x 2/j": each one said. */
+  private fun timesADay(text: String): List<Int> = numbersIn(text, TIMES_A_DAY)
+
+  /** The number each of [wordings] says in [text], every time it says one. */
+  private fun numbersIn(text: String, wordings: List<Regex>): List<Int> =
+      wordings.flatMap { words ->
+        words.findAll(text).mapNotNull { it.groupValues[1].toIntOrNull() }
+      }
 
   /** "twice a day", "deux fois par jour", "zweimal taglich", and "bid", "tid", "qid", "qd". */
-  private fun wordCount(text: String): Int? =
-      WORD_COUNTS.entries.firstOrNull { (words, _) -> words.containsMatchIn(text) }?.value
+  private fun wordCounts(text: String): List<Int> =
+      WORD_COUNTS.filterKeys { it.containsMatchIn(text) }.values.toList()
 
   /** "q8h", "toutes les 8 heures", "every 12 hours", "alle 8 Stunden": only if it divides a day. */
-  private fun everyFewHours(text: String): Int? =
-      EVERY_FEW_HOURS.firstNotNullOfOrNull { it.find(text)?.groupValues?.get(1)?.toIntOrNull() }
-          ?.takeIf { it in 1..HOURS_IN_A_DAY && HOURS_IN_A_DAY % it == 0 }
-          ?.let { HOURS_IN_A_DAY / it }
+  private fun everyFewHours(text: String): List<Int> =
+      numbersIn(text, EVERY_FEW_HOURS)
+          .filter { it in 1..HOURS_IN_A_DAY && HOURS_IN_A_DAY % it == 0 }
+          .map { HOURS_IN_A_DAY / it }
 
   /**
    * "matin et soir", "morning, noon and evening", "abends": one dose at each time named. "Le soir
@@ -124,8 +128,14 @@ object DoseCount {
         DAILY.any { it.containsMatchIn(text) } && !NUMBER_BEFORE_DAILY.containsMatchIn(text)
       }
 
-  private val readers: List<(String) -> Int?> =
-      listOf(::schemeCount, ::timesADay, ::wordCount, ::everyFewHours, ::namedTimes)
+  private val readers: List<(String) -> List<Int>> =
+      listOf(
+          ::schemeCounts,
+          ::timesADay,
+          ::wordCounts,
+          ::everyFewHours,
+          { listOfNotNull(namedTimes(it)) },
+      )
 
   private const val HOURS_IN_A_DAY = 24
 
