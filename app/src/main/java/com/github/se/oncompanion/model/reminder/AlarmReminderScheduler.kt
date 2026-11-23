@@ -55,7 +55,7 @@ class AlarmReminderScheduler(context: Context) : ReminderScheduler {
   }
 
   internal companion object {
-    const val CHANNEL = "care_reminders"
+    const val CHANNEL = REMINDER_CHANNEL_ID
     const val TITLE = "reminder_title"
     const val TEXT = "reminder_text"
     const val FLAGS = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

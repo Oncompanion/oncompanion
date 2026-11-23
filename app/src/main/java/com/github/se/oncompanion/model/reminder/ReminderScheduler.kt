@@ -4,6 +4,9 @@ package com.github.se.oncompanion.model.reminder
 
 import java.time.Instant
 
+/** Android channel shared by alarm delivery and its permission/settings UI. */
+const val REMINDER_CHANNEL_ID = "care_reminders"
+
 /** Account and feature-scoped identity; the same key replaces an existing reminder. */
 data class ReminderKey(val ownerUid: String, val feature: String, val itemId: String) {
   init {

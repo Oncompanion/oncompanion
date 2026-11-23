@@ -84,6 +84,7 @@ import com.github.se.oncompanion.ui.profile.EditProfileScreen
 import com.github.se.oncompanion.ui.profile.EditProfileViewModel
 import com.github.se.oncompanion.ui.profile.ProfileScreen
 import com.github.se.oncompanion.ui.profile.ProfileViewModel
+import com.github.se.oncompanion.ui.reminder.ReminderPermissionViewModel
 import com.github.se.oncompanion.ui.settings.AppearanceScreen
 import com.github.se.oncompanion.ui.settings.SettingsScreen
 import com.github.se.oncompanion.ui.settings.SettingsViewModel
@@ -321,6 +322,9 @@ private fun SessionNavHost(
             onOpenEvent = eventOpener(navigationActions),
             onOpenMedication = medicationOpener(navigationActions),
             caregiverOf = chosenPatient?.firstName,
+            reminderPermissions =
+                if (chosenPatient == null) viewModel { ReminderPermissionViewModel(clock = clock) }
+                else null,
         )
       }
       composable(

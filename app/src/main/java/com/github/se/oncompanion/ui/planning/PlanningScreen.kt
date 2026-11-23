@@ -1,3 +1,4 @@
+// Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 // Co-authored-by: Codex <noreply@openai.com>
 
@@ -43,6 +44,8 @@ import com.github.se.oncompanion.ui.common.isCompactHeight
 import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Tab
+import com.github.se.oncompanion.ui.reminder.ReminderPermissionViewModel
+import com.github.se.oncompanion.ui.reminder.rememberReminderPermissionNotice
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -76,7 +79,9 @@ fun PlanningScreen(
     onOpenEvent: (String) -> Unit,
     onOpenMedication: (String, String) -> Unit,
     caregiverOf: String? = null,
+    reminderPermissions: ReminderPermissionViewModel? = null,
 ) {
+  val reminderNotice = reminderPermissions?.let { rememberReminderPermissionNotice(it) }
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val openItem: (PlanningItem) -> Unit = {
     openPlanningItem(it, onOpenAppointment, onOpenEvent, onOpenMedication)
@@ -106,6 +111,7 @@ fun PlanningScreen(
         BottomNavigationBar(Tab.PLANNING, { navigationActions.navigateToTab(it.route) })
       },
       caregiverOf = caregiverOf,
+      reminderNotice = reminderNotice,
   )
 }
 
@@ -137,6 +143,7 @@ fun PlanningContent(
     modifier: Modifier = Modifier,
     bottomBar: @Composable () -> Unit = {},
     caregiverOf: String? = null,
+    reminderNotice: (@Composable () -> Unit)? = null,
 ) {
   val locale = LocalConfiguration.current.locales[0]
   val compact = isCompactHeight()
@@ -156,8 +163,11 @@ fun PlanningContent(
             Modifier.weight(1f),
             canOpenItem = actions.canOpenItem,
             header =
-                if (compact) {
-                  { PlanningHeader(state, today, locale, actions) }
+                if (compact || reminderNotice != null) {
+                  {
+                    if (compact) PlanningHeader(state, today, locale, actions)
+                    reminderNotice?.invoke()
+                  }
                 } else null,
             caregiverOf = caregiverOf,
         )

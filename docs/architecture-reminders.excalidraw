@@ -217,6 +217,10 @@
         {
           "type": "text",
           "id": "savers_t"
+        },
+        {
+          "type": "arrow",
+          "id": "permission_android"
         }
       ],
       "updated": 1794000000000,
@@ -226,10 +230,10 @@
     {
       "id": "savers_t",
       "type": "text",
-      "x": 456.45,
-      "y": 47.5,
-      "width": 287.1,
-      "height": 45.0,
+      "x": 490,
+      "y": 36.25,
+      "width": 220,
+      "height": 67.5,
       "angle": 0,
       "strokeColor": "#1e1e1e",
       "backgroundColor": "transparent",
@@ -249,9 +253,9 @@
       "updated": 1794000000000,
       "link": null,
       "locked": false,
-      "text": "Appointment form, event\nconfirmation (other diagrams)",
-      "originalText": "Appointment form, event\nconfirmation (other diagrams)",
-      "fontSize": 18,
+      "text": "Planning permission notice\nReminderPermissionViewModel\nForms / events (elsewhere)",
+      "originalText": "Planning permission notice\nReminderPermissionViewModel\nForms / events (elsewhere)",
+      "fontSize": 16,
       "fontFamily": 2,
       "textAlign": "center",
       "verticalAlign": "middle",
@@ -711,6 +715,10 @@
         {
           "type": "text",
           "id": "workmanager_t"
+        },
+        {
+          "type": "arrow",
+          "id": "permission_android"
         }
       ],
       "updated": 1794000000000,
@@ -1653,6 +1661,68 @@
         "elementId": "schedule",
         "focus": 0,
         "gap": 4
+      }
+    },
+    {
+      "id": "permission_android",
+      "type": "arrow",
+      "x": 600,
+      "y": 20,
+      "width": 410,
+      "height": 590,
+      "angle": 0,
+      "strokeColor": "#868e96",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 1830171280,
+      "version": 1,
+      "versionNonce": 579716378,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1794000000000,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          -10
+        ],
+        [
+          410,
+          -10
+        ],
+        [
+          410,
+          590
+        ],
+        [
+          120,
+          590
+        ]
+      ],
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "savers",
+        "focus": 0,
+        "gap": 0
+      },
+      "endBinding": {
+        "elementId": "workmanager",
+        "focus": 0,
+        "gap": 0
       }
     }
   ],
