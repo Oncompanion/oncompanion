@@ -153,6 +153,10 @@ private fun SessionNavHost(
   // Caregiver mode: the patient chosen in "Whose care?" (null for a patient), for every screen
   val caregiverMode: CaregiverModeViewModel = viewModel { CaregiverModeViewModel(savedState) }
   val chosenPatient by caregiverMode.patient.collectAsStateWithLifecycle()
+  // What every tab's bottom bar shows: one count of the prescriptions to confirm for all of them
+  val bottomBarViewModel: BottomBarViewModel = viewModel { BottomBarViewModel() }
+  val counted by bottomBarViewModel.uiState.collectAsStateWithLifecycle()
+  val bottomBar = counted.copy(caregiverMode = chosenPatient != null)
   // Removed from the chosen patient's circle: the patients still followed, or joining a circle.
   // The list shows even with one left, so the caregiver sees who removed them is gone
   val lostAccess by caregiverMode.lostAccess.collectAsStateWithLifecycle()
@@ -287,6 +291,7 @@ private fun SessionNavHost(
             onOpenEvent = eventOpener(navigationActions),
             caregiverOf = chosenPatient?.firstName,
             onSwitchPatient = { navigationActions.navigateTo(Screen.WHOSE_CARE_SWITCH) },
+            bottomBar = bottomBar,
         )
       }
     }
@@ -321,6 +326,7 @@ private fun SessionNavHost(
             onOpenEvent = eventOpener(navigationActions),
             onOpenMedication = medicationOpener(navigationActions),
             caregiverOf = chosenPatient?.firstName,
+            bottomBar = bottomBar,
         )
       }
       composable(
@@ -407,7 +413,11 @@ private fun SessionNavHost(
     }
     navigation(startDestination = Screen.EVENTS, route = Route.EVENTS) {
       composable(Screen.EVENTS) {
-        EventsScreen(navigationActions, viewModel = viewModel { EventsViewModel() })
+        EventsScreen(
+            navigationActions,
+            viewModel = viewModel { EventsViewModel() },
+            bottomBar = bottomBar,
+        )
       }
       composable(
           Screen.EVENT_DETAIL,
@@ -517,7 +527,9 @@ private fun SessionNavHost(
             // In caregiver mode, the chosen patient's prescriptions, read-only, when they share
             // them
             viewModel = viewModel { PrescriptionsViewModel(patientUid = chosenPatient?.uid) },
-            onBack = navigationActions::goBack,
+            // The patient's tab has the bottom bar; a caregiver came from the Overview and goes
+            // back
+            onBack = navigationActions::goBack.takeIf { chosenPatient != null },
             // A second tap while the form is already opening is dropped, so it opens once
             onAdd = dropUnlessResumed { navigationActions.navigateTo(Screen.PRESCRIPTION_ADD) },
             onScan = dropUnlessResumed { navigationActions.navigateTo(Screen.PRESCRIPTION_SCAN) },
@@ -525,6 +537,15 @@ private fun SessionNavHost(
             caregiverOf = chosenPatient?.firstName,
             // The patient reviews a prescription a caregiver added in the form (US-43)
             onReview = { id -> navigationActions.navigateTo(Screen.prescriptionEdit(id)) },
+            bottomBar = {
+              if (chosenPatient == null) {
+                BottomNavigationBar(
+                    Tab.PRESCRIPTIONS,
+                    { navigationActions.navigateToTab(it.route) },
+                    state = bottomBar,
+                )
+              }
+            },
         )
       }
       composable(
@@ -756,7 +777,8 @@ private fun SessionNavHost(
 /**
  * The [ScanHandoffViewModel] shared by the prescriptions screens: it belongs to the prescriptions
  * graph, so it passes the scanned prescription from the scan screen to the form, and is cleared,
- * deleting the photo, when the user leaves the prescriptions screens.
+ * deleting the photo, when that graph ends (Back from the list, or signing out). Switching tabs
+ * keeps the graph, but only the list has the bar, and the form deletes the photo when it closes.
  */
 @Composable
 private fun scanHandoffViewModel(

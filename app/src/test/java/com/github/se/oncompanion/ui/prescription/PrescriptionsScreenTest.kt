@@ -3,6 +3,7 @@
 package com.github.se.oncompanion.ui.prescription
 
 import android.content.Context
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getBoundsInRoot
@@ -47,6 +49,9 @@ import com.github.se.oncompanion.ui.SMALL_LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.common.LakeButtonDefaults
+import com.github.se.oncompanion.ui.navigation.BottomBarUiState
+import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
+import com.github.se.oncompanion.ui.navigation.Tab
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
 import java.time.Clock
 import java.time.LocalDate
@@ -108,11 +113,12 @@ class PrescriptionsScreenTest {
 
   private fun setContent(
       state: PrescriptionsUiState,
-      onBack: () -> Unit = {},
+      onBack: (() -> Unit)? = {},
       onAdd: () -> Unit = {},
       onScan: () -> Unit = {},
       onRetry: () -> Unit = {},
       onOpen: (String) -> Unit = {},
+      bottomBar: @Composable () -> Unit = {},
   ) {
     composeTestRule.setContent {
       PrescriptionsContent(
@@ -122,9 +128,24 @@ class PrescriptionsScreenTest {
           onScan = onScan,
           onRetry = onRetry,
           onOpen = onOpen,
+          bottomBar = bottomBar,
       )
     }
   }
+
+  /** The patient's list, as their Prescriptions tab: no back arrow, the bottom bar below. */
+  private fun setPatientTab(state: PrescriptionsUiState) =
+      setContent(
+          state,
+          onBack = null,
+          bottomBar = {
+            BottomNavigationBar(
+                Tab.PRESCRIPTIONS,
+                {},
+                state = BottomBarUiState(prescriptionsToReview = 1),
+            )
+          },
+      )
 
   private fun boundsOf(tag: String) =
       composeTestRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
@@ -582,6 +603,31 @@ class PrescriptionsScreenTest {
     assertTextInside("Med 30", C.Tag.prescriptionsItem("p30"))
     // The button stays above the list
     composeTestRule.onNodeWithTag(C.Tag.prescriptions_enter_manually_button).assertIsDisplayed()
+  }
+
+  @Test
+  fun patientTab_hasNoBackArrow_andTheBottomBarOnPrescriptions() {
+    setPatientTab(filled)
+
+    composeTestRule.onNodeWithTag(C.Tag.prescriptions_back_button).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(Tab.PRESCRIPTIONS.testTag).assertIsSelected()
+    composeTestRule
+        .onNodeWithTag(C.Tag.bottom_navigation_prescriptions_badge, useUnmergedTree = true)
+        .assertIsDisplayed()
+  }
+
+  @Test
+  @Config(qualifiers = LANDSCAPE_PHONE, fontScale = 2f)
+  fun patientTab_inLandscape_keepsTheAddButtonsWholeAboveTheBar() {
+    setPatientTab(filled)
+
+    val barTop = boundsOf(C.Tag.bottom_navigation_bar).top
+    for (tag in
+        listOf(C.Tag.prescriptions_scan_button, C.Tag.prescriptions_enter_manually_button)) {
+      composeTestRule.onNodeWithTag(tag).assertIsFullyVisible()
+      assertTrue("$tag overlaps the bar", boundsOf(tag).bottom <= barTop)
+    }
+    Tab.entries.forEach { composeTestRule.onNodeWithTag(it.testTag).assertIsFullyVisible() }
   }
 
   @Test

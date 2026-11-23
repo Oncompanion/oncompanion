@@ -131,12 +131,13 @@ object C {
     const val overview_check_in = "overview_check_in"
     const val overview_check_in_more = "overview_check_in_more"
     const val overview_journal_link = "overview_journal_link"
-    const val overview_prescriptions_badge = "overview_prescriptions_badge"
 
     const val bottom_navigation_bar = "bottom_navigation_bar"
     const val bottom_navigation_tab_overview = "bottom_navigation_tab_overview"
     const val bottom_navigation_tab_planning = "bottom_navigation_tab_planning"
     const val bottom_navigation_tab_events = "bottom_navigation_tab_events"
+    const val bottom_navigation_tab_prescriptions = "bottom_navigation_tab_prescriptions"
+    const val bottom_navigation_prescriptions_badge = "bottom_navigation_prescriptions_badge"
     const val planning_screen = "planning_screen"
     const val events_screen = "events_screen"
     const val events_title = "events_title"
@@ -235,6 +236,7 @@ object C {
     const val symptom_voice_download = "symptom_voice_download"
     const val symptom_voice_not_now = "symptom_voice_not_now"
     const val symptom_voice_downloading = "symptom_voice_downloading"
+    const val symptom_voice_online_only = "symptom_voice_online_only"
     const val prescriptions_screen = "prescriptions_screen"
     const val care_circle_screen = "care_circle_screen"
     // Settings
@@ -543,6 +545,10 @@ object C {
         "prescription_detail_medication_$medicationId"
 
     const val prescription_form_not_allowed = "prescription_form_not_allowed"
+    const val prescription_form_prescription_card = "prescription_form_prescription_card"
+    const val prescription_form_medications_heading = "prescription_form_medications_heading"
+    const val prescription_form_medication_card = "prescription_form_medication_card"
+    const val prescription_form_save_bar = "prescription_form_save_bar"
 
     // Medication detail (US-35)
     const val medication_detail_screen = "medication_detail_screen"
