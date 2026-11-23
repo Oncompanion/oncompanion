@@ -544,6 +544,10 @@ object C {
         "prescription_detail_medication_$medicationId"
 
     const val prescription_form_not_allowed = "prescription_form_not_allowed"
+    const val prescription_form_prescription_card = "prescription_form_prescription_card"
+    const val prescription_form_medications_heading = "prescription_form_medications_heading"
+    const val prescription_form_medication_card = "prescription_form_medication_card"
+    const val prescription_form_save_bar = "prescription_form_save_bar"
 
     // Medication detail (US-35)
     const val medication_detail_screen = "medication_detail_screen"
