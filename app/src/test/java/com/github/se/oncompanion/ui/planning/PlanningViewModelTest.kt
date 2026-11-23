@@ -916,36 +916,51 @@ class PlanningViewModelTest {
         assertEquals(LocalDate.of(2026, 10, 2), repository.ranges.single().startDateInclusive)
       }
 
-  /** A saved view or period that can't be used falls back to List, or to the view's period. */
+  /**
+   * A saved selection that can't be used falls back to List and today, as a whole; a save from the
+   * previous version, with only the date, still restores that date in List.
+   */
   @Test
-  fun invalidSavedViewOrPeriodFallsBack() =
+  fun invalidSavedSelectionFallsBackToListAndToday() =
       runTest(dispatcher) {
         val today = LocalDate.of(2026, 10, 2)
-        // saved view, saved period start -> period shown around today
+        val saved = LocalDate.of(2026, 10, 20)
+        val fallback = today to PlanningPeriod.of(PlanningView.LIST, today)
+        // saved date, view and period start -> selected day and period shown
         val cases =
             listOf(
-                ("AGENDA" to null) to PlanningPeriod.of(PlanningView.LIST, today),
-                ("MONTH" to "not a date") to PlanningPeriod.of(PlanningView.MONTH, today),
+                Triple("2026-10-20", "AGENDA", "2026-10-19") to fallback,
+                Triple("2026-10-20", "MONTH", "not a date") to fallback,
                 // Not the 1st of a month
-                ("MONTH" to "2026-10-02") to PlanningPeriod.of(PlanningView.MONTH, today),
-                // Doesn't hold the restored day
-                ("THREE_DAYS" to "2026-09-01") to PlanningPeriod.of(PlanningView.THREE_DAYS, today),
-                ("THREE_DAYS" to "2026-10-01") to
-                    PlanningPeriod(PlanningView.THREE_DAYS, today.minusDays(1)),
+                Triple("2026-10-20", "MONTH", "2026-10-02") to fallback,
+                // Doesn't hold the saved day
+                Triple("2026-10-20", "THREE_DAYS", "2026-09-01") to fallback,
+                Triple("2026-10-20", "MONTH", null) to fallback,
+                Triple("2026-10-20", null, "2026-10-01") to fallback,
+                Triple("invalid", "MONTH", "2026-10-01") to fallback,
+                Triple("2026-10-20", "THREE_DAYS", "2026-10-19") to
+                    (saved to PlanningPeriod(PlanningView.THREE_DAYS, saved.minusDays(1))),
+                // Saved by the previous version: the date only
+                Triple("2026-10-20", null, null) to
+                    (saved to PlanningPeriod.of(PlanningView.LIST, saved)),
             )
-        for ((saved, expected) in cases) {
-          val (view, start) = saved
+        for ((input, expected) in cases) {
+          val (date, view, start) = input
           val vm =
               PlanningViewModel(
                   ownPlanning(FakePlanningRepository()),
                   clock,
                   zone,
                   SavedStateHandle(
-                      mapOf("planning_view" to view, "planning_period_start" to start)
+                      mapOf(
+                          "planning_selected_date" to date,
+                          "planning_view" to view,
+                          "planning_period_start" to start,
+                      )
                   ),
               )
-          assertEquals("$saved", expected, vm.uiState.value.period)
-          assertEquals("$saved", today, vm.uiState.value.selectedDate)
+          val state = vm.uiState.value
+          assertEquals("$input", expected, state.selectedDate to state.period)
         }
         drain()
       }

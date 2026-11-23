@@ -82,25 +82,12 @@ class PlanningViewModel(
     private val patientUid: String? = null,
 ) : ViewModel() {
   private val today = LocalDate.now(clock.withZone(zoneId))
-  private val initialDate =
-      savedStateHandle.get<String>(SELECTED_DATE)?.let {
-        runCatching { LocalDate.parse(it) }.getOrNull()?.takeIf(PlanningDates::isSupported)
-      } ?: today
-  private val initialView =
-      savedStateHandle.get<String>(VIEW)?.let { name ->
-        PlanningView.entries.find { it.name == name }
-      } ?: PlanningView.LIST
-  // A saved period that no longer holds the restored day is computed again
-  private val initialPeriod =
-      savedStateHandle
-          .get<String>(PERIOD_START)
-          ?.let { runCatching { PlanningPeriod(initialView, LocalDate.parse(it)) }.getOrNull() }
-          ?.takeIf { initialDate in it } ?: PlanningPeriod.of(initialView, initialDate)
+  private val initialSelection = restoreSelection()
   private val mutableState =
       MutableStateFlow(
           PlanningUiState(
-              initialDate,
-              initialPeriod,
+              initialSelection.first,
+              initialSelection.second,
               today = today,
               canAdd = patientUid == null,
           )
@@ -160,6 +147,28 @@ class PlanningViewModel(
 
   /** Retries observation while keeping previously displayed items. */
   fun retry() = observePeriod(preserveItems = true)
+
+  /**
+   * The selected day and period saved before the activity was recreated, as a whole: if any part
+   * can't be used, List and today. A save from the previous version, with the date only, shows that
+   * date in List.
+   */
+  private fun restoreSelection(): Pair<LocalDate, PlanningPeriod> {
+    val fallback = today to PlanningPeriod.of(PlanningView.LIST, today)
+    val date =
+        savedStateHandle.get<String>(SELECTED_DATE)?.let {
+          runCatching { LocalDate.parse(it) }.getOrNull()?.takeIf(PlanningDates::isSupported)
+        } ?: return fallback
+    val view = savedStateHandle.get<String>(VIEW)
+    val start = savedStateHandle.get<String>(PERIOD_START)
+    if (view == null && start == null) return date to PlanningPeriod.of(PlanningView.LIST, date)
+    val period =
+        if (view == null || start == null) null
+        else
+            runCatching { PlanningPeriod(PlanningView.valueOf(view), LocalDate.parse(start)) }
+                .getOrNull()
+    return if (period != null && date in period) date to period else fallback
+  }
 
   private fun move(steps: Int) {
     val state = mutableState.value
