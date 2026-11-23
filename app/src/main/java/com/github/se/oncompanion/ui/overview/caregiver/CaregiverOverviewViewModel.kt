@@ -215,7 +215,7 @@ class CaregiverOverviewViewModel(
               access is CareAccess.Unconfirmed ||
                   planning is CarePlanning.Loading ||
                   (readsPlanning && planning.notReadYet()) ||
-                  (readsJournal && journal is CareSection.Loading),
+                  (readsJournal && journal.notReadYet()),
           hasError =
               planning is CarePlanning.Failed || (readsJournal && journal is CareSection.Failed),
       )
@@ -240,6 +240,14 @@ class CaregiverOverviewViewModel(
    */
   private fun CarePlanning.notReadYet(): Boolean =
       this is CarePlanning.NotShared || this is CarePlanning.NoAccess
+
+  /**
+   * Whether the journal isn't read yet: loading, or its own listener doesn't see it shared yet
+   * although the access does, as when the patient has just started sharing it ("No entries yet"
+   * would be wrong).
+   */
+  private fun CareSection<*>.notReadYet(): Boolean =
+      this is CareSection.Loading || this is CareSection.NotShared || this is CareSection.NoAccess
 
   /** The caregiver's name for the greeting; without a name if it is not known. */
   private fun loadFirstName() {

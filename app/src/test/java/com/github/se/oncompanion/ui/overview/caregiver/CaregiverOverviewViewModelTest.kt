@@ -383,6 +383,31 @@ class CaregiverOverviewViewModelTest {
   }
 
   @Test
+  fun symptomsStartedSharingWhileOpen_staysLoading_untilTheJournalFollows() {
+    val patient = FollowedPatient(PLANNING)
+    // The journal's own listener answers later than the access, so it still says "not shared"
+    val journalNotYetShared = FollowedPatient(PLANNING)
+    val vm =
+        viewModel(
+            patient,
+            symptoms = journal(entry("new", now.minusHours(1))),
+            journalOf = journalNotYetShared,
+        )
+
+    patient.shares(PLANNING, SYMPTOMS)
+    ShadowLooper.idleMainLooper()
+
+    // Not "No entries yet" while the patient logged one an hour ago
+    assertEquals(SHOWN, vm.uiState.value.sections[SYMPTOMS])
+    assertTrue(vm.uiState.value.isLoading)
+
+    journalNotYetShared.shares(PLANNING, SYMPTOMS)
+    ShadowLooper.idleMainLooper()
+    assertFalse(vm.uiState.value.isLoading)
+    assertEquals("new", vm.uiState.value.latestEntry?.entry?.id)
+  }
+
+  @Test
   fun journalNotReadYet_isLoading_onlyWhileTheSymptomsAreShared() {
     // A journal that never answers, as offline with nothing cached
     val silent =
