@@ -8,12 +8,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.oncompanion.domain.carecircle.CareAccess
 import com.github.se.oncompanion.domain.carecircle.ResolveCareCircleAccess
+import com.github.se.oncompanion.domain.medication.DoseCount
 import com.github.se.oncompanion.domain.planning.CarePlanning
 import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
 import com.github.se.oncompanion.domain.planning.endOrDefault
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
+import com.github.se.oncompanion.model.auth.signedInUid
 import com.github.se.oncompanion.model.carecircle.CarePermission
+import com.github.se.oncompanion.model.medication.TakenDosesRepository
+import com.github.se.oncompanion.model.medication.TakenDosesRepositoryProvider
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningRange
 import com.github.se.oncompanion.model.planning.PlanningSource
@@ -23,6 +27,7 @@ import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.Period
@@ -113,18 +118,26 @@ data class NextUp(
 )
 
 /**
- * One of the medications to take today, on the patient's "Today's medications" card.
+ * One of the medications to take today, on the patient's "Today's medications" card, with the doses
+ * they ticked (US-28).
  *
  * @property key identifies it, the same as in Planning
+ * @property medicationId the [com.github.se.oncompanion.model.medication.Medication] it is, under
+ *   which its doses are saved
  * @property name its name and dosage (e.g. "Ondansetron 8 mg")
  * @property frequency the frequency recorded on the prescription, if any
- * @property notConfirmedAddedBy who added it, while its prescription isn't confirmed yet (US-43)
+ * @property dosesPerDay how many doses can be ticked today, read from [frequency]; `null` when
+ *   there is nothing to tick (taken only if needed, a frequency that doesn't say a number) or
+ *   today's ticks couldn't be read
+ * @property taken how many of them the patient ticked today, from 0 to [dosesPerDay]
  */
 data class TodayMedication(
     val key: String,
+    val medicationId: String,
     val name: String,
     val frequency: String? = null,
-    val notConfirmedAddedBy: String? = null,
+    val dosesPerDay: Int? = null,
+    val taken: Int = 0,
 )
 
 /**
@@ -165,6 +178,7 @@ data class OverviewUiState(
  * @param zoneId the time zone the day is shown in
  * @param patientUid in caregiver mode, the patient whose day is shown; null for the user's own
  * @param resolveAccess which sections the patient shares, for the shortcuts
+ * @param takenDosesRepository the doses the patient ticks on their medications (US-28)
  */
 class OverviewViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
@@ -175,12 +189,24 @@ class OverviewViewModel(
     private val patientUid: String? = null,
     private val resolveAccess: ResolveCareCircleAccess =
         ResolveCareCircleAccess(auth = authRepository),
+    private val takenDosesRepository: TakenDosesRepository =
+        TakenDosesRepositoryProvider.repository,
 ) : ViewModel() {
 
   private val _uiState = MutableStateFlow(OverviewUiState(now = now()))
   val uiState: StateFlow<OverviewUiState> = _uiState.asStateFlow()
 
   private var dayObservation: Job? = null
+
+  /** Follows the doses the patient ticked today, in patient mode. */
+  private var dosesObservation: Job? = null
+
+  /**
+   * The doses ticked today by medication ID, or `null` while they are unknown (not read yet, or
+   * they couldn't be): then no medication can be ticked, since a tick saves a count and ticking
+   * from a wrong 0 would overwrite the real one.
+   */
+  private var takenToday: Map<String, Int>? = null
 
   /** Follows which sections the patient shares, in caregiver mode. */
   private var sharedObservation: Job? = null
@@ -223,10 +249,10 @@ class OverviewViewModel(
    */
   fun loadDay() {
     dayObservation?.cancel()
-    if (patientUid != null) followSharedSections(patientUid)
     val now = now()
-    _uiState.update { it.copy(now = now, isLoading = true, hasError = false) }
     val today = now.toLocalDate()
+    if (patientUid != null) followSharedSections(patientUid) else followTakenDoses(today)
+    _uiState.update { it.copy(now = now, isLoading = true, hasError = false) }
     val range = PlanningRange(today, today.plus(LOOKAHEAD), zoneId)
     dayObservation = viewModelScope.launch {
       observePlanning(patientUid, range)
@@ -335,22 +361,89 @@ class OverviewViewModel(
     }
   }
 
-  /** Today's medications, with their dosage after their name. */
+  /**
+   * Today's medications, with their dosage after their name and the doses ticked. One a caregiver
+   * added stays off the Overview until the patient confirms its prescription: it isn't part of
+   * their treatment before (Planning still lists it).
+   */
   private fun medicationsOf(planned: List<PlanningItem>, now: LocalDateTime) =
       planned
-          .filter {
-            it.source is PlanningSource.Medication && it.timing.dateIn(zoneId) == now.toLocalDate()
-          }
-          .map { item ->
+          .filter { it.isConfirmed && it.timing.dateIn(zoneId) == now.toLocalDate() }
+          .mapNotNull { item ->
+            val source = item.source as? PlanningSource.Medication ?: return@mapNotNull null
+            val frequency = item.frequency?.takeIf { it.isNotBlank() }
+            val doses = DoseCount.of(frequency).takeIf { takenToday != null }
             TodayMedication(
                 key = item.key,
+                medicationId = source.medicationId,
                 name =
                     listOfNotNull(item.title, item.dosage?.takeIf { it.isNotBlank() })
                         .joinToString(" "),
-                frequency = item.frequency?.takeIf { it.isNotBlank() },
-                notConfirmedAddedBy = item.addedByName.takeIf { !item.isConfirmed },
+                frequency = frequency,
+                dosesPerDay = doses,
+                taken = doses?.let { takenToday?.get(source.medicationId)?.coerceIn(0, it) } ?: 0,
             )
           }
+
+  /**
+   * Follows the doses the patient ticked on [day], in patient mode. If they can't be read, nothing
+   * can be ticked until the day is loaded again (Retry, or the next day).
+   */
+  private fun followTakenDoses(day: LocalDate) {
+    dosesObservation?.cancel()
+    takenToday = null
+    val uid = authRepository.signedInUid(TAG) ?: return
+    dosesObservation = viewModelScope.launch {
+      takenDosesRepository
+          .observeDay(uid, day)
+          .catch { e ->
+            Log.w(TAG, "Couldn't read the doses taken today", e)
+            takenToday = null
+            refreshMedications()
+          }
+          .collect { taken ->
+            takenToday = taken
+            refreshMedications()
+          }
+    }
+  }
+
+  private fun refreshMedications() {
+    _uiState.update { it.copy(todayMedications = medicationsOf(items.value, it.now)) }
+  }
+
+  /**
+   * The patient ticks a dose of [medicationId]: the next one, up to its doses a day, or, for a
+   * medication taken once a day that is already ticked, unticks it (its button and row toggle).
+   * Nothing happens for a medication without doses to tick.
+   */
+  fun tickDose(medicationId: String) {
+    val medication = _uiState.value.todayMedications.find { it.medicationId == medicationId }
+    val doses = medication?.dosesPerDay ?: return
+    val count =
+        if (doses == 1) 1 - medication.taken.coerceAtMost(1)
+        else (medication.taken + 1).coerceAtMost(doses)
+    if (count != medication.taken) saveTaken(medicationId, count)
+  }
+
+  /** Saves [count] doses of [medicationId] on the day shown; the repository reports a rejection. */
+  private fun saveTaken(medicationId: String, count: Int) {
+    val uid = authRepository.signedInUid(TAG) ?: return
+    val day = _uiState.value.now.toLocalDate()
+    // Shown at once, so a second quick tap builds on this one instead of saving the same count
+    // again; the day's next snapshot confirms it, or brings back the saved count if it's rejected
+    takenToday = takenToday?.plus(medicationId to count)
+    refreshMedications()
+    viewModelScope.launch {
+      try {
+        takenDosesRepository.setTaken(uid, day, medicationId, count)
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Log.e(TAG, "Couldn't save the doses taken", e)
+      }
+    }
+  }
 
   /** The first appointment that hasn't started yet. */
   private fun nextAppointmentOf(planned: List<PlanningItem>, now: LocalDateTime): NextAppointment? =

@@ -381,7 +381,7 @@ Pills 56 dp tall, 24 dp side padding, with an optional 24 dp leading icon 8 dp b
 Filter chips 48 dp tall (full touch target), 16 dp side padding. Selected: dawn container without the Outline border, and no check icon, so a chip keeps its width when picked and the chips after it don't move.
 
 ### Cards / Containers
-White on the warm ground, Large radius, no border. Lists live in one card with 1 dp Outline Variant dividers inset 16 dp. A row shows its value above its label (Body Large, then Body Small).
+White on the warm ground, Large radius, no border. The sections of a form on the stone page (e.g. the prescription form) are off-white cards with Medium corners and a 1 dp hairline of ink at 8 % (none at night), as on the Overview. Lists live in one card with 1 dp Outline Variant dividers inset 16 dp. A row shows its value above its label (Body Large, then Body Small).
 
 ### Inputs / Fields
 Outlined, Medium radius, 58 dp in every state, label inside above the value, trailing icon in a 48 dp target. States: empty, filled, error (1.5 dp red border and message), focused (2 dp primary border while typing) and *check*: a value the app drafted uses the dawn container and a 1.5 dp secondary border, and its helper text says what to check ("Please check: the date was hard to read").
