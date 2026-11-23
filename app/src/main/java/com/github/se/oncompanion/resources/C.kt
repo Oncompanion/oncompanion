@@ -303,6 +303,8 @@ object C {
 
     fun overviewMedication(key: String) = "overview_medication_$key"
 
+    fun overviewDoseButton(key: String) = "overview_dose_button_$key"
+
     /** A check-in tile on the Overview, by its symptom type's name. */
     fun overviewCheckIn(type: String) = "overview_check_in_$type"
 
