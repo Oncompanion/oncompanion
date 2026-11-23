@@ -6,6 +6,7 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -13,8 +14,12 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.R
@@ -29,6 +34,7 @@ import com.github.se.oncompanion.ui.assertIsFullyVisible
 import java.time.LocalDate
 import java.time.LocalTime
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -259,17 +265,32 @@ class VoiceSymptomContentTest {
   }
 
   @Test
-  fun whileTheLanguageDownloads_listeningSaysSo() {
+  fun whenVoiceMayNeedAConnection_listeningSaysWhy() {
+    val notes = listOf(C.Tag.symptom_voice_downloading, C.Tag.symptom_voice_online_only)
     show(VoiceUiState.Listening())
-    node(C.Tag.symptom_voice_downloading).assertDoesNotExist()
-
-    voice = VoiceUiState.Listening(said, draft, downloading = SpeechLanguage.ENGLISH)
-    compose.waitForIdle()
-
+    notes.forEach { node(it).assertDoesNotExist() }
     val english = string(R.string.symptom_voice_language_english)
-    node(C.Tag.symptom_voice_downloading).assertIsDisplayed()
-    compose.onNodeWithText(string(R.string.symptom_voice_downloading, english)).assertIsDisplayed()
-    node(C.Tag.symptom_voice_headline).assertTextEquals(string(R.string.symptom_voice_listening))
+    // The note while listening → its tag and what it says
+    val cases =
+        listOf(
+            ConnectionNote.Downloading(SpeechLanguage.ENGLISH) to
+                (C.Tag.symptom_voice_downloading to
+                    string(R.string.symptom_voice_downloading, english)),
+            ConnectionNote.OnlineOnly to
+                (C.Tag.symptom_voice_online_only to string(R.string.symptom_voice_online_only)),
+        )
+    for ((note, shown) in cases) {
+      val (tag, text) = shown
+      voice = VoiceUiState.Listening(said, draft, connection = note)
+      compose.waitForIdle()
+
+      node(tag).assertIsDisplayed()
+      notes.filter { it != tag }.forEach { node(it).assertDoesNotExist() }
+      compose.onNodeWithText(text).assertIsDisplayed()
+      node(C.Tag.symptom_voice_headline).assertTextEquals(string(R.string.symptom_voice_listening))
+      // Typing stays a way out
+      node(C.Tag.symptom_voice_type_instead).assertIsEnabled()
+    }
   }
 
   @Test
@@ -291,10 +312,20 @@ class VoiceSymptomContentTest {
                 listOf(C.Tag.symptom_voice_done, C.Tag.symptom_voice_type_instead),
             VoiceUiState.OfferingOffline(SpeechLanguage.ENGLISH) to
                 listOf(C.Tag.symptom_voice_download, C.Tag.symptom_voice_not_now),
-            // The downloading note makes the column taller
-            VoiceUiState.Listening(said, draft, downloading = SpeechLanguage.ENGLISH) to
+            // The connection notes make the column taller
+            VoiceUiState.Listening(
+                said,
+                draft,
+                connection = ConnectionNote.Downloading(SpeechLanguage.ENGLISH),
+            ) to
                 listOf(
                     C.Tag.symptom_voice_downloading,
+                    C.Tag.symptom_voice_done,
+                    C.Tag.symptom_voice_type_instead,
+                ),
+            VoiceUiState.Listening(said, draft, connection = ConnectionNote.OnlineOnly) to
+                listOf(
+                    C.Tag.symptom_voice_online_only,
                     C.Tag.symptom_voice_done,
                     C.Tag.symptom_voice_type_instead,
                 ),
@@ -317,6 +348,38 @@ class VoiceSymptomContentTest {
   @Test
   @Config(qualifiers = SMALL_LANDSCAPE_PHONE)
   fun smallLandscape_actionsAreReachable() = assertActionsReachableSideways()
+
+  @Test
+  @Config(qualifiers = LANDSCAPE_PHONE)
+  fun sideways_theNotesStartBelowTheStatusBar() {
+    // A 24 dp status bar on this xhdpi screen: taller than the column's own padding
+    val statusBarPx = 48
+    show(VoiceUiState.Listening())
+    showStatusBar(statusBarPx)
+    val notes =
+        mapOf(
+            ConnectionNote.Downloading(SpeechLanguage.ENGLISH) to C.Tag.symptom_voice_downloading,
+            ConnectionNote.OnlineOnly to C.Tag.symptom_voice_online_only,
+        )
+    for ((note, tag) in notes) {
+      voice = VoiceUiState.Listening(said, draft, connection = note)
+      compose.waitForIdle()
+
+      val top = node(tag).fetchSemanticsNode().boundsInRoot.top
+      assertTrue("$tag starts at $top px, under the status bar", top >= statusBarPx)
+    }
+  }
+
+  /** Tells the screen a status bar covers [heightPx] at the top, as Android does edge to edge. */
+  private fun showStatusBar(heightPx: Int) {
+    val view = (compose.onRoot().fetchSemanticsNode().root as ViewRootForTest).view
+    val insets =
+        WindowInsetsCompat.Builder()
+            .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, heightPx, 0, 0))
+            .build()
+    compose.runOnUiThread { ViewCompat.dispatchApplyWindowInsets(view, insets) }
+    compose.waitForIdle()
+  }
 
   private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.onAllNodesWithTagCount(
       tag: String
