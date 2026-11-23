@@ -18,8 +18,9 @@ import kotlinx.coroutines.flow.update
  *   [clock], newest first, then every change.
  * - [markSeen] marks the given IDs seen and ignores those that don't exist.
  *
- * Test hook: [deliver] stores a notification exactly as given (e.g. old or already seen), replacing
- * one with the same ID.
+ * Test hooks: [deliver] stores a notification exactly as given (e.g. old or already seen),
+ * replacing one with the same ID; [notifyError], when set, is thrown by [notify], which then stores
+ * nothing.
  *
  * @param clock the current time: the 7-day window and the time a notification is sent
  */
@@ -29,12 +30,20 @@ class FakeNotificationRepository(private val clock: () -> Instant = Instant::now
   // uid -> notification ID -> notification
   private val store = MutableStateFlow<Map<String, Map<String, CircleNotification>>>(emptyMap())
 
+  /** When set, [notify] throws it, as a write failing on the device would. */
+  var notifyError: Exception? = null
+
   /** Stores [notification] for [uid] as given. */
   fun deliver(uid: String, notification: CircleNotification) {
     store.update { it + (uid to (it[uid].orEmpty() + (notification.id to notification))) }
   }
 
+  /** The notifications stored for [uid], newest first, whatever their age. */
+  fun notificationsOf(uid: String): List<CircleNotification> =
+      store.value[uid].orEmpty().values.sortedByDescending { it.createdAt }
+
   override suspend fun notify(recipientUid: String, notification: CircleNotification) {
+    notifyError?.let { throw it }
     require(notification.isValid()) { "Invalid notification" }
     if (store.value[recipientUid]?.containsKey(notification.id) == true) return
     deliver(recipientUid, notification.copy(createdAt = clock(), seen = false))

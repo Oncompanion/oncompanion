@@ -18,6 +18,7 @@ import com.github.se.oncompanion.model.medication.Medication
 import com.github.se.oncompanion.model.medication.MedicationRepository
 import com.github.se.oncompanion.model.medication.Prescription
 import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
+import com.github.se.oncompanion.model.notification.FakeNotificationRepository
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
 import com.github.se.oncompanion.model.user.Role
 import com.github.se.oncompanion.model.user.UserProfile
@@ -2113,6 +2114,9 @@ class PrescriptionFormViewModelTest {
 
   private val caregiverProfiles = CaregiverProfiles()
 
+  /** Where the patient is told of a caregiver's prescription (US-50). */
+  private val notifications = FakeNotificationRepository()
+
   /** The form of the caregiver following [patient], signed in, filled in with Ondansetron. */
   private fun caregiverForm(initialDraft: PrescriptionDraft? = null): PrescriptionFormViewModel {
     auth = FakeAuthRepository(onSignIn = { AuthUser(uid = CAREGIVER) })
@@ -2120,6 +2124,7 @@ class PrescriptionFormViewModelTest {
     return PrescriptionFormViewModel(
             auth,
             medications,
+            manageMedicationSchedule = ManageMedicationSchedule(medications, notifications),
             clock = clock,
             initialDraft = initialDraft,
             patientUid = patient,
@@ -2129,7 +2134,7 @@ class PrescriptionFormViewModelTest {
   }
 
   @Test
-  fun caregiver_savesInThePatientsPrescriptions_signed_andWaitingForThePatient() = runTest {
+  fun caregiver_savesInThePatientsPrescriptions_signed_waitingForThePatient_whoIsTold() = runTest {
     val viewModel = caregiverForm()
 
     viewModel.save()
@@ -2142,6 +2147,10 @@ class PrescriptionFormViewModelTest {
     assertEquals(PrescriptionConfirmation.PENDING, added.confirmation)
     assertTrue(fakeMedications.prescriptionsOf(CAREGIVER).isEmpty())
     assertEquals(SavePhase.SAVED, viewModel.state.save)
+    // The patient gets one notification about it, signed like the prescription
+    val notification = notifications.notificationsOf(patient).single()
+    assertEquals(added.id, notification.itemId)
+    assertEquals(CAREGIVER to "Sam", notification.actorUid to notification.actorFirstName)
   }
 
   @Test
@@ -2170,6 +2179,7 @@ class PrescriptionFormViewModelTest {
     advanceUntilIdle()
 
     assertTrue(fakeMedications.prescriptionsOf(patient).isEmpty())
+    assertTrue(notifications.notificationsOf(patient).isEmpty())
     assertEquals(PrescriptionFormError.NOT_SIGNED_IN, viewModel.state.error)
     assertEquals(SavePhase.EDITING, viewModel.state.save)
   }
