@@ -273,18 +273,12 @@ class BottomNavigationBarTest {
   @Test
   @GraphicsMode(GraphicsMode.Mode.NATIVE)
   @Config(qualifiers = "w280dp-h560dp-xhdpi")
-  fun largestFont_onANarrowPhone_neverShrinksLabelsBelow11dp() {
+  fun largestFont_onANarrowPhone_keepsEveryLabelWhole_neverBelow11dp() {
     setThemedContent(fontScale = 2f)
 
-    // 70 dp tabs: the labels shrink to the floor, and no further, to stay readable
-    for (tab in Tab.entries) {
-      val style =
-          composeTestRule
-              .onNodeWithText(context.getString(tab.label), useUnmergedTree = true)
-              .textLayout()
-              .layoutInput
-              .style
-      val drawnDp = style.fontSize.value * 2f
+    // 70 dp tabs: the labels shrink to the floor, and no further, to stay readable, yet stay whole
+    for ((tab, size) in Tab.entries.zip(labelSizes())) {
+      val drawnDp = size.value * 2f
       assertTrue("${tab.name} drawn at $drawnDp dp", drawnDp >= 11f - 0.01f)
     }
   }
