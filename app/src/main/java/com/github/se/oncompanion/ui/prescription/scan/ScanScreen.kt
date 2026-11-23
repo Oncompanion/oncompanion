@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.prescription.scan
@@ -89,6 +90,7 @@ import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.LakeDialog
 import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.LakeSnackbarHost
+import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.appSettingsIntent
 import com.github.se.oncompanion.ui.common.hasPermission
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
@@ -775,7 +777,7 @@ private const val MAX_PREVIEW_SIZE = 2048f
  */
 @Composable
 private fun CameraOff(modifier: Modifier, title: Int, explanation: Int) {
-  Box(modifier = modifier, contentAlignment = Alignment.Center) {
+  MessageArea(modifier) {
     LakeMessageState(
         title = stringResource(title),
         message = stringResource(explanation),
