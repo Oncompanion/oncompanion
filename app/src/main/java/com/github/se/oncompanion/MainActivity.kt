@@ -1,13 +1,14 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -25,7 +26,7 @@ import com.github.se.oncompanion.ui.theme.AppAppearanceRoot
 import com.github.se.oncompanion.ui.theme.AppAppearanceViewModel
 
 /** Installs session recovery before authenticated navigation or Firestore operations start. */
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
   private val startViewModel: StartViewModel by viewModels()
   private val appearanceViewModel: AppAppearanceViewModel by viewModels()
