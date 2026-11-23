@@ -36,8 +36,8 @@ import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.PaperLakeHeader
 import com.github.se.oncompanion.ui.common.PaperLakeStatusBar
 import com.github.se.oncompanion.ui.common.isPaperLakeHeaderBand
-import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
 import com.github.se.oncompanion.ui.navigation.BottomBarUiState
+import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Tab
 import com.github.se.oncompanion.ui.overview.Greeting
