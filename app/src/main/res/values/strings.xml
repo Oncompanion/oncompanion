@@ -838,4 +838,6 @@
     <string name="settings_title">Settings</string>
     <string name="settings_back">Back</string>
     <string name="settings_profile_summary">Appearance, language and more</string>
+    <!-- Local reminders -->
+    <string name="reminder_channel_name">Care reminders</string>
 </resources>
