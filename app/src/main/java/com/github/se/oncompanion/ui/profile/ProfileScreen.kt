@@ -153,6 +153,8 @@ fun ProfileContent(
                   testTag = C.Tag.profile_missing,
                   modifier = bodyModifier,
               )
+          // The compact screen already scrolls, so a nested MessageArea would have unbounded
+          // height.
           ProfileUiState.Error ->
               if (compact) ProfileError(onRetry) else MessageArea { ProfileError(onRetry) }
           is ProfileUiState.Loaded ->

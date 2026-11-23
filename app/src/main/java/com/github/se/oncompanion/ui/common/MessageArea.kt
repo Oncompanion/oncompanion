@@ -15,8 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 /**
- * Centers a replacement message in its bounded content area and keeps it reachable on short
- * windows. Screens whose content already scrolls can place their message in that scroll container.
+ * Centers a replacement message when it fits and scrolls when it overflows, so its action stays
+ * reachable on short windows and at large font sizes (#490). The message supplies its own side
+ * padding so it wraps consistently across screens. Use this only outside existing vertical scroll
+ * containers.
  */
 @Composable
 internal fun MessageArea(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
