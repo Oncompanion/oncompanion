@@ -3,6 +3,7 @@
 
 package com.github.se.oncompanion.ui.overview
 
+import com.github.se.oncompanion.model.speech.FakeSpeechRecognizer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.domain.carecircle.FollowedPatient
 import com.github.se.oncompanion.domain.planning.MedicationPlanningSource
@@ -111,6 +112,29 @@ class OverviewViewModelTest {
       planning: PlanningRepository = FakePlanningRepository(),
       clock: Clock = TestClock(now),
   ) = OverviewViewModel(auth, profiles, ownPlanning(planning), clock, zone)
+
+  @Test
+  fun canSpeak_onlyWhenThePhoneHasARecognizerThatCanListen() {
+    val cases =
+        listOf(
+            FakeSpeechRecognizer(available = true) to true,
+            FakeSpeechRecognizer(available = false) to false,
+            // Before the app installed the phone's recognizer
+            null to false,
+        )
+    for ((speech, expected) in cases) {
+      val viewModel =
+          OverviewViewModel(
+              FakeAuthRepository(),
+              FakeUserProfileRepository(),
+              ownPlanning(FakePlanningRepository()),
+              TestClock(now),
+              zone,
+              speechRecognizer = speech,
+          )
+      assertEquals("$speech", expected, viewModel.uiState.value.canSpeak)
+    }
+  }
 
   /** Saved medication days reach Overview without a time or a claim about intake status. */
   @OptIn(ExperimentalCoroutinesApi::class)

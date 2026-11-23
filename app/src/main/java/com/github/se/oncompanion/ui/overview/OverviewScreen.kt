@@ -173,6 +173,7 @@ fun OverviewScreen(
       onOpenAppointment = onOpenAppointment,
       onOpenEvent = onOpenEvent,
       onLogSymptom = { navigationActions.navigateTo(Screen.symptomAdd(it)) },
+      onSpeak = { navigationActions.navigateTo(Screen.symptomSpeak()) },
       onRetry = viewModel::loadDay,
       modifier = modifier,
       caregiverOf = caregiverOf,
@@ -198,6 +199,8 @@ fun OverviewScreen(
  * @param onOpenEvent opens the event shown in the patient's "Next up"
  * @param onLogSymptom opens the symptom form from the patient's check-in, with that symptom picked
  *   or empty for `null`
+ * @param onSpeak opens the symptom form already listening, from the check-in's mic (US-73), shown
+ *   only when [OverviewUiState.canSpeak]
  * @param onRetry reloads the day after an error
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
  * @param onSwitchPatient opens "Whose care?", in caregiver mode
@@ -213,6 +216,7 @@ fun OverviewContent(
     modifier: Modifier = Modifier,
     onOpenEvent: (String) -> Unit = {},
     onLogSymptom: (SymptomType?) -> Unit = {},
+    onSpeak: () -> Unit = {},
     caregiverOf: String? = null,
     onSwitchPatient: () -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
@@ -289,6 +293,7 @@ fun OverviewContent(
             CheckInDock(
                 onLogSymptom = onLogSymptom,
                 onOpenJournal = { onShortcutClick(OverviewShortcut.SYMPTOMS) },
+                onSpeak = onSpeak.takeIf { uiState.canSpeak },
             )
           }
           val tiles =

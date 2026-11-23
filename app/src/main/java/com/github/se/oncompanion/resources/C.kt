@@ -132,6 +132,7 @@ object C {
     const val overview_check_in_more = "overview_check_in_more"
     const val overview_journal_link = "overview_journal_link"
     const val overview_prescriptions_badge = "overview_prescriptions_badge"
+    const val overview_speak = "overview_speak"
 
     const val bottom_navigation_bar = "bottom_navigation_bar"
     const val bottom_navigation_tab_overview = "bottom_navigation_tab_overview"

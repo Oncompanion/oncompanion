@@ -4,7 +4,9 @@
 
 package com.github.se.oncompanion.ui.navigation
 
+import android.Manifest
 import android.app.Activity
+import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.LocalActivity
@@ -74,6 +76,7 @@ import com.github.se.oncompanion.model.planning.*
 import com.github.se.oncompanion.model.session.RejectedWrites
 import com.github.se.oncompanion.model.session.RejectedWritesProvider
 import com.github.se.oncompanion.model.speech.FakeSpeechRecognizer
+import com.github.se.oncompanion.model.speech.SpeechEvent
 import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
 import com.github.se.oncompanion.model.symptom.FakeSymptomRepository
 import com.github.se.oncompanion.model.symptom.SymptomEntry
@@ -1690,6 +1693,49 @@ class AppNavHostTest {
 
     composeTestRule.onNodeWithTag(C.Tag.symptom_add_close).performClick()
     composeTestRule.onNodeWithTag(C.Tag.overview_screen).assertIsDisplayed()
+  }
+
+  /** Taps the check-in's mic (US-73) with the microphone allowed; returns the phone's recognizer. */
+  private fun speakFromTheOverview(symptoms: SymptomRepository = FakeSymptomRepository()) =
+      run {
+        shadowOf(context as Application).grantPermissions(Manifest.permission.RECORD_AUDIO)
+        setNavHost(Route.OVERVIEW, authRepository = signedInPatient(), symptomRepository = symptoms)
+        composeTestRule.onNodeWithTag(C.Tag.overview_speak).performScrollTo().performClick()
+        composeTestRule.waitForIdle()
+        SpeechRecognizerProvider.recognizer as FakeSpeechRecognizer
+      }
+
+  @Test
+  fun mic_opensTheVoiceScreenListening_andSavingReturnsToTheOverview() {
+    val symptoms = FakeSymptomRepository()
+    val speech = speakFromTheOverview(symptoms)
+
+    // Listening at once: no symptom to pick, no form first
+    composeTestRule
+        .onNodeWithTag(C.Tag.symptom_voice_headline)
+        .assertTextEquals(context.getString(R.string.symptom_voice_listening))
+    assertTrue(speech.isListening)
+
+    composeTestRule.runOnIdle { speech.send(SpeechEvent.FinalText("I feel sick")) }
+    composeTestRule.onNodeWithTag(C.Tag.symptom_voice_done).performClick()
+    // The form, filled and marked to check, saves nothing until Save
+    composeTestRule.onNodeWithTag(C.Tag.symptom_add_drafted).assertIsDisplayed()
+    assertTrue(symptoms.symptoms("patient").isEmpty())
+
+    composeTestRule.onNodeWithTag(C.Tag.symptom_add_save).performClick()
+    composeTestRule.onNodeWithTag(C.Tag.overview_screen).assertIsDisplayed()
+    assertEquals(listOf(SymptomType.NAUSEA), symptoms.symptoms("patient").single().types)
+  }
+
+  @Test
+  fun mic_closeReturnsToTheOverview_withoutSaving() {
+    val symptoms = FakeSymptomRepository()
+    speakFromTheOverview(symptoms)
+
+    composeTestRule.onNodeWithTag(C.Tag.symptom_voice_close).performClick()
+
+    composeTestRule.onNodeWithTag(C.Tag.overview_screen).assertIsDisplayed()
+    assertTrue(symptoms.symptoms("patient").isEmpty())
   }
 
   @Test

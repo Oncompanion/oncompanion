@@ -115,6 +115,8 @@
         <item quantity="one">%1$d prescription to confirm</item>
         <item quantity="other">%1$d prescriptions to confirm</item>
     </plurals>
+    <!-- US-73: the check-in's button to say how you feel instead of tapping a tile -->
+    <string name="overview_speak">Speak how you feel</string>
 
     <!-- Symptoms -->
     <string name="symptom_type_fatigue">Fatigue</string>

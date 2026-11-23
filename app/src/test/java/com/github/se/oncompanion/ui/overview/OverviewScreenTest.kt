@@ -48,6 +48,8 @@ import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningSource
 import com.github.se.oncompanion.model.planning.PlanningTiming
+import com.github.se.oncompanion.model.speech.FakeSpeechRecognizer
+import com.github.se.oncompanion.model.speech.SpeechRecognizer
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
 import com.github.se.oncompanion.resources.C
@@ -181,6 +183,7 @@ class OverviewScreenTest {
       planning: FakePlanningRepository = FakePlanningRepository(),
       caregiverOf: String? = null,
       onSwitchPatient: () -> Unit = {},
+      speech: SpeechRecognizer? = null,
   ): RecordingNavigationActions {
     val viewModel =
         OverviewViewModel(
@@ -189,6 +192,7 @@ class OverviewScreenTest {
             observePlanning = ownPlanning(planning),
             clock = clockAt(morning),
             zoneId = ZoneOffset.UTC,
+            speechRecognizer = speech,
         )
     lateinit var navigationActions: RecordingNavigationActions
     composeTestRule.setContent {
@@ -980,6 +984,81 @@ class OverviewScreenTest {
     checkInTileTags.forEach {
       composeTestRule.onNodeWithTag(it).performScrollTo().assertIsFullyVisible()
     }
+  }
+
+  // ----- Speaking from the check-in (US-73) -----
+
+  @Test
+  fun checkIn_offersSpeakHowYouFeel_onlyWhenThePhoneCanListen() {
+    var state by mutableStateOf(loaded.copy(canSpeak = true))
+    var spoken = 0
+    composeTestRule.setContent { OverviewContent(state, {}, {}, {}, {}, onSpeak = { spoken++ }) }
+
+    composeTestRule
+        .onNodeWithTag(C.Tag.overview_speak)
+        .performScrollTo()
+        .assertTextEquals(context.getString(R.string.overview_speak))
+        .assertHeightIsAtLeast(48.dp)
+        .performClick()
+    composeTestRule.runOnIdle { assertEquals(1, spoken) }
+
+    // A phone that can't listen keeps the card as it was
+    state = loaded
+    composeTestRule.onNodeWithTag(C.Tag.overview_speak).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(C.Tag.overview_journal_link).assertExists()
+  }
+
+  @Test
+  fun speak_opensTheSymptomFormAlreadyListening() {
+    val navigationActions = setOverviewScreen(speech = FakeSpeechRecognizer())
+
+    composeTestRule.onNodeWithTag(C.Tag.overview_speak).performScrollTo().performClick()
+
+    composeTestRule.runOnIdle {
+      assertEquals(listOf(Screen.symptomSpeak()), navigationActions.openedRoutes)
+    }
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = LANDSCAPE_PHONE)
+  fun speak_isFullyVisible_inLandscape() {
+    setContent(loaded.copy(canSpeak = true))
+    composeTestRule.onNodeWithTag(C.Tag.overview_speak).performScrollTo().assertIsFullyVisible()
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = "w360dp-h640dp", fontScale = 2f)
+  fun atTheLargestFont_journalGoesUnderTheTitle_andSpeakStaysWhole() {
+    setContent(loaded.copy(canSpeak = true))
+    val title = composeTestRule.onNodeWithText(context.getString(R.string.overview_check_in_title))
+    title.performScrollTo().assertIsFullyVisible()
+    composeTestRule.onNodeWithTag(C.Tag.overview_journal_link).performScrollTo()
+    assertTrue(
+        "Journal under the title, so no word is broken",
+        bounds(C.Tag.overview_journal_link).top >= title.getUnclippedBoundsInRoot().bottom,
+    )
+    composeTestRule.onNodeWithTag(C.Tag.overview_speak).performScrollTo().assertIsFullyVisible()
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = "w390dp-h874dp")
+  fun speak_atTheFigmasWidth_isUnderTheTiles_asWideAsThem() {
+    setContent(loaded.copy(canSpeak = true))
+    composeTestRule.onNodeWithTag(C.Tag.overview_speak).performScrollTo()
+    val tiles = checkInTileTags.map { bounds(it) }
+    val speak = bounds(C.Tag.overview_speak)
+    assertTrue("under the tiles", speak.top >= tiles.maxOf { it.bottom })
+    assertEquals(tiles.minOf { it.left }.value, speak.left.value, 1f)
+    assertEquals(tiles.maxOf { it.right }.value, speak.right.value, 1f)
+    // The title row keeps the heart, the title and Journal, with no mic
+    val title =
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.overview_check_in_title))
+            .getUnclippedBoundsInRoot()
+    assertTrue("Journal beside the title", bounds(C.Tag.overview_journal_link).top < title.bottom)
   }
 
   // ----- Look (Figma "US-23 / Overview – Dashboard") -----

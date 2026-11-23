@@ -22,6 +22,8 @@ import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningRange
 import com.github.se.oncompanion.model.planning.PlanningSource
 import com.github.se.oncompanion.model.planning.PlanningTiming
+import com.github.se.oncompanion.model.speech.SpeechRecognizer
+import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
 import com.github.se.oncompanion.model.user.UserProfileRepository
 import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import java.time.Clock
@@ -145,6 +147,7 @@ data class TodayMedication(
  * @property sharedSections in caregiver mode, the sections behind the shortcuts the patient shares
  * @property prescriptionsToConfirm for the patient, how many prescriptions a caregiver added wait
  *   for them (US-43), shown on the Prescriptions shortcut
+ * @property canSpeak the phone can listen, so the check-in offers to speak a symptom (US-73)
  */
 data class OverviewUiState(
     val now: LocalDateTime,
@@ -158,6 +161,7 @@ data class OverviewUiState(
     val isNotShared: Boolean = false,
     val sharedSections: Set<CarePermission> = emptySet(),
     val prescriptionsToConfirm: Int = 0,
+    val canSpeak: Boolean = false,
 )
 
 /**
@@ -173,6 +177,8 @@ data class OverviewUiState(
  * @param patientUid in caregiver mode, the patient whose day is shown; null for the user's own
  * @param resolveAccess which sections the patient shares, for the shortcuts
  * @param medicationRepository the patient's prescriptions, for how many wait for them
+ * @param speechRecognizer the phone's recognizer, for whether the patient can speak a symptom;
+ *   `null` before the app installed it, so no mic shows
  */
 class OverviewViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
@@ -185,9 +191,13 @@ class OverviewViewModel(
         ResolveCareCircleAccess(auth = authRepository),
     private val medicationRepository: MedicationRepository =
         MedicationRepositoryProvider.repository,
+    speechRecognizer: SpeechRecognizer? = SpeechRecognizerProvider.installed,
 ) : ViewModel() {
 
-  private val _uiState = MutableStateFlow(OverviewUiState(now = now()))
+  private val _uiState =
+      MutableStateFlow(
+          OverviewUiState(now = now(), canSpeak = speechRecognizer?.isAvailable() == true)
+      )
   val uiState: StateFlow<OverviewUiState> = _uiState.asStateFlow()
 
   private var dayObservation: Job? = null
