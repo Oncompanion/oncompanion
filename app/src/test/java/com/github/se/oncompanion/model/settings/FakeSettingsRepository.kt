@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.model.settings
@@ -22,6 +23,8 @@ class FakeSettingsRepository(initial: DeviceSettings = DeviceSettings()) : Setti
   var writeGate: CompletableDeferred<Unit>? = null
   /** Suppresses the observation echo so tests exercise the ViewModel's successful local update. */
   var emitWrites = true
+  val dateWrites = mutableListOf<DateFormatPreference>()
+  val timeWrites = mutableListOf<TimeFormatPreference>()
   val writes = mutableListOf<AppearancePreference>()
   /** Suspends each new observation until a test releases startup. */
   var readGate: CompletableDeferred<Unit>? = null
@@ -49,5 +52,19 @@ class FakeSettingsRepository(initial: DeviceSettings = DeviceSettings()) : Setti
     writeGate?.await()
     writeFailure?.let { throw it }
     if (emitWrites) settings.value = settings.value.copy(appearance = appearance)
+  }
+
+  override suspend fun setDateFormat(dateFormat: DateFormatPreference) {
+    dateWrites += dateFormat
+    writeGate?.await()
+    writeFailure?.let { throw it }
+    if (emitWrites) settings.value = settings.value.copy(dateFormat = dateFormat)
+  }
+
+  override suspend fun setTimeFormat(timeFormat: TimeFormatPreference) {
+    timeWrites += timeFormat
+    writeGate?.await()
+    writeFailure?.let { throw it }
+    if (emitWrites) settings.value = settings.value.copy(timeFormat = timeFormat)
   }
 }
