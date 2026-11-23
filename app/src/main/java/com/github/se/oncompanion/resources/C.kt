@@ -266,6 +266,7 @@ object C {
     const val settings_screen = "settings_screen"
     const val settings_back = "settings_back"
     const val profile_settings = "profile_settings"
+    const val settings_text_size = "settings_text_size"
 
     // Profile
     const val profile_edit = "profile_edit"

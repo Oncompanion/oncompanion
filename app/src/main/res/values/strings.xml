@@ -888,4 +888,8 @@
     <string name="settings_title">Settings</string>
     <string name="settings_back">Back</string>
     <string name="settings_profile_summary">Appearance, language and more</string>
+    <string name="settings_accessibility">Accessibility</string>
+    <string name="settings_text_size">Text size</string>
+    <string name="settings_text_size_percent">%1$d%% · Phone setting</string>
+    <string name="settings_text_size_unavailable">Couldn\'t open your phone\'s text size settings.</string>
 </resources>

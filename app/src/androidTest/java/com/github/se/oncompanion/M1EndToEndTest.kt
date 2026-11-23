@@ -14,13 +14,13 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
@@ -422,13 +422,13 @@ class M1EndToEndTest {
     captureSettings("settings-appearance-category.png")
     ui.open(C.Tag.settings_appearance, hasTestTag(C.Tag.appearance_dark))
     ui.tag(C.Tag.appearance_light).reveal().performClick()
-    ui.tag(C.Tag.appearance_light).assertIsSelected()
+    ui.waitFor(hasTestTag(C.Tag.appearance_light) and isSelected())
     captureSettings("settings-appearance-light.png")
     ui.open(C.Tag.settings_back, hasTestTag(C.Tag.settings_appearance))
     captureSettings("settings-light.png")
     ui.open(C.Tag.settings_appearance, hasTestTag(C.Tag.appearance_dark))
     ui.tag(C.Tag.appearance_dark).reveal().performClick()
-    ui.tag(C.Tag.appearance_dark).assertIsSelected()
+    ui.waitFor(hasTestTag(C.Tag.appearance_dark) and isSelected())
     captureSettings("settings-appearance-dark.png")
     ui.open(C.Tag.settings_back, hasTestTag(C.Tag.settings_appearance))
     ui.waitFor(

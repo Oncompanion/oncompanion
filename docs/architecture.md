@@ -642,9 +642,16 @@ and local reads/writes work offline. This store contains no patient/session data
 does not join SessionAccess cleanup. Notification settings will be account-specific work under
 #134, separate from this device store.
 
+### Text size (#561)
+
+Settings reads the font scale from Android's current configuration and opens the phone's
+text reading settings. On devices without that destination it opens Accessibility settings.
+Android applies the new size and the row reads the updated configuration when the user returns.
+The Account diagram shows the system setting alongside the existing device preferences.
+
 ### Appearance (#508)
 
-Settings now exposes only Appearance and its saved value. `SettingsViewModel` observes the same
+Settings exposes Appearance and its saved value. `SettingsViewModel` observes the same
 repository in both settings destinations; the shared repository keeps them synchronized.
 `AppearanceContent` uses selectable rows with a trailing checkmark for Follow device, Light and Dark. Writes disable
 selection until complete without shifting the list with a save spinner; failures retain the last confirmed choice and allow another attempt.
