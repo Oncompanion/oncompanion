@@ -131,11 +131,6 @@
     <string name="overview_care_of">%1$s\'s care</string>
     <string name="overview_switch_patient">Choose whose care to follow</string>
     <string name="overview_error_hint_caregiver">Please try again.</string>
-    <!-- US-43: on the Prescriptions shortcut, read by screen readers, e.g. "1 prescription to confirm" -->
-    <plurals name="overview_prescriptions_to_confirm">
-        <item quantity="one">%1$d prescription to confirm</item>
-        <item quantity="other">%1$d prescriptions to confirm</item>
-    </plurals>
 
     <!-- Symptoms -->
     <string name="symptom_type_fatigue">Fatigue</string>
@@ -272,6 +267,7 @@
     <string name="symptom_voice_language_english">English</string>
     <string name="symptom_voice_language_french">French</string>
     <string name="symptom_voice_preparing">Getting ready…</string>
+    <string name="symptom_voice_online_only">Your phone needs a connection to understand you. Without one, type your symptom instead.</string>
 
     <!-- Sign-in -->
     <string name="sign_in_welcome">Welcome to oncompanion</string>
@@ -303,8 +299,13 @@
     <string name="onboarding_error_not_signed_in">You\'re no longer signed in. Please sign in again.</string>
     <string name="onboarding_error_save_failed">Couldn\'t save your information. Please try again.</string>
 
-    <!-- Bottom navigation bar (Planning and Events use their screen titles) -->
+    <!-- Bottom navigation bar (Planning, Prescriptions and Events use their screen titles) -->
     <string name="tab_overview">Overview</string>
+    <!-- US-43: the Prescriptions tab's badge, read by screen readers, e.g. "1 prescription to confirm" -->
+    <plurals name="tab_prescriptions_to_confirm">
+        <item quantity="one">%1$d prescription to confirm</item>
+        <item quantity="other">%1$d prescriptions to confirm</item>
+    </plurals>
 
     <!-- Events -->
     <string name="events_screen_title">Upcoming events</string>
@@ -680,6 +681,10 @@
     <string name="prescription_delete_message_for">It will be removed from %1$s\'s prescriptions with all its medications. You can\'t undo this.</string>
     <string name="prescription_form_not_allowed_title">This prescription can\'t be edited</string>
     <string name="prescription_form_not_allowed_hint">You don\'t currently have permission to edit this patient\'s prescriptions.</string>
+    <!-- #549: the eyebrow of the card holding the doctor and the date, shown in capitals -->
+    <string name="prescription_form_prescription_section">Prescription</string>
+    <!-- #549: above the medications, with their number, e.g. "Medications (2)" -->
+    <string name="prescription_form_medications_heading">Medications (%1$d)</string>
 
     <!-- Prescription scan (US-10) -->
     <string name="prescription_scan_title">Scan prescription</string>
