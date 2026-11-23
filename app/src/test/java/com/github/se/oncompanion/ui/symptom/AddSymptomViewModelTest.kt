@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelStore
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.AuthUser
 import com.github.se.oncompanion.model.session.RejectedWrites
+import com.github.se.oncompanion.model.speech.DeclinedDownloads
 import com.github.se.oncompanion.model.speech.FakeSpeechRecognizer
 import com.github.se.oncompanion.model.speech.OfflineSpeech
 import com.github.se.oncompanion.model.speech.SpeechError
@@ -98,7 +99,17 @@ class AddSymptomViewModelTest {
   }
 
   private fun viewModel(locale: Locale = Locale.ENGLISH) =
-      AddSymptomViewModel(auth, repository, clock, speechRecognizer = speech, locale = locale)
+      AddSymptomViewModel(
+          auth,
+          repository,
+          clock,
+          speechRecognizer = speech,
+          locale = locale,
+          declinedDownloads = declined,
+      )
+
+  /** The downloads declined since the app started, shared by every form of a test. */
+  private val declined = DeclinedDownloads()
 
   private val AddSymptomViewModel.state
     get() = uiState.value
@@ -1496,6 +1507,23 @@ class AddSymptomViewModelTest {
         assertEquals(VoiceUiState.Listening(), viewModel.state.voice)
         assertTrue(speech.isListening)
         assertEquals(emptyList<SpeechLanguage>(), speech.downloads)
+      }
+
+  @Test
+  fun notNow_isNotOfferedAgainInTheNextForms_onlyForThatLanguage() =
+      runTest(dispatcher) {
+        speech.offline = OfflineSpeech.DOWNLOADABLE
+        listening().onNotNow()
+        advanceUntilIdle()
+
+        // The next symptom, in the same language: listens at once, without the offer
+        val next = listening()
+        assertEquals(VoiceUiState.Listening(), next.state.voice)
+        assertEquals(emptyList<SpeechLanguage>(), speech.downloads)
+
+        // On a phone switched to French, French is still offered
+        val french = listening(viewModel(Locale.FRENCH))
+        assertEquals(VoiceUiState.OfferingOffline(SpeechLanguage.FRENCH), french.state.voice)
       }
 
   @Test

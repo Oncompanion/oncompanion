@@ -11,6 +11,8 @@ import com.github.se.oncompanion.domain.symptom.parseSpokenSymptom
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.signedInUid
+import com.github.se.oncompanion.model.speech.DeclinedDownloads
+import com.github.se.oncompanion.model.speech.DeclinedDownloadsProvider
 import com.github.se.oncompanion.model.speech.OfflineSpeech
 import com.github.se.oncompanion.model.speech.SpeechError
 import com.github.se.oncompanion.model.speech.SpeechEvent
@@ -171,6 +173,8 @@ data class AddSymptomUiState(
  *   otherwise
  * @param picked a symptom already ticked when logging a new one (a check-in tile on the Overview);
  *   the user can still untick it. Ignored when editing
+ * @param declinedDownloads the languages the patient said Not now to downloading for offline
+ *   dictation (US-45), so they aren't offered again in the next forms
  */
 class AddSymptomViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
@@ -182,6 +186,7 @@ class AddSymptomViewModel(
     private val speechRecognizer: SpeechRecognizer = SpeechRecognizerProvider.recognizer,
     private val locale: Locale = Locale.getDefault(),
     picked: SymptomType? = null,
+    private val declinedDownloads: DeclinedDownloads = DeclinedDownloadsProvider.declined,
 ) : ViewModel() {
 
   /** The first name a caregiver's symptom is signed with. */
@@ -384,9 +389,14 @@ class AddSymptomViewModel(
     startListening()
   }
 
-  /** The patient declined the offer: listens without downloading; it is offered again next time. */
+  /**
+   * The patient declined the offer: listens without downloading, and it isn't offered again until
+   * the app restarts.
+   */
   fun onNotNow() {
-    if (_uiState.value.voice is VoiceUiState.OfferingOffline) startListening()
+    val offer = _uiState.value.voice as? VoiceUiState.OfferingOffline ?: return
+    declinedDownloads.decline(offer.language)
+    startListening()
   }
 
   /** Drops what was heard and listens again. */
@@ -436,8 +446,9 @@ class AddSymptomViewModel(
 
   /**
    * Starts dictating (US-45): shows the voice screen at once while the phone is asked whether it
-   * understands the patient's language offline, then offers the download when it could get it, or
-   * listens. A phone slow to answer isn't waited for: the patient came to speak.
+   * understands the patient's language offline, then offers the download when it could get it and
+   * the patient hasn't declined it, or listens. A phone slow to answer isn't waited for: the
+   * patient came to speak.
    */
   private fun startDictating() {
     if (checkingOffline?.isActive == true) return
@@ -452,7 +463,7 @@ class AddSymptomViewModel(
       when {
         // A form saved meanwhile goes back to the form instead of listening
         !_uiState.value.canStartDictating -> _uiState.update { it.copy(voice = null) }
-        support == OfflineSpeech.DOWNLOADABLE ->
+        support == OfflineSpeech.DOWNLOADABLE && language !in declinedDownloads ->
             _uiState.update { it.copy(voice = VoiceUiState.OfferingOffline(language)) }
         else -> startListening()
       }
