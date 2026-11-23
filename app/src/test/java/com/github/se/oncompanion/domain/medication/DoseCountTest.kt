@@ -228,6 +228,9 @@ class DoseCountTest {
               "en cas de toux, 3x/j" to null,
               // Two counts that disagree, with a condition: as written, not "If nauseous"
               "1-1-1 si nausées, 2x/j" to null,
+              // Two conditions: saying one would hide the other
+              "3 times a day if nauseous and if fever" to null,
+              "1-1-1 si nausées, si fièvre" to null,
               // Anything else it says would be lost: as written
               "Twice a day with food" to null,
               "1 cp en cas de nausées, 3x/j" to null,

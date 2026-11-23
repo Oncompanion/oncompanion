@@ -43,8 +43,10 @@ object DoseCount {
   /** The doses a day and the condition [text] says, whatever else it also says. */
   private fun read(text: String): DailyDoses? {
     if (text.isBlank() || saysNoDailyCount(text)) return null
-    val condition =
-        CONDITIONS.entries.firstOrNull { (_, words) -> words.any { it.containsMatchIn(text) } }?.key
+    val conditions = CONDITIONS.filterValues { words -> words.any { it.containsMatchIn(text) } }
+    // Two conditions ("if nauseous and if fever"): saying one would hide the other
+    if (conditions.size > 1) return null
+    val condition = conditions.keys.singleOrNull()
     if (condition == null && OTHER_CONDITION.containsMatchIn(text)) return null
     // Every wording that says a count must agree; "daily" alone only counts when none other does
     val counts = readers.mapNotNull { read -> read(text) }.distinct()
