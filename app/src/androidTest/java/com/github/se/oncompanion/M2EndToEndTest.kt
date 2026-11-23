@@ -29,6 +29,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.domain.auth.SignOutProvider
 import com.github.se.oncompanion.domain.auth.SignOutState
 import com.github.se.oncompanion.model.carecircle.CareCircleInvite
+import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.medication.Medication
 import com.github.se.oncompanion.model.medication.MedicationRepositoryFirestore
 import com.github.se.oncompanion.model.medication.Prescription
@@ -195,9 +196,11 @@ class M2EndToEndTest {
     signOutThroughProfile()
 
     signIn(caregiver, caregiverTitle())
-    // Both shortcuts use the same shared-sections snapshot; Planning's spinner is independent.
+    // The shortcut and the journal card use the same shared-sections snapshot; Planning's spinner
+    // is independent. The journal is private now, so its card says so and has no "Full journal"
     ui.tag(C.Tag.overview_shortcut_prescriptions).assertIsDisplayed()
-    compose.onNodeWithTag(C.Tag.overview_shortcut_symptoms).assertDoesNotExist()
+    ui.tag(C.Tag.caregiverOverviewPrivate(CarePermission.SYMPTOMS.name)).assertIsDisplayed()
+    compose.onNodeWithTag(C.Tag.caregiver_overview_full_journal).assertDoesNotExist()
     // Recompose without recreating the activity: its SessionStores retains the session's
     // CaregiverModeViewModel and chosen patient. Inject only now: retaining an external controller
     // across sign-out would interfere with the session boundary's navigation-store cleanup.
@@ -521,10 +524,13 @@ class M2EndToEndTest {
     checkNotNull(account.uid) { "The new account wasn't recorded" }
   }
 
-  /** The patient opens the journal from the check-in's "Journal ›", a caregiver from its tile. */
+  /**
+   * The patient opens the journal from the check-in's "Journal ›", a caregiver from "Full journal
+   * ›".
+   */
   private fun openSymptoms(asPatient: Boolean) =
       ui.open(
-          if (asPatient) C.Tag.overview_journal_link else C.Tag.overview_shortcut_symptoms,
+          if (asPatient) C.Tag.overview_journal_link else C.Tag.caregiver_overview_full_journal,
           hasTestTag(C.Tag.symptom_journal_add),
       )
 
