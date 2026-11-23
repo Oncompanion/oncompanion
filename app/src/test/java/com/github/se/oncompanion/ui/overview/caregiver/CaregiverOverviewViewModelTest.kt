@@ -182,6 +182,27 @@ class CaregiverOverviewViewModelTest {
   }
 
   @Test
+  fun dayStarted_onlyOnceSomethingPlannedTodayHasStarted() {
+    // Planned items to whether the day has started, at 9:00
+    val cases =
+        listOf(
+            emptyList<PlanningItem>() to false,
+            listOf(appointment("blood", now.withHour(10))) to false,
+            // Alex's only appointment was at 8:00: nothing is upcoming, but something was planned
+            listOf(appointment("blood", now.withHour(8))) to true,
+            // Starting right now counts as started
+            listOf(appointment("blood", now)) to true,
+            // Yesterday's appointment isn't today's
+            listOf(appointment("blood", now.minusDays(1))) to false,
+        )
+    for ((items, started) in cases) {
+      val state =
+          viewModel(FollowedPatient(PLANNING), planning(*items.toTypedArray())).uiState.value
+      assertEquals("$items", started, state.dayStarted)
+    }
+  }
+
+  @Test
   fun planningPrivate_showsNothingOfIt_andIsNeverRead() {
     val planning = planning(appointment("chemo", now.plusDays(2)))
 
@@ -538,6 +559,7 @@ class CaregiverOverviewViewModelTest {
     runCurrent()
 
     assertEquals("chemo", vm.uiState.value.nextUp?.id)
+    assertTrue(vm.uiState.value.dayStarted)
     following.cancel()
   }
 

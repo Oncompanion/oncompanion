@@ -27,6 +27,7 @@ import com.github.se.oncompanion.ui.overview.NextUp
 import com.github.se.oncompanion.ui.overview.followDay
 import com.github.se.oncompanion.ui.overview.nextUpOf
 import com.github.se.oncompanion.ui.overview.overviewRange
+import com.github.se.oncompanion.ui.overview.startedToday
 import java.time.Clock
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -73,6 +74,8 @@ data class LatestEntry(
  * @property now the current time, for the greeting, today's date and Next up
  * @property firstName the caregiver's first name, or `null` for a greeting without a name
  * @property nextUp the patient's next event or appointment, only while they share their planning
+ * @property dayStarted something the patient planned today has already started: without [nextUp],
+ *   the day says "Nothing else today" rather than "Nothing planned today"
  * @property sections each section of the day, in display order, once the access is known
  * @property latestEntry the patient's newest journal entry, only while they share their symptoms;
  *   `null` too when their journal is empty
@@ -83,6 +86,7 @@ data class CaregiverOverviewUiState(
     val now: LocalDateTime,
     val firstName: String? = null,
     val nextUp: NextUp? = null,
+    val dayStarted: Boolean = false,
     val sections: Map<CarePermission, SectionVisibility> = emptyMap(),
     val latestEntry: LatestEntry? = null,
     val isLoading: Boolean = true,
@@ -144,7 +148,7 @@ class CaregiverOverviewViewModel(
   private fun refreshNow() {
     val now = now()
     val newDay = now.toLocalDate() != _uiState.value.now.toLocalDate()
-    _uiState.update { it.copy(now = now, nextUp = nextUpOf(items.value, now, zoneId)) }
+    _uiState.update { it.withDayAt(now) }
     if (newDay) loadDay()
   }
 
@@ -207,20 +211,32 @@ class CaregiverOverviewViewModel(
     val readsJournal = sections[CarePermission.SYMPTOMS] == SectionVisibility.SHOWN
     _uiState.update {
       it.copy(
-          sections = sections,
-          nextUp = nextUpOf(items.value, it.now, zoneId),
-          latestEntry =
-              (journal as? CareSection.Shown)?.data?.takeIf { readsJournal }?.let(::latestEntryOf),
-          isLoading =
-              access is CareAccess.Unconfirmed ||
-                  planning is CarePlanning.Loading ||
-                  (readsPlanning && planning.notReadYet()) ||
-                  (readsJournal && journal.notReadYet()),
-          hasError =
-              planning is CarePlanning.Failed || (readsJournal && journal is CareSection.Failed),
-      )
+              sections = sections,
+              latestEntry =
+                  (journal as? CareSection.Shown)
+                      ?.data
+                      ?.takeIf { readsJournal }
+                      ?.let(::latestEntryOf),
+              isLoading =
+                  access is CareAccess.Unconfirmed ||
+                      planning is CarePlanning.Loading ||
+                      (readsPlanning && planning.notReadYet()) ||
+                      (readsJournal && journal.notReadYet()),
+              hasError =
+                  planning is CarePlanning.Failed ||
+                      (readsJournal && journal is CareSection.Failed),
+          )
+          .withDayAt(it.now)
     }
   }
+
+  /** The day at [now]: Next up, and whether something planned today has already started. */
+  private fun CaregiverOverviewUiState.withDayAt(now: LocalDateTime) =
+      copy(
+          now = now,
+          nextUp = nextUpOf(items.value, now, zoneId),
+          dayStarted = startedToday(items.value, now, zoneId),
+      )
 
   /**
    * [entry] as the Overview says it: a strength for each symptom when it has them, otherwise its

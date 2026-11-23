@@ -100,6 +100,7 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -551,9 +552,29 @@ class AppNavHostTest {
 
   @Test
   fun caregiverMode_titleSwitchesPatient_andPlanningCantAdd() {
-    val (auth, invites, circles) = followingCaregiver("p-anne" to "Anne", "p-paul" to "Paul")
+    val (auth, invites, circles) =
+        followingCaregiver(
+            "p-anne" to "Anne",
+            "p-paul" to "Paul",
+            shared = setOf(CarePermission.PLANNING),
+        )
+    // Each patient has their own next appointment, so a switch must change it with the name
+    val planning = FakePlanningRepository()
+    fun appointment(id: String, title: String) =
+        MutableStateFlow(
+            listOf(
+                PlanningItem(
+                    PlanningSource.Appointment(id),
+                    PlanningTiming.Timed(Instant.now().plus(1, ChronoUnit.HOURS)),
+                    title,
+                )
+            )
+        )
+    planning.itemsOf["p-paul"] = appointment("paul-scan", "Paul's scan")
+    planning.itemsOf["p-anne"] = appointment("anne-chemo", "Anne's chemotherapy")
     setNavHost(
         Route.WHOSE_CARE,
+        planningRepository = planning,
         careCircleRepository = circles,
         careCircleInviteRepository = invites,
         authRepository = auth,
@@ -565,6 +586,9 @@ class AppNavHostTest {
           .isNotEmpty()
     }
     composeTestRule.onNodeWithTag(C.Tag.whoseCarePatient("p-paul")).performClick()
+    composeTestRule.waitUntil(timeoutMillis = 5_000) {
+      composeTestRule.onAllNodesWithText("Paul's scan").fetchSemanticsNodes().isNotEmpty()
+    }
 
     // The header's "Whose care?" opens the list again, to choose Anne instead
     composeTestRule.onNodeWithTag(C.Tag.overview_whose_care).performClick()
@@ -578,6 +602,10 @@ class AppNavHostTest {
     composeTestRule
         .onNodeWithTag(C.Tag.caregiver_overview_day_title)
         .assertTextContains(context.getString(R.string.caregiver_overview_day, "Anne"))
+    composeTestRule.waitUntil(timeoutMillis = 5_000) {
+      composeTestRule.onAllNodesWithText("Anne's chemotherapy").fetchSemanticsNodes().isNotEmpty()
+    }
+    composeTestRule.onNodeWithText("Paul's scan").assertDoesNotExist()
     composeTestRule.onNodeWithTag(C.Tag.overview_shortcuts).assertDoesNotExist()
 
     // Without the patient's permission, a caregiver can't add appointments
