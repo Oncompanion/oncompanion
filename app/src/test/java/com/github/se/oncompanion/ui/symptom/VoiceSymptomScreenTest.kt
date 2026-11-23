@@ -63,6 +63,7 @@ class VoiceSymptomScreenTest {
           clock,
           speechRecognizer = speech,
           locale = Locale.ENGLISH,
+          symptomName = { app.getString(it.label) },
       )
 
   private fun string(id: Int) = app.getString(id)

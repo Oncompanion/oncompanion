@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelStore
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.AuthUser
 import com.github.se.oncompanion.model.session.RejectedWrites
+import com.github.se.oncompanion.model.speech.DeclinedDownloads
 import com.github.se.oncompanion.model.speech.FakeSpeechRecognizer
 import com.github.se.oncompanion.model.speech.OfflineSpeech
 import com.github.se.oncompanion.model.speech.SpeechError
@@ -55,6 +56,20 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddSymptomViewModelTest {
 
+  /** The symptoms' names as the form shows them (`strings.xml`). */
+  private fun listedName(type: SymptomType): String =
+      when (type) {
+        SymptomType.FATIGUE -> "Fatigue"
+        SymptomType.NAUSEA -> "Nausea"
+        SymptomType.PAIN -> "Pain"
+        SymptomType.FEVER -> "Fever"
+        SymptomType.HEADACHE -> "Headache"
+        SymptomType.APPETITE_LOSS -> "Loss of appetite"
+        SymptomType.SLEEP_PROBLEMS -> "Sleep problems"
+        SymptomType.BREATHLESSNESS -> "Breathlessness"
+        SymptomType.OTHER -> "Other"
+      }
+
   private val dispatcher = StandardTestDispatcher()
   private val uid = "patient-1"
   private val zurich = ZoneId.of("Europe/Zurich")
@@ -98,7 +113,18 @@ class AddSymptomViewModelTest {
   }
 
   private fun viewModel(locale: Locale = Locale.ENGLISH) =
-      AddSymptomViewModel(auth, repository, clock, speechRecognizer = speech, locale = locale)
+      AddSymptomViewModel(
+          auth,
+          repository,
+          clock,
+          speechRecognizer = speech,
+          locale = locale,
+          symptomName = ::listedName,
+          declinedDownloads = declined,
+      )
+
+  /** The downloads declined since the app started, shared by every form of a test. */
+  private val declined = DeclinedDownloads()
 
   private val AddSymptomViewModel.state
     get() = uiState.value
@@ -145,6 +171,7 @@ class AddSymptomViewModelTest {
             clock,
             speechRecognizer = speech,
             picked = SymptomType.FEVER,
+            symptomName = ::listedName,
         )
     assertEquals(listOf(SymptomType.FEVER), viewModel.state.types)
     assertTrue(viewModel.state.canSave)
@@ -207,38 +234,117 @@ class AddSymptomViewModelTest {
   // ----- Notes -----
 
   @Test
-  fun other_requiresNotes_beforeSaving() {
+  fun other_needsItsName_beforeSaving_notesDontSayIt() {
     val viewModel = viewModel()
 
     viewModel.toggleType(SymptomType.OTHER)
-    assertTrue(viewModel.state.notesRequired)
-    assertTrue(viewModel.state.isMissingNotes)
-    assertFalse(viewModel.state.canSave)
-
-    viewModel.onNotesChange("   ")
+    assertTrue(viewModel.state.isOtherPicked)
+    assertTrue(viewModel.state.isMissingOtherName)
     assertFalse(viewModel.state.canSave)
 
     viewModel.onNotesChange("Hiccups")
-    assertFalse(viewModel.state.isMissingNotes)
+    viewModel.onOtherNameChange("   ")
+    assertFalse(viewModel.state.canSave)
+
+    viewModel.onOtherNameChange("Hiccups")
+    assertFalse(viewModel.state.isMissingOtherName)
     assertTrue(viewModel.state.canSave)
   }
 
   @Test
-  fun notesWithoutOther_areOptional() {
+  fun withoutOther_noNameIsAsked_andNotesAreOptional() {
     val viewModel = viewModel()
     viewModel.toggleType(SymptomType.PAIN)
 
-    assertFalse(viewModel.state.notesRequired)
-    assertFalse(viewModel.state.isMissingNotes)
+    assertFalse(viewModel.state.isOtherPicked)
+    assertFalse(viewModel.state.isMissingOtherName)
+    assertTrue(viewModel.state.canSave)
   }
+
+  @Test
+  fun theName_isCutAt40Characters_andSavedWithoutTheSpacesAround() =
+      runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.toggleType(SymptomType.OTHER)
+
+        viewModel.onOtherNameChange("h".repeat(41))
+        assertEquals("h".repeat(40), viewModel.state.otherName)
+        // The spaces before it don't use up the 40 characters
+        val name = "Burning feeling in both hands and feet"
+        viewModel.onOtherNameChange("     $name")
+        assertEquals(name, viewModel.state.otherName)
+        viewModel.onOtherNameChange(" ".repeat(40) + "a")
+        assertEquals("a", viewModel.state.otherName)
+
+        viewModel.onOtherNameChange("  Hiccups ")
+        viewModel.save()
+        advanceUntilIdle()
+        assertEquals("Hiccups", savedEntry().otherName)
+      }
+
+  @Test
+  fun aNameTyped_thenOtherUnpicked_isNotSaved() =
+      runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.toggleType(SymptomType.OTHER)
+        viewModel.onOtherNameChange("Hiccups")
+        viewModel.toggleType(SymptomType.PAIN)
+        viewModel.toggleType(SymptomType.OTHER)
+
+        viewModel.save()
+        advanceUntilIdle()
+        assertEquals(listOf(SymptomType.PAIN), savedEntry().types)
+        assertNull(savedEntry().otherName)
+      }
 
   @Test
   fun notesLongerThanAnEntryCanStore_areCut() {
     val viewModel = viewModel()
 
     viewModel.onNotesChange("a".repeat(SymptomEntry.MAX_NOTES_LENGTH + 10))
-
     assertEquals(SymptomEntry.MAX_NOTES_LENGTH, viewModel.state.notes.length)
+
+    // The spaces before them don't use up the limit
+    viewModel.onNotesChange("   " + "b".repeat(SymptomEntry.MAX_NOTES_LENGTH))
+    assertEquals("b".repeat(SymptomEntry.MAX_NOTES_LENGTH), viewModel.state.notes)
+  }
+
+  @Test
+  fun other_namedAfterASymptomOfTheList_cantBeSaved_however_itsTyped() {
+    listOf(
+            "Nausea" to SymptomType.NAUSEA,
+            " nausea " to SymptomType.NAUSEA,
+            "LOSS  of appetite" to SymptomType.APPETITE_LOSS,
+            "Fatigue" to SymptomType.FATIGUE,
+            "Other" to null,
+            "Nauseous" to null,
+            "Hiccups" to null,
+        )
+        .forEach { (name, listed) ->
+          val viewModel = viewModel()
+          // Nausea is picked as well: one entry must never name it twice
+          viewModel.toggleType(SymptomType.NAUSEA)
+          viewModel.toggleType(SymptomType.OTHER)
+          viewModel.onOtherNameChange(name)
+
+          assertEquals(name, listed, viewModel.state.otherNameListedAs)
+          assertEquals(name, listed != null, viewModel.state.isOtherNameListed)
+          assertEquals(name, listed == null, viewModel.state.canSave)
+        }
+  }
+
+  @Test
+  fun aListedName_isntInTheWay_onceOtherIsUnpicked() {
+    val viewModel = viewModel()
+    viewModel.toggleType(SymptomType.OTHER)
+    viewModel.onOtherNameChange("Fever")
+    assertFalse(viewModel.state.canSave)
+
+    viewModel.toggleType(SymptomType.FEVER)
+    viewModel.toggleType(SymptomType.OTHER)
+
+    assertFalse(viewModel.state.isOtherNameListed)
+    assertTrue(viewModel.state.canSave)
   }
 
   // ----- When -----
@@ -524,7 +630,7 @@ class AddSymptomViewModelTest {
           SpeechRecognizerProvider.recognizer = speech
 
           // Only the clock is passed: the repositories come from the providers
-          val viewModel = AddSymptomViewModel(clock = clock)
+          val viewModel = AddSymptomViewModel(clock = clock, symptomName = ::listedName)
           viewModel.toggleType(SymptomType.NAUSEA)
           viewModel.save()
           advanceUntilIdle()
@@ -559,6 +665,7 @@ class AddSymptomViewModelTest {
         clock,
         symptomId = entry.id,
         speechRecognizer = speech,
+        symptomName = ::listedName,
     )
   }
 
@@ -596,6 +703,7 @@ class AddSymptomViewModelTest {
                 symptomId = logged.id,
                 speechRecognizer = speech,
                 picked = SymptomType.PAIN,
+                symptomName = ::listedName,
             )
         advanceUntilIdle()
 
@@ -613,6 +721,7 @@ class AddSymptomViewModelTest {
                 clock,
                 symptomId = "missing",
                 speechRecognizer = speech,
+                symptomName = ::listedName,
             )
         advanceUntilIdle()
 
@@ -730,6 +839,26 @@ class AddSymptomViewModelTest {
       }
 
   @Test
+  fun editing_keepsTheStrengthOfEachSymptomStillInTheEntry() =
+      runTest(dispatcher) {
+        val withStrengths =
+            logged.copy(
+                types = listOf(SymptomType.FATIGUE, SymptomType.NAUSEA),
+                strengths = mapOf(SymptomType.FATIGUE to 6, SymptomType.NAUSEA to 3),
+            )
+        val viewModel = editing(withStrengths)
+        advanceUntilIdle()
+        // Only the notes change, then nausea is removed: its strength goes with it
+        viewModel.onNotesChange("Better after a nap")
+        viewModel.toggleType(SymptomType.NAUSEA)
+
+        viewModel.save()
+        advanceUntilIdle()
+
+        assertEquals(mapOf(SymptomType.FATIGUE to 6), savedEntry().strengths)
+      }
+
+  @Test
   fun editing_withoutTouchingTheDayOrTime_keepsTheExactMoment() =
       runTest(dispatcher) {
         val viewModel = editing()
@@ -773,43 +902,83 @@ class AddSymptomViewModelTest {
       }
 
   @Test
-  fun editing_tickingOther_withNotesAlreadyFilled_canBeSaved() =
+  fun editing_tickingOther_asksItsName_evenWithNotes_andSavesBoth() =
       runTest(dispatcher) {
         val viewModel = editing()
         advanceUntilIdle()
 
         viewModel.toggleType(SymptomType.OTHER)
-        assertFalse(viewModel.state.isMissingNotes)
-        assertTrue(viewModel.state.canSave)
+        assertTrue(viewModel.state.isMissingOtherName)
+        assertFalse(viewModel.state.canSave)
+        viewModel.onOtherNameChange("Hiccups")
         viewModel.save()
         advanceUntilIdle()
 
         assertEquals(listOf(SymptomType.FATIGUE, SymptomType.OTHER), savedEntry().types)
+        assertEquals("Hiccups", savedEntry().otherName)
         assertEquals("After lunch", savedEntry().notes)
       }
 
   @Test
-  fun editing_tickingOther_withoutNotes_cantBeSaved() =
+  fun editing_anOtherFromBefore_asksItsName_keepingItsNotes() =
       runTest(dispatcher) {
-        val viewModel = editing(logged.copy(notes = null))
+        // Saved before "Other" could be named: the notes said which symptom it was
+        val viewModel = editing(logged.copy(types = listOf(SymptomType.OTHER), notes = "Hiccups"))
         advanceUntilIdle()
 
-        viewModel.toggleType(SymptomType.OTHER)
+        assertEquals("", viewModel.state.otherName)
+        assertTrue(viewModel.state.isMissingOtherName)
+        assertFalse(viewModel.state.canSave)
+        assertEquals("Hiccups", viewModel.state.notes)
+      }
 
-        assertTrue(viewModel.state.isMissingNotes)
+  @Test
+  fun editing_anEntryWhoseOtherNamesASymptomOfTheList_saysSo() =
+      runTest(dispatcher) {
+        val viewModel = editing(logged.copy(types = listOf(SymptomType.OTHER), otherName = "Pain"))
+        advanceUntilIdle()
+
+        assertEquals(SymptomType.PAIN, viewModel.state.otherNameListedAs)
+        viewModel.onOtherNameChange("Cramps")
+        assertNull(viewModel.state.otherNameListedAs)
+        assertTrue(viewModel.state.canSave)
+      }
+
+  @Test
+  fun editing_onlyTheName_isAChange_andClearingItCantBeSaved() =
+      runTest(dispatcher) {
+        val viewModel =
+            editing(logged.copy(types = listOf(SymptomType.OTHER), otherName = "Hiccups"))
+        advanceUntilIdle()
+        assertEquals("Hiccups", viewModel.state.otherName)
+        assertFalse("nothing changed yet", viewModel.state.canSave)
+
+        viewModel.onOtherNameChange("Hiccups ")
+        assertFalse("the same name once trimmed", viewModel.state.canSave)
+        viewModel.onOtherNameChange("Cramps")
+        assertTrue(viewModel.state.canSave)
+        viewModel.onOtherNameChange(" ")
         assertFalse(viewModel.state.canSave)
       }
 
   @Test
-  fun editing_clearingTheNotesOfOther_cantBeSaved() =
+  fun editing_removingOther_savesNoName() =
       runTest(dispatcher) {
-        val viewModel = editing(logged.copy(types = listOf(SymptomType.OTHER), notes = "Hiccups"))
+        val viewModel =
+            editing(
+                logged.copy(
+                    types = listOf(SymptomType.FATIGUE, SymptomType.OTHER),
+                    otherName = "Hiccups",
+                )
+            )
         advanceUntilIdle()
 
-        viewModel.onNotesChange(" ")
+        viewModel.toggleType(SymptomType.OTHER)
+        viewModel.save()
+        advanceUntilIdle()
 
-        assertTrue(viewModel.state.isMissingNotes)
-        assertFalse(viewModel.state.canSave)
+        assertEquals(listOf(SymptomType.FATIGUE), savedEntry().types)
+        assertNull(savedEntry().otherName)
       }
 
   @Test
@@ -895,6 +1064,7 @@ class AddSymptomViewModelTest {
           patientUid = "patient",
           profileRepository = profiles,
           speechRecognizer = speech,
+          symptomName = ::listedName,
       )
 
   @Test
@@ -1567,6 +1737,23 @@ class AddSymptomViewModelTest {
       }
 
   @Test
+  fun notNow_isNotOfferedAgainInTheNextForms_onlyForThatLanguage() =
+      runTest(dispatcher) {
+        speech.offline = OfflineSpeech.DOWNLOADABLE
+        listening().onNotNow()
+        advanceUntilIdle()
+
+        // The next symptom, in the same language: listens at once, without the offer
+        val next = listening()
+        assertEquals(VoiceUiState.Listening(), next.state.voice)
+        assertEquals(emptyList<SpeechLanguage>(), speech.downloads)
+
+        // On a phone switched to French, French is still offered
+        val french = listening(viewModel(Locale.FRENCH))
+        assertEquals(VoiceUiState.OfferingOffline(SpeechLanguage.FRENCH), french.state.voice)
+      }
+
+  @Test
   fun theOfferButtons_doNothingOnceTheOfferIsGone() =
       runTest(dispatcher) {
         val viewModel = listening()
@@ -1663,6 +1850,7 @@ class AddSymptomViewModelTest {
               seed(UserProfile(uid, Role.CAREGIVER, firstName = "Sam"))
             },
         speechRecognizer = speech,
+        symptomName = ::listedName,
     )
   }
 

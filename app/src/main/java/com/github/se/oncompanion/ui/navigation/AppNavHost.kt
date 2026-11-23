@@ -93,6 +93,8 @@ import com.github.se.oncompanion.ui.symptom.SymptomDetailScreen
 import com.github.se.oncompanion.ui.symptom.SymptomDetailViewModel
 import com.github.se.oncompanion.ui.symptom.SymptomJournalScreen
 import com.github.se.oncompanion.ui.symptom.SymptomJournalViewModel
+import com.github.se.oncompanion.ui.symptom.label
+import java.time.Clock
 import java.time.LocalDate
 
 /**
@@ -105,12 +107,15 @@ import java.time.LocalDate
  *
  * @param credentialProvider gets the Google ID token, for signing in and out; end-to-end tests pass
  *   one that signs in against the Auth emulator, as Google's account picker can't be driven
+ * @param clock gives the current time to the screens that start from it (Overview, Planning, the
+ *   event page, a new appointment); tests pass a fixed one so they don't depend on the day they run
  */
 @Composable
 fun AppNavHost(
     navController: NavHostController? = null,
     startRoute: String = Route.AUTH,
     credentialProvider: GoogleCredentialProvider = rememberGoogleCredentialProvider(),
+    clock: Clock = Clock.systemDefaultZone(),
 ) {
   SessionBoundary(credentialProvider) { afterCleanup, savedState, accountChanged ->
     val route =
@@ -128,6 +133,7 @@ fun AppNavHost(
             route,
             credentialProvider,
             savedState,
+            clock,
         )
         RejectedWriteSnackbar(Modifier.align(Alignment.BottomCenter))
       }
@@ -141,6 +147,7 @@ private fun SessionNavHost(
     startRoute: String,
     credentialProvider: GoogleCredentialProvider,
     savedState: androidx.lifecycle.SavedStateHandle,
+    clock: Clock,
 ) {
   val navigationActions = remember(navController) { NavigationActions(navController) }
   // Caregiver mode: the patient chosen in "Whose care?" (null for a patient), for every screen
@@ -274,7 +281,8 @@ private fun SessionNavHost(
         OverviewScreen(
             navigationActions,
             // In caregiver mode, the chosen patient's day, when they share their planning
-            viewModel = viewModel { OverviewViewModel(patientUid = chosenPatient?.uid) },
+            viewModel =
+                viewModel { OverviewViewModel(clock = clock, patientUid = chosenPatient?.uid) },
             onOpenAppointment = appointmentOpener(navigationActions),
             onOpenEvent = eventOpener(navigationActions),
             caregiverOf = chosenPatient?.firstName,
@@ -288,6 +296,7 @@ private fun SessionNavHost(
       composable(Screen.PLANNING) { entry ->
         val planningViewModel: PlanningViewModel = viewModel {
           PlanningViewModel(
+              clock = clock,
               savedStateHandle = createSavedStateHandle(),
               patientUid = chosenPatient?.uid,
           )
@@ -343,7 +352,7 @@ private fun SessionNavHost(
         // In caregiver mode, the chosen patient's appointment (US-46)
         val form: AppointmentFormViewModel = viewModel {
           AppointmentFormViewModel(
-              LocalDate.now(),
+              LocalDate.now(clock),
               appointmentId = id,
               patientUid = chosenPatient?.uid,
           )
@@ -372,7 +381,7 @@ private fun SessionNavHost(
         val date =
             runCatching { LocalDate.parse(entry.arguments?.getString(Screen.APPOINTMENT_DATE)) }
                 .getOrNull()
-                ?.takeIf { it.year in 1..9999 } ?: LocalDate.now()
+                ?.takeIf { it.year in 1..9999 } ?: LocalDate.now(clock)
         // In caregiver mode, the appointment goes in the chosen patient's planning (US-41)
         val form: AppointmentFormViewModel = viewModel {
           AppointmentFormViewModel(date, patientUid = chosenPatient?.uid)
@@ -412,7 +421,9 @@ private fun SessionNavHost(
             // In caregiver mode, the chosen patient's registration, read-only, when they share
             // Events
             viewModel =
-                viewModel { EventDetailViewModel(eventId, patientUid = chosenPatient?.uid) },
+                viewModel {
+                  EventDetailViewModel(eventId, clock = clock, patientUid = chosenPatient?.uid)
+                },
             caregiverOf = chosenPatient?.firstName,
         )
       }
@@ -461,9 +472,17 @@ private fun SessionNavHost(
         // Saving returns to where the form was opened: the journal, where the new entry is at the
         // top, or the Overview
         // In caregiver mode, the symptom goes in the chosen patient's journal (US-22)
+        // The app's context, not the activity's: the ViewModel outlives a rotation
+        val app = LocalContext.current.applicationContext
         AddSymptomScreen(
             viewModel =
-                viewModel { AddSymptomViewModel(patientUid = chosenPatient?.uid, picked = picked) },
+                viewModel {
+                  AddSymptomViewModel(
+                      patientUid = chosenPatient?.uid,
+                      picked = picked,
+                      symptomName = { app.getString(it.label) },
+                  )
+                },
             onBack = navigationActions::goBack,
             onSaved = navigationActions::goBack,
             caregiverOf = chosenPatient?.firstName,
@@ -476,10 +495,15 @@ private fun SessionNavHost(
         val symptomId = entry.arguments?.getString(Screen.SYMPTOM_DETAIL_ID).orEmpty()
         // Saving returns to the detail, which shows the change
         // In caregiver mode, the chosen patient's symptom (US-46)
+        val app = LocalContext.current.applicationContext
         AddSymptomScreen(
             viewModel =
                 viewModel {
-                  AddSymptomViewModel(symptomId = symptomId, patientUid = chosenPatient?.uid)
+                  AddSymptomViewModel(
+                      symptomId = symptomId,
+                      patientUid = chosenPatient?.uid,
+                      symptomName = { app.getString(it.label) },
+                  )
                 },
             onBack = navigationActions::goBack,
             onSaved = navigationActions::goBack,
