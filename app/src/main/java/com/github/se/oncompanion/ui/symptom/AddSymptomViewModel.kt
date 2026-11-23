@@ -11,6 +11,9 @@ import com.github.se.oncompanion.domain.symptom.parseSpokenSymptom
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.signedInUid
+import com.github.se.oncompanion.model.speech.DeclinedDownloads
+import com.github.se.oncompanion.model.speech.DeclinedDownloadsProvider
+import com.github.se.oncompanion.model.speech.OfflineSpeech
 import com.github.se.oncompanion.model.speech.SpeechError
 import com.github.se.oncompanion.model.speech.SpeechEvent
 import com.github.se.oncompanion.model.speech.SpeechLanguage
@@ -43,6 +46,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** Why saving the symptom failed, so the screen can show the right message. */
 enum class AddSymptomError {
@@ -186,6 +190,8 @@ data class AddSymptomUiState(
  *   named after one of them
  * @param picked a symptom already ticked when logging a new one (a check-in tile on the Overview);
  *   the user can still untick it. Ignored when editing
+ * @param declinedDownloads the languages the patient said Not now to downloading for offline
+ *   dictation (US-45), so they aren't offered again in the next forms
  */
 class AddSymptomViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
@@ -198,6 +204,7 @@ class AddSymptomViewModel(
     private val locale: Locale = Locale.getDefault(),
     picked: SymptomType? = null,
     private val symptomName: (SymptomType) -> String,
+    private val declinedDownloads: DeclinedDownloads = DeclinedDownloadsProvider.declined,
 ) : ViewModel() {
 
   /** The first name a caregiver's symptom is signed with. */
@@ -388,7 +395,7 @@ class AddSymptomViewModel(
    */
   fun onSpeak(hasMicrophone: Boolean) {
     if (!_uiState.value.canStartDictating) return
-    if (hasMicrophone) startListening()
+    if (hasMicrophone) startDictating()
     else _uiState.update { it.copy(voice = VoiceUiState.ExplainingMicrophone) }
   }
 
@@ -399,7 +406,7 @@ class AddSymptomViewModel(
   fun onMicrophoneAnswer(granted: Boolean) {
     val state = _uiState.value
     if (state.voice != VoiceUiState.ExplainingMicrophone || !state.canStartDictating) return
-    if (granted) startListening()
+    if (granted) startDictating()
     else _uiState.update { it.copy(voice = VoiceUiState.MicrophoneRefused) }
   }
 
@@ -410,7 +417,55 @@ class AddSymptomViewModel(
    */
   fun onMicrophoneAllowedInSettings() {
     val state = _uiState.value
-    if (state.voice == VoiceUiState.MicrophoneRefused && state.canStartDictating) startListening()
+    if (state.voice == VoiceUiState.MicrophoneRefused && state.canStartDictating) startDictating()
+  }
+
+  /**
+   * The patient accepted the offer: asks the phone to download their language, then listens. The
+   * phone may ask them to confirm in its own dialog first; the app waits until it closes, then asks
+   * the phone again, so it only says the language is downloading if the patient confirmed. A dialog
+   * cancelled is a no, like [onNotNow]: not offered again until the app restarts.
+   */
+  fun onDownloadForOffline() {
+    val offer = _uiState.value.voice as? VoiceUiState.OfferingOffline ?: return
+    speechRecognizer.downloadForOffline(offer.language)
+    _uiState.update { it.copy(voice = VoiceUiState.Preparing) }
+    // Cancelled by cancelVoice, like the first question to the phone
+    checkingOffline = viewModelScope.launch {
+      // Waits for the phone's dialog (a phone may show none), then until the patient closed it
+      val dialogShown =
+          withTimeoutOrNull(DOWNLOAD_DIALOG_DELAY) { isOnScreen.first { !it } } != null
+      isOnScreen.first { it }
+      val support = askPhone(offer.language)
+      // Still downloadable once the phone's dialog closed: the patient cancelled it
+      if (dialogShown && support == OfflineSpeech.DOWNLOADABLE) {
+        declinedDownloads.decline(offer.language)
+      }
+      continueDictating(offer = null)
+    }
+  }
+
+  /** Whether the screen is in front; not while the phone's download dialog covers it. */
+  private val isOnScreen = MutableStateFlow(true)
+
+  /** The screen is in front again, e.g. after the phone's download dialog closed. */
+  fun onScreenShown() {
+    isOnScreen.value = true
+  }
+
+  /** Something covers the screen, e.g. the phone's download dialog, or the patient left it. */
+  fun onScreenHidden() {
+    isOnScreen.value = false
+  }
+
+  /**
+   * The patient declined the offer: listens without downloading, and it isn't offered again until
+   * the app restarts.
+   */
+  fun onNotNow() {
+    val offer = _uiState.value.voice as? VoiceUiState.OfferingOffline ?: return
+    declinedDownloads.decline(offer.language)
+    startListening()
   }
 
   /** Drops what was heard and listens again. */
@@ -420,6 +475,7 @@ class AddSymptomViewModel(
 
   /** Back to the form without using what was said; it is dropped. */
   fun cancelVoice() {
+    checkingOffline?.cancel()
     listening?.cancel()
     listening = null
     _uiState.update { it.copy(voice = null) }
@@ -447,13 +503,75 @@ class AddSymptomViewModel(
     edit { it.filledFrom(draft).copy(voice = null, isDrafted = true).withFutureCheck() }
   }
 
+  /** Asks the phone whether it understands the patient's language offline, before listening. */
+  private var checkingOffline: Job? = null
+
+  /**
+   * What the phone last said about understanding the patient's language without a connection;
+   * `null` until it said something. Kept outside the UI state because it outlives each dictation: a
+   * phone that can't answer next time still has the download it started.
+   */
+  private var phone: OfflineSpeech? = null
+
+  /**
+   * Starts dictating (US-45): shows the voice screen at once while the phone is asked whether it
+   * understands the patient's language offline, then offers the download when it could get it and
+   * the patient hasn't declined it, or listens. A phone slow to answer isn't waited for: the
+   * patient came to speak.
+   */
+  private fun startDictating() {
+    if (checkingOffline?.isActive == true) return
+    val language = SpeechLanguage.of(locale)
+    _uiState.update { it.copy(voice = VoiceUiState.Preparing) }
+    // Cancelled by cancelVoice, so it never listens after the patient left
+    checkingOffline = viewModelScope.launch {
+      val support = askPhone(language)
+      val canOffer = support == OfflineSpeech.DOWNLOADABLE && language !in declinedDownloads
+      continueDictating(offer = language.takeIf { canOffer })
+    }
+  }
+
+  /**
+   * Asks the phone whether it understands [language] without a connection, and remembers it in
+   * [phone]. Returns its answer, or `null` if it took too long.
+   */
+  private suspend fun askPhone(language: SpeechLanguage): OfflineSpeech? {
+    val support =
+        withTimeoutOrNull(OFFLINE_CHECK_TIMEOUT) { speechRecognizer.offlineSupport(language) }
+    // Without an answer, keep what the phone said last time
+    if (support != null && support != OfflineSpeech.UNKNOWN) phone = support
+    return support
+  }
+
+  /** After asking the phone: offers to download [offer] if not `null`, else listens. */
+  private fun continueDictating(offer: SpeechLanguage?) {
+    when {
+      // A form saved meanwhile goes back to the form instead of listening
+      !_uiState.value.canStartDictating -> _uiState.update { it.copy(voice = null) }
+      offer != null -> _uiState.update { it.copy(voice = VoiceUiState.OfferingOffline(offer)) }
+      else -> startListening()
+    }
+  }
+
+  /** What to say while listening about using voice without a connection; see [phone]. */
+  private fun connectionNote(language: SpeechLanguage): ConnectionNote? =
+      when (phone) {
+        OfflineSpeech.DOWNLOADING -> ConnectionNote.Downloading(language)
+        OfflineSpeech.ONLINE_ONLY -> ConnectionNote.OnlineOnly
+        else -> null
+      }
+
   /** Listens to the patient in the phone's language, replacing any session already running. */
   private fun startListening() {
     listening?.cancel()
-    _uiState.update { it.copy(voice = VoiceUiState.Listening()) }
     val language = SpeechLanguage.of(locale)
+    _uiState.update {
+      it.copy(voice = VoiceUiState.Listening(connection = connectionNote(language)))
+    }
+    // The language is on the phone: listen with the recognizer that has it, so it works offline
+    val onDevice = phone == OfflineSpeech.READY
     listening = viewModelScope.launch {
-      speechRecognizer.listen(language).collect { event ->
+      speechRecognizer.listen(language, onDevice).collect { event ->
         if (event is SpeechEvent.Level) hearLevel(event.level)
         else voiceAfter(event, language)?.let(::show)
       }
@@ -468,10 +586,17 @@ class AddSymptomViewModel(
     val current = _uiState.value.voice as? VoiceUiState.Listening
     when {
       current?.isFinishing == true && next is VoiceUiState.Heard -> useDraft(next.draft)
-      // New words keep how loud the patient is and whether Done was tapped
+      // New words keep how loud the patient is, whether Done was tapped and the connection note
       current != null && next is VoiceUiState.Listening ->
           _uiState.update {
-            it.copy(voice = next.copy(isFinishing = current.isFinishing, level = current.level))
+            it.copy(
+                voice =
+                    next.copy(
+                        isFinishing = current.isFinishing,
+                        level = current.level,
+                        connection = current.connection,
+                    )
+            )
           }
       else -> _uiState.update { it.copy(voice = next) }
     }
@@ -581,6 +706,15 @@ class AddSymptomViewModel(
 
   private companion object {
     const val TAG = "AddSymptomViewModel"
+
+    /** How long the phone may take to say whether it understands the language offline. */
+    const val OFFLINE_CHECK_TIMEOUT = 2_000L
+
+    /**
+     * How long the phone may take to show its own dialog after a download is asked for; a slow or
+     * busy phone can take more than a second. Only a phone that shows no dialog waits this long.
+     */
+    const val DOWNLOAD_DIALOG_DELAY = 3_000L
   }
 }
 

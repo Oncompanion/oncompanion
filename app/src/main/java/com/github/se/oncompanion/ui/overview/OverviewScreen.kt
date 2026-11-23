@@ -173,6 +173,7 @@ fun OverviewScreen(
       onOpenAppointment = onOpenAppointment,
       onOpenEvent = onOpenEvent,
       onLogSymptom = { navigationActions.navigateTo(Screen.symptomAdd(it)) },
+      onTickDose = viewModel::tickDose,
       onRetry = viewModel::loadDay,
       modifier = modifier,
       caregiverOf = caregiverOf,
@@ -196,6 +197,7 @@ fun OverviewScreen(
  * @param onOpenPlanning opens Planning from an empty appointment card or "See planning"
  * @param onOpenAppointment opens the recorded appointment directly
  * @param onOpenEvent opens the event shown in the patient's "Next up"
+ * @param onTickDose ticks a dose of one of the patient's medications, by its ID
  * @param onLogSymptom opens the symptom form from the patient's check-in, with that symptom picked
  *   or empty for `null`
  * @param onRetry reloads the day after an error
@@ -213,6 +215,7 @@ fun OverviewContent(
     modifier: Modifier = Modifier,
     onOpenEvent: (String) -> Unit = {},
     onLogSymptom: (SymptomType?) -> Unit = {},
+    onTickDose: (String) -> Unit = {},
     caregiverOf: String? = null,
     onSwitchPatient: () -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
@@ -270,6 +273,7 @@ fun OverviewContent(
                     onOpenAppointment,
                     onOpenEvent,
                     modifier = if (overlaps) Modifier.overlapLayout() else Modifier,
+                    onTickDose = onTickDose,
                 )
             else -> {
               NextAppointmentCard(

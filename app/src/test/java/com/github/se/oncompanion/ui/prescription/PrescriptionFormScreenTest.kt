@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -23,10 +24,12 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -38,6 +41,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.requestFocus
+import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -54,12 +60,18 @@ import com.github.se.oncompanion.model.medication.Prescription
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.SMALL_LANDSCAPE_PHONE
+import com.github.se.oncompanion.ui.SMALL_PHONE
 import com.github.se.oncompanion.ui.assertIsAboveKeyboard
 import com.github.se.oncompanion.ui.assertIsFullyVisible
+import com.github.se.oncompanion.ui.assertSameColor
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
+import com.github.se.oncompanion.ui.colorAt
 import com.github.se.oncompanion.ui.common.SavePhase
 import com.github.se.oncompanion.ui.showKeyboard
+import com.github.se.oncompanion.ui.theme.DarkLakeColors
+import com.github.se.oncompanion.ui.theme.LightLakeColors
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
+import com.github.se.oncompanion.ui.theme.StoneColors
 import java.io.File
 import java.time.Clock
 import java.time.LocalDate
@@ -319,13 +331,32 @@ class PrescriptionFormScreenTest {
   }
 
   @Test
-  fun durationFieldNamesItsUnitInTheSingularForOneDay() {
-    val oneDay = filled.draft.copy(medications = listOf(ondansetron.copy(durationDays = 1)))
-    setContent(filled.copy(draft = oneDay))
+  fun durationShowsItsUnitInTheValue_asInTheFrame_notBesideTheLabel() {
+    setContent(filled)
+    // The days saved, and what the field shows ("3 days" in the M3 frames). A unit beside the
+    // value would take the label's width once the field is focused, and break "Duration" in two
+    val cases = listOf(5 to "5 days", 1 to "1 day", null to "")
+    for ((days, shown) in cases) {
+      editOpenMedication { it.copy(durationDays = days) }
+      composeTestRule.waitForIdle()
+      assertEquals("$days", shown, editableText(C.Tag.prescription_form_duration_field))
+    }
 
-    composeTestRule.onNodeWithText("day").assertExists()
-    composeTestRule.onNodeWithText("days").assertDoesNotExist()
+    // Focused and still empty, no unit stands beside the label either
+    field(C.Tag.prescription_form_duration_field).performClick()
+    composeTestRule
+        .onNode(
+            hasText(
+                context.resources.getQuantityString(R.plurals.prescription_form_duration_unit, 0)
+            ) and hasAnyAncestor(hasTestTag(C.Tag.prescription_form_duration_field)),
+            useUnmergedTree = true,
+        )
+        .assertDoesNotExist()
   }
+
+  /** What the field [tag] shows as its value, after any transformation of what was typed. */
+  private fun editableText(tag: String): String =
+      node(tag).fetchSemanticsNode().config[SemanticsProperties.EditableText].text
 
   @Test
   fun closedMedicationThatCannotBeSavedSaysWhy() {
@@ -1424,6 +1455,30 @@ class PrescriptionFormScreenTest {
     assertEquals(listOf(savedBefore), medications.prescriptionsOf("patient-1"))
   }
 
+  @Test
+  fun phoneRotated_whileTyping_keepsWhatWasTyped() {
+    val auth = FakeAuthRepository(onSignIn = { AuthUser(uid = "patient-1") })
+    runBlocking { auth.signInWithGoogle("token") }
+    val viewModel = PrescriptionFormViewModel(auth, FakeMedicationRepository())
+    val show = {
+      composeTestRule.activity.setContent {
+        PrescriptionFormScreen(viewModel = viewModel, onClose = {}, onSaved = {})
+      }
+    }
+    composeTestRule.runOnUiThread(show)
+    field(C.Tag.prescription_form_prescribed_by_field).performTextInput("Dr. Martin")
+    field(C.Tag.prescription_form_medication_name_field).performTextInput("Ondansetron 8 mg")
+    field(C.Tag.prescription_form_duration_field).performTextInput("5")
+
+    // Rotating recreates the activity; what was typed is in the ViewModel, which survives it
+    composeTestRule.activityRule.scenario.recreate()
+    composeTestRule.runOnUiThread(show)
+
+    field(C.Tag.prescription_form_prescribed_by_field).assertTextContains("Dr. Martin")
+    field(C.Tag.prescription_form_medication_name_field).assertTextContains("Ondansetron 8 mg")
+    assertEquals("5 days", editableText(C.Tag.prescription_form_duration_field))
+  }
+
   // ---------- A caregiver corrects an existing prescription (US-46) ----------
 
   private val caregiverEditing = filled.copy(isEditing = true, pendingAddedByName = "Marc")
@@ -1519,6 +1574,177 @@ class PrescriptionFormScreenTest {
     node(C.Tag.prescription_form_close_button).performScrollTo().assertIsFullyVisible()
     node(C.Tag.prescription_form_save_button).performScrollTo().assertIsFullyVisible()
     node(C.Tag.prescription_form_save_button).assertIsAboveKeyboard(keyboardHeight)
+  }
+
+  // ---------- M3 look (#549) ----------
+
+  /** Where the start date and the duration are, both read after one scroll so they compare. */
+  private fun startAndDuration(): Pair<DpRect, DpRect> {
+    node(C.Tag.prescription_form_duration_field).performScrollTo()
+    return node(C.Tag.prescription_form_start_date_field).getUnclippedBoundsInRoot() to
+        node(C.Tag.prescription_form_duration_field).getUnclippedBoundsInRoot()
+  }
+
+  @Test
+  fun theDoctorAndTheDate_sitInOneCard_namedPrescription() {
+    setContent(filled)
+    val card = hasAnyAncestor(hasTestTag(C.Tag.prescription_form_prescription_card))
+    for (tag in
+        listOf(C.Tag.prescription_form_prescribed_by_field, C.Tag.prescription_form_date_field)) {
+      composeTestRule.onNode(hasTestTag(tag) and card).assertExists()
+    }
+    // Its eyebrow is in capitals, as in the frame
+    composeTestRule
+        .onNode(
+            hasText(string(R.string.prescription_form_prescription_section).uppercase()) and card
+        )
+        .assertExists()
+    // The medications are outside it
+    composeTestRule
+        .onNode(hasTestTag(C.Tag.prescription_form_medication_name_field) and card)
+        .assertDoesNotExist()
+  }
+
+  @Test
+  fun theMedicationsHeading_countsThem_andIsAHeading() {
+    setContent(filled)
+    for ((state, count) in listOf(filled to 1, twoMedications to 2)) {
+      uiState = state
+      composeTestRule.waitForIdle()
+      node(C.Tag.prescription_form_medications_heading)
+          .assertTextEquals(
+              context.getString(R.string.prescription_form_medications_heading, count)
+          )
+          .assert(isHeading())
+    }
+  }
+
+  @Test
+  fun theOpenMedication_andEachClosedOne_areTheirOwnCards() {
+    setContent(twoMedications)
+    val openCard = hasAnyAncestor(hasTestTag(C.Tag.prescription_form_medication_card))
+    for (tag in
+        listOf(
+            C.Tag.prescription_form_medication_title,
+            C.Tag.prescription_form_medication_name_field,
+            C.Tag.prescription_form_duration_field,
+        )) {
+      composeTestRule.onNode(hasTestTag(tag) and openCard).assertExists()
+    }
+    // The closed medication is a card of its own, not inside the open one
+    composeTestRule
+        .onNode(hasTestTag(C.Tag.prescriptionFormMedicationRow(0)) and openCard)
+        .assertDoesNotExist()
+  }
+
+  @Test
+  fun startDateAndDuration_shareOneRow_theDateWider() {
+    setContent(filled)
+    val (start, duration) = startAndDuration()
+    assertEquals("same top", start.top.value, duration.top.value, 1f)
+    assertTrue("duration after the date", duration.left >= start.right)
+    assertTrue("the date wider", start.width > duration.width)
+  }
+
+  @Test
+  @Config(qualifiers = SMALL_PHONE)
+  fun onASmallPhone_startDateAndDuration_areStacked_soNeitherIsCut() {
+    // Side by side on a 320 dp phone, "30 Dec 2026" and "365 days" were cut, with the phone's fonts
+    setContent(filled)
+    val (start, duration) = startAndDuration()
+    assertTrue("duration below the date", duration.top >= start.bottom)
+    assertEquals("as wide as the date", start.width.value, duration.width.value, 1f)
+    node(C.Tag.prescription_form_save_button).assertIsFullyVisible()
+  }
+
+  @Test
+  @Config(fontScale = 2f)
+  fun atTheLargestFont_startDateAndDuration_areStacked_soNeitherIsCut() {
+    setContent(filled)
+    val (start, duration) = startAndDuration()
+    assertTrue("duration below the date", duration.top >= start.bottom)
+    assertEquals("as wide as the date", start.width.value, duration.width.value, 1f)
+  }
+
+  @Test
+  fun aDurationWithAMessage_goesUnderTheDate_soTheMessageHasTheWholeWidth() {
+    val invalid =
+        filled.copy(
+            draft = filled.draft.copy(medications = listOf(ondansetron.copy(durationDays = 0)))
+        )
+    val toCheck =
+        filled.copy(
+            isScanned = true,
+            toCheck = setOf(of(0, MedicationDetail.DURATION)),
+        )
+    setContent(invalid)
+    for (state in listOf(invalid, toCheck)) {
+      uiState = state
+      composeTestRule.waitForIdle()
+      val (start, duration) = startAndDuration()
+      assertTrue("duration below the date", duration.top >= start.bottom)
+    }
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  fun cardsSitOnTheStonePage_inLightTheme() = cardsSitOnTheStonePage(LightLakeColors.stone)
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = "night")
+  fun cardsSitOnTheStonePage_inDarkTheme() = cardsSitOnTheStonePage(DarkLakeColors.stone)
+
+  private fun cardsSitOnTheStonePage(stone: StoneColors) {
+    setContent(filled, themed = true)
+    val card = node(C.Tag.prescription_form_prescription_card)
+    // Inside the card, in its padding
+    assertSameColor("card", stone.card, card.colorAt(8.dp, 8.dp))
+    // Left of the card, in the page's gutter
+    val top = card.getUnclippedBoundsInRoot().top
+    assertSameColor(
+        "page",
+        stone.page,
+        node(C.Tag.prescription_form_screen).colorAt(4.dp, top + 24.dp),
+    )
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  fun theSaveBar_isACardWithRoundedTopCorners_overThePage() {
+    setContent(filled, themed = true)
+    val bar = node(C.Tag.prescription_form_save_bar)
+    val size = bar.getUnclippedBoundsInRoot()
+    val stone = LightLakeColors.stone
+    // Inside the bar, beside the button
+    assertSameColor("bar", stone.card, bar.colorAt(size.width / 2, 4.dp))
+    // Its top left corner is rounded: the page shows there
+    assertSameColor("corner", stone.page, bar.colorAt(1.dp, 1.dp))
+    // Save is in it
+    composeTestRule
+        .onNode(
+            hasTestTag(C.Tag.prescription_form_save_button) and
+                hasAnyAncestor(hasTestTag(C.Tag.prescription_form_save_bar))
+        )
+        .assertExists()
+  }
+
+  @Test
+  fun reviewing_rejectAndConfirm_shareTheSaveBar() {
+    setContent(toConfirm)
+    val inBar = hasAnyAncestor(hasTestTag(C.Tag.prescription_form_save_bar))
+    for (tag in
+        listOf(C.Tag.prescription_form_reject_button, C.Tag.prescription_form_save_button)) {
+      composeTestRule.onNode(hasTestTag(tag) and inBar).assertIsDisplayed()
+    }
+  }
+
+  @Test
+  @Config(qualifiers = LANDSCAPE_PHONE, fontScale = 2f)
+  fun reviewing_inLandscapeAtTheLargestFont_rejectAndConfirmCanBeReachedWhole() {
+    setContent(toConfirm)
+    node(C.Tag.prescription_form_reject_button).performScrollTo().assertIsFullyVisible()
+    node(C.Tag.prescription_form_save_button).performScrollTo().assertIsFullyVisible()
   }
 
   /** Captures the rendered behavior-test state for review, using the application's theme. */

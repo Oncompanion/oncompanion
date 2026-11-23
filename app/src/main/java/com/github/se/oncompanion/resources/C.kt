@@ -232,6 +232,10 @@ object C {
     const val symptom_voice_type_instead = "symptom_voice_type_instead"
     const val symptom_voice_allow = "symptom_voice_allow"
     const val symptom_voice_open_settings = "symptom_voice_open_settings"
+    const val symptom_voice_download = "symptom_voice_download"
+    const val symptom_voice_not_now = "symptom_voice_not_now"
+    const val symptom_voice_downloading = "symptom_voice_downloading"
+    const val symptom_voice_online_only = "symptom_voice_online_only"
     const val prescriptions_screen = "prescriptions_screen"
     const val care_circle_screen = "care_circle_screen"
     // Settings
@@ -299,6 +303,8 @@ object C {
     fun overviewTodayItem(itemId: String) = "overview_today_item_$itemId"
 
     fun overviewMedication(key: String) = "overview_medication_$key"
+
+    fun overviewDoseButton(key: String) = "overview_dose_button_$key"
 
     /** A check-in tile on the Overview, by its symptom type's name. */
     fun overviewCheckIn(type: String) = "overview_check_in_$type"
@@ -538,6 +544,10 @@ object C {
         "prescription_detail_medication_$medicationId"
 
     const val prescription_form_not_allowed = "prescription_form_not_allowed"
+    const val prescription_form_prescription_card = "prescription_form_prescription_card"
+    const val prescription_form_medications_heading = "prescription_form_medications_heading"
+    const val prescription_form_medication_card = "prescription_form_medication_card"
+    const val prescription_form_save_bar = "prescription_form_save_bar"
 
     // Medication detail (US-35)
     const val medication_detail_screen = "medication_detail_screen"

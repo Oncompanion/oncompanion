@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,10 +16,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
@@ -50,10 +53,11 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.oncompanion.R
@@ -67,6 +71,7 @@ import com.github.se.oncompanion.ui.common.ClickableReadOnlyField
 import com.github.se.oncompanion.ui.common.DayPickerDialog
 import com.github.se.oncompanion.ui.common.DeleteConfirmationDialog
 import com.github.se.oncompanion.ui.common.DeleteDialogTags
+import com.github.se.oncompanion.ui.common.LakeBanner
 import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.LakeMessageState
@@ -76,8 +81,10 @@ import com.github.se.oncompanion.ui.common.PaperLakeBand
 import com.github.se.oncompanion.ui.common.PickerTestTags
 import com.github.se.oncompanion.ui.common.SaveButton
 import com.github.se.oncompanion.ui.common.SavePhase
+import com.github.se.oncompanion.ui.common.StoneCard
 import com.github.se.oncompanion.ui.common.isCompactHeight
 import com.github.se.oncompanion.ui.theme.Spacing
+import com.github.se.oncompanion.ui.theme.elevation1
 import com.github.se.oncompanion.ui.theme.lakeColors
 import java.time.LocalDate
 import java.time.LocalTime
@@ -223,11 +230,13 @@ fun PrescriptionFormContent(
   Scaffold(
       // Ends the screen at the keyboard (the activity is adjustResize): Save sits just above it
       modifier = modifier.testTag(C.Tag.prescription_form_screen).imePadding(),
+      // The cards of the form sit on the stone page (Figma M3, "Add and review")
+      containerColor = MaterialTheme.lakeColors.stone.page,
       // Without fields there is no keyboard, so the top bar can stay fixed
       topBar = { if (!scrollsEverything || !isReady) FormTopBar(uiState, onClose, caregiverOf) },
       snackbarHost = { LakeSnackbarHost(snackbarHostState) },
       // Save stays at the bottom of the screen while the fields scroll
-      bottomBar = { if (!scrollsEverything && isReady) FormSaveButton(uiState, onSave, onReject) },
+      bottomBar = { if (!scrollsEverything && isReady) SaveBar(uiState, onSave, onReject) },
   ) { innerPadding ->
     if (!isReady) {
       LoadState(uiState.load, onRetry, Modifier.padding(innerPadding))
@@ -240,8 +249,8 @@ fun PrescriptionFormContent(
       // The Scaffold already keeps the content clear of the status bar
       if (scrollsEverything) FormTopBar(uiState, onClose, caregiverOf, WindowInsets(0))
       Column(
-          modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-          verticalArrangement = Arrangement.spacedBy(16.dp),
+          modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
+          verticalArrangement = Arrangement.spacedBy(Spacing.md),
       ) {
         // Same medications as a saved prescription: most likely its renewal (US-39)
         uiState.renewalOf?.let { RenewalNotice(it, caregiverOf) }
@@ -252,28 +261,22 @@ fun PrescriptionFormContent(
         // A caregiver can correct a pending prescription, but saving never confirms it.
         uiState.pendingAddedByName?.let { AddedBy(it, isConfirmed = false) }
 
-        // What the medications share: the doctor (optional) and the date of the prescription
-        val prescribedByCheck = uiState.checkOf(ScannedField.PrescribedBy, "prescribed_by")
-        LakeTextField(
-            value = uiState.draft.prescribedBy,
-            onValueChange = onPrescribedByChange,
-            label = { Text(stringResource(R.string.prescription_form_prescribed_by)) },
-            supportingText = prescribedByCheck?.let { { CheckReason(it) } },
-            trailingIcon = prescribedByCheck?.let { { CheckIcon() } },
-            isCheck = prescribedByCheck != null,
-            singleLine = true,
-            keyboardOptions = textKeyboard(KeyboardCapitalization.Words),
-            modifier = Modifier.fillMaxWidth().testTag(C.Tag.prescription_form_prescribed_by_field),
-        )
-        DateField(
-            label = stringResource(R.string.prescription_form_date),
-            date = uiState.draft.prescribedOn,
-            onDateChange = onPrescribedOnChange,
-            testTag = C.Tag.prescription_form_date_field,
-            check = uiState.checkOf(ScannedField.PrescribedOn, "prescribed_on"),
+        PrescriptionCard(uiState, onPrescribedByChange, onPrescribedOnChange)
+        Text(
+            text =
+                stringResource(
+                    R.string.prescription_form_medications_heading,
+                    uiState.draft.medications.size,
+                ),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier =
+                Modifier.semantics { heading() }
+                    .testTag(C.Tag.prescription_form_medications_heading),
         )
 
-        // The medications in order: the open one with its fields, the others as one row each
+        // The medications in order, one card each: the open one with its fields, the others as a
+        // row
         val invalidMedications = uiState.invalidMedications
         uiState.draft.medications.forEachIndexed { position, medication ->
           if (position == uiState.openMedication) {
@@ -308,7 +311,7 @@ fun PrescriptionFormContent(
         LakeButton(
             text = stringResource(R.string.prescription_form_add_medication),
             onClick = onAddMedication,
-            style = LakeButtonStyle.Text,
+            style = LakeButtonStyle.Outlined,
             enabled = uiState.canAddMedication,
             icon = rememberVectorPainter(Icons.Default.Add),
             modifier = Modifier.testTag(C.Tag.prescription_form_add_medication_button),
@@ -316,6 +319,53 @@ fun PrescriptionFormContent(
       }
       if (scrollsEverything) FormSaveButton(uiState, onSave, onReject)
     }
+  }
+}
+
+/** The card of what the medications share: the doctor (optional) and the prescription's date. */
+@Composable
+private fun PrescriptionCard(
+    uiState: PrescriptionFormUiState,
+    onPrescribedByChange: (String) -> Unit,
+    onPrescribedOnChange: (LocalDate) -> Unit,
+) {
+  FormCard(Modifier.testTag(C.Tag.prescription_form_prescription_card)) {
+    Text(
+        text = stringResource(R.string.prescription_form_prescription_section).uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    val prescribedByCheck = uiState.checkOf(ScannedField.PrescribedBy, "prescribed_by")
+    LakeTextField(
+        value = uiState.draft.prescribedBy,
+        onValueChange = onPrescribedByChange,
+        label = { Text(stringResource(R.string.prescription_form_prescribed_by)) },
+        supportingText = prescribedByCheck?.let { { CheckReason(it) } },
+        trailingIcon = prescribedByCheck?.let { { CheckIcon() } },
+        isCheck = prescribedByCheck != null,
+        singleLine = true,
+        keyboardOptions = textKeyboard(KeyboardCapitalization.Words),
+        modifier = Modifier.fillMaxWidth().testTag(C.Tag.prescription_form_prescribed_by_field),
+    )
+    DateField(
+        label = stringResource(R.string.prescription_form_date),
+        date = uiState.draft.prescribedOn,
+        onDateChange = onPrescribedOnChange,
+        testTag = C.Tag.prescription_form_date_field,
+        check = uiState.checkOf(ScannedField.PrescribedOn, "prescribed_on"),
+    )
+  }
+}
+
+/** A section of the form: a stone card with its fields 12 dp apart (Figma M3, "Add and review"). */
+@Composable
+private fun FormCard(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
+  StoneCard(modifier, shape = MaterialTheme.shapes.medium) {
+    Column(
+        modifier = Modifier.padding(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        content = content,
+    )
   }
 }
 
@@ -454,7 +504,7 @@ private fun OpenMedication(
     onDurationChange: (String) -> Unit,
     onRemove: () -> Unit,
 ) {
-  Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+  FormCard(Modifier.testTag(C.Tag.prescription_form_medication_card)) {
     // Title, with Remove at the end of the line when there is another medication
     Row(
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
@@ -462,8 +512,7 @@ private fun OpenMedication(
     ) {
       Text(
           text = stringResource(R.string.prescription_form_medication_title, number),
-          style = MaterialTheme.typography.titleSmall,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          style = MaterialTheme.typography.titleMedium,
           modifier = Modifier.weight(1f).testTag(C.Tag.prescription_form_medication_title),
       )
       if (canRemove) {
@@ -526,42 +575,25 @@ private fun OpenMedication(
         keyboardOptions = textKeyboard(KeyboardCapitalization.Sentences),
         modifier = Modifier.fillMaxWidth().testTag(C.Tag.prescription_form_frequency_field),
     )
-    DateField(
-        label = stringResource(R.string.prescription_form_start_date),
-        date = medication.startDate,
-        onDateChange = onStartDateChange,
-        testTag = C.Tag.prescription_form_start_date_field,
-    )
-
-    // A number of days, empty when the medication has no end; a warning says when it can't be saved
+    // A duration that can't be saved gets a red warning, which comes before a detail to check
     val durationInvalid = !Medication.isValidDuration(medication.durationDays)
-    // A duration that can't be saved: its red warning comes before a detail to check
     val durationCheck = checks[MedicationDetail.DURATION]?.takeUnless { durationInvalid }
-    LakeTextField(
-        value = medication.durationDays?.toString().orEmpty(),
-        onValueChange = onDurationChange,
-        label = { Text(stringResource(R.string.prescription_form_duration)) },
-        suffix = {
-          val days = medication.durationDays ?: 0
-          Text(pluralStringResource(R.plurals.prescription_form_duration_unit, days))
+    // Side by side as in the frame; stacked where both wouldn't fit whole (a small phone, a large
+    // font), or when the duration shows one of those messages, so it has the whole width
+    StartAndDuration(
+        stacked = durationInvalid || durationCheck != null,
+        startDate = {
+          DateField(
+              label = stringResource(R.string.prescription_form_start_date),
+              date = medication.startDate,
+              onDateChange = onStartDateChange,
+              testTag = C.Tag.prescription_form_start_date_field,
+              modifier = it,
+          )
         },
-        supportingText =
-            if (durationInvalid) {
-              {
-                Text(
-                    stringResource(
-                        R.string.prescription_form_duration_invalid,
-                        Medication.MAX_DURATION_DAYS,
-                    )
-                )
-              }
-            } else durationCheck?.let { { CheckReason(it) } },
-        trailingIcon = durationCheck?.let { { CheckIcon() } },
-        isError = durationInvalid,
-        isCheck = durationCheck != null,
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        modifier = Modifier.fillMaxWidth().testTag(C.Tag.prescription_form_duration_field),
+        duration = {
+          DurationField(medication, durationInvalid, durationCheck, onDurationChange, it)
+        },
     )
   }
 }
@@ -595,30 +627,33 @@ private fun ClosedMedication(
         else -> R.string.prescription_form_medication_check
       }
   val summary = medication.summary()
-  ListItem(
-      // What a scan left to check, above the name; a problem blocking Save comes first
-      overlineContent =
-          if (problem == null && toCheck.isNotEmpty()) {
-            { RowCheck(position, medication, toCheck) }
-          } else null,
-      headlineContent = { Text(name) },
-      supportingContent =
-          when {
-            problem != null -> {
-              { Text(stringResource(problem), color = MaterialTheme.colorScheme.error) }
-            }
-            summary.isNotEmpty() -> {
-              { Text(summary) }
-            }
-            else -> null
-          },
-      // The pencil only shows that the row can be edited: the row is the button
-      trailingContent = { Icon(imageVector = Icons.Default.Edit, contentDescription = null) },
-      colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-      modifier =
-          Modifier.testTag(C.Tag.prescriptionFormMedicationRow(position))
-              .clickable(onClickLabel = editLabel, onClick = onEdit),
-  )
+  // A card of its own, like the open medication; the card clips the row's ripple to its corners
+  StoneCard(shape = MaterialTheme.shapes.medium) {
+    ListItem(
+        // What a scan left to check, above the name; a problem blocking Save comes first
+        overlineContent =
+            if (problem == null && toCheck.isNotEmpty()) {
+              { RowCheck(position, medication, toCheck) }
+            } else null,
+        headlineContent = { Text(name) },
+        supportingContent =
+            when {
+              problem != null -> {
+                { Text(stringResource(problem), color = MaterialTheme.colorScheme.error) }
+              }
+              summary.isNotEmpty() -> {
+                { Text(summary) }
+              }
+              else -> null
+            },
+        // The pencil only shows that the row can be edited: the row is the button
+        trailingContent = { Icon(imageVector = Icons.Default.Edit, contentDescription = null) },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier =
+            Modifier.testTag(C.Tag.prescriptionFormMedicationRow(position))
+                .clickable(onClickLabel = editLabel, onClick = onEdit),
+    )
+  }
 }
 
 /** "1 tablet · Twice a day · from 29 Sep · 5 days", without the fields left empty. */
@@ -644,6 +679,7 @@ private fun DateField(
     date: LocalDate,
     onDateChange: (LocalDate) -> Unit,
     testTag: String,
+    modifier: Modifier = Modifier,
     check: FieldCheck? = null,
 ) {
   var pickerOpen by rememberSaveable { mutableStateOf(false) }
@@ -656,7 +692,7 @@ private fun DateField(
       trailingIcon = {
         if (check != null) CheckIcon() else Icon(Icons.Default.DateRange, contentDescription = null)
       },
-      modifier = Modifier.testTag(testTag),
+      modifier = modifier.testTag(testTag),
       supportingText =
           check?.let {
             {
@@ -691,6 +727,24 @@ private fun DateField(
 }
 
 /**
+ * The bottom of the screen while the fields scroll: Save on a card whose top corners are rounded,
+ * raised over the stone page (Figma M3: "Save (thumb zone)").
+ */
+@Composable
+private fun SaveBar(uiState: PrescriptionFormUiState, onSave: () -> Unit, onReject: () -> Unit) {
+  val corners = MaterialTheme.shapes.extraLarge
+  val shape = corners.copy(bottomStart = CornerSize(0), bottomEnd = CornerSize(0))
+  Surface(
+      color = MaterialTheme.lakeColors.stone.card,
+      shape = shape,
+      modifier =
+          Modifier.fillMaxWidth().elevation1(shape).testTag(C.Tag.prescription_form_save_bar),
+  ) {
+    FormSaveButton(uiState, onSave, onReject)
+  }
+}
+
+/**
  * Save, enabled when the form is valid; in the bottom bar, or after the fields on a short screen.
  */
 @Composable
@@ -699,6 +753,7 @@ private fun FormSaveButton(
     onSave: () -> Unit,
     onReject: () -> Unit,
 ) {
+  val check = rememberVectorPainter(Icons.Default.Check)
   if (!uiState.isToConfirm) {
     SaveButton(
         text = stringResource(R.string.prescription_form_save),
@@ -707,6 +762,7 @@ private fun FormSaveButton(
         onClick = onSave,
         testTag = C.Tag.prescription_form_save_button,
         savingTestTag = C.Tag.prescription_form_saving,
+        icon = check,
     )
     return
   }
@@ -715,7 +771,7 @@ private fun FormSaveButton(
     LakeButton(
         text = stringResource(R.string.prescription_reject),
         onClick = onReject,
-        style = LakeButtonStyle.Text,
+        style = LakeButtonStyle.Outlined,
         enabled = uiState.save == SavePhase.EDITING,
         modifier =
             Modifier.padding(start = Spacing.lg).testTag(C.Tag.prescription_form_reject_button),
@@ -728,25 +784,21 @@ private fun FormSaveButton(
         testTag = C.Tag.prescription_form_save_button,
         savingTestTag = C.Tag.prescription_form_saving,
         modifier = Modifier.weight(1f),
+        icon = check,
     )
   }
 }
 
-/** Asks the patient to check a prescription a caregiver added before confirming it (US-43). */
+/**
+ * Asks the patient to check a prescription a caregiver added before confirming it (US-43): the
+ * neutral banner with the info icon, as in the frame "Review Marc's prescription".
+ */
 @Composable
 private fun ConfirmNotice() {
-  Surface(
-      color = MaterialTheme.colorScheme.secondaryContainer,
-      contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-      shape = MaterialTheme.shapes.medium,
-      modifier = Modifier.fillMaxWidth(),
-  ) {
-    Text(
-        text = stringResource(R.string.prescription_confirm_notice),
-        style = MaterialTheme.typography.bodyMedium,
-        modifier = Modifier.padding(Spacing.lg).testTag(C.Tag.prescription_confirm_notice),
-    )
-  }
+  LakeBanner(
+      message = stringResource(R.string.prescription_confirm_notice),
+      modifier = Modifier.testTag(C.Tag.prescription_confirm_notice),
+  )
 }
 
 private val rejectDialogTags =
