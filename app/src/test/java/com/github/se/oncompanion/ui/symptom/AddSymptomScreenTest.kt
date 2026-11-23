@@ -115,6 +115,10 @@ class AddSymptomScreenTest {
           },
           onRetry = { events += "retry" },
           onSpeak = { events += "speak" },
+          onOtherNameChange = {
+            events += "otherName=$it"
+            uiState = uiState.copy(otherName = it)
+          },
       )
     }
   }
@@ -162,8 +166,7 @@ class AddSymptomScreenTest {
     assertWhen("${string(R.string.symptom_journal_today)} · 14:00")
     composeTestRule.onNodeWithText(string(R.string.symptom_add_date_time_hint)).assertExists()
     composeTestRule.onNodeWithText(string(R.string.symptom_add_in_future)).assertDoesNotExist()
-    scrolledTo(C.Tag.symptom_add_notes)
-    composeTestRule.onNodeWithText(string(R.string.symptom_add_notes_required)).assertDoesNotExist()
+    node(C.Tag.symptom_add_other_name).assertDoesNotExist()
     node(C.Tag.symptom_add_save).assertIsNotEnabled()
     node(C.Tag.symptom_add_close).assertIsEnabled()
   }
@@ -187,23 +190,41 @@ class AddSymptomScreenTest {
   }
 
   @Test
-  fun otherWithoutNotes_asksWhichSymptom_andSaveIsDisabled() {
+  fun otherNotNamedYet_asksWhichSymptom_andSaveIsDisabled() {
     setContent(empty.copy(types = listOf(SymptomType.OTHER)))
 
-    scrolledTo(C.Tag.symptom_add_notes)
-    composeTestRule.onNodeWithText(string(R.string.symptom_add_notes_required)).assertExists()
-    // Material shows the placeholder once the field is focused
-    node(C.Tag.symptom_add_notes).performClick()
-    composeTestRule
-        .onNodeWithText(string(R.string.symptom_add_notes_other_placeholder))
-        .assertExists()
+    // One field, as in Figma: the placeholder asks, without a label or a helper text
+    scrolledTo(C.Tag.symptom_add_other_name)
+        .assert(hasText(string(R.string.symptom_add_other_name_placeholder)))
     node(C.Tag.symptom_add_save).assertIsNotEnabled()
   }
 
   @Test
-  fun otherWithNotes_canBeSaved() {
-    setContent(empty.copy(types = listOf(SymptomType.OTHER), notes = "Hiccups"))
+  fun otherNamedAfterASymptomOfTheList_saysToPickIt_andSaveIsDisabled() {
+    setContent(
+        empty.copy(
+            types = listOf(SymptomType.OTHER),
+            otherName = "nausea",
+            otherNameListedAs = SymptomType.NAUSEA,
+        )
+    )
 
+    scrolledTo(C.Tag.symptom_add_other_name)
+        .assert(
+            hasText(
+                string(R.string.symptom_add_other_name_listed, string(R.string.symptom_type_nausea))
+            )
+        )
+    node(C.Tag.symptom_add_save).assertIsNotEnabled()
+  }
+
+  @Test
+  fun typingTheName_reportsIt_andANamedOtherCanBeSaved() {
+    setContent(empty.copy(types = listOf(SymptomType.OTHER)))
+
+    scrolledTo(C.Tag.symptom_add_other_name).performTextInput("Hiccups")
+
+    assertEquals(listOf("otherName=Hiccups"), events)
     node(C.Tag.symptom_add_save).assertIsEnabled()
   }
 
@@ -663,6 +684,29 @@ class AddSymptomScreenTest {
   }
 
   @Test
+  fun keyboardOpenOnTheName_keepsItAndSaveAboveIt_inPortraitAndLandscape() {
+    // Portrait here; landscape in the test below
+    setContent(empty.copy(types = listOf(SymptomType.OTHER)))
+    scrolledTo(C.Tag.symptom_add_other_name).requestFocus()
+    composeTestRule.showKeyboard(600)
+
+    node(C.Tag.symptom_add_save).assertIsDisplayed().assertIsAboveKeyboard(600)
+    node(C.Tag.symptom_add_other_name).assertIsDisplayed().assertIsAboveKeyboard(600)
+  }
+
+  @Test
+  @Config(qualifiers = LANDSCAPE_PHONE)
+  fun landscape_keyboardOpenOnTheName_keepsTheWholeFieldVisible() {
+    setContent(empty.copy(types = listOf(SymptomType.OTHER)))
+    scrolledTo(C.Tag.symptom_add_other_name).requestFocus()
+    composeTestRule.showKeyboard(500)
+
+    val name = scrolledTo(C.Tag.symptom_add_other_name)
+    name.assertIsDisplayed().assertIsFullyVisible()
+    name.assertIsAboveKeyboard(500)
+  }
+
+  @Test
   @Config(qualifiers = LANDSCAPE_PHONE)
   fun landscape_keyboardOpen_saveAndCloseCanBeScrolledTo() {
     setContent(filled)
@@ -743,7 +787,13 @@ class AddSymptomScreenTest {
           runBlocking { it.signInWithGoogle("token") }
         }
     val viewModel =
-        AddSymptomViewModel(auth, repository, clock, speechRecognizer = FakeSpeechRecognizer())
+        AddSymptomViewModel(
+            auth,
+            repository,
+            clock,
+            speechRecognizer = FakeSpeechRecognizer(),
+            symptomName = { context.getString(it.label) },
+        )
     var savedCount = 0
     composeTestRule.setContent {
       AddSymptomScreen(viewModel = viewModel, onBack = {}, onSaved = { savedCount++ })
@@ -780,6 +830,7 @@ class AddSymptomScreenTest {
             clock,
             symptomId = logged.id,
             speechRecognizer = FakeSpeechRecognizer(),
+            symptomName = { context.getString(it.label) },
         )
     var savedCount = 0
     composeTestRule.setContent {
