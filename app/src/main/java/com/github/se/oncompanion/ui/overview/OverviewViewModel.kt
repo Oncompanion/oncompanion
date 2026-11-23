@@ -11,7 +11,6 @@ import com.github.se.oncompanion.domain.carecircle.ResolveCareCircleAccess
 import com.github.se.oncompanion.domain.medication.DoseCount
 import com.github.se.oncompanion.domain.planning.CarePlanning
 import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
-import com.github.se.oncompanion.domain.planning.endOrDefault
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.signedInUid
@@ -19,27 +18,21 @@ import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.medication.TakenDosesRepository
 import com.github.se.oncompanion.model.medication.TakenDosesRepositoryProvider
 import com.github.se.oncompanion.model.planning.PlanningItem
-import com.github.se.oncompanion.model.planning.PlanningRange
 import com.github.se.oncompanion.model.planning.PlanningSource
 import com.github.se.oncompanion.model.planning.PlanningTiming
 import com.github.se.oncompanion.model.user.UserProfileRepository
 import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import java.time.Clock
-import java.time.Duration
-import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.Period
 import java.time.ZoneId
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
@@ -243,9 +236,10 @@ class OverviewViewModel(
   }
 
   /**
-   * Starts (or, after an error, restarts) observing the planning data from today to [LOOKAHEAD]
-   * later, so the next appointment is found even months ahead, as between two oncology check-ups.
-   * In caregiver mode, it also (re)starts following the shared sections.
+   * Starts (or, after an error, restarts) observing the planning data of [overviewRange], so the
+   * next appointment is found even months ahead, as between two oncology check-ups. In caregiver
+   * mode, it also (re)starts following the shared sections; for the patient, the doses ticked
+   * today.
    */
   fun loadDay() {
     dayObservation?.cancel()
@@ -253,7 +247,7 @@ class OverviewViewModel(
     val today = now.toLocalDate()
     if (patientUid != null) followSharedSections(patientUid) else followTakenDoses(today)
     _uiState.update { it.copy(now = now, isLoading = true, hasError = false) }
-    val range = PlanningRange(today, today.plus(LOOKAHEAD), zoneId)
+    val range = overviewRange(today, zoneId)
     dayObservation = viewModelScope.launch {
       observePlanning(patientUid, range)
           .catch { e ->
@@ -290,35 +284,10 @@ class OverviewViewModel(
 
   /**
    * Keeps the day right while the Overview is open: refreshes the time now, then each time what it
-   * shows changes (see [nextChangeAfter]), until the returned job is cancelled. The screen runs it
-   * while it is shown. When the entries change, the next refresh is planned again from them.
+   * shows changes (see [followDay]), until the returned job is cancelled. The screen runs it while
+   * it is shown. When the entries change, the next refresh is planned again from them.
    */
-  fun followToday(): Job = viewModelScope.launch {
-    items.collectLatest { planned ->
-      while (true) {
-        refreshNow()
-        val now = clock.instant()
-        val wait = Duration.between(now, nextChangeAfter(planned, now))
-        // Rounded up, so it never wakes just before the change; at least 1 ms, so it always
-        // suspends even if the clock moved
-        delay(((wait.toNanos() + NANOS_PER_MILLI - 1) / NANOS_PER_MILLI).coerceAtLeast(1))
-      }
-    }
-  }
-
-  /**
-   * The next moment the Overview's content changes after [now]: an entry starts (Next up moves on,
-   * an entry is happening), an entry ends (it is done), or midnight (the new day loads). Midnight
-   * is always one of them, so it is never more than a day away. In instants, so the hour repeated
-   * when the clocks go back can't give a moment already past.
-   */
-  private fun nextChangeAfter(planned: List<PlanningItem>, now: Instant): Instant =
-      (planned
-              .mapNotNull { it.timing as? PlanningTiming.Timed }
-              .flatMap { listOf(it.instant, it.endOrDefault()) } +
-              now.atZone(zoneId).toLocalDate().plusDays(1).atStartOfDay(zoneId).toInstant())
-          .filter { it.isAfter(now) }
-          .min()
+  fun followToday(): Job = viewModelScope.followDay(items, clock, zoneId, ::refreshNow)
 
   private fun now(): LocalDateTime = LocalDateTime.ofInstant(clock.instant(), zoneId)
 
@@ -326,40 +295,10 @@ class OverviewViewModel(
   private fun OverviewUiState.withItems(planned: List<PlanningItem>, now: LocalDateTime) =
       copy(
           nextAppointment = nextAppointmentOf(planned, now),
-          nextUp = nextUpOf(planned, now),
+          nextUp = nextUpOf(planned, now, zoneId),
           todayMedications = medicationsOf(planned, now),
           todayEntries = entriesOf(planned, now),
       )
-
-  /**
-   * The next event or appointment that hasn't started yet, today or on a later day, so a check-up
-   * weeks away still shows. An event is in the planning only once the patient registered for it, so
-   * a later one shows too.
-   */
-  private fun nextUpOf(planned: List<PlanningItem>, now: LocalDateTime): NextUp? {
-    val next =
-        planned
-            .mapNotNull { item ->
-              item.startIn()?.takeIf { it.isAfter(now) }?.let { start -> item to start }
-            }
-            .minByOrNull { it.second }
-    return next?.let { (item, start) ->
-      when (val source = item.source) {
-        is PlanningSource.Appointment ->
-            NextUp(
-                TodayItemKind.APPOINTMENT,
-                source.appointmentId,
-                item.title,
-                start,
-                item.subtitle,
-            )
-        is PlanningSource.Event ->
-            NextUp(TodayItemKind.EVENT, source.eventId, item.title, start, item.subtitle)
-        // A medication has no time, so it's never upcoming
-        is PlanningSource.Medication -> null
-      }
-    }
-  }
 
   /**
    * Today's medications, with their dosage after their name and the doses ticked. One a caregiver
@@ -450,7 +389,7 @@ class OverviewViewModel(
       planned
           .mapNotNull { item ->
             (item.source as? PlanningSource.Appointment)?.let { source ->
-              item.startIn()?.let { start ->
+              item.startIn(zoneId)?.let { start ->
                 NextAppointment(source.appointmentId, item.title, start, item.subtitle)
               }
             }
@@ -468,13 +407,15 @@ class OverviewViewModel(
     val ofToday = planned.filter { it.timing.dateIn(zoneId) == today }
     val untimed = ofToday.filter { it.timing is PlanningTiming.DateOnly }
     val timed =
-        ofToday.mapNotNull { item -> item.startIn()?.let { item to it } }.sortedBy { it.second }
+        ofToday
+            .mapNotNull { item -> item.startIn(zoneId)?.let { item to it } }
+            .sortedBy { it.second }
     val next = timed.firstOrNull { (_, start) -> start.isAfter(now) }?.first
     return untimed.map { it.toEntry(time = null, status = null) } +
         timed.map { (item, start) ->
           val status =
               when {
-                !item.endIn().isAfter(now) -> TodayItemStatus.DONE
+                !item.endIn(zoneId).isAfter(now) -> TodayItemStatus.DONE
                 !start.isAfter(now) -> TodayItemStatus.NOW
                 item == next -> TodayItemStatus.NEXT
                 else -> TodayItemStatus.LATER
@@ -482,14 +423,6 @@ class OverviewViewModel(
           item.toEntry(time = start.toLocalTime(), status = status)
         }
   }
-
-  /** When a timed entry ends, in [zoneId]. */
-  private fun PlanningItem.endIn(): LocalDateTime =
-      LocalDateTime.ofInstant((timing as PlanningTiming.Timed).endOrDefault(), zoneId)
-
-  /** When a timed entry starts, in [zoneId]; `null` for an entry without a time. */
-  private fun PlanningItem.startIn(): LocalDateTime? =
-      (timing as? PlanningTiming.Timed)?.let { LocalDateTime.ofInstant(it.instant, zoneId) }
 
   private fun PlanningItem.toEntry(time: LocalTime?, status: TodayItemStatus?) =
       TodayEntry(
@@ -537,10 +470,5 @@ class OverviewViewModel(
 
   private companion object {
     const val TAG = "OverviewViewModel"
-
-    /** How far ahead the next appointment is looked for. */
-    val LOOKAHEAD: Period = Period.ofYears(1)
-
-    private const val NANOS_PER_MILLI = 1_000_000L
   }
 }
