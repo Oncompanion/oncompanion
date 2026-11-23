@@ -326,6 +326,9 @@ class CaregiverOverviewScreenTest {
     compose.runOnUiThread(show)
     assertTextInside(yoga.title, C.Tag.overview_next_up)
     compose.onNodeWithText("Good morning, Sam").assertIsDisplayed()
+    // A caregiver's bottom bar has no Prescriptions tab: they open the shared list from here
+    compose.onNodeWithTag(C.Tag.bottom_navigation_tab_overview).assertIsDisplayed()
+    compose.onNodeWithTag(C.Tag.bottom_navigation_tab_prescriptions).assertDoesNotExist()
 
     // Rotating recreates the activity; the ViewModel survives it
     compose.activityRule.scenario.recreate()
