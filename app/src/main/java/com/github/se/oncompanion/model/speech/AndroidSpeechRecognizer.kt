@@ -101,10 +101,10 @@ class AndroidSpeechRecognizer(
 
   /**
    * Releases the recognizer that asked for the last download once the phone surely has the request.
-   * The first answer may come before the phone took it (the app asks again a second after the
-   * download when the phone shows no dialog), so still downloadable then doesn't mean the request
-   * was lost. The next answer comes at the next dictation: by then, a language still downloadable
-   * means the patient cancelled the phone's dialog, and the recognizer goes too.
+   * The first answer may come before the phone took it (when the phone shows no dialog, the app
+   * asks again as soon as it stops waiting for one), so still downloadable then doesn't mean the
+   * request was lost. The next answer comes at the next dictation: by then, a language still
+   * downloadable means the patient cancelled the phone's dialog, and the recognizer goes too.
    */
   private fun afterDownloadAnswer(support: OfflineSpeech) {
     answersSinceDownload++
