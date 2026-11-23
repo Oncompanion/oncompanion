@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.events
@@ -69,10 +70,10 @@ enum class RegistrationStatus {
  * @property isLoading true until the event is loaded
  * @property hasError true if the event couldn't be loaded
  * @property registration what the screen offers about the patient's registration
- * @property isConfirmingRemoval the patient asked to remove their confirmation and hasn't confirmed
- *   or cancelled yet
+ * @property isConfirmingRemoval the viewer asked to remove the confirmation and has yet to decide
  * @property caregiverCanConfirm a caregiver the patient lets confirm events (US-42) may confirm the
- *   registration for them; they can never remove it
+ *   registration for them
+ * @property caregiverCanRemove whether the patient lets the caregiver remove confirmations
  * @property addedByName who confirmed it, if a caregiver did: for the patient, the name they gave
  *   that member in their circle
  */
@@ -84,12 +85,13 @@ data class EventDetailUiState(
     val isConfirmingRemoval: Boolean = false,
     val caregiverCanConfirm: Boolean = false,
     val addedByName: String? = null,
+    val caregiverCanRemove: Boolean = false,
 )
 
 /**
  * Loads one of the Ligue's events for its detail screen, with whether the patient confirmed their
  * registration for it: the signed-in patient, or the patient a caregiver follows when they share
- * Events (US-20). A caregiver only reads it, unless the patient lets them confirm events (US-42).
+ * Events (US-20). Caregiver actions depend on the patient’s Events permissions.
  *
  * @param patientUid the followed patient in caregiver mode, null for the user's own registration
  * @param clock the current time, in the time zone the event's times are given in
@@ -122,7 +124,7 @@ class EventDetailViewModel(
    */
   private var lastRegistration: Pair<Event, Boolean>? = null
 
-  /** Whose registration may be removed: only the user's own, once known. */
+  /** Whose registration the current viewer may remove. */
   private var editableOwner: String? = null
 
   /**
@@ -202,7 +204,7 @@ class EventDetailViewModel(
     }
   }
 
-  /** Asks the patient to confirm the removal. Nothing is removed before [removeRegistration]. */
+  /** Asks the viewer to confirm removal before [removeRegistration] writes anything. */
   fun requestRemoval() {
     _uiState.update {
       if (it.registration == RegistrationStatus.CONFIRMED && editableOwner != null)
@@ -221,12 +223,12 @@ class EventDetailViewModel(
    * with the organizer.
    */
   fun removeRegistration() {
+    refreshStatus()
+    val owner = editableOwner ?: return
     val state = _uiState.value
     if (!state.isConfirmingRemoval || state.registration != RegistrationStatus.CONFIRMED) return
     _uiState.update { it.copy(isConfirmingRemoval = false) }
-    changeRegistration("remove", editableOwner) { uid ->
-      registrationRepository.remove(uid, eventId)
-    }
+    changeRegistration("remove", owner) { uid -> registrationRepository.remove(uid, eventId) }
   }
 
   /**
@@ -265,7 +267,9 @@ class EventDetailViewModel(
       lastRegistration = null
       editableOwner = null
       confirmableOwner = null
-      _uiState.update { it.copy(caregiverCanConfirm = false, addedByName = null) }
+      _uiState.update {
+        it.copy(caregiverCanConfirm = false, caregiverCanRemove = false, addedByName = null)
+      }
     }
     return when (section) {
       is CareSection.Loading -> RegistrationStatus.LOADING
@@ -278,12 +282,13 @@ class EventDetailViewModel(
         val (ownerUid, registration, addedByName) = section.data
         val isRegistered = registration != null
         lastRegistration = event to isRegistered
-        // A caregiver never removes it, and only confirms it when the patient lets them
-        editableOwner = ownerUid.takeIf { section.canEdit }
+        // Each action follows the corresponding Events permission.
+        editableOwner = ownerUid.takeIf { section.canEditEntries }
         confirmableOwner = ownerUid.takeIf { section.canAdd }
         _uiState.update {
           it.copy(
               caregiverCanConfirm = patientUid != null && section.canAdd,
+              caregiverCanRemove = patientUid != null && section.canEditEntries,
               addedByName = addedByName,
           )
         }
@@ -300,14 +305,17 @@ class EventDetailViewModel(
     _uiState.update {
       it.copy(
           registration = status,
-          isConfirmingRemoval = it.isConfirmingRemoval && status == RegistrationStatus.CONFIRMED,
+          isConfirmingRemoval =
+              it.isConfirmingRemoval &&
+                  status == RegistrationStatus.CONFIRMED &&
+                  editableOwner != null,
       )
     }
   }
 
   /**
    * Runs [change] for [owner], whose registration this is; the observation then shows the new
-   * status. Without an owner (e.g. a caregiver removing it), nothing changes but the error.
+   * status. Without an owner, nothing changes but the error.
    */
   private fun changeRegistration(action: String, owner: String?, change: (uid: String) -> Unit) {
     try {
