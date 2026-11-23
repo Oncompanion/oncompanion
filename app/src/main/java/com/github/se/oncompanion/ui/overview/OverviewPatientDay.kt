@@ -9,10 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -28,22 +26,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
-import com.github.se.oncompanion.ui.common.AddedBy
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.cardChip
 import com.github.se.oncompanion.ui.theme.cardDetail
 import com.github.se.oncompanion.ui.theme.cardEyebrow
-import com.github.se.oncompanion.ui.theme.cardItem
 import com.github.se.oncompanion.ui.theme.cardTitle
 import com.github.se.oncompanion.ui.theme.elevation1
-import com.github.se.oncompanion.ui.theme.full
 import com.github.se.oncompanion.ui.theme.lakeColors
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -62,6 +56,7 @@ internal const val MEDICATIONS_SHOWN = 2
  * The patient's day on the Overview (Overview UX Refactor): "Next up" and "Today's medications", or
  * a single "Nothing planned today" card when there is neither.
  *
+ * @param onTickDose ticks a dose of a medication, by its ID (see [OverviewViewModel.tickDose])
  * @param modifier for the first card, e.g. to overlap the header's lower edge
  */
 @Composable
@@ -71,6 +66,7 @@ internal fun PatientDay(
     onOpenAppointment: (String) -> Unit,
     onOpenEvent: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onTickDose: (String) -> Unit = {},
 ) {
   val nextUp = uiState.nextUp
   val medications = uiState.todayMedications
@@ -92,7 +88,12 @@ internal fun PatientDay(
     )
   }
   if (medications.isNotEmpty()) {
-    MedicationsCard(medications, onOpenPlanning, if (nextUp == null) modifier else Modifier)
+    MedicationsCard(
+        medications,
+        onOpenPlanning,
+        onTickDose,
+        if (nextUp == null) modifier else Modifier,
+    )
   }
 }
 
@@ -228,14 +229,18 @@ private fun nextUpWhen(nextUp: NextUp, today: LocalDate): String {
 }
 
 /**
- * "Today's medications" with a link to Planning: the first [MEDICATIONS_SHOWN] with their recorded
- * frequency, then "N more ›" to Planning, so the card keeps its height whatever the count (the
- * count goes in the title then).
+ * "Today's medications" with a link to Planning: the first [MEDICATIONS_SHOWN], each with its
+ * recorded frequency and the doses ticked today, then "N more ›" to Planning on a line of its own.
+ * More rows would push the cards under it and squeeze the lake header, so the count goes in the
+ * title instead.
+ *
+ * @param onTickDose ticks the next dose of a medication, by its ID, or unticks one taken once a day
  */
 @Composable
-private fun MedicationsCard(
+internal fun MedicationsCard(
     medications: List<TodayMedication>,
     onOpenPlanning: () -> Unit,
+    onTickDose: (String) -> Unit,
     modifier: Modifier,
 ) {
   DayCard(modifier.testTag(C.Tag.overview_medications)) {
@@ -261,15 +266,9 @@ private fun MedicationsCard(
           PlanningLink(onOpenPlanning, Modifier.testTag(C.Tag.overview_planning_link))
         }
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-          val shown = medications.take(MEDICATIONS_SHOWN)
-          shown.forEachIndexed { index, medication ->
-            MedicationRow(
-                medication,
-                moreCount = hidden.takeIf { index == shown.lastIndex && it > 0 },
-                onOpenPlanning = onOpenPlanning,
-            )
-          }
+          medications.take(MEDICATIONS_SHOWN).forEach { MedicationRow(it, onTickDose) }
         }
+        if (hidden > 0) MoreLink(hidden, onOpenPlanning)
       }
     }
   }
@@ -303,38 +302,9 @@ private fun PlanningLink(onOpenPlanning: () -> Unit, modifier: Modifier) {
   }
 }
 
-/**
- * A medication's name, its frequency as a chip, and "Added by Sam · Not confirmed" while its
- * prescription waits for the patient. On the last row shown, [moreCount] adds "N more ›".
- */
+/** The recorded frequency ("Twice a day"), as a neutral chip. */
 @Composable
-private fun MedicationRow(
-    medication: TodayMedication,
-    moreCount: Int?,
-    onOpenPlanning: () -> Unit,
-) {
-  Column(
-      Modifier.testTag(C.Tag.overviewMedication(medication.key)),
-      verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-  ) {
-    Text(
-        medication.name,
-        style = MaterialTheme.typography.cardItem,
-        color = MaterialTheme.colorScheme.onSurface,
-    )
-    medication.notConfirmedAddedBy?.let { AddedBy(it, isConfirmed = false) }
-    if (medication.frequency != null || moreCount != null) {
-      Row(verticalAlignment = Alignment.CenterVertically) {
-        FlowRow(Modifier.weight(1f)) { medication.frequency?.let { FrequencyChip(it) } }
-        moreCount?.let { MorePill(it, onOpenPlanning) }
-      }
-    }
-  }
-}
-
-/** The recorded frequency ("Twice a day"), as a neutral chip: nothing to tick on the Overview. */
-@Composable
-private fun FrequencyChip(text: String) {
+internal fun FrequencyChip(text: String) {
   Text(
       text,
       style = MaterialTheme.typography.cardChip,
@@ -343,34 +313,6 @@ private fun FrequencyChip(text: String) {
           Modifier.background(MaterialTheme.lakeColors.stone.chip, CHIP_SHAPE)
               .padding(horizontal = Spacing.md, vertical = Spacing.xs),
   )
-}
-
-/** "3 more ›", opening Planning where every medication of the day is listed. */
-@Composable
-private fun MorePill(count: Int, onOpenPlanning: () -> Unit) {
-  Surface(
-      onClick = onOpenPlanning,
-      modifier = Modifier.heightIn(min = LINK_HEIGHT).testTag(C.Tag.overview_more_medications),
-      shape = MaterialTheme.shapes.full,
-      color = MaterialTheme.colorScheme.primaryContainer,
-      contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-  ) {
-    Row(
-        Modifier.padding(start = Spacing.md, end = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xxs),
-    ) {
-      Text(
-          pluralStringResource(R.plurals.overview_more_medications, count, count),
-          style = MaterialTheme.typography.labelLarge,
-      )
-      Icon(
-          painterResource(R.drawable.ic_chevron_right),
-          contentDescription = null,
-          modifier = Modifier.size(CHEVRON_SIZE),
-      )
-    }
-  }
 }
 
 /**
@@ -425,10 +367,10 @@ private val BADGE_ICON_SIZE = 18.dp
 private val HEART_ICON_SIZE = 20.dp
 
 /** The Figma's chevron after "Planning" and "N more". */
-private val CHEVRON_SIZE = 18.dp
+internal val CHEVRON_SIZE = 18.dp
 
 /** A link or pill stays a 48 dp touch target, even where it looks smaller. */
-private val LINK_HEIGHT = 48.dp
+internal val LINK_HEIGHT = 48.dp
 
 /** The Figma's frequency chip: 14 dp corners. */
 private val CHIP_SHAPE = RoundedCornerShape(14.dp)
