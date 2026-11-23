@@ -37,6 +37,7 @@ import com.github.se.oncompanion.model.planning.PlanningTiming
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
+import com.github.se.oncompanion.ui.SMALL_LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.navigation.NavigationActions
@@ -72,11 +73,11 @@ class OverviewDosesSheetTest {
   private val calls = mutableListOf<String>()
 
   /** Shows the sheet with [draft], replacing what was shown, so a test can show it again. */
-  private fun showSheet(draft: Int) {
+  private fun showSheet(draft: Int, medication: TodayMedication = ondansetron, doses: Int = 3) {
     composeTestRule.runOnUiThread {
       composeTestRule.activity.setContent {
         OverviewDosesSheet(
-            DosesSheet(ondansetron, doses = 3, draft = draft),
+            DosesSheet(medication, doses = doses, draft = draft),
             onLess = { calls += "less" },
             onMore = { calls += "more" },
             onDone = { calls += "done" },
@@ -162,15 +163,40 @@ class OverviewDosesSheetTest {
 
   @Test
   @Config(qualifiers = "w360dp-h640dp", fontScale = 2f)
-  fun at200PercentText_theButtonsAndDoneAreReachable() {
-    showSheet(draft = 1)
-
-    listOf(C.Tag.overview_doses_less, C.Tag.overview_doses_more, C.Tag.overview_doses_done)
-        .forEach { node(it).performScrollTo().assertIsDisplayed() }
-  }
+  fun at200PercentText_theButtonsAndDoneCanBeReachedWhole() = assertButtonsReachableWhole()
 
   @Test
-  fun phoneRotated_theSheetKeepsItsCount_andDoneSavesIt() {
+  @Config(qualifiers = SMALL_LANDSCAPE_PHONE, fontScale = 2f)
+  fun onASmallPhoneHeldSideways_at200PercentText_theButtonsAndDoneCanBeReachedWhole() =
+      assertButtonsReachableWhole()
+
+  /**
+   * The tightest layout: a long name and a two-digit count. Each of −, + and Done can be scrolled
+   * to and seen whole.
+   */
+  private fun assertButtonsReachableWhole() {
+    val longName =
+        ondansetron.copy(
+            name = "Ondansetron hydrochloride dihydrate 8 mg orodispersible tablets",
+            frequency = "every hour",
+            dosesPerDay = 24,
+        )
+    showSheet(draft = 12, medication = longName, doses = 24)
+
+    node(C.Tag.overview_doses_count).assertTextEquals("12 of 24 taken")
+    listOf(C.Tag.overview_doses_less, C.Tag.overview_doses_more, C.Tag.overview_doses_done)
+        .forEach { node(it).performScrollTo().assertIsFullyVisible() }
+  }
+
+  /** The taken doses saved, and what shows the Overview, again after the activity is recreated. */
+  private class OverviewWithOneMedication(
+      val doses: FakeTakenDosesRepository,
+      val viewModel: OverviewViewModel,
+      val show: () -> Unit,
+  )
+
+  /** An Overview with Ondansetron, 3 times a day and none taken, over a ViewModel that survives. */
+  private fun overviewWithOneMedication(): OverviewWithOneMedication {
     val now = LocalDateTime.of(2026, 10, 3, 9, 0)
     val doses = FakeTakenDosesRepository()
     val auth =
@@ -207,11 +233,23 @@ class OverviewDosesSheetTest {
         )
       }
     }
+    return OverviewWithOneMedication(doses, viewModel, show)
+  }
+
+  /** Opens the medication's sheet and sets it to 2 of 3. */
+  private fun OverviewWithOneMedication.openSheetAtTwo() {
     composeTestRule.runOnUiThread(show)
     node(C.Tag.overviewMedication(viewModel.uiState.value.todayMedications.single().key))
         .performClick()
     node(C.Tag.overview_doses_more).performClick()
     node(C.Tag.overview_doses_more).performClick()
+  }
+
+  @Test
+  fun phoneRotated_theSheetKeepsItsCount_andDoneSavesIt() {
+    val overview = overviewWithOneMedication()
+    val (doses, show) = overview.doses to overview.show
+    overview.openSheetAtTwo()
 
     // Rotating recreates the activity; the ViewModel, and the sheet's count with it, survives it
     composeTestRule.activityRule.scenario.recreate()
@@ -222,5 +260,27 @@ class OverviewDosesSheetTest {
     composeTestRule.waitForIdle()
     node(C.Tag.overview_doses_sheet).assertDoesNotExist()
     assertEquals(listOf(2), doses.writes.map { it.count })
+  }
+
+  @Test
+  fun phoneRotated_whileTheSheetSlidesAwayAfterDone_theCountIsSavedOnce() {
+    val overview = overviewWithOneMedication()
+    overview.openSheetAtTwo()
+
+    // Done starts the sheet sliding away; the count is saved once it is gone
+    composeTestRule.mainClock.autoAdvance = false
+    node(C.Tag.overview_doses_done).performClick()
+    composeTestRule.mainClock.advanceTimeByFrame()
+    composeTestRule.mainClock.advanceTimeByFrame()
+    assertEquals("still sliding away", emptyList<Int>(), overview.doses.writes.map { it.count })
+
+    // Rotating then ends that animation early: Done was tapped, so the count is still saved
+    composeTestRule.activityRule.scenario.recreate()
+    composeTestRule.runOnUiThread(overview.show)
+    composeTestRule.mainClock.autoAdvance = true
+    composeTestRule.waitForIdle()
+
+    assertEquals(listOf(2), overview.doses.writes.map { it.count })
+    node(C.Tag.overview_doses_sheet).assertDoesNotExist()
   }
 }

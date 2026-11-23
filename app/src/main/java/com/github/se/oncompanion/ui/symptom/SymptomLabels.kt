@@ -61,6 +61,13 @@ fun dayLabel(date: LocalDate, today: LocalDate): String =
       else -> date.format(dayWithYearFormatter)
     }
 
-/** What the entry is about: the labels of its symptoms, e.g. "Fatigue, Headache". */
+/**
+ * What [type] is called in this entry: for "Other", the name the user gave it ("Hiccups"), or
+ * "Other" in entries saved before it could be named; otherwise its label.
+ */
 @Composable
-fun SymptomEntry.title(): String = types.map { stringResource(it.label) }.joinToString(", ")
+fun SymptomEntry.nameOf(type: SymptomType): String =
+    otherName?.takeIf { type == SymptomType.OTHER } ?: stringResource(type.label)
+
+/** What the entry is about: the names of its symptoms, e.g. "Fatigue, Hiccups". */
+@Composable fun SymptomEntry.title(): String = types.map { nameOf(it) }.joinToString(", ")

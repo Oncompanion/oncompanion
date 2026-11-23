@@ -264,7 +264,7 @@ class OverviewScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.overview_loading).assertIsDisplayed()
     composeTestRule.onNodeWithTag(C.Tag.overview_next_appointment).assertDoesNotExist()
     composeTestRule.onNodeWithTag(C.Tag.overview_check_in).assertExists()
-    composeTestRule.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).assertExists()
+    composeTestRule.onNodeWithTag(OverviewShortcut.CARE_CIRCLE.testTag).assertExists()
   }
 
   @Test
@@ -275,7 +275,7 @@ class OverviewScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.overview_error).assertIsDisplayed()
     composeTestRule.onNodeWithTag(C.Tag.overview_retry).performClick()
     composeTestRule.onNodeWithTag(C.Tag.overview_check_in).assertExists()
-    composeTestRule.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).assertExists()
+    composeTestRule.onNodeWithTag(OverviewShortcut.CARE_CIRCLE.testTag).assertExists()
 
     composeTestRule.runOnIdle { assertEquals(1, retries) }
   }
@@ -742,13 +742,16 @@ class OverviewScreenTest {
         .onNodeWithText(context.getString(R.string.overview_subtitle))
         .assertDoesNotExist()
     composeTestRule.onNodeWithTag(C.Tag.overview_journal_link).performScrollTo().performClick()
-    listOf(OverviewShortcut.PRESCRIPTIONS, OverviewShortcut.CARE_CIRCLE).forEach { shortcut ->
-      composeTestRule
-          .onNode(hasTestTag(shortcut.testTag) and hasText(context.getString(shortcut.label)))
-          .performScrollTo()
-          .assertHasClickAction()
-          .performClick()
-    }
+    // Prescriptions is a tab of the patient's bottom bar instead
+    composeTestRule.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).assertDoesNotExist()
+    composeTestRule
+        .onNode(
+            hasTestTag(OverviewShortcut.CARE_CIRCLE.testTag) and
+                hasText(context.getString(OverviewShortcut.CARE_CIRCLE.label))
+        )
+        .performScrollTo()
+        .assertHasClickAction()
+        .performClick()
     composeTestRule
         .onNode(
             hasTestTag(OverviewShortcut.PROFILE.testTag) and
@@ -760,7 +763,7 @@ class OverviewScreenTest {
 
     composeTestRule.runOnIdle {
       assertEquals(
-          listOf(Route.SYMPTOMS, Route.PRESCRIPTIONS, Route.CARE_CIRCLE, Route.PROFILE),
+          listOf(Route.SYMPTOMS, Route.CARE_CIRCLE, Route.PROFILE),
           navigationActions.openedRoutes,
       )
     }
@@ -860,9 +863,12 @@ class OverviewScreenTest {
         .assertTextEquals(context.getString(R.string.overview_greeting_evening))
   }
 
-  /** The patient's tiles: the check-in replaced Symptoms. */
+  /** A caregiver's tiles, when the patient shares both sections. */
+  private val sharingBoth =
+      loaded.copy(sharedSections = setOf(CarePermission.SYMPTOMS, CarePermission.PRESCRIPTIONS))
+
   private fun tileTops(): List<Float> =
-      listOf(OverviewShortcut.PRESCRIPTIONS, OverviewShortcut.CARE_CIRCLE).map {
+      listOf(OverviewShortcut.SYMPTOMS, OverviewShortcut.PRESCRIPTIONS).map {
         composeTestRule.onNodeWithTag(it.testTag).fetchSemanticsNode().positionInRoot.y
       }
 
@@ -871,7 +877,7 @@ class OverviewScreenTest {
   @GraphicsMode(GraphicsMode.Mode.NATIVE)
   @Config(qualifiers = "w412dp-h916dp")
   fun tiles_areInOneRow_withTheDefaultFontSize() {
-    setContent(loaded)
+    setCaregiverContent(sharingBoth)
     assertEquals(1, tileTops().distinct().size)
   }
 
@@ -883,11 +889,12 @@ class OverviewScreenTest {
       val density = LocalDensity.current
       CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 2f)) {
         OverviewContent(
-            uiState = loaded,
+            uiState = sharingBoth,
             onShortcutClick = {},
             onOpenPlanning = {},
             onOpenAppointment = {},
             onRetry = {},
+            caregiverOf = "Anne",
         )
       }
     }
@@ -1072,23 +1079,6 @@ class OverviewScreenTest {
     setCaregiverContent(loaded)
 
     composeTestRule.onNodeWithTag(C.Tag.overview_shortcuts).assertDoesNotExist()
-  }
-
-  @Test
-  fun nothingToConfirm_showsNoBadge() {
-    setContent(loaded)
-    composeTestRule.onNodeWithTag(C.Tag.overview_prescriptions_badge).assertDoesNotExist()
-  }
-
-  @Test
-  fun prescriptionsToConfirm_badgeSaysHowMany_toScreenReadersToo() {
-    setContent(loaded.copy(prescriptionsToConfirm = 2))
-
-    composeTestRule.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).performScrollTo()
-    composeTestRule
-        .onNodeWithTag(C.Tag.overview_prescriptions_badge, useUnmergedTree = true)
-        .assertIsDisplayed()
-        .assertContentDescriptionEquals("2 prescriptions to confirm")
   }
 
   // ----- Check-in (Overview UX Refactor) -----
