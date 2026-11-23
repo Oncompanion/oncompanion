@@ -663,12 +663,13 @@ class EventDetailViewModelTest {
   }
 
   @Test
-  fun caregiverLosingRemovalPermission_closesDialogAndKeepsConfirmation() {
+  fun caregiverRegainingRemovalPermission_requiresFreshRequest() {
     val events = setOf(CarePermission.EVENTS)
     val patient = FollowedPatient(CarePermission.EVENTS, canAdd = events, canEditAndDelete = events)
     registrations.confirm("patient", "yoga")
     val viewModel = caregiverViewModel(patient)
     viewModel.requestRemoval()
+    assertTrue(viewModel.uiState.value.isConfirmingRemoval)
 
     patient.shares(CarePermission.EVENTS, canAdd = events)
     ShadowLooper.idleMainLooper()
@@ -679,6 +680,19 @@ class EventDetailViewModelTest {
     assertFalse(state.caregiverCanRemove)
     assertFalse(state.isConfirmingRemoval)
     assertEquals(setOf("yoga"), registrations.registeredEventIds("patient"))
+
+    // Restoring permission must not restore the dismissed confirmation dialog.
+    patient.shares(CarePermission.EVENTS, canAdd = events, canEditAndDelete = events)
+    ShadowLooper.idleMainLooper()
+    assertTrue(viewModel.uiState.value.caregiverCanRemove)
+    assertFalse(viewModel.uiState.value.isConfirmingRemoval)
+
+    viewModel.removeRegistration()
+    ShadowLooper.idleMainLooper()
+    assertEquals(setOf("yoga"), registrations.registeredEventIds("patient"))
+
+    viewModel.requestRemoval()
+    assertTrue(viewModel.uiState.value.isConfirmingRemoval)
   }
 
   @Test
