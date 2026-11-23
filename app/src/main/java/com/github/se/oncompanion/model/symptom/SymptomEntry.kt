@@ -6,9 +6,10 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * The symptoms the user can pick from (Figma: "Log symptoms"). With [OTHER], the notes say which
- * symptom it was. Keep in sync with the two lists of symptoms in `firestore.rules`
- * (`isValidSymptom`): one missing from the strengths' list would refuse every edit.
+ * The symptoms the user can pick from (Figma: "Log symptoms"). With [OTHER], the user names the
+ * symptom ([SymptomEntry.otherName]). Keep in sync with the two lists of symptoms in
+ * `firestore.rules` (`isValidSymptom`): one missing from the strengths' list would refuse every
+ * edit.
  */
 enum class SymptomType {
   FATIGUE,
@@ -39,7 +40,10 @@ enum class SymptomType {
  *   strengths clears it
  * @property occurredAt when the user felt it (defaults to now when logging, can be earlier but not
  *   later, see [isValid])
- * @property notes free text; required with [SymptomType.OTHER], to say which symptom it was
+ * @property otherName which symptom [SymptomType.OTHER] is ("Hiccups"), at most
+ *   [MAX_OTHER_NAME_LENGTH] characters; required with it. Entries saved before it existed have none
+ *   and show "Other"; it is ignored without [SymptomType.OTHER]
+ * @property notes free text
  * @property createdAt set by the server when the entry is saved; `null` before that
  * @property addedBy the uid of the caregiver who logged it for the patient (US-22), or `null` when
  *   the patient did
@@ -55,6 +59,7 @@ data class SymptomEntry(
     val intensity: Int? = null,
     val strengths: Map<SymptomType, Int> = emptyMap(),
     val notes: String? = null,
+    val otherName: String? = null,
     val createdAt: Instant? = null,
     val addedBy: String? = null,
     val addedByName: String? = null,
@@ -75,8 +80,9 @@ data class SymptomEntry(
           strengths.values.all { it in MIN_INTENSITY..MAX_INTENSITY } &&
           !occurredAt.isAfter(now.plus(MAX_CLOCK_DRIFT)) &&
           (notes == null || notes.length <= MAX_NOTES_LENGTH) &&
-          // "Other" only says something was felt: the notes say what
-          (SymptomType.OTHER !in types || !notes.isNullOrBlank()) &&
+          // "Other" only says something was felt: its name says what
+          (SymptomType.OTHER !in types || !otherName.isNullOrBlank()) &&
+          (otherName == null || otherName.length <= MAX_OTHER_NAME_LENGTH) &&
           // A caregiver's entry says who added it
           (addedBy == null ||
               (!addedByName.isNullOrBlank() && addedByName.length <= MAX_ADDED_BY_NAME_LENGTH)) &&
@@ -91,6 +97,8 @@ data class SymptomEntry(
     const val MAX_INTENSITY = 10
     /** Keep in sync with `firestore.rules`. */
     const val MAX_NOTES_LENGTH = 1000
+    /** Keep in sync with `firestore.rules`. */
+    const val MAX_OTHER_NAME_LENGTH = 40
     /** Keep in sync with `firestore.rules`. */
     const val MAX_ADDED_BY_NAME_LENGTH = 50
     /**
