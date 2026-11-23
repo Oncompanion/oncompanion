@@ -1720,6 +1720,31 @@ class AddSymptomViewModelTest {
       }
 
   @Test
+  fun aPhoneSlowToShowItsDialog_isWaitedFor_beforeAskingItAgain() =
+      runTest(dispatcher) {
+        speech.offline = OfflineSpeech.DOWNLOADABLE
+        val viewModel = listening()
+        viewModel.onDownloadForOffline()
+
+        // The dialog only comes up after 2.5 s: the app hasn't asked the phone or listened yet
+        advanceTimeBy(2_500)
+        assertFalse(speech.isListening)
+        viewModel.onScreenHidden()
+        advanceTimeBy(60_000)
+        assertEquals(VoiceUiState.Preparing, viewModel.state.voice)
+        assertFalse(speech.isListening)
+
+        // The patient confirmed: the phone now says it downloads
+        speech.offline = OfflineSpeech.DOWNLOADING
+        viewModel.onScreenShown()
+        advanceUntilIdle()
+        assertEquals(
+            VoiceUiState.Listening(connection = ConnectionNote.Downloading(SpeechLanguage.ENGLISH)),
+            viewModel.state.voice,
+        )
+      }
+
+  @Test
   fun leavingWhileThePhonesDialogIsOpen_neverListens() =
       runTest(dispatcher) {
         speech.offline = OfflineSpeech.DOWNLOADABLE

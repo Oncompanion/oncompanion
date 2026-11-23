@@ -38,7 +38,6 @@ import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -432,8 +431,8 @@ class AddSymptomViewModel(
     _uiState.update { it.copy(voice = VoiceUiState.Preparing) }
     // Cancelled by cancelVoice, like the first question to the phone
     checkingOffline = viewModelScope.launch {
-      // Gives the phone time to show its dialog, then waits until the patient closed it
-      delay(DOWNLOAD_DIALOG_DELAY)
+      // Waits for the phone's dialog (a phone may show none), then until the patient closed it
+      withTimeoutOrNull(DOWNLOAD_DIALOG_DELAY) { isOnScreen.first { !it } }
       isOnScreen.first { it }
       // Cancelled in the phone's dialog, it is still downloadable: offered again next time
       askPhone(offer.language)
@@ -706,8 +705,11 @@ class AddSymptomViewModel(
     /** How long the phone may take to say whether it understands the language offline. */
     const val OFFLINE_CHECK_TIMEOUT = 2_000L
 
-    /** How long the phone may take to show its own dialog after a download is asked for. */
-    const val DOWNLOAD_DIALOG_DELAY = 1_000L
+    /**
+     * How long the phone may take to show its own dialog after a download is asked for; a slow or
+     * busy phone can take more than a second. Only a phone that shows no dialog waits this long.
+     */
+    const val DOWNLOAD_DIALOG_DELAY = 3_000L
   }
 }
 
