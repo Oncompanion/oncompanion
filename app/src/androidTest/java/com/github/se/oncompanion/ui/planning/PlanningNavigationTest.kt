@@ -25,6 +25,7 @@ import com.github.se.oncompanion.ui.navigation.Route
 import com.github.se.oncompanion.ui.navigation.Tab
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
 import com.github.se.oncompanion.utils.EmulatorTestData
+import com.github.se.oncompanion.utils.noonOn
 import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
@@ -96,6 +97,8 @@ class PlanningNavigationTest {
     }
     val day = LocalDate.now()
     val zone = ZoneId.systemDefault()
+    // Planning starts from this clock, so a run crossing midnight can't open it on another day
+    val clock = noonOn(day, zone)
     val medication =
         PlanningItem(
             PlanningSource.Medication("sample-prescription", "sample-medication"),
@@ -121,7 +124,7 @@ class PlanningNavigationTest {
     PlanningRepositoryProvider.repository = source
     compose.setContent {
       CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, 1.5f)) {
-        OncompanionTheme { AppNavHost(startRoute = Route.PLANNING) }
+        OncompanionTheme { AppNavHost(startRoute = Route.PLANNING, clock = clock) }
       }
     }
     compose.onNodeWithText("Frequency: Twice a day").assertIsDisplayed()

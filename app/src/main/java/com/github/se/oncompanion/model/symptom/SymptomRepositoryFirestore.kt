@@ -74,6 +74,7 @@ class SymptomRepositoryFirestore(
         document
             .set(
                 fieldsOf(entry) +
+                    (FIELD_STRENGTHS to entry.strengths.mapKeys { (type, _) -> type.name }) +
                     attributionOf(entry) +
                     (FIELD_CREATED_AT to FieldValue.serverTimestamp())
             )
@@ -93,7 +94,7 @@ class SymptomRepositoryFirestore(
         // awaited, like deleteSymptom
         collection(uid)
             .document(entry.id)
-            .update(fieldsOf(entry) + editorOf(entry))
+            .update(fieldsOf(entry) + strengthsUpdateOf(entry) + editorOf(entry))
             .addOnFailureListener { e ->
               Log.e(
                   TAG,
@@ -131,6 +132,17 @@ class SymptomRepositoryFirestore(
               (entry.editedByName.takeIf { entry.editedBy != null } ?: FieldValue.delete()),
       )
 
+  /**
+   * Every symptom's strength for an update, by field path, with [NO_STRENGTH] for each symptom
+   * without one. Not a deletion: offline, the device's copy doesn't apply a deletion inside a map
+   * (the server does once it syncs), so a strength the user removed would still show. Written for
+   * every symptom, so one removed from the entry can't bring its old strength back if re-added.
+   */
+  private fun strengthsUpdateOf(entry: SymptomEntry): Map<String, Any> =
+      SymptomType.entries.associate { type ->
+        "$FIELD_STRENGTHS.${type.name}" to (entry.strengths[type] ?: NO_STRENGTH)
+      }
+
   /** What the user entered, as stored in Firestore (everything except the ID and createdAt). */
   private fun fieldsOf(entry: SymptomEntry): Map<String, Any?> =
       mapOf(
@@ -138,6 +150,8 @@ class SymptomRepositoryFirestore(
           FIELD_INTENSITY to entry.intensity,
           FIELD_OCCURRED_AT to Timestamp(entry.occurredAt),
           FIELD_NOTES to entry.notes,
+          // Written even without "Other": an edit that removes it clears the name
+          FIELD_OTHER_NAME to entry.otherName.takeIf { SymptomType.OTHER in entry.types },
       )
 
   private fun collection(uid: String) =
@@ -146,13 +160,16 @@ class SymptomRepositoryFirestore(
   private fun fromDocument(doc: DocumentSnapshot): SymptomEntry? {
     if (!doc.exists()) return null
     return try {
+      // Entries saved before several symptoms could be logged have no types: they are skipped
+      val types = (doc.get(FIELD_TYPES) as List<*>).map { SymptomType.valueOf(it as String) }
       SymptomEntry(
           id = doc.id,
-          // Entries saved before several symptoms could be logged have no types: they are skipped
-          types = (doc.get(FIELD_TYPES) as List<*>).map { SymptomType.valueOf(it as String) },
+          types = types,
           intensity = doc.getLong(FIELD_INTENSITY)?.toInt(),
+          strengths = strengthsIn(doc, types),
           occurredAt = doc.getTimestamp(FIELD_OCCURRED_AT)!!.toInstant(),
           notes = doc.getString(FIELD_NOTES),
+          otherName = otherNameIn(doc, types),
           // Pending server timestamps read as null until the write reaches the server
           createdAt = doc.getTimestamp(FIELD_CREATED_AT)?.toInstant(),
           addedBy = doc.getString(FIELD_ADDED_BY),
@@ -166,13 +183,47 @@ class SymptomRepositoryFirestore(
     }
   }
 
+  /**
+   * The name of the "Other" symptom saved in [doc], or `null`: entries saved before it existed have
+   * none, and an older app version can remove "Other" from an entry and leave its name behind.
+   */
+  private fun otherNameIn(doc: DocumentSnapshot, types: List<SymptomType>): String? =
+      (doc.get(FIELD_OTHER_NAME) as? String)?.takeIf {
+        SymptomType.OTHER in types && it.isNotBlank()
+      }
+
+  /**
+   * The strengths saved in [doc], for the entry's [types] only. [NO_STRENGTH] is a strength removed
+   * by an edit. A strength an older app version left behind (it doesn't know them and can remove a
+   * symptom without its strength), or one a newer app version could write (another symptom, a value
+   * out of range), is left out rather than losing the whole entry.
+   */
+  private fun strengthsIn(doc: DocumentSnapshot, types: List<SymptomType>): Map<SymptomType, Int> {
+    val saved = doc.get(FIELD_STRENGTHS) as? Map<*, *> ?: return emptyMap()
+    return saved.entries
+        .mapNotNull { (name, value) ->
+          val type = types.firstOrNull { it.name == name }
+          val strength =
+              (value as? Long)?.takeIf {
+                it in SymptomEntry.MIN_INTENSITY.toLong()..SymptomEntry.MAX_INTENSITY.toLong()
+              }
+          if (type != null && strength != null) type to strength.toInt() else null
+        }
+        .toMap()
+  }
+
   companion object {
     const val USERS_COLLECTION = "users"
     const val COLLECTION = "symptoms"
     const val FIELD_TYPES = "types"
     const val FIELD_INTENSITY = "intensity"
+    /** How strong each symptom was, by [SymptomType] name: `{"FATIGUE": 5}`. */
+    const val FIELD_STRENGTHS = "strengths"
+    /** Saved for a symptom whose strength an edit removed; read as no strength. */
+    const val NO_STRENGTH = 0
     const val FIELD_OCCURRED_AT = "occurredAt"
     const val FIELD_NOTES = "notes"
+    const val FIELD_OTHER_NAME = "otherName"
     const val FIELD_CREATED_AT = "createdAt"
     const val FIELD_ADDED_BY = "addedBy"
     const val FIELD_ADDED_BY_NAME = "addedByName"
