@@ -159,6 +159,11 @@ fun AddSymptomScreen(
     onPauseOrDispose {}
   }
 
+  // Opened from the Overview's mic: starts dictating once the screen is shown (US-73)
+  LaunchedEffect(viewModel) {
+    viewModel.onOpened(context.hasPermission(Manifest.permission.RECORD_AUDIO))
+  }
+
   // Leaves the screen once the symptom is saved
   val currentOnSaved by rememberUpdatedState(onSaved)
   LaunchedEffect(uiState.save) { if (uiState.save == SavePhase.SAVED) currentOnSaved() }
@@ -178,11 +183,15 @@ fun AddSymptomScreen(
   // Dictating replaces the form until the patient is done or goes back to it
   val voice = uiState.voice
   if (voice != null) {
-    BackHandler(onBack = viewModel::cancelVoice)
+    // Opened from the Overview to speak, closing goes back there rather than to an empty form
+    val closeVoice = if (uiState.leavesOnClose) onBack else viewModel::cancelVoice
+    BackHandler(onBack = closeVoice)
     VoiceSymptomContent(
         voice = voice,
         today = uiState.now.toLocalDate(),
-        onClose = viewModel::cancelVoice,
+        onClose = closeVoice,
+        onTypeInstead = viewModel::cancelVoice,
+        leavesOnClose = uiState.leavesOnClose,
         onAllowMicrophone = { microphone.launch(Manifest.permission.RECORD_AUDIO) },
         onOpenSettings = { context.startActivity(appSettingsIntent(context)) },
         onDone = viewModel::onDone,

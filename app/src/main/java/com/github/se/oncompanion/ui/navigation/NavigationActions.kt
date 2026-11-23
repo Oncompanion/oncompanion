@@ -101,11 +101,15 @@ object Screen {
   fun symptomDetail(symptomId: String) = "symptoms_detail/$symptomId"
 
   const val SYMPTOM_TYPE = "type"
-  const val SYMPTOM_ADD = "symptoms_add?type={$SYMPTOM_TYPE}"
+  const val SYMPTOM_SPEAK = "speak"
+  const val SYMPTOM_ADD = "symptoms_add?type={$SYMPTOM_TYPE}&$SYMPTOM_SPEAK={$SYMPTOM_SPEAK}"
 
   /** The [SYMPTOM_ADD] screen, with [type] already picked if given (the Overview's check-in). */
   fun symptomAdd(type: SymptomType? = null) =
       if (type == null) "symptoms_add" else "symptoms_add?type=${type.name}"
+
+  /** The [SYMPTOM_ADD] screen already listening (US-73, the Overview's mic). */
+  fun symptomSpeak() = "symptoms_add?$SYMPTOM_SPEAK=true"
 
   const val SYMPTOM_EDIT = "symptoms_edit/{$SYMPTOM_DETAIL_ID}"
 

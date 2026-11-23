@@ -251,6 +251,8 @@
     <string name="symptom_voice_language_english">English</string>
     <string name="symptom_voice_language_french">French</string>
     <string name="symptom_voice_preparing">Getting ready…</string>
+    <!-- The voice screen's close button when it was opened from the Overview's mic (US-73) -->
+    <string name="symptom_voice_leave">Close</string>
 
     <!-- Sign-in -->
     <string name="sign_in_welcome">Welcome to oncompanion</string>
