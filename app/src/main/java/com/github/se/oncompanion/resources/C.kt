@@ -602,5 +602,19 @@ object C {
 
     // Shared message state: its round info tile
     const val message_state_icon = "message_state_icon"
+
+    // Medication reminders in the prescription form (US-32)
+    const val medication_reminders = "medication_reminders"
+    const val medication_reminders_switch = "medication_reminders_switch"
+    const val medication_reminders_add_time = "medication_reminders_add_time"
+    const val medication_reminders_picker = "medication_reminders_picker"
+    const val medication_reminders_picker_confirm = "medication_reminders_picker_confirm"
+    const val medication_reminders_picker_cancel = "medication_reminders_picker_cancel"
+
+    /** The field of the reminder at [index] of the open medication. */
+    fun medicationReminderTime(index: Int) = "medication_reminder_time_$index"
+
+    /** The button that removes the reminder at [index]. */
+    fun medicationReminderRemove(index: Int) = "medication_reminder_remove_$index"
   }
 }
