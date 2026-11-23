@@ -96,9 +96,9 @@ internal fun PatientDay(
   }
 }
 
-/** A card of the patient's day on the stone page, raised with the shared shadow. */
+/** A card of the day on the stone page, raised with the shared shadow. */
 @Composable
-private fun DayCard(
+internal fun DayCard(
     modifier: Modifier,
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
@@ -159,7 +159,7 @@ private fun Badge(@DrawableRes icon: Int, iconSize: Dp, container: Color, conten
 
 /** The small title at the top of a card ("Next up", "Today"): the Figma's 14/18 eyebrow. */
 @Composable
-private fun Eyebrow(text: String, modifier: Modifier = Modifier) {
+internal fun Eyebrow(text: String, modifier: Modifier = Modifier) {
   Text(
       text,
       style = MaterialTheme.typography.cardEyebrow,
@@ -195,7 +195,11 @@ internal fun NextUpCard(
       Column(Modifier.weight(1f)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
           Eyebrow(stringResource(R.string.overview_next_up), Modifier.weight(1f))
-          PlanningLink(onOpenPlanning, Modifier.testTag(C.Tag.overview_next_up_planning_link))
+          CardLink(
+              stringResource(R.string.overview_planning_link),
+              onOpenPlanning,
+              Modifier.testTag(C.Tag.overview_next_up_planning_link),
+          )
         }
         Text(
             nextUp.title,
@@ -258,7 +262,11 @@ private fun MedicationsCard(
               else stringResource(R.string.overview_today_medications),
               Modifier.weight(1f),
           )
-          PlanningLink(onOpenPlanning, Modifier.testTag(C.Tag.overview_planning_link))
+          CardLink(
+              stringResource(R.string.overview_planning_link),
+              onOpenPlanning,
+              Modifier.testTag(C.Tag.overview_planning_link),
+          )
         }
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
           val shown = medications.take(MEDICATIONS_SHOWN)
@@ -277,20 +285,18 @@ private fun MedicationsCard(
 
 /**
  * "Planning ›" at the top of the Next up and medications cards, so Planning is one tap away from
- * either. It keeps the Figma's 20 dp row: Compose extends the touch target of a smaller clickable
- * to 48 dp.
+ * either, or "Full journal ›" on the caregiver's journal card. It keeps the Figma's 20 dp row:
+ * Compose extends the touch target of a smaller clickable to 48 dp.
  */
 @Composable
-private fun PlanningLink(onOpenPlanning: () -> Unit, modifier: Modifier) {
+internal fun CardLink(label: String, onClick: () -> Unit, modifier: Modifier) {
   Row(
-      modifier
-          .clip(MaterialTheme.shapes.medium)
-          .clickable(role = Role.Button, onClick = onOpenPlanning),
+      modifier.clip(MaterialTheme.shapes.medium).clickable(role = Role.Button, onClick = onClick),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(Spacing.xxs),
   ) {
     Text(
-        stringResource(R.string.overview_planning_link),
+        label,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.lakeColors.primaryText,
     )

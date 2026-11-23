@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.domain.carecircle.FollowedPatient
+import com.github.se.oncompanion.domain.carecircle.ObserveCareSection
 import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
 import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.carecircle.CarePermission.PLANNING
@@ -30,6 +31,12 @@ import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningSource
 import com.github.se.oncompanion.model.planning.PlanningTiming
+import com.github.se.oncompanion.model.symptom.FakeSymptomRepository
+import com.github.se.oncompanion.model.symptom.SymptomEntry
+import com.github.se.oncompanion.model.symptom.SymptomType
+import com.github.se.oncompanion.model.symptom.SymptomType.FATIGUE
+import com.github.se.oncompanion.model.symptom.SymptomType.NAUSEA
+import com.github.se.oncompanion.model.symptom.SymptomType.OTHER
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
@@ -85,6 +92,24 @@ class CaregiverOverviewScreenTest {
           nextUp = yoga,
           sections = sections(),
           isLoading = false,
+      )
+
+  /** An entry the patient logged at [at], as the ViewModel gives it to the card. */
+  private fun latest(
+      at: LocalDateTime = morning.minusDays(1).withHour(18).withMinute(10),
+      symptoms: List<Pair<SymptomType, Int?>> = listOf(NAUSEA to 7, FATIGUE to 6),
+      overall: Int? = null,
+      otherName: String? = null,
+  ) =
+      LatestEntry(
+          SymptomEntry(
+              types = symptoms.map { it.first },
+              occurredAt = at.toInstant(ZoneOffset.UTC),
+              otherName = otherName,
+          ),
+          at,
+          symptoms,
+          overall,
       )
 
   private fun setContent(
@@ -169,6 +194,56 @@ class CaregiverOverviewScreenTest {
     compose.onNodeWithText(yoga.title, substring = true).assertDoesNotExist()
   }
 
+  // ----- The journal -----
+
+  @Test
+  fun journal_saysWhenTheNewestEntryWasLogged_andWhat() {
+    var state by mutableStateOf(shared)
+    compose.setContent { CaregiverOverviewContent(state, "Alex", CaregiverOverviewActions()) }
+    val cases =
+        listOf(
+            latest() to listOf("Yesterday at 18:10", "Nausea 7/10 · Fatigue 6/10"),
+            latest(morning.withHour(8).withMinute(30)) to listOf("Today at 08:30"),
+            latest(morning.minusDays(17).withHour(18).withMinute(10)) to
+                listOf("Wed 16 Sep at 18:10"),
+            latest(morning.minusYears(1)) to listOf("Fri 3 Oct 2025 at 09:00"),
+            // Saved before a strength per symptom: the entry's one intensity, once
+            latest(symptoms = listOf(NAUSEA to null, FATIGUE to null), overall = 6) to
+                listOf("Nausea, Fatigue · 6/10"),
+            latest(symptoms = listOf(NAUSEA to null, FATIGUE to null)) to listOf("Nausea, Fatigue"),
+            // "Other" by the name it was given, or "Other" in older entries
+            latest(symptoms = listOf(OTHER to 4), otherName = "Hiccups") to listOf("Hiccups 4/10"),
+            latest(symptoms = listOf(OTHER to 4)) to listOf("Other 4/10"),
+        )
+    for ((entry, texts) in cases) {
+      state = shared.copy(latestEntry = entry)
+      compose.waitForIdle()
+      texts.forEach { assertTextInside(it, C.Tag.caregiver_overview_journal) }
+    }
+  }
+
+  @Test
+  fun emptyJournal_saysNoEntriesYet_andStillOpensTheJournal() {
+    var opened = 0
+    setContent(shared, CaregiverOverviewActions(onOpenJournal = { opened++ }))
+
+    assertTextInside("Journal", C.Tag.caregiver_overview_journal)
+    assertTextInside("No entries yet", C.Tag.caregiver_overview_journal)
+    compose.onNodeWithTag(C.Tag.caregiver_overview_full_journal).performScrollTo().performClick()
+
+    assertEquals(1, opened)
+  }
+
+  @Test
+  fun privateSymptoms_showTheLockedCard_andNothingOfTheEntry() {
+    // Even if an entry were left in the state
+    setContent(shared.copy(sections = sections(SYMPTOMS), latestEntry = latest()))
+
+    compose.onNodeWithTag(C.Tag.caregiverOverviewPrivate(SYMPTOMS.name)).assertExists()
+    compose.onNodeWithTag(C.Tag.caregiver_overview_journal).assertDoesNotExist()
+    compose.onNodeWithText("Nausea", substring = true).assertDoesNotExist()
+  }
+
   @Test
   fun nextUp_opensItsEventOrAppointment_andPlanningOpensPlanning() {
     val opened = mutableListOf<String>()
@@ -226,6 +301,11 @@ class CaregiverOverviewScreenTest {
 
     state = shared.copy(sections = sections(PLANNING, PRESCRIPTIONS, SYMPTOMS))
     compose.onNodeWithTag(C.Tag.overview_shortcuts).assertDoesNotExist()
+
+    // Shared symptoms have the journal card, which opens them: no tile for them
+    state = shared.copy(sections = sections(PLANNING, PRESCRIPTIONS))
+    compose.onNodeWithTag(C.Tag.caregiver_overview_journal).assertExists()
+    compose.onNodeWithTag(C.Tag.overview_shortcuts).assertDoesNotExist()
   }
 
   // ----- Layout -----
@@ -233,14 +313,16 @@ class CaregiverOverviewScreenTest {
   @Test
   @Config(qualifiers = LANDSCAPE_PHONE)
   fun landscape_theDayAndItsActionsCanBeReached() {
-    var state by mutableStateOf(shared.copy(sections = sections(SYMPTOMS)))
+    var state by
+        mutableStateOf(shared.copy(sections = sections(PRESCRIPTIONS), latestEntry = latest()))
     compose.setContent { CaregiverOverviewContent(state, "Alex", CaregiverOverviewActions()) }
 
-    compose.onNodeWithTag(C.Tag.overview_next_up).performScrollTo().assertIsFullyVisible()
-    compose
-        .onNodeWithTag(C.Tag.caregiverOverviewPrivate(SYMPTOMS.name))
-        .performScrollTo()
-        .assertIsFullyVisible()
+    listOf(
+            C.Tag.overview_next_up,
+            C.Tag.caregiverOverviewPrivate(PRESCRIPTIONS.name),
+            C.Tag.caregiver_overview_journal,
+        )
+        .forEach { compose.onNodeWithTag(it).performScrollTo().assertIsFullyVisible() }
 
     state = shared.copy(hasError = true)
     compose.onNodeWithTag(C.Tag.caregiver_overview_retry).performScrollTo().assertIsFullyVisible()
@@ -249,14 +331,15 @@ class CaregiverOverviewScreenTest {
   @Test
   @Config(qualifiers = "w360dp-h640dp", fontScale = 2f)
   fun largestFont_everyCardIsWhole_onceScrolledTo() {
-    setContent(shared.copy(sections = sections(PRESCRIPTIONS, SYMPTOMS)))
+    setContent(shared.copy(sections = sections(PRESCRIPTIONS), latestEntry = latest()))
 
     listOf(
             C.Tag.overview_whose_care,
             C.Tag.caregiver_overview_shared_only,
             C.Tag.overview_next_up,
             C.Tag.caregiverOverviewPrivate(PRESCRIPTIONS.name),
-            C.Tag.caregiverOverviewPrivate(SYMPTOMS.name),
+            C.Tag.caregiver_overview_journal,
+            C.Tag.caregiver_overview_full_journal,
         )
         .forEach { compose.onNodeWithTag(it).performScrollTo().assertIsFullyVisible() }
   }
@@ -288,7 +371,7 @@ class CaregiverOverviewScreenTest {
 
   @Test
   fun phoneRotated_thePatientsDayIsStillShown_andAPrivateSectionStaysHidden() {
-    val patient = FollowedPatient(PLANNING)
+    val patient = FollowedPatient(PLANNING, SYMPTOMS)
     val zone = ZoneOffset.UTC
     val planning =
         FakePlanningRepository().apply {
@@ -307,6 +390,19 @@ class CaregiverOverviewScreenTest {
             authRepository = patient.auth,
             profileRepository = patient.profiles,
             observePlanning = ObserveCarePlanning(patient.sectionAccess, planning, patient.circle),
+            symptomRepository =
+                FakeSymptomRepository().apply {
+                  seed(
+                      "patient",
+                      SymptomEntry(
+                          id = "nausea",
+                          types = listOf(NAUSEA),
+                          occurredAt = morning.withHour(8).toInstant(zone),
+                          strengths = mapOf(NAUSEA to 7),
+                      ),
+                  )
+                },
+            observeSection = ObserveCareSection(patient.sectionAccess),
             resolveAccess = patient.careAccess,
             clock = Clock.fixed(morning.toInstant(zone), zone),
             zoneId = zone,
@@ -325,17 +421,26 @@ class CaregiverOverviewScreenTest {
     }
     compose.runOnUiThread(show)
     assertTextInside(yoga.title, C.Tag.overview_next_up)
+    assertTextInside("Nausea 7/10", C.Tag.caregiver_overview_journal)
     compose.onNodeWithText("Good morning, Sam").assertIsDisplayed()
 
     // Rotating recreates the activity; the ViewModel survives it
     compose.activityRule.scenario.recreate()
     compose.runOnUiThread(show)
     assertTextInside(yoga.title, C.Tag.overview_next_up)
+    assertTextInside("Nausea 7/10", C.Tag.caregiver_overview_journal)
 
-    // The patient stops sharing their planning while the Overview is open
+    // The patient stops sharing their planning, then their symptoms, while the Overview is open
     patient.shares(SYMPTOMS)
     ShadowLooper.idleMainLooper()
     compose.onNodeWithTag(C.Tag.caregiverOverviewPrivate(PLANNING.name)).assertIsDisplayed()
     compose.onNodeWithText(yoga.title).assertDoesNotExist()
+    patient.shares()
+    ShadowLooper.idleMainLooper()
+    compose
+        .onNodeWithTag(C.Tag.caregiverOverviewPrivate(SYMPTOMS.name))
+        .performScrollTo()
+        .assertIsDisplayed()
+    compose.onNodeWithText("Nausea 7/10").assertDoesNotExist()
   }
 }
