@@ -2,7 +2,7 @@
 
 # Contributing to oncompanion
 
-Thanks for helping. This page shows how to get from an idea to a merged pull request. The rules behind each step are in [AGENTS.md](AGENTS.md). It is written for people and coding agents alike, and it is the single source: when this page and AGENTS.md disagree, AGENTS.md wins.
+Thanks for helping. This page shows how to get from an idea to a merged pull request. The rules behind each step are in [AGENTS.md](AGENTS.md), written for people and coding agents alike. AGENTS.md is the single source: when this page and AGENTS.md disagree, AGENTS.md wins.
 
 oncompanion is used by people in cancer therapy. It is an organizational tool, **not a medical device**: never add code that diagnoses, gives medical advice or changes a treatment ([Project context](AGENTS.md#project-context)).
 
@@ -27,15 +27,15 @@ oncompanion is used by people in cancer therapy. It is an organizational tool, *
    ./gradlew connectedCheck
    ```
 
-7. **Open a pull request** with the [template](.github/PULL_REQUEST_TEMPLATE.md) and `Closes #<issue>`, and move the issue to In review. Keep it small: about 400 lines of production code. A UI change shows screenshots, and a new screen, use case or repository updates its diagram in `docs/`. See [Pull requests](AGENTS.md#pull-requests).
-8. **Merge** once it has one approving review and a green CI, tests and SonarCloud included. Move the issue to Done and fill in its Actual Time.
+7. **Merge the latest `main`, then open a pull request** with the [template](.github/PULL_REQUEST_TEMPLATE.md) and `Closes #<issue>`, and move the issue to In review. Keep it small: about 400 lines of production code. A UI change shows screenshots, and a new screen, use case or repository updates its diagram in `docs/`. See [Pull requests](AGENTS.md#pull-requests).
+8. **Merge** once it has one approving review and a green CI, tests and SonarCloud included. Move the issue to Done in S<n> and fill in its Actual Time.
 
 If `strings.xml`, `C.kt`, `AppNavHost.kt` or `firestore.rules` conflict, keep both sides ([Avoiding merge conflicts](AGENTS.md#avoiding-merge-conflicts)).
 
 ## Reviews
 
 - **As a reviewer:** use *Request changes* for bugs, missing tests and broken conventions, and *Comment* for suggestions. Check the PR's size and SonarCloud's new issues: a PR adds none.
-- **As an author:** reply on each thread with the commit that fixes it ("Done in 3f6531b") and let the reviewer resolve it. Once a review has started, only add commits and merge `main` instead of rebasing. Re-request the review after pushing.
+- **As an author:** reply on each thread with the commit that fixes it ("Done in <commit>") and let the reviewer resolve it. Once a review has started, only add commits and merge `main` instead of rebasing. Re-request the review after pushing.
 
 Details in [Reviews](AGENTS.md#reviews).
 
