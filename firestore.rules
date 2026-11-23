@@ -83,9 +83,13 @@ service cloud.firestore {
     // checks them before saving (Medication.isValid) and skips the ones it can't read.
     // A caregiver's prescription (US-43) also says who added it and whether the patient confirmed
     // it; the patient's own is always confirmed. Keep in sync with PrescriptionConfirmation.
+    // The reminder times the patient chose (US-32) are a map from a medication's ID to its times,
+    // only on a confirmed prescription; their entries are checked by the app, like the medications
+    // (Medication.isValidReminderTimes).
     function isValidPrescription(data) {
       return data.keys().hasOnly(['prescribedBy', 'prescribedOn', 'createdAt', 'medications',
-                                  'addedBy', 'addedByName', 'confirmation', 'editedBy', 'editedByName'])
+                                  'addedBy', 'addedByName', 'confirmation', 'editedBy', 'editedByName',
+                                  'reminders'])
           && data.keys().hasAll(['prescribedOn', 'createdAt', 'medications'])
           && confirmationOf(data) in ['CONFIRMED', 'PENDING', 'REJECTED']
           && (data.get('addedBy', null) != null || confirmationOf(data) == 'CONFIRMED')
@@ -101,7 +105,11 @@ service cloud.firestore {
           && data.createdAt is timestamp
           && data.medications is list
           && data.medications.size() >= 1
-          && data.medications.size() <= 20;
+          && data.medications.size() <= 20
+          && (!('reminders' in data)
+              || (data.reminders is map
+                  && data.reminders.size() <= 20
+                  && confirmationOf(data) == 'CONFIRMED'));
     }
 
     // Saved before US-43 without the field: the patient's own, so confirmed
@@ -344,10 +352,13 @@ service cloud.firestore {
                       && isValidPrescription(request.resource.data)
                       && keepsAttribution(request.resource.data, resource.data)
                       && isValidEditor(uid, request.resource.data, resource.data)
-                      // A caregiver can correct the record, but only the patient confirms it.
+                      // A caregiver can correct the record, but only the patient confirms it and
+                      // chooses its reminders.
                       && (isOwner(uid)
                           ? decidesConfirmation(request.resource.data, resource.data)
-                          : confirmationOf(request.resource.data) == confirmationOf(resource.data))
+                          : (confirmationOf(request.resource.data) == confirmationOf(resource.data)
+                              && request.resource.data.get('reminders', null)
+                                  == resource.data.get('reminders', null)))
                       && request.resource.data.createdAt == resource.data.createdAt;
       }
 

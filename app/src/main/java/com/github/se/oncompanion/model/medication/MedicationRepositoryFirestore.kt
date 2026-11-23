@@ -17,6 +17,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Source
 import java.time.Instant
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -35,6 +37,10 @@ import kotlinx.coroutines.tasks.await
  * update of a prescription that doesn't exist), Firestore undoes it on the device and it is
  * reported to [rejectedWrites], so the user is told; [Prescription.isValid] mirrors the rules so
  * the first shouldn't happen.
+ *
+ * The reminder times the patient chose (US-32) are kept beside the list, in one map from a
+ * medication's ID to its times, so the rules can stop a caregiver from changing them: a caregiver's
+ * edit leaves the map as it is.
  */
 class MedicationRepositoryFirestore(
     private val dbProvider: () -> FirebaseFirestore = SessionAccess::firestore,
@@ -94,6 +100,7 @@ class MedicationRepositoryFirestore(
             .set(
                 prescriptionFields(prescription) +
                     attributionFields(prescription) +
+                    reminderFields(prescription).filterValues { it != null } +
                     (FIELD_CREATED_AT to FieldValue.serverTimestamp())
             )
             .reportServerRejection(prescription.id)
@@ -108,8 +115,11 @@ class MedicationRepositoryFirestore(
         prescriptions(uid)
             .document(prescription.id)
             .update(
-                // A caregiver must not overwrite a patient decision made since the cached read.
-                (if (prescription.editedBy == null) prescriptionFields(prescription)
+                // A caregiver must not overwrite a patient decision made since the cached read,
+                // nor the patient's reminders
+                (if (prescription.editedBy == null)
+                    prescriptionFields(prescription) +
+                        reminderFields(prescription).mapValues { it.value ?: FieldValue.delete() }
                 else prescriptionFields(prescription) - FIELD_CONFIRMATION) +
                     editorFields(prescription)
             )
@@ -230,6 +240,18 @@ class MedicationRepositoryFirestore(
           FIELD_EDITED_BY_NAME to (prescription.editedByName ?: FieldValue.delete()),
       )
 
+  /**
+   * The reminder times of the medications of [prescription] that have some, as "HH:mm" by
+   * medication ID; `null` when none has, so the field is left out (or removed by an update).
+   */
+  private fun reminderFields(prescription: Prescription): Map<String, Any?> {
+    val reminders =
+        prescription.medications
+            .filter { it.reminderTimes.isNotEmpty() }
+            .associate { medication -> medication.id to medication.reminderTimes.map(TIME::format) }
+    return mapOf(FIELD_REMINDERS to reminders.ifEmpty { null })
+  }
+
   /** One entry of the list of medications; its prescription is the document it is stored in. */
   private fun medicationFields(medication: Medication): Map<String, Any?> =
       mapOf(
@@ -250,6 +272,7 @@ class MedicationRepositoryFirestore(
   private fun toPrescription(doc: DocumentSnapshot): Prescription? {
     if (!doc.exists()) return null
     return try {
+      val reminders = doc.get(FIELD_REMINDERS) as? Map<*, *> ?: emptyMap<Any, Any>()
       Prescription(
               id = doc.id,
               prescribedBy = doc.getString(FIELD_PRESCRIBED_BY),
@@ -257,6 +280,7 @@ class MedicationRepositoryFirestore(
               medications =
                   (doc.get(FIELD_MEDICATIONS) as List<*>)
                       .mapNotNull { toMedication(doc.id, it) }
+                      .map { it.withReminders(doc.id, reminders[it.id]) }
                       .distinctBy { it.id },
               // Pending server timestamps read as null until the write reaches the server
               createdAt = doc.getTimestamp(FIELD_CREATED_AT)?.let(Timestamp::toInstant),
@@ -300,6 +324,23 @@ class MedicationRepositoryFirestore(
         null
       }
 
+  /**
+   * This medication with the reminder times [stored] for it in prescription [prescriptionId].
+   * Reminders are optional: times that can't be read or are not valid are left out, with the
+   * medication kept.
+   */
+  private fun Medication.withReminders(prescriptionId: String, stored: Any?): Medication {
+    if (stored == null) return this
+    return try {
+      copy(reminderTimes = (stored as List<*>).map { LocalTime.parse(it as String, TIME) }).also {
+        require(it.isValid()) { "Invalid reminder times" }
+      }
+    } catch (e: Exception) {
+      Log.e(TAG, "Malformed reminder times in prescription document $prescriptionId", e)
+      this
+    }
+  }
+
   companion object {
     const val USERS = "users"
     const val PRESCRIPTIONS = "prescriptions"
@@ -316,6 +357,8 @@ class MedicationRepositoryFirestore(
     const val FIELD_EDITED_BY_NAME = "editedByName"
     /** The medications of the prescription, in the order they were saved. */
     const val FIELD_MEDICATIONS = "medications"
+    /** The reminder times the patient chose, as a list of "HH:mm" by medication ID (US-32). */
+    const val FIELD_REMINDERS = "reminders"
 
     // Fields of each medication of the list
     const val FIELD_ID = "id"
@@ -326,5 +369,7 @@ class MedicationRepositoryFirestore(
     const val FIELD_DURATION_DAYS = "durationDays"
 
     private const val TAG = "MedicationRepository"
+    /** How a reminder time is stored: always two digits, so "09:00" and not "9:00". */
+    private val TIME = DateTimeFormatter.ofPattern("HH:mm")
   }
 }

@@ -15,11 +15,13 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Source
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -1370,5 +1372,105 @@ class MedicationRepositoryFirestoreTest {
     val prescriptions = repository.observePrescriptions(aliceUid).awaitFirst { it.isNotEmpty() }
     assertSameContent(prescription(), prescriptions.single())
     assertEquals(2, repository.observeMedications(aliceUid).awaitFirst { it.isNotEmpty() }.size)
+  }
+
+  // ---------- Reminders (US-32) ----------
+
+  /** [prescription] with the patient's reminder [times] on its first medication. */
+  private fun Prescription.remindedAt(vararg times: LocalTime) =
+      copy(
+          medications =
+              listOf(medications[0].copy(reminderTimes = times.toList())) + medications.drop(1)
+      )
+
+  @Test
+  fun reminders_roundTripOffline_storedAsHoursAndMinutesByMedication(): Unit = runBlocking {
+    val reminded = prescription().remindedAt(LocalTime.of(9, 0), LocalTime.of(18, 30))
+    db.disableNetwork().await()
+    try {
+      assertReturnsWithoutServer("add") { repository.addPrescription(aliceUid, reminded) }
+      assertSameContent(
+          reminded,
+          repository.observePrescription(aliceUid, reminded.id).awaitFirst { it != null },
+      )
+    } finally {
+      db.enableNetwork().await()
+    }
+    awaitServerAck()
+    assertEquals(
+        mapOf("presc-1-ondansetron" to listOf("09:00", "18:30")),
+        serverPrescription(reminded.id).get("reminders"),
+    )
+
+    // Changed, then turned off: the field goes away with the last time
+    repository.updatePrescription(aliceUid, reminded.remindedAt(LocalTime.of(8, 0)))
+    awaitServerAck()
+    assertEquals(
+        mapOf("presc-1-ondansetron" to listOf("08:00")),
+        serverPrescription(reminded.id).get("reminders"),
+    )
+    repository.updatePrescription(aliceUid, reminded.remindedAt())
+    awaitServerAck()
+    assertFalse(serverPrescription(reminded.id).contains("reminders"))
+    assertEquals(0, rejectedWrites.unseen.value)
+  }
+
+  @Test
+  fun unreadableReminders_areLeftOut_keepingTheMedication(): Unit = runBlocking {
+    val cases =
+        listOf(
+            listOf("9h"),
+            listOf("09:00", "09:00"),
+            listOf("08:00", "12:00", "16:00", "20:00"),
+            "09:00",
+            listOf(9),
+        )
+    for ((i, stored) in cases.withIndex()) {
+      val id = "bad-reminders-$i"
+      prescriptionDocument(id)
+          .set(
+              mapOf(
+                  "prescribedOn" to Timestamp(Instant.parse("2026-09-28T22:00:00Z")),
+                  "createdAt" to FieldValue.serverTimestamp(),
+                  "medications" to
+                      listOf(
+                          mapOf(
+                              "id" to "m1",
+                              "name" to "Ondansetron 8 mg",
+                              "startDate" to Timestamp.now(),
+                          )
+                      ),
+                  "reminders" to mapOf("m1" to stored),
+              )
+          )
+          .await()
+
+      val read = repository.observePrescription(aliceUid, id).awaitFirst { it != null }!!
+      assertEquals("$stored", emptyList<LocalTime>(), read.medications.single().reminderTimes)
+    }
+  }
+
+  @Test
+  fun caregiverEdit_keepsThePatientsReminders(): Unit = runBlocking {
+    val schedule = ManageMedicationSchedule(repository)
+    val saved = carolAddsAPrescriptionForAlice(allowEditing = true)
+    // Alice confirms it and chooses a reminder in the same save
+    val nine = LocalTime.of(9, 0)
+    assertTrue(schedule.update(aliceUid, saved.id, saved.remindedAt(nine).toDraft()))
+    awaitServerAck()
+
+    val carolUid = EmulatorTestData.signIn("presc-repo-carol")
+    val current =
+        repository.observePrescription(aliceUid, saved.id).awaitFirst { it?.isConfirmed == true }!!
+    // Carol's form doesn't hold alice's times
+    val carolsDraft = current.remindedAt().toDraft().copy(prescribedBy = "Dr. Rossi")
+    assertTrue(schedule.update(aliceUid, saved.id, carolsDraft, carolUid, "Carol"))
+    awaitServerAck()
+
+    val stored = serverPrescription(saved.id)
+    assertEquals("Dr. Rossi", stored.getString("prescribedBy"))
+    assertEquals(mapOf(saved.medications[0].id to listOf("09:00")), stored.get("reminders"))
+    assertEquals(0, rejectedWrites.unseen.value)
+    EmulatorTestData.signIn("alice")
   }
 }

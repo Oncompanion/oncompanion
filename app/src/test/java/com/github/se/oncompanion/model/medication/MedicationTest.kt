@@ -3,6 +3,7 @@
 package com.github.se.oncompanion.model.medication
 
 import java.time.LocalDate
+import java.time.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -23,6 +24,7 @@ class MedicationTest {
   fun constantsHaveSpecifiedValues() {
     assertEquals(100, Medication.MAX_TEXT_LENGTH)
     assertEquals(3650, Medication.MAX_DURATION_DAYS)
+    assertEquals(3, Medication.MAX_REMINDER_TIMES)
   }
 
   @Test
@@ -85,5 +87,24 @@ class MedicationTest {
     assertFalse(Medication.isValidDuration(0))
     assertFalse(Medication.isValidDuration(-1))
     assertFalse(Medication.isValidDuration(Medication.MAX_DURATION_DAYS + 1))
+  }
+
+  @Test
+  fun reminderTimes_atMostThree_wholeMinutes_neverTwiceTheSame() {
+    val nine = LocalTime.of(9, 0)
+    val cases =
+        listOf(
+            emptyList<LocalTime>() to true,
+            listOf(nine) to true,
+            listOf(nine, LocalTime.of(13, 0), LocalTime.of(18, 30)) to true,
+            listOf(nine, LocalTime.of(12, 0), LocalTime.of(15, 0), LocalTime.of(18, 0)) to false,
+            listOf(nine, nine) to false,
+            listOf(LocalTime.of(9, 0, 30)) to false,
+            listOf(LocalTime.of(9, 0, 0, 1)) to false,
+        )
+    for ((times, expected) in cases) {
+      assertEquals("$times", expected, valid.copy(reminderTimes = times).isValid())
+    }
+    assertEquals(emptyList<LocalTime>(), valid.reminderTimes)
   }
 }
