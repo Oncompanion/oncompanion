@@ -131,6 +131,8 @@ class PlanningPeriodTest {
             Case(MONTH, "2026-12-01", "2026-12-15", 1, "2027-01-01", "2027-01-15"),
             // At the ends of the supported years, the selected day stops on the first or last day
             Case(WEEK, "9999-12-20", "9999-12-26", 1, "9999-12-27", "9999-12-31"),
+            // List too: its last week is reachable, ending on 31 December 9999
+            Case(LIST, "9999-12-20", "9999-12-26", 1, "9999-12-27", "9999-12-31"),
             Case(THREE_DAYS, "9999-12-28", "9999-12-30", 1, "9999-12-31", "9999-12-31"),
             // Three days back from early January 1 start on 1 January
             Case(THREE_DAYS, "0001-01-03", "0001-01-03", -1, "0001-01-01", "0001-01-01"),
