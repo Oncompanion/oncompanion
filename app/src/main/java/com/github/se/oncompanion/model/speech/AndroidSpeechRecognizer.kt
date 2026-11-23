@@ -81,10 +81,10 @@ class AndroidSpeechRecognizer(
       if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) OfflineSpeech.UNKNOWN
       else
           withContext(mainDispatcher) {
-            onDeviceSupport(language).also {
-              // The phone has the download: the recognizer that asked for it can go
-              if (it == OfflineSpeech.DOWNLOADING || it == OfflineSpeech.READY) releaseDownloader()
-            }
+            // Whatever it answers, the phone got the last download request long ago (its dialog
+            // came up before the patient could tap Speak again): the recognizer that sent it can
+            // go, also when the patient cancelled that dialog
+            onDeviceSupport(language).also { releaseDownloader() }
           }
 
   override fun downloadForOffline(language: SpeechLanguage) {
@@ -92,8 +92,8 @@ class AndroidSpeechRecognizer(
     if (!AndroidRecognizer.isOnDeviceRecognitionAvailable(appContext)) return
     val recognizer = AndroidRecognizer.createOnDeviceSpeechRecognizer(appContext)
     recognizer.triggerModelDownload(recognizerIntent(language, appContext.packageName))
-    // Kept until the phone says it has the download (see offlineSupport): destroying it now could
-    // drop the request before it reaches the phone's speech service
+    // Kept until the phone next answers offlineSupport: destroying it now could drop the request
+    // before it reaches the phone's speech service
     releaseDownloader()
     downloader = recognizer
   }

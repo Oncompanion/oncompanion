@@ -466,26 +466,29 @@ class AndroidSpeechRecognizerTest {
   }
 
   @Test
-  fun theDownloadRecognizer_isReleasedOnceThePhoneHasTheDownload() = runTest {
+  fun theDownloadRecognizer_isReleasedAtThePhonesNextAnswer() = runTest {
     ShadowSpeechRecognizer.setIsOnDeviceRecognitionAvailable(true)
     val recognizer = AndroidSpeechRecognizer(context, UnconfinedTestDispatcher(testScheduler))
-    // The phone's answer after a download → whether the recognizer that asked for it is released
-    val cases =
+    // Every answer the phone can give after a download, the patient's cancelled dialog included
+    // (the language is still only downloadable)
+    val answers: List<Pair<String, ShadowSpeechRecognizer.() -> Unit>> =
         listOf(
-            support(downloadable = listOf("en-US")) to false,
-            support(installed = listOf("en-GB")) to false,
-            support(pending = listOf("en-US")) to true,
-            support(installed = listOf("en-US")) to true,
+            "cancelled" to { triggerSupportResult(support(downloadable = listOf("en-US"))) },
+            "online only" to { triggerSupportResult(support(installed = listOf("en-GB"))) },
+            "downloading" to { triggerSupportResult(support(pending = listOf("en-US"))) },
+            "ready" to { triggerSupportResult(support(installed = listOf("en-US"))) },
+            "error" to { triggerSupportError(AndroidRecognizer.ERROR_SERVER) },
         )
-    for ((answer, released) in cases) {
+    for ((name, answer) in answers) {
       recognizer.downloadForOffline(SpeechLanguage.ENGLISH)
       val downloader = android
       val support = askOffline(recognizer = recognizer)
-      android.triggerSupportResult(answer)
+      assertFalse("$name: released before the answer", downloader.isDestroyed)
+      android.answer()
       runCurrent()
       support.await()
 
-      assertEquals("$answer", released, downloader.isDestroyed)
+      assertTrue("$name: still bound to the phone's speech service", downloader.isDestroyed)
     }
   }
 
