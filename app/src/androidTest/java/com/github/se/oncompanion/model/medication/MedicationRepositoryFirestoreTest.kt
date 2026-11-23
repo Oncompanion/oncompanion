@@ -1421,7 +1421,8 @@ class MedicationRepositoryFirestoreTest {
         listOf(
             listOf("9h"),
             listOf("09:00", "09:00"),
-            listOf("08:00", "12:00", "16:00", "20:00"),
+            // More than Medication.MAX_REMINDER_TIMES
+            listOf("08:00", "12:00", "16:00", "20:00", "22:00"),
             "09:00",
             listOf(9),
         )
