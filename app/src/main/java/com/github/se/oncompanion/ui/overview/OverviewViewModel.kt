@@ -238,7 +238,8 @@ class OverviewViewModel(
   /**
    * Starts (or, after an error, restarts) observing the planning data of [overviewRange], so the
    * next appointment is found even months ahead, as between two oncology check-ups. In caregiver
-   * mode, it also (re)starts following the shared sections; for the patient, the doses ticked today.
+   * mode, it also (re)starts following the shared sections; for the patient, the doses ticked
+   * today.
    */
   fun loadDay() {
     dayObservation?.cancel()
