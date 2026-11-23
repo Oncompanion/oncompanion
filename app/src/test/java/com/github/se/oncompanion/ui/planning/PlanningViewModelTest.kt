@@ -33,6 +33,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -963,5 +964,55 @@ class PlanningViewModelTest {
           assertEquals("$input", expected, state.selectedDate to state.period)
         }
         drain()
+      }
+
+  /**
+   * Every state the screen gets is whole: the selected day's agenda comes from the loaded period's
+   * entries, never from the previous day or period, as the selection and the entries change.
+   */
+  @Test
+  fun everyEmittedStateMatchesItsSelection() =
+      runTest(dispatcher) {
+        val repository =
+            FakePlanningRepository().apply {
+              items.value =
+                  listOf(
+                      item("friday", "2026-10-02T08:00:00Z"),
+                      item("saturday", "2026-10-03T08:00:00Z"),
+                      item("monday", "2026-10-05T08:00:00Z"),
+                  )
+            }
+        val vm = PlanningViewModel(ownPlanning(repository), clock, zone, SavedStateHandle())
+        val states = mutableListOf<PlanningUiState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+          vm.uiState.collect { states += it }
+        }
+        drain()
+        // Same week, then the next week, then the month, then a change and a retry
+        vm.selectDate(LocalDate.of(2026, 10, 3))
+        vm.selectDate(LocalDate.of(2026, 10, 5))
+        drain()
+        vm.selectView(PlanningView.MONTH)
+        drain()
+        repository.items.value = repository.items.value + item("later", "2026-10-20T08:00:00Z")
+        drain()
+        vm.retry()
+        drain()
+
+        assertTrue(states.size > 5)
+        for (state in states) {
+          assertEquals("$state", state.itemsByDay[state.selectedDate].orEmpty(), state.items)
+          val range = state.period.range(zone)
+          assertTrue(
+              "$state",
+              state.itemsByDay.keys.all {
+                it >= range.startDateInclusive && it < range.endDateExclusive
+              },
+          )
+        }
+        assertEquals(
+            listOf("monday"),
+            states.last().items.map { (it.source as PlanningSource.Appointment).appointmentId },
+        )
       }
 }

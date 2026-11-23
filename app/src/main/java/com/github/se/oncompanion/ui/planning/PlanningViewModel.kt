@@ -179,10 +179,11 @@ class PlanningViewModel(
   private fun select(date: LocalDate, period: PlanningPeriod) {
     val previous = mutableState.value
     val next = previous.copy(selectedDate = date, period = period)
-    mutableState.value = next
     save(next)
-    // List and Week of the same Monday load the same days: no new read
-    if (period.range(zoneId) != previous.period.range(zoneId)) observePeriod() else publishItems()
+    // List and Week of the same Monday load the same days: no new read. Either way the new
+    // selection is published once, with its own agenda
+    if (period.range(zoneId) != previous.period.range(zoneId)) observePeriod(next)
+    else mutableState.value = next.withDayAgenda()
   }
 
   private fun save(state: PlanningUiState) {
@@ -191,16 +192,24 @@ class PlanningViewModel(
     savedStateHandle[PERIOD_START] = state.period.start.toString()
   }
 
-  private fun observePeriod(preserveItems: Boolean = false) {
+  /**
+   * Observes the period of [from], published at once as loading; [preserveItems] keeps its entries
+   * until the first answer (a retry).
+   */
+  private fun observePeriod(
+      from: PlanningUiState = mutableState.value,
+      preserveItems: Boolean = false,
+  ) {
     observation?.cancel()
     mutableState.value =
-        mutableState.value.copy(
-            isLoading = true,
-            hasError = false,
-            itemsByDay = if (preserveItems) mutableState.value.itemsByDay else emptyMap(),
-        )
-    publishItems()
-    val range = mutableState.value.period.range(zoneId)
+        from
+            .copy(
+                isLoading = true,
+                hasError = false,
+                itemsByDay = if (preserveItems) from.itemsByDay else emptyMap(),
+            )
+            .withDayAgenda()
+    val range = from.period.range(zoneId)
     // A retry keeps the displayed items until the first answer, whatever it is; after that, an
     // account change clears them again
     var keepItems = preserveItems
@@ -208,23 +217,32 @@ class PlanningViewModel(
       try {
         observePlanning(patientUid, range).collect { planning ->
           // A failure keeps what is shown, like a retry until new entries arrive
-          if (
-              planning !is CarePlanning.Failed && (planning !is CarePlanning.Loading || !keepItems)
-          ) {
-            val items =
-                (planning as? CarePlanning.Shown)?.items?.filter { it.timing in range }.orEmpty()
-            mutableState.value = mutableState.value.copy(itemsByDay = items.groupedByDay(zoneId))
-          }
+          val itemsByDay =
+              if (
+                  planning !is CarePlanning.Failed &&
+                      (planning !is CarePlanning.Loading || !keepItems)
+              ) {
+                (planning as? CarePlanning.Shown)
+                    ?.items
+                    ?.filter { it.timing in range }
+                    .orEmpty()
+                    .groupedByDay(zoneId)
+              } else null
           if (planning !is CarePlanning.Loading) keepItems = false
+          // The entries, the flags and the selected day's agenda are published together
+          val state = mutableState.value
           mutableState.value =
-              mutableState.value.copy(
-                  isLoading = planning is CarePlanning.Loading,
-                  hasError = planning is CarePlanning.Failed,
-                  isNotShared = planning is CarePlanning.NotShared,
-                  // A caregiver only gets "Add" with the patient's planning on screen
-                  canAdd = patientUid == null || (planning as? CarePlanning.Shown)?.canAdd == true,
-              )
-          publishItems()
+              state
+                  .copy(
+                      itemsByDay = itemsByDay ?: state.itemsByDay,
+                      isLoading = planning is CarePlanning.Loading,
+                      hasError = planning is CarePlanning.Failed,
+                      isNotShared = planning is CarePlanning.NotShared,
+                      // A caregiver only gets "Add" with the patient's planning on screen
+                      canAdd =
+                          patientUid == null || (planning as? CarePlanning.Shown)?.canAdd == true,
+                  )
+                  .withDayAgenda()
         }
       } catch (cancelled: CancellationException) {
         throw cancelled
@@ -234,21 +252,20 @@ class PlanningViewModel(
     }
   }
 
-  /** Shows the selected day's entries, already in agenda order in [PlanningUiState.itemsByDay]. */
-  private fun publishItems() {
-    val state = mutableState.value
-    val (untimed, scheduled) =
-        state.itemsByDay[state.selectedDate].orEmpty().partition {
-          it.timing is PlanningTiming.DateOnly
-        }
-    mutableState.value = state.copy(untimedItems = untimed, scheduledItems = scheduled)
-  }
-
   private companion object {
     const val SELECTED_DATE = "planning_selected_date"
     const val VIEW = "planning_view"
     const val PERIOD_START = "planning_period_start"
   }
+}
+
+/**
+ * [this] with the selected day's entries, already in agenda order in [itemsByDay], as its lists.
+ */
+private fun PlanningUiState.withDayAgenda(): PlanningUiState {
+  val (untimed, scheduled) =
+      itemsByDay[selectedDate].orEmpty().partition { it.timing is PlanningTiming.DateOnly }
+  return copy(untimedItems = untimed, scheduledItems = scheduled)
 }
 
 /**
