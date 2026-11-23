@@ -593,12 +593,13 @@ private fun OpenMedication(
         keyboardOptions = textKeyboard(KeyboardCapitalization.Sentences),
         modifier = Modifier.fillMaxWidth().testTag(C.Tag.prescription_form_frequency_field),
     )
+    // A duration that can't be saved gets a red warning, which comes before a detail to check
+    val durationInvalid = !Medication.isValidDuration(medication.durationDays)
+    val durationCheck = checks[MedicationDetail.DURATION]?.takeUnless { durationInvalid }
     // Side by side as in the frame; stacked where both wouldn't fit whole (a small phone, a large
-    // font), or when the duration says something, so its message has the whole width
+    // font), or when the duration shows one of those messages, so it has the whole width
     StartAndDuration(
-        stacked =
-            !Medication.isValidDuration(medication.durationDays) ||
-                MedicationDetail.DURATION in checks,
+        stacked = durationInvalid || durationCheck != null,
         startDate = {
           DateField(
               label = stringResource(R.string.prescription_form_start_date),
@@ -608,7 +609,9 @@ private fun OpenMedication(
               modifier = it,
           )
         },
-        duration = { DurationField(medication, checks, onDurationChange, it) },
+        duration = {
+          DurationField(medication, durationInvalid, durationCheck, onDurationChange, it)
+        },
     )
   }
 }
@@ -642,18 +645,19 @@ private fun StartAndDuration(
   }
 }
 
-/** How many days a medication lasts, empty when it has no end; says when it can't be saved. */
+/**
+ * How many days a medication lasts, empty when it has no end. [durationInvalid] shows the red
+ * warning that it can't be saved; otherwise [durationCheck] asks to check it. Both come from the
+ * caller, which also stacks the row when either is shown.
+ */
 @Composable
 private fun DurationField(
     medication: MedicationDraft,
-    checks: Map<MedicationDetail, FieldCheck>,
+    durationInvalid: Boolean,
+    durationCheck: FieldCheck?,
     onDurationChange: (String) -> Unit,
     modifier: Modifier,
 ) {
-  // A number of days, empty when the medication has no end; a warning says when it can't be saved
-  val durationInvalid = !Medication.isValidDuration(medication.durationDays)
-  // A duration that can't be saved: its red warning comes before a detail to check
-  val durationCheck = checks[MedicationDetail.DURATION]?.takeUnless { durationInvalid }
   LakeTextField(
       value = medication.durationDays?.toString().orEmpty(),
       onValueChange = onDurationChange,
