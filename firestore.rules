@@ -137,10 +137,10 @@ service cloud.firestore {
     }
 
     // Keep the limits in sync with SymptomEntry (MIN_INTENSITY, MAX_INTENSITY, MAX_NOTES_LENGTH,
-    // MAX_CLOCK_DRIFT).
+    // MAX_OTHER_NAME_LENGTH, MAX_CLOCK_DRIFT).
     function isValidSymptom(data) {
       return data.keys().hasOnly(['types', 'intensity', 'strengths', 'occurredAt', 'notes',
-                                  'createdAt', 'addedBy', 'addedByName', 'editedBy',
+                                  'otherName', 'createdAt', 'addedBy', 'addedByName', 'editedBy',
                                   'editedByName'])
           && data.keys().hasAll(['types', 'occurredAt', 'createdAt'])
           // One or more symptoms, each at most once. This list and the strengths' keys below are
@@ -171,8 +171,14 @@ service cloud.firestore {
           // request.time is then even later.
           && data.occurredAt <= request.time + duration.value(5, 'm')
           && optionalString(data, 'notes', 1000)
-          // With "Other", the notes say which symptom it was
+          // The name of the "Other" symptom (#545), never blank. Allowed without "Other": an older
+          // app version removing it from an entry keeps the name (the app then ignores it).
+          && optionalString(data, 'otherName', 40)
+          && (data.get('otherName', null) == null || data.otherName.trim().size() > 0)
+          // With "Other", its name says which symptom it was, or the notes do in entries from
+          // older app versions, which don't know the name
           && (!('OTHER' in data.types)
+              || data.get('otherName', null) != null
               || (data.get('notes', null) is string && data.notes.trim().size() > 0))
           && data.createdAt is timestamp;
     }

@@ -281,6 +281,46 @@ class SymptomSecurityRulesTest {
     )
   }
 
+  // ---- the name of "Other" (#545) ----
+
+  private fun namedOther(): MutableMap<String, Any?> =
+      validOther().apply {
+        put("otherName", "Hiccups")
+        remove("notes")
+      }
+
+  @Test
+  fun otherWithAName_isAllowedWithoutNotes_upTo40Characters() {
+    assertCreateAllowed(namedOther())
+    assertCreateAllowed(namedOther().apply { put("types", listOf("FATIGUE", "OTHER")) })
+    assertCreateAllowed(namedOther().apply { put("otherName", "h".repeat(40)) })
+  }
+
+  @Test
+  fun aNameThatIsntShortText_isDenied_evenWithNotes() {
+    // The notes would be enough on their own, so only the name can be refused; each on its own
+    // document, so one can't hide another
+    listOf<Any?>("", "  ", "h".repeat(41), 42, listOf("Hiccups")).forEach { name ->
+      try {
+        assertCreateDenied(validOther().apply { put("otherName", name) })
+      } catch (e: Throwable) {
+        throw AssertionError("Not denied: a name of $name", e)
+      }
+    }
+  }
+
+  @Test
+  fun anOlderAppCanStillRemoveOther_leavingItsName(): Unit = runBlocking {
+    allowed(savedSymptom(namedOther()).update("types", listOf("FATIGUE")))
+  }
+
+  @Test
+  fun clearingTheNameOfOther_withoutNotes_isDenied(): Unit = runBlocking {
+    denied(savedSymptom(namedOther()).update("otherName", null))
+    // With notes, as an older app version wrote it, the name can go
+    allowed(savedSymptom(namedOther().apply { put("notes", "Hiccups") }).update("otherName", null))
+  }
+
   @Test
   fun createInTheFutureIsDenied() {
     // More than the 5 minutes allowed for clock drift, measured against the server's time

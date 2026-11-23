@@ -36,6 +36,7 @@ import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.auth.GoogleCredentialProvider
 import com.github.se.oncompanion.ui.navigation.Route
+import com.github.se.oncompanion.ui.navigation.Tab
 import com.github.se.oncompanion.utils.EmulatorGoogleSignIn
 import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.EndToEndTestDriver
@@ -418,7 +419,8 @@ class M2EndToEndTest {
     signOutThroughProfile()
     credentials.select(patient)
     ui.open(C.Tag.google_sign_in_button, patientGreeting())
-    ui.open(C.Tag.overview_shortcut_prescriptions, hasTestTag(C.Tag.prescriptions_list))
+    // The patient's prescriptions are a tab; the caregiver's tile stays on their Overview
+    ui.open(Tab.PRESCRIPTIONS.testTag, hasTestTag(C.Tag.prescriptions_list))
     ui.open(C.Tag.prescriptionsItem(confirmedId), hasTestTag(C.Tag.prescription_detail_content))
     ui.waitFor(
             hasTestTag(C.Tag.edited_by) and
@@ -432,7 +434,7 @@ class M2EndToEndTest {
     ui.open(C.Tag.prescriptionsItem(prescriptionId), hasTestTag(C.Tag.prescription_confirm_notice))
     ui.waitFor(hasText("Dr Updated")).assertIsDisplayed()
     ui.open(C.Tag.prescription_form_close_button, hasTestTag(C.Tag.prescriptions_list))
-    ui.open(C.Tag.prescriptions_back_button, patientGreeting())
+    ui.open(Tab.OVERVIEW.testTag, patientGreeting())
     signOutThroughProfile()
     credentials.select(caregiver)
     ui.open(C.Tag.google_sign_in_button, caregiverTitle())
