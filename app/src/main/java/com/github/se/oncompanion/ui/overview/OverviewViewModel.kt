@@ -163,7 +163,7 @@ data class DosesSheet(val medication: TodayMedication, val doses: Int, val draft
  * @property hasError true if it couldn't be loaded
  * @property isNotShared in caregiver mode, the patient doesn't share their planning: no entries
  * @property sharedSections in caregiver mode, the sections behind the shortcuts the patient shares
-  * @property dosesSheet the sheet correcting a medication's doses, or `null` when it is closed
+ * @property dosesSheet the sheet correcting a medication's doses, or `null` when it is closed
  */
 data class OverviewUiState(
     val now: LocalDateTime,
