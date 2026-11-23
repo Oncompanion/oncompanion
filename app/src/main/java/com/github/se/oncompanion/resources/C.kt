@@ -127,6 +127,12 @@ object C {
     const val overview_medications = "overview_medications"
     const val overview_planning_link = "overview_planning_link"
     const val overview_more_medications = "overview_more_medications"
+    // The sheet to correct a medication's doses (#546)
+    const val overview_doses_sheet = "overview_doses_sheet"
+    const val overview_doses_count = "overview_doses_count"
+    const val overview_doses_less = "overview_doses_less"
+    const val overview_doses_more = "overview_doses_more"
+    const val overview_doses_done = "overview_doses_done"
     const val overview_nothing_planned = "overview_nothing_planned"
     const val overview_check_in = "overview_check_in"
     const val overview_check_in_more = "overview_check_in_more"
