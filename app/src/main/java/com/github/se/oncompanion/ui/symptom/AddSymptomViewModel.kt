@@ -423,7 +423,8 @@ class AddSymptomViewModel(
   /**
    * The patient accepted the offer: asks the phone to download their language, then listens. The
    * phone may ask them to confirm in its own dialog first; the app waits until it closes, then asks
-   * the phone again, so it only says the language is downloading if the patient confirmed.
+   * the phone again, so it only says the language is downloading if the patient confirmed. A dialog
+   * cancelled is a no, like [onNotNow]: not offered again until the app restarts.
    */
   fun onDownloadForOffline() {
     val offer = _uiState.value.voice as? VoiceUiState.OfferingOffline ?: return
@@ -432,10 +433,14 @@ class AddSymptomViewModel(
     // Cancelled by cancelVoice, like the first question to the phone
     checkingOffline = viewModelScope.launch {
       // Waits for the phone's dialog (a phone may show none), then until the patient closed it
-      withTimeoutOrNull(DOWNLOAD_DIALOG_DELAY) { isOnScreen.first { !it } }
+      val dialogShown =
+          withTimeoutOrNull(DOWNLOAD_DIALOG_DELAY) { isOnScreen.first { !it } } != null
       isOnScreen.first { it }
-      // Cancelled in the phone's dialog, it is still downloadable: offered again next time
-      askPhone(offer.language)
+      val support = askPhone(offer.language)
+      // Still downloadable once the phone's dialog closed: the patient cancelled it
+      if (dialogShown && support == OfflineSpeech.DOWNLOADABLE) {
+        declinedDownloads.decline(offer.language)
+      }
       continueDictating(offer = null)
     }
   }

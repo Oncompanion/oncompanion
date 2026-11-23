@@ -1704,15 +1704,6 @@ class AddSymptomViewModelTest {
 
           assertEquals("$answer", VoiceUiState.Listening(connection = note), viewModel.state.voice)
           assertEquals("$answer", onDevice, speech.onDevice.last())
-          // Cancelled in the phone's dialog: offered again next time
-          viewModel.cancelVoice()
-          viewModel.onSpeak(hasMicrophone = true)
-          advanceUntilIdle()
-          assertEquals(
-              "$answer",
-              answer == OfflineSpeech.DOWNLOADABLE,
-              viewModel.state.voice is VoiceUiState.OfferingOffline,
-          )
           viewModel.cancelVoice()
           advanceUntilIdle()
         }
@@ -1741,6 +1732,30 @@ class AddSymptomViewModelTest {
         assertEquals(
             VoiceUiState.Listening(connection = ConnectionNote.Downloading(SpeechLanguage.ENGLISH)),
             viewModel.state.voice,
+        )
+      }
+
+  @Test
+  fun aCancelledDialog_isNotOfferedAgain_butAPhoneWithoutDialogIs() =
+      runTest(dispatcher) {
+        speech.offline = OfflineSpeech.DOWNLOADABLE
+        // English: the patient cancels the phone's dialog, still downloadable once it closed
+        val cancelled = listening()
+        cancelled.onDownloadForOffline()
+        cancelled.onScreenHidden()
+        advanceTimeBy(60_000)
+        cancelled.onScreenShown()
+        advanceUntilIdle()
+        // French: the phone shows no dialog, and hasn't taken the request when asked again
+        val noDialog = listening(viewModel(Locale.FRENCH))
+        noDialog.onDownloadForOffline()
+        advanceUntilIdle()
+
+        // Next symptom: a no, like Not now, for English only
+        assertEquals(VoiceUiState.Listening(), listening().state.voice)
+        assertEquals(
+            VoiceUiState.OfferingOffline(SpeechLanguage.FRENCH),
+            listening(viewModel(Locale.FRENCH)).state.voice,
         )
       }
 
