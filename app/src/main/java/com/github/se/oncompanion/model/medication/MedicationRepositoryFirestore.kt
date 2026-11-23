@@ -40,7 +40,9 @@ import kotlinx.coroutines.tasks.await
  *
  * The reminder times the patient chose (US-32) are kept beside the list, in one map from a
  * medication's ID to its times, so the rules can stop a caregiver from changing them: a caregiver's
- * edit leaves the map as it is.
+ * edit leaves the map as it is. So a medication a caregiver removes keeps its entry until the
+ * patient's next save rewrites the map: read the times from the medications returned, never from
+ * the map directly.
  */
 class MedicationRepositoryFirestore(
     private val dbProvider: () -> FirebaseFirestore = SessionAccess::firestore,
