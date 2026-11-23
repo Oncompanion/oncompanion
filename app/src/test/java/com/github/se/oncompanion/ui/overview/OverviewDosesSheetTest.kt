@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.se.oncompanion.domain.medication.DailyDoses
 import com.github.se.oncompanion.domain.planning.ownPlanning
 import com.github.se.oncompanion.model.auth.AuthUser
 import com.github.se.oncompanion.model.medication.FakeTakenDosesRepository
@@ -61,7 +62,9 @@ class OverviewDosesSheetTest {
           key = "k",
           medicationId = "ondansetron",
           name = "Ondansetron 8 mg",
-          frequency = "3 times a day",
+          // Said in the card's words in the subtitle
+          frequency = "1-1-1",
+          dailyDoses = DailyDoses(3, null),
           dosesPerDay = 3,
           taken = 1,
       )

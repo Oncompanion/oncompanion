@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.oncompanion.domain.carecircle.CareAccess
 import com.github.se.oncompanion.domain.carecircle.ResolveCareCircleAccess
+import com.github.se.oncompanion.domain.medication.DailyDoses
 import com.github.se.oncompanion.domain.medication.DoseCount
 import com.github.se.oncompanion.domain.planning.CarePlanning
 import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
@@ -119,6 +120,8 @@ data class NextUp(
  *   which its doses are saved
  * @property name its name and dosage (e.g. "Ondansetron 8 mg")
  * @property frequency the frequency recorded on the prescription, if any
+ * @property dailyDoses [frequency] as the card says it in its own words ("Once a day" for "1-0-0"),
+ *   or `null` to show it as written
  * @property dosesPerDay how many doses can be ticked today, read from [frequency]; `null` when
  *   there is nothing to tick (taken only if needed, a frequency that doesn't say a number) or
  *   today's ticks couldn't be read
@@ -129,6 +132,7 @@ data class TodayMedication(
     val medicationId: String,
     val name: String,
     val frequency: String? = null,
+    val dailyDoses: DailyDoses? = null,
     val dosesPerDay: Int? = null,
     val taken: Int = 0,
 )
@@ -363,6 +367,7 @@ class OverviewViewModel(
                     listOfNotNull(item.title, item.dosage?.takeIf { it.isNotBlank() })
                         .joinToString(" "),
                 frequency = frequency,
+                dailyDoses = DoseCount.describe(frequency),
                 dosesPerDay = doses,
                 taken = doses?.let { takenToday?.get(source.medicationId)?.coerceIn(0, it) } ?: 0,
             )

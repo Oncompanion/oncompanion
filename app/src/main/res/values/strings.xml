@@ -106,6 +106,21 @@
     <string name="overview_dose_tick_once">Tick %1$s as taken</string>
     <string name="overview_dose_untick">%1$s taken today, untick it</string>
     <string name="overview_doses_all_taken_of">All doses of %1$s taken today, correct them</string>
+    <!-- A frequency in the Overview's own words (#546): "Once a day", "3 times a day if nauseous" -->
+    <string name="overview_frequency_once">Once a day</string>
+    <string name="overview_frequency_twice">Twice a day</string>
+    <plurals name="overview_frequency_times">
+        <item quantity="one">%1$d time a day</item>
+        <item quantity="other">%1$d times a day</item>
+    </plurals>
+    <string name="overview_frequency_with_condition">%1$s %2$s</string>
+    <string name="overview_condition_if_needed">if needed</string>
+    <string name="overview_condition_if_nauseous">if nauseous</string>
+    <string name="overview_condition_if_in_pain">if in pain</string>
+    <string name="overview_condition_if_feverish">if feverish</string>
+    <string name="overview_condition_if_anxious">if anxious</string>
+    <string name="overview_condition_if_vomiting">if vomiting</string>
+    <string name="overview_condition_for_sleep">for sleep</string>
     <string name="overview_doses_correct">Correct the doses of %1$s</string>
     <!-- The sheet to correct a medication's doses (#546): its frequency, then today -->
     <string name="overview_doses_sheet_subtitle">%1$s · today</string>
