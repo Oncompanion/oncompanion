@@ -138,6 +138,11 @@
     <string name="symptom_back">Back</string>
     <string name="symptom_intensity_value">%1$d/10</string>
     <string name="symptom_intensity_description">Intensity %1$d out of 10</string>
+    <!-- A symptom's strength in the journal, e.g. "mild" "nausea" -->
+    <string name="symptom_strength_in_words">%1$s %2$s</string>
+    <!-- A symptom's strength on its detail, e.g. "5/10 · Moderate" -->
+    <string name="symptom_strength_value">%1$d/10 · %2$s</string>
+    <string name="symptom_strength_description">Intensity %1$d out of 10, %2$s</string>
     <string name="symptom_retry">Retry</string>
     <string name="symptom_error_hint">Something went wrong. Please try again.</string>
     <string name="symptom_journal_today">Today</string>

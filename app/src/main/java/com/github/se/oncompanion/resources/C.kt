@@ -219,6 +219,13 @@ object C {
     const val symptom_edit_not_found = "symptom_edit_not_found"
     const val symptom_detail_edit = "symptom_detail_edit"
     const val symptom_detail_symptoms = "symptom_detail_symptoms"
+
+    /**
+     * The strength bar of a symptom on its detail, by
+     * [com.github.se.oncompanion.model.symptom.SymptomType] name.
+     */
+    fun symptomDetailStrengthBar(type: String) = "symptom_detail_strength_bar_$type"
+
     const val symptom_add_speak = "symptom_add_speak"
     const val symptom_add_drafted = "symptom_add_drafted"
     const val symptom_voice_screen = "symptom_voice_screen"

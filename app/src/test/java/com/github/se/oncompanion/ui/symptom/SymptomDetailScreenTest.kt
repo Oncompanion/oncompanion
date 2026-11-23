@@ -247,7 +247,11 @@ class SymptomDetailScreenTest {
   @Test
   @Config(qualifiers = "w411dp-h891dp", fontScale = 2f)
   fun everySymptom_isShownInFull_atALargeFont() {
-    setContent(loaded.copy(entry = fatigue.copy(types = SymptomType.entries)))
+    // Each beside the widest strength
+    val strengths = SymptomType.entries.associateWith { SymptomEntry.MAX_INTENSITY }
+    setContent(
+        loaded.copy(entry = fatigue.copy(types = SymptomType.entries, strengths = strengths))
+    )
 
     for (type in SymptomType.entries) {
       val label = context.getString(type.label)
@@ -302,7 +306,7 @@ class SymptomDetailScreenTest {
   @Config(qualifiers = "w360dp-h740dp", fontScale = 1.3f)
   // Real text measuring, so the name is as wide as on a phone
   @GraphicsMode(GraphicsMode.Mode.NATIVE)
-  fun aLongName_staysOnOneLine_inItsChip() {
+  fun aLongName_wraps_soTheDetailShowsItWhole() {
     val name = "Tingling and burning in both of my hands"
     setContent(
         loaded.copy(entry = fatigue.copy(types = listOf(SymptomType.OTHER), otherName = name))
@@ -313,9 +317,56 @@ class SymptomDetailScreenTest {
         .onNode(hasText(name) and hasAnyAncestor(hasTestTag(C.Tag.symptom_detail_symptoms)))
         .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
     val layout = layouts.single()
-    assertEquals(1, layout.lineCount)
-    // Cut with "…" rather than wrapped: the name doesn't fit at this size
-    assertTrue(layout.hasVisualOverflow)
+    // It doesn't fit on one line at this size: wrapped rather than cut
+    assertTrue(layout.lineCount > 1)
+    assertFalse(layout.hasVisualOverflow)
+  }
+
+  private fun strengthBar(type: SymptomType) =
+      composeTestRule.onNodeWithTag(
+          C.Tag.symptomDetailStrengthBar(type.name),
+          useUnmergedTree = true,
+      )
+
+  @Test
+  fun eachSymptom_showsItsOwnStrengthAndBar_andNoOverallIntensity() {
+    val entry =
+        fatigue.copy(
+            types = listOf(SymptomType.FATIGUE, SymptomType.NAUSEA, SymptomType.HEADACHE),
+            strengths = mapOf(SymptomType.FATIGUE to 5, SymptomType.NAUSEA to 3),
+            // An intensity an older app version left beside the strengths isn't shown
+            intensity = 9,
+        )
+    setContent(loaded.copy(entry = entry))
+
+    assertTextInside("5/10 · Moderate", C.Tag.symptom_detail_symptoms)
+    assertTextInside("3/10 · Mild", C.Tag.symptom_detail_symptoms)
+    strengthBar(SymptomType.FATIGUE).assertExists()
+    strengthBar(SymptomType.NAUSEA).assertExists()
+    // Headache was given no strength: its name alone
+    strengthBar(SymptomType.HEADACHE).assertDoesNotExist()
+    assertTextInside("Headache", C.Tag.symptom_detail_symptoms)
+    composeTestRule.onNodeWithTag(C.Tag.symptom_detail_intensity).assertDoesNotExist()
+    // TalkBack says the value in words, not "5 slash 10"
+    composeTestRule
+        .onNode(hasContentDescription("Intensity 5 out of 10, Moderate"), useUnmergedTree = true)
+        .assertExists()
+  }
+
+  @Test
+  fun entryFromBeforeStrengths_listsTheNamesOnly_andKeepsItsIntensity() {
+    setContent(loaded.copy(entry = fatigue))
+
+    assertTextInside("Fatigue", C.Tag.symptom_detail_symptoms)
+    strengthBar(SymptomType.FATIGUE).assertDoesNotExist()
+    composeTestRule
+        .onNode(
+            hasText("/10", substring = true) and
+                hasAnyAncestor(hasTestTag(C.Tag.symptom_detail_symptoms)),
+            useUnmergedTree = true,
+        )
+        .assertDoesNotExist()
+    assertTextInside("7/10", C.Tag.symptom_detail_intensity)
   }
 
   @Test

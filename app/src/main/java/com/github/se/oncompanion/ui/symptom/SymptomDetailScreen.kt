@@ -2,16 +2,18 @@
 
 package com.github.se.oncompanion.ui.symptom
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -25,17 +27,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.carecircle.CarePermission
+import com.github.se.oncompanion.model.symptom.Severity
 import com.github.se.oncompanion.model.symptom.SymptomEntry
+import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.model.symptom.severity
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.AddedBy
@@ -46,7 +53,6 @@ import com.github.se.oncompanion.ui.common.DetailActionTags
 import com.github.se.oncompanion.ui.common.DetailActions
 import com.github.se.oncompanion.ui.common.DetailWithActions
 import com.github.se.oncompanion.ui.common.EditedBy
-import com.github.se.oncompanion.ui.common.LakeFilterChip
 import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
 import com.github.se.oncompanion.ui.common.NotSharedMessage
@@ -251,36 +257,83 @@ private fun EntryDetail(
 }
 
 /**
- * Every symptom of the entry, as dawn chips like the ones picked on the log form, right under their
- * heading.
+ * Every symptom of the entry on one white card (Figma: "Symptom detail"), each with its strength
+ * when it was given one. An entry saved before strengths has names only: its single intensity is on
+ * the [InfoCard].
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SymptomsSection(entry: SymptomEntry) {
-  Column(
-      modifier = Modifier.testTag(C.Tag.symptom_detail_symptoms),
-      verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+  Surface(
+      modifier = Modifier.fillMaxWidth().testTag(C.Tag.symptom_detail_symptoms),
+      shape = MaterialTheme.shapes.large,
+      color = MaterialTheme.colorScheme.surfaceContainerLowest,
   ) {
-    Text(
-        text = stringResource(R.string.symptom_detail_symptoms),
-        style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.semantics { heading() },
-    )
-    // Read-only chips: they show what was logged, nothing to toggle here
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    Column(
+        modifier = Modifier.padding(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-      // A long name of "Other" is cut rather than wrapped; the edit form shows it whole
-      entry.types.forEach { type ->
-        LakeFilterChip(
-            selected = true,
-            onClick = null,
-            label = entry.nameOf(type),
-            singleLine = true,
+      Text(
+          text = stringResource(R.string.symptom_detail_symptoms),
+          style = MaterialTheme.typography.labelLarge,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          modifier = Modifier.semantics { heading() },
+      )
+      entry.types.forEach { type -> StrengthRow(type, entry.nameOf(type), entry.strengths[type]) }
+    }
+  }
+}
+
+/**
+ * A symptom's [name], then its [strength] as "5/10 · Moderate" over a bar filled to it; the name
+ * alone when it has no strength. A long name wraps, so the detail shows it whole.
+ */
+@Composable
+private fun StrengthRow(type: SymptomType, name: String, strength: Int?) {
+  Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Text(
+          text = name,
+          style = MaterialTheme.typography.titleMedium,
+          modifier = Modifier.weight(1f),
+      )
+      if (strength != null) {
+        val severity = stringResource(Severity.of(strength).label)
+        val description = stringResource(R.string.symptom_strength_description, strength, severity)
+        Text(
+            text = stringResource(R.string.symptom_strength_value, strength, severity),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.semantics { contentDescription = description },
         )
       }
     }
+    if (strength != null) StrengthBar(type, strength)
+  }
+}
+
+/**
+ * A bar filled to [strength] out of [SymptomEntry.MAX_INTENSITY], in one colour whatever the value
+ * so it never judges it. Hidden from TalkBack: the text above says the value.
+ */
+@Composable
+private fun StrengthBar(type: SymptomType, strength: Int) {
+  val tag = C.Tag.symptomDetailStrengthBar(type.name)
+  Box(
+      Modifier.fillMaxWidth()
+          .height(BAR_HEIGHT)
+          .clip(CircleShape)
+          .background(MaterialTheme.colorScheme.surfaceVariant)
+          .clearAndSetSemantics { testTag = tag }
+  ) {
+    Box(
+        Modifier.fillMaxWidth(strength.toFloat() / SymptomEntry.MAX_INTENSITY)
+            .fillMaxHeight()
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary)
+    )
   }
 }
 
@@ -294,7 +347,7 @@ private fun InfoCard(entry: SymptomEntry, zone: ZoneId) {
   ) {
     Column(Modifier.padding(vertical = Spacing.xs)) {
       // The intensity is optional: no row when the user didn't give one
-      val intensity = entry.intensity
+      val intensity = entry.overallIntensity()
       val severity = entry.severity
       if (intensity != null && severity != null) {
         InfoRow(
@@ -373,5 +426,6 @@ private fun IntensityBadge(intensity: Int, modifier: Modifier = Modifier) {
   }
 }
 
-// The intensity badge of the Figma's symptom detail
+// The intensity badge of the Figma's symptom detail, and the height of a symptom's strength bar
 private val BADGE_HEIGHT = 36.dp
+private val BAR_HEIGHT = 6.dp

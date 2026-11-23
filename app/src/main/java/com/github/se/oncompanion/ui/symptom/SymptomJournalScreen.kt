@@ -334,13 +334,14 @@ private fun SymptomTile() {
 }
 
 /**
- * The severity in words (Figma: "Symptoms – History"), as entered: no colour, no advice, then the
+ * How strong it was in words, as entered: no colour, no advice. Each symptom's strength ("Moderate
+ * fatigue · mild nausea"), or for an entry saved before them its single severity ("Mild"). Then the
  * first line of the notes, so an "Other" entry shows which symptom it was without opening it.
  * `null` when the entry has neither.
  */
 @Composable
 private fun SymptomEntry.summary(): String? {
-  val severity = severity?.let { stringResource(it.label) }
+  val severity = strengthsInWords() ?: severity?.let { stringResource(it.label) }
   val notes = notes?.lineSequence()?.map { it.trim() }?.firstOrNull { it.isNotEmpty() }
   return if (severity != null && notes != null) {
     stringResource(R.string.symptom_journal_summary, severity, notes)
