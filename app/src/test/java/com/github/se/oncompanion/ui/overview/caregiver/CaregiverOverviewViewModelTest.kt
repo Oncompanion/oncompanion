@@ -199,6 +199,31 @@ class CaregiverOverviewViewModelTest {
   }
 
   @Test
+  fun planningStartedSharingWhileOpen_staysLoading_untilThePlanningFollows() {
+    val patient = FollowedPatient(SYMPTOMS)
+    // The planning's own listener answers later than the access, so it still says "not shared"
+    val planningNotYetShared = FollowedPatient(SYMPTOMS)
+    val vm =
+        viewModel(
+            patient,
+            planning(appointment("chemo", now.plusDays(2))),
+            planningOf = planningNotYetShared,
+        )
+
+    patient.shares(PLANNING, SYMPTOMS)
+    ShadowLooper.idleMainLooper()
+
+    // Not "Nothing planned today" while the patient has a chemo
+    assertEquals(SHOWN, vm.uiState.value.sections[PLANNING])
+    assertTrue(vm.uiState.value.isLoading)
+
+    planningNotYetShared.shares(PLANNING, SYMPTOMS)
+    ShadowLooper.idleMainLooper()
+    assertFalse(vm.uiState.value.isLoading)
+    assertEquals("chemo", vm.uiState.value.nextUp?.id)
+  }
+
+  @Test
   fun accessNotConfirmedYet_isLoading_withNoSection() {
     val patient = FollowedPatient(PLANNING).apply { isUnconfirmed() }
 

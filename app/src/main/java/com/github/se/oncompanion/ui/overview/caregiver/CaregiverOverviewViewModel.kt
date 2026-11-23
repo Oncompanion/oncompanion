@@ -150,20 +150,29 @@ class CaregiverOverviewViewModel(
               }
             }
             .orEmpty()
+    val readsPlanning = sections[CarePermission.PLANNING] == SectionVisibility.SHOWN
     // Dropped as soon as the patient stops sharing their planning, before the planning says so
     items.value =
-        if (sections[CarePermission.PLANNING] == SectionVisibility.SHOWN)
-            (planning as? CarePlanning.Shown)?.items.orEmpty()
-        else emptyList()
+        if (readsPlanning) (planning as? CarePlanning.Shown)?.items.orEmpty() else emptyList()
     _uiState.update {
       it.copy(
           sections = sections,
           nextUp = nextUpOf(items.value, it.now, zoneId),
-          isLoading = access is CareAccess.Unconfirmed || planning is CarePlanning.Loading,
+          isLoading =
+              access is CareAccess.Unconfirmed ||
+                  planning is CarePlanning.Loading ||
+                  (readsPlanning && planning.notReadYet()),
           hasError = planning is CarePlanning.Failed,
       )
     }
   }
+
+  /**
+   * Whether the planning's own listener doesn't read it yet although the access says it is shared,
+   * as when the patient has just started sharing it: "Nothing planned today" would be wrong.
+   */
+  private fun CarePlanning.notReadYet(): Boolean =
+      this is CarePlanning.NotShared || this is CarePlanning.NoAccess
 
   /** The caregiver's name for the greeting; without a name if it is not known. */
   private fun loadFirstName() {
