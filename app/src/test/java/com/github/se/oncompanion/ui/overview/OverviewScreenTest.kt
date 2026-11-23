@@ -15,6 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -505,20 +510,22 @@ class OverviewScreenTest {
     composeTestRule
         .onNode(hasText("Once a day") and hasAnyAncestor(hasTestTag(row)), useUnmergedTree = true)
         .assertDoesNotExist()
-    composeTestRule.onNodeWithTag(C.Tag.overviewDoseButton("a")).assertDoesNotExist()
+    composeTestRule
+        .onNodeWithTag(C.Tag.overviewDoseButton("a"), useUnmergedTree = true)
+        .assertDoesNotExist()
   }
 
   @Test
   fun doseRows_showTheCountAndButton_thatSayWhereThePatientIs() {
     var state by mutableStateOf(loaded)
     composeTestRule.setContent { OverviewContent(state, {}, {}, {}, {}) }
-    // (doses a day, taken) to (count shown, button's description)
+    // (doses a day, taken) to (count shown, what TalkBack says a tap does)
     listOf(
             (3 to 0) to ("0 of 3" to "Tick a dose of Medication m, 0 of 3 taken"),
             (3 to 1) to ("1 of 3" to "Tick a dose of Medication m, 1 of 3 taken"),
             // Several a day, all taken: the check opens the sheet to correct them
             (3 to 3) to ("All taken" to "All doses of Medication m taken today, correct them"),
-            // Once a day: no count, the button toggles
+            // Once a day: no count, the button toggles; TalkBack stops on the row only
             (1 to 0) to (null to "Tick Medication m as taken"),
             (1 to 1) to (null to "Medication m taken today, untick it"),
         )
@@ -539,11 +546,23 @@ class OverviewScreenTest {
                 )
             if (text == count) node.assertIsDisplayed() else node.assertDoesNotExist()
           }
-          val button = composeTestRule.onNodeWithTag(C.Tag.overviewDoseButton("m"))
-          button
-              .assertContentDescriptionEquals(description)
-              .assertHeightIsAtLeast(48.dp)
-              .assertIsEnabled()
+          val button =
+              composeTestRule.onNodeWithTag(C.Tag.overviewDoseButton("m"), useUnmergedTree = true)
+          button.assertHeightIsAtLeast(48.dp)
+          if (doses == 1) {
+            // The row says it, so the button isn't a second stop saying the same thing
+            button.assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+            button.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription))
+            composeTestRule
+                .onNodeWithTag(row)
+                .assert(
+                    SemanticsMatcher("its tap says \"$description\"") {
+                      it.config.getOrNull(SemanticsActions.OnClick)?.label == description
+                    }
+                )
+          } else {
+            button.assertContentDescriptionEquals(description).assertIsEnabled()
+          }
         }
   }
 
@@ -609,12 +628,18 @@ class OverviewScreenTest {
       )
     }
 
-    composeTestRule.onNodeWithTag(C.Tag.overviewDoseButton("once")).performClick()
+    composeTestRule
+        .onNodeWithTag(C.Tag.overviewDoseButton("once"), useUnmergedTree = true)
+        .performClick()
     composeTestRule.onNodeWithTag(C.Tag.overviewMedication("once")).performClick()
-    composeTestRule.onNodeWithTag(C.Tag.overviewDoseButton("several")).performClick()
+    composeTestRule
+        .onNodeWithTag(C.Tag.overviewDoseButton("several"), useUnmergedTree = true)
+        .performClick()
     composeTestRule.onNodeWithTag(C.Tag.overviewMedication("several")).performClick()
     medications = listOf(medication("allTaken", dosesPerDay = 2, taken = 2))
-    composeTestRule.onNodeWithTag(C.Tag.overviewDoseButton("allTaken")).performClick()
+    composeTestRule
+        .onNodeWithTag(C.Tag.overviewDoseButton("allTaken"), useUnmergedTree = true)
+        .performClick()
 
     composeTestRule.runOnIdle {
       assertEquals(listOf("id-once", "id-once", "id-several"), ticked)
@@ -632,7 +657,7 @@ class OverviewScreenTest {
         )
     )
     composeTestRule
-        .onNodeWithTag(C.Tag.overviewDoseButton("a"))
+        .onNodeWithTag(C.Tag.overviewDoseButton("a"), useUnmergedTree = true)
         .performScrollTo()
         .assertIsFullyVisible()
   }
@@ -651,7 +676,7 @@ class OverviewScreenTest {
     )
     listOf("a", "b").forEach {
       composeTestRule
-          .onNodeWithTag(C.Tag.overviewDoseButton(it))
+          .onNodeWithTag(C.Tag.overviewDoseButton(it), useUnmergedTree = true)
           .performScrollTo()
           .assertIsDisplayed()
     }
@@ -1440,7 +1465,10 @@ class OverviewScreenTest {
     }
     composeTestRule.runOnUiThread(show)
     val key = viewModel.uiState.value.todayMedications.single().key
-    composeTestRule.onNodeWithTag(C.Tag.overviewDoseButton(key)).performScrollTo().performClick()
+    composeTestRule
+        .onNodeWithTag(C.Tag.overviewDoseButton(key), useUnmergedTree = true)
+        .performScrollTo()
+        .performClick()
 
     composeTestRule.activityRule.scenario.recreate()
     composeTestRule.runOnUiThread(show)

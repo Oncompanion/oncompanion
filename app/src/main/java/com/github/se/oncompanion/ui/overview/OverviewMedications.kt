@@ -170,9 +170,13 @@ private fun DoseButton(medication: TodayMedication, label: String, onClick: () -
   Box(
       Modifier.size(DOSE_BUTTON_SIZE)
           .clip(CircleShape)
-          .clickable(role = Role.Button, onClick = onClick)
-          .semantics { contentDescription = label }
-          .testTag(C.Tag.overviewDoseButton(medication.key)),
+          .testTag(C.Tag.overviewDoseButton(medication.key))
+          .then(
+              // Taken once a day, the row does the same: TalkBack stops on the row only, not twice
+              if (doses == 1) Modifier.clearAndSetSemantics {}
+              else Modifier.semantics { contentDescription = label }
+          )
+          .clickable(role = Role.Button, onClick = onClick),
       contentAlignment = Alignment.Center,
   ) {
     Box(Modifier.size(DOSE_DISC_SIZE).then(disc), contentAlignment = Alignment.Center) {
