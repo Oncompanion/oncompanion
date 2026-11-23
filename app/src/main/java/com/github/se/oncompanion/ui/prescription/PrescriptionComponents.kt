@@ -1,17 +1,9 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.prescription
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.auth.AuthRepository
@@ -49,24 +41,6 @@ enum class PrescriptionsLoad {
    * patient removed. Retrying wouldn't help.
    */
   NO_ACCESS,
-}
-
-/**
- * Where the prescription screens put a message in place of their content: centered, and scrolling
- * when the message is taller than the space (a small phone held sideways, a large font), so its
- * button can always be reached (#490). It adds no side padding: the message brings its own, so it
- * wraps the same on every screen.
- */
-@Composable
-internal fun MessageArea(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-  BoxWithConstraints(modifier.fillMaxSize()) {
-    Box(
-        Modifier.verticalScroll(rememberScrollState()).fillMaxWidth().heightIn(min = maxHeight),
-        contentAlignment = Alignment.Center,
-    ) {
-      content()
-    }
-  }
 }
 
 /**
