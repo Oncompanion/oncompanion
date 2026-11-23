@@ -96,6 +96,7 @@ import com.github.se.oncompanion.ui.symptom.SymptomDetailScreen
 import com.github.se.oncompanion.ui.symptom.SymptomDetailViewModel
 import com.github.se.oncompanion.ui.symptom.SymptomJournalScreen
 import com.github.se.oncompanion.ui.symptom.SymptomJournalViewModel
+import com.github.se.oncompanion.ui.symptom.label
 import java.time.Clock
 import java.time.LocalDate
 
@@ -463,9 +464,17 @@ private fun SessionNavHost(
         // Saving returns to where the form was opened: the journal, where the new entry is at the
         // top, or the Overview
         // In caregiver mode, the symptom goes in the chosen patient's journal (US-22)
+        // The app's context, not the activity's: the ViewModel outlives a rotation
+        val app = LocalContext.current.applicationContext
         AddSymptomScreen(
             viewModel =
-                viewModel { AddSymptomViewModel(patientUid = chosenPatient?.uid, picked = picked) },
+                viewModel {
+                  AddSymptomViewModel(
+                      patientUid = chosenPatient?.uid,
+                      picked = picked,
+                      symptomName = { app.getString(it.label) },
+                  )
+                },
             onBack = navigationActions::goBack,
             onSaved = navigationActions::goBack,
             caregiverOf = chosenPatient?.firstName,
@@ -478,10 +487,15 @@ private fun SessionNavHost(
         val symptomId = entry.arguments?.getString(Screen.SYMPTOM_DETAIL_ID).orEmpty()
         // Saving returns to the detail, which shows the change
         // In caregiver mode, the chosen patient's symptom (US-46)
+        val app = LocalContext.current.applicationContext
         AddSymptomScreen(
             viewModel =
                 viewModel {
-                  AddSymptomViewModel(symptomId = symptomId, patientUid = chosenPatient?.uid)
+                  AddSymptomViewModel(
+                      symptomId = symptomId,
+                      patientUid = chosenPatient?.uid,
+                      symptomName = { app.getString(it.label) },
+                  )
                 },
             onBack = navigationActions::goBack,
             onSaved = navigationActions::goBack,
