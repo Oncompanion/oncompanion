@@ -23,8 +23,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,11 +42,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -65,6 +60,7 @@ import com.github.se.oncompanion.ui.common.NotSharedMessage
 import com.github.se.oncompanion.ui.common.PaperLakeHeader
 import com.github.se.oncompanion.ui.common.PaperLakeStatusBar
 import com.github.se.oncompanion.ui.common.isPaperLakeHeaderBand
+import com.github.se.oncompanion.ui.navigation.BottomBarUiState
 import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Route
@@ -125,10 +121,10 @@ private val tileShortcuts =
     listOf(OverviewShortcut.SYMPTOMS, OverviewShortcut.PRESCRIPTIONS, OverviewShortcut.CARE_CIRCLE)
 
 /**
- * The patient's tiles under the check-in, which already opens the symptoms. They go once the
- * Overview UX Refactor gives Prescriptions and the care circle their own way in.
+ * The patient's tiles under the check-in, which already opens the symptoms; Prescriptions is a tab
+ * of the bottom bar. The care circle's goes once the Overview UX Refactor gives it its own way in.
  */
-private val patientTileShortcuts = tileShortcuts - OverviewShortcut.SYMPTOMS
+private val patientTileShortcuts = listOf(OverviewShortcut.CARE_CIRCLE)
 
 /** "Saturday 3 October", as in the mockup. The app's UI is in English. */
 private val todayFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.ENGLISH)
@@ -144,6 +140,7 @@ private val todayFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.E
  *
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
  * @param onSwitchPatient opens "Whose care?", in caregiver mode
+ * @param bottomBar what the bottom bar shows on every tab: its tabs and the Prescriptions badge
  */
 @Composable
 fun OverviewScreen(
@@ -156,6 +153,7 @@ fun OverviewScreen(
     onOpenEvent: (String) -> Unit = { navigationActions.navigateTo(Screen.eventDetail(it)) },
     caregiverOf: String? = null,
     onSwitchPatient: () -> Unit = {},
+    bottomBar: BottomBarUiState = BottomBarUiState(),
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   // The ViewModel outlives navigation and backgrounding: keep the date, greeting, Next up and
@@ -173,6 +171,7 @@ fun OverviewScreen(
       onOpenAppointment = onOpenAppointment,
       onOpenEvent = onOpenEvent,
       onLogSymptom = { navigationActions.navigateTo(Screen.symptomAdd(it)) },
+      onTickDose = viewModel::tickDose,
       onRetry = viewModel::loadDay,
       modifier = modifier,
       caregiverOf = caregiverOf,
@@ -181,6 +180,7 @@ fun OverviewScreen(
         BottomNavigationBar(
             selectedTab = Tab.OVERVIEW,
             onTabSelected = { tab -> navigationActions.navigateToTab(tab.route) },
+            state = bottomBar,
         )
       },
   )
@@ -196,6 +196,7 @@ fun OverviewScreen(
  * @param onOpenPlanning opens Planning from an empty appointment card or "See planning"
  * @param onOpenAppointment opens the recorded appointment directly
  * @param onOpenEvent opens the event shown in the patient's "Next up"
+ * @param onTickDose ticks a dose of one of the patient's medications, by its ID
  * @param onLogSymptom opens the symptom form from the patient's check-in, with that symptom picked
  *   or empty for `null`
  * @param onRetry reloads the day after an error
@@ -213,6 +214,7 @@ fun OverviewContent(
     modifier: Modifier = Modifier,
     onOpenEvent: (String) -> Unit = {},
     onLogSymptom: (SymptomType?) -> Unit = {},
+    onTickDose: (String) -> Unit = {},
     caregiverOf: String? = null,
     onSwitchPatient: () -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
@@ -270,6 +272,7 @@ fun OverviewContent(
                     onOpenAppointment,
                     onOpenEvent,
                     modifier = if (overlaps) Modifier.overlapLayout() else Modifier,
+                    onTickDose = onTickDose,
                 )
             else -> {
               NextAppointmentCard(
@@ -301,7 +304,6 @@ fun OverviewContent(
             Shortcuts(
                 onShortcutClick,
                 tiles,
-                uiState.prescriptionsToConfirm,
                 // The patient's check-in already asks
                 withQuestion = caregiverOf != null,
             )
@@ -466,13 +468,11 @@ private val tilePadding = 8.dp
 /**
  * "How do you feel today?" ([withQuestion]) and one large tile per main section: three in a row, or
  * one per row when a label wouldn't fit in a third of the width (small screen or large font).
- * Prescriptions shows a badge with how many wait for the patient ([prescriptionsToConfirm], US-43).
  */
 @Composable
 private fun Shortcuts(
     onShortcutClick: (OverviewShortcut) -> Unit,
     tiles: List<OverviewShortcut>,
-    prescriptionsToConfirm: Int = 0,
     withQuestion: Boolean = true,
 ) {
   Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -502,8 +502,6 @@ private fun Shortcuts(
                 shortcut,
                 { onShortcutClick(shortcut) },
                 Modifier.weight(1f),
-                badge =
-                    prescriptionsToConfirm.takeIf { shortcut == OverviewShortcut.PRESCRIPTIONS },
             )
           }
         }
@@ -515,8 +513,6 @@ private fun Shortcuts(
                 { onShortcutClick(shortcut) },
                 Modifier.fillMaxWidth(),
                 stacked = true,
-                badge =
-                    prescriptionsToConfirm.takeIf { shortcut == OverviewShortcut.PRESCRIPTIONS },
             )
           }
         }
@@ -525,48 +521,21 @@ private fun Shortcuts(
   }
 }
 
-/**
- * A shortcut tile: icon above the label, or next to it when [stacked] (one tile per row). A [badge]
- * above zero shows in its corner, also read by screen readers.
- */
+/** A shortcut tile: icon above the label, or next to it when [stacked] (one tile per row). */
 @Composable
 private fun ShortcutTile(
     shortcut: OverviewShortcut,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     stacked: Boolean = false,
-    badge: Int? = null,
 ) {
-  val count = badge?.takeIf { it > 0 }
-  val badgeDescription = count?.let {
-    pluralStringResource(R.plurals.overview_prescriptions_to_confirm, it, it)
-  }
-  BadgedBox(
-      badge = {
-        if (count != null) {
-          Badge(
-              modifier =
-                  Modifier.testTag(C.Tag.overview_prescriptions_badge).semantics {
-                    contentDescription = badgeDescription.orEmpty()
-                  }
-          ) {
-            Text("$count")
-          }
-        }
-      },
-      modifier = modifier,
-  ) {
-    ShortcutSurface(shortcut, onClick, stacked)
-  }
-}
-
-/** The tile itself, under its badge. */
-@Composable
-private fun ShortcutSurface(shortcut: OverviewShortcut, onClick: () -> Unit, stacked: Boolean) {
-  val modifier = Modifier.fillMaxWidth()
   Surface(
       onClick = onClick,
-      modifier = modifier.heightIn(min = if (stacked) 72.dp else 104.dp).testTag(shortcut.testTag),
+      modifier =
+          modifier
+              .fillMaxWidth()
+              .heightIn(min = if (stacked) 72.dp else 104.dp)
+              .testTag(shortcut.testTag),
       shape = MaterialTheme.shapes.large,
       color = MaterialTheme.colorScheme.primaryContainer,
   ) {

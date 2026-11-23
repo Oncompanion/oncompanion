@@ -15,10 +15,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -43,7 +50,9 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.domain.planning.ownPlanning
+import com.github.se.oncompanion.model.auth.AuthUser
 import com.github.se.oncompanion.model.carecircle.CarePermission
+import com.github.se.oncompanion.model.medication.FakeTakenDosesRepository
 import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningSource
@@ -84,6 +93,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -253,7 +263,7 @@ class OverviewScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.overview_loading).assertIsDisplayed()
     composeTestRule.onNodeWithTag(C.Tag.overview_next_appointment).assertDoesNotExist()
     composeTestRule.onNodeWithTag(C.Tag.overview_check_in).assertExists()
-    composeTestRule.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).assertExists()
+    composeTestRule.onNodeWithTag(OverviewShortcut.CARE_CIRCLE.testTag).assertExists()
   }
 
   @Test
@@ -264,7 +274,7 @@ class OverviewScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.overview_error).assertIsDisplayed()
     composeTestRule.onNodeWithTag(C.Tag.overview_retry).performClick()
     composeTestRule.onNodeWithTag(C.Tag.overview_check_in).assertExists()
-    composeTestRule.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).assertExists()
+    composeTestRule.onNodeWithTag(OverviewShortcut.CARE_CIRCLE.testTag).assertExists()
 
     composeTestRule.runOnIdle { assertEquals(1, retries) }
   }
@@ -452,8 +462,20 @@ class OverviewScreenTest {
     }
   }
 
-  private fun medication(id: String, frequency: String? = "Once a day") =
-      TodayMedication(key = id, name = "Medication $id", frequency = frequency)
+  private fun medication(
+      id: String,
+      frequency: String? = "Once a day",
+      dosesPerDay: Int? = null,
+      taken: Int = 0,
+  ) =
+      TodayMedication(
+          key = id,
+          medicationId = "id-$id",
+          name = "Medication $id",
+          frequency = frequency,
+          dosesPerDay = dosesPerDay,
+          taken = taken,
+      )
 
   @Test
   fun medications_showTheFirstTwo_andMoreOpensPlanning_onlyWhenThereAreMore() {
@@ -481,18 +503,142 @@ class OverviewScreenTest {
   }
 
   @Test
-  fun medication_withoutFrequency_showsNoChip_andAnUnconfirmedOneSaysWhoAddedIt() {
-    setContent(
-        loaded.copy(
-            todayMedications =
-                listOf(medication("a", frequency = null).copy(notConfirmedAddedBy = "Sam"))
-        )
-    )
+  fun medication_withoutFrequency_orDosesToTick_showsNoChipAndNoButton() {
+    setContent(loaded.copy(todayMedications = listOf(medication("a", frequency = null))))
     val row = C.Tag.overviewMedication("a")
-    assertTextInside(context.getString(R.string.added_by_not_confirmed, "Sam"), row)
     composeTestRule
         .onNode(hasText("Once a day") and hasAnyAncestor(hasTestTag(row)), useUnmergedTree = true)
         .assertDoesNotExist()
+    composeTestRule
+        .onNodeWithTag(C.Tag.overviewDoseButton("a"), useUnmergedTree = true)
+        .assertDoesNotExist()
+  }
+
+  @Test
+  fun doseRows_showTheCountAndButton_thatSayWhereThePatientIs() {
+    var state by mutableStateOf(loaded)
+    composeTestRule.setContent { OverviewContent(state, {}, {}, {}, {}) }
+    // (doses a day, taken) to (count shown, what TalkBack says a tap does, button enabled)
+    listOf(
+            (3 to 0) to Triple("0 of 3", "Tick a dose of Medication m, 0 of 3 taken", true),
+            (3 to 1) to Triple("1 of 3", "Tick a dose of Medication m, 1 of 3 taken", true),
+            // Several a day, all taken: correcting comes with the sheet
+            (3 to 3) to Triple("All taken", "All doses of Medication m taken today", false),
+            // Once a day: no count, the button toggles; TalkBack stops on the row only
+            (1 to 0) to Triple(null, "Tick Medication m as taken", true),
+            (1 to 1) to Triple(null, "Medication m taken today, untick it", true),
+        )
+        .forEach { (input, expected) ->
+          val (doses, taken) = input
+          val (count, description, enabled) = expected
+          state =
+              loaded.copy(
+                  todayMedications = listOf(medication("m", dosesPerDay = doses, taken = taken))
+              )
+          composeTestRule.waitForIdle()
+          val row = C.Tag.overviewMedication("m")
+          listOf("0 of 3", "1 of 3", "All taken").forEach { text ->
+            val node =
+                composeTestRule.onNode(
+                    hasText(text) and hasAnyAncestor(hasTestTag(row)),
+                    useUnmergedTree = true,
+                )
+            if (text == count) node.assertIsDisplayed() else node.assertDoesNotExist()
+          }
+          val button =
+              composeTestRule.onNodeWithTag(C.Tag.overviewDoseButton("m"), useUnmergedTree = true)
+          button.assertHeightIsAtLeast(48.dp)
+          if (doses == 1) {
+            // The row says it, so the button isn't a second stop saying the same thing
+            button.assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+            button.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription))
+            composeTestRule
+                .onNodeWithTag(row)
+                .assert(
+                    SemanticsMatcher("its tap says \"$description\"") {
+                      it.config.getOrNull(SemanticsActions.OnClick)?.label == description
+                    }
+                )
+          } else {
+            button.assertContentDescriptionEquals(description)
+            if (enabled) button.assertIsEnabled() else button.assertIsNotEnabled()
+          }
+        }
+  }
+
+  @Test
+  fun theDoseButton_ticksItsMedication_andTheRowToo_whenTakenOnceADay() {
+    val ticked = mutableListOf<String>()
+    composeTestRule.setContent {
+      OverviewContent(
+          loaded.copy(
+              todayMedications =
+                  listOf(
+                      medication("once", dosesPerDay = 1),
+                      medication("several", frequency = "3 times a day", dosesPerDay = 3),
+                  )
+          ),
+          {},
+          {},
+          {},
+          {},
+          onTickDose = { ticked += it },
+      )
+    }
+
+    composeTestRule
+        .onNodeWithTag(C.Tag.overviewDoseButton("once"), useUnmergedTree = true)
+        .performClick()
+    composeTestRule.onNodeWithTag(C.Tag.overviewMedication("once")).performClick()
+    composeTestRule
+        .onNodeWithTag(C.Tag.overviewDoseButton("several"), useUnmergedTree = true)
+        .performClick()
+    // Several a day, the row itself does nothing yet: it will open the sheet
+    composeTestRule.onNodeWithTag(C.Tag.overviewMedication("several")).performClick()
+
+    composeTestRule.runOnIdle { assertEquals(listOf("id-once", "id-once", "id-several"), ticked) }
+  }
+
+  @Test
+  @Config(qualifiers = LANDSCAPE_PHONE)
+  fun inLandscape_theDoseButtonIsFullyVisible() {
+    setContent(
+        loaded.copy(
+            todayMedications =
+                listOf(medication("a", frequency = "3 times a day", dosesPerDay = 3, taken = 1))
+        )
+    )
+    composeTestRule
+        .onNodeWithTag(C.Tag.overviewDoseButton("a"), useUnmergedTree = true)
+        .performScrollTo()
+        .assertIsFullyVisible()
+  }
+
+  @Test
+  @Config(qualifiers = "w360dp-h640dp", fontScale = 2f)
+  fun at200PercentText_eachDoseButtonAndCount_stayOnScreen() {
+    setContent(
+        loaded.copy(
+            todayMedications =
+                listOf(
+                    medication("a", frequency = "3 times a day", dosesPerDay = 3, taken = 1),
+                    medication("b", dosesPerDay = 1),
+                )
+        )
+    )
+    listOf("a", "b").forEach {
+      composeTestRule
+          .onNodeWithTag(C.Tag.overviewDoseButton(it), useUnmergedTree = true)
+          .performScrollTo()
+          .assertIsDisplayed()
+    }
+    composeTestRule
+        .onNode(
+            hasText("1 of 3") and hasAnyAncestor(hasTestTag(C.Tag.overviewMedication("a"))),
+            useUnmergedTree = true,
+        )
+        .performScrollTo()
+        .assertIsDisplayed()
   }
 
   @Test
@@ -548,13 +694,16 @@ class OverviewScreenTest {
         .onNodeWithText(context.getString(R.string.overview_subtitle))
         .assertDoesNotExist()
     composeTestRule.onNodeWithTag(C.Tag.overview_journal_link).performScrollTo().performClick()
-    listOf(OverviewShortcut.PRESCRIPTIONS, OverviewShortcut.CARE_CIRCLE).forEach { shortcut ->
-      composeTestRule
-          .onNode(hasTestTag(shortcut.testTag) and hasText(context.getString(shortcut.label)))
-          .performScrollTo()
-          .assertHasClickAction()
-          .performClick()
-    }
+    // Prescriptions is a tab of the patient's bottom bar instead
+    composeTestRule.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).assertDoesNotExist()
+    composeTestRule
+        .onNode(
+            hasTestTag(OverviewShortcut.CARE_CIRCLE.testTag) and
+                hasText(context.getString(OverviewShortcut.CARE_CIRCLE.label))
+        )
+        .performScrollTo()
+        .assertHasClickAction()
+        .performClick()
     composeTestRule
         .onNode(
             hasTestTag(OverviewShortcut.PROFILE.testTag) and
@@ -566,7 +715,7 @@ class OverviewScreenTest {
 
     composeTestRule.runOnIdle {
       assertEquals(
-          listOf(Route.SYMPTOMS, Route.PRESCRIPTIONS, Route.CARE_CIRCLE, Route.PROFILE),
+          listOf(Route.SYMPTOMS, Route.CARE_CIRCLE, Route.PROFILE),
           navigationActions.openedRoutes,
       )
     }
@@ -666,9 +815,12 @@ class OverviewScreenTest {
         .assertTextEquals(context.getString(R.string.overview_greeting_evening))
   }
 
-  /** The patient's tiles: the check-in replaced Symptoms. */
+  /** A caregiver's tiles, when the patient shares both sections. */
+  private val sharingBoth =
+      loaded.copy(sharedSections = setOf(CarePermission.SYMPTOMS, CarePermission.PRESCRIPTIONS))
+
   private fun tileTops(): List<Float> =
-      listOf(OverviewShortcut.PRESCRIPTIONS, OverviewShortcut.CARE_CIRCLE).map {
+      listOf(OverviewShortcut.SYMPTOMS, OverviewShortcut.PRESCRIPTIONS).map {
         composeTestRule.onNodeWithTag(it.testTag).fetchSemanticsNode().positionInRoot.y
       }
 
@@ -677,7 +829,7 @@ class OverviewScreenTest {
   @GraphicsMode(GraphicsMode.Mode.NATIVE)
   @Config(qualifiers = "w412dp-h916dp")
   fun tiles_areInOneRow_withTheDefaultFontSize() {
-    setContent(loaded)
+    setCaregiverContent(sharingBoth)
     assertEquals(1, tileTops().distinct().size)
   }
 
@@ -689,11 +841,12 @@ class OverviewScreenTest {
       val density = LocalDensity.current
       CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 2f)) {
         OverviewContent(
-            uiState = loaded,
+            uiState = sharingBoth,
             onShortcutClick = {},
             onOpenPlanning = {},
             onOpenAppointment = {},
             onRetry = {},
+            caregiverOf = "Anne",
         )
       }
     }
@@ -878,23 +1031,6 @@ class OverviewScreenTest {
     setCaregiverContent(loaded)
 
     composeTestRule.onNodeWithTag(C.Tag.overview_shortcuts).assertDoesNotExist()
-  }
-
-  @Test
-  fun nothingToConfirm_showsNoBadge() {
-    setContent(loaded)
-    composeTestRule.onNodeWithTag(C.Tag.overview_prescriptions_badge).assertDoesNotExist()
-  }
-
-  @Test
-  fun prescriptionsToConfirm_badgeSaysHowMany_toScreenReadersToo() {
-    setContent(loaded.copy(prescriptionsToConfirm = 2))
-
-    composeTestRule.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).performScrollTo()
-    composeTestRule
-        .onNodeWithTag(C.Tag.overview_prescriptions_badge, useUnmergedTree = true)
-        .assertIsDisplayed()
-        .assertContentDescriptionEquals("2 prescriptions to confirm")
   }
 
   // ----- Check-in (Overview UX Refactor) -----
@@ -1230,6 +1366,62 @@ class OverviewScreenTest {
 
     composeTestRule.onNodeWithTag(C.Tag.overview_header).assertIsDisplayed()
     assertTextInside(appointment.title, C.Tag.overview_next_up)
+  }
+
+  @Test
+  fun phoneRotated_theDosesTickedAreStillShown() {
+    val auth =
+        FakeAuthRepository(onSignIn = { AuthUser(uid = "patient", displayName = "Alex") }).also {
+          runBlocking { it.signInWithGoogle("token") }
+        }
+    val viewModel =
+        OverviewViewModel(
+            authRepository = auth,
+            profileRepository = FakeUserProfileRepository(),
+            observePlanning =
+                ownPlanning(
+                    FakePlanningRepository().apply {
+                      items.value =
+                          listOf(
+                              PlanningItem(
+                                  PlanningSource.Medication("prescription", "ondansetron"),
+                                  PlanningTiming.DateOnly(morning.toLocalDate()),
+                                  "Ondansetron",
+                                  frequency = "3 times a day",
+                              )
+                          )
+                    }
+                ),
+            clock = clockAt(morning),
+            zoneId = ZoneOffset.UTC,
+            takenDosesRepository = FakeTakenDosesRepository(),
+        )
+    val show = {
+      composeTestRule.activity.setContent {
+        OverviewScreen(
+            navigationActions =
+                RecordingNavigationActions(TestNavHostController(LocalContext.current)),
+            viewModel = viewModel,
+        )
+      }
+    }
+    composeTestRule.runOnUiThread(show)
+    val key = viewModel.uiState.value.todayMedications.single().key
+    composeTestRule
+        .onNodeWithTag(C.Tag.overviewDoseButton(key), useUnmergedTree = true)
+        .performScrollTo()
+        .performClick()
+
+    composeTestRule.activityRule.scenario.recreate()
+    composeTestRule.runOnUiThread(show)
+
+    composeTestRule
+        .onNode(
+            hasText("1 of 3") and hasAnyAncestor(hasTestTag(C.Tag.overviewMedication(key))),
+            useUnmergedTree = true,
+        )
+        .performScrollTo()
+        .assertIsDisplayed()
   }
 
   @Test

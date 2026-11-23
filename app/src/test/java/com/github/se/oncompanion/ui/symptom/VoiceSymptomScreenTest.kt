@@ -4,6 +4,7 @@ package com.github.se.oncompanion.ui.symptom
 
 import android.Manifest
 import android.app.Application
+import android.os.Looper
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,12 +20,15 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.auth.AuthUser
 import com.github.se.oncompanion.model.speech.FakeSpeechRecognizer
+import com.github.se.oncompanion.model.speech.OfflineSpeech
 import com.github.se.oncompanion.model.speech.SpeechEvent
+import com.github.se.oncompanion.model.speech.SpeechLanguage
 import com.github.se.oncompanion.model.symptom.FakeSymptomRepository
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import java.time.Clock
+import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.Locale
@@ -177,6 +181,36 @@ class VoiceSymptomScreenTest {
     compose.waitForIdle()
     node(C.Tag.symptom_voice_headline).assertTextEquals(string(R.string.symptom_voice_listening))
     assertTrue(speech.isListening)
+  }
+
+  @Test
+  fun downloadingForOffline_waitsForThePhonesDialog_thenListensWithANote_thatStaysWhenRotated() {
+    speech.offline = OfflineSpeech.DOWNLOADABLE
+    microphone(allowed = true)
+    showScreen()
+
+    speak()
+    node(C.Tag.symptom_voice_headline)
+        .assertTextEquals(string(R.string.symptom_voice_offline_offer_title))
+    assertFalse(speech.isListening)
+    // The offer is still there after a rotation
+    showScreenAgain()
+    node(C.Tag.symptom_voice_download).performClick()
+    // The phone's own dialog covers the app: nothing listens until it closes
+    compose.activityRule.scenario.moveToState(Lifecycle.State.STARTED)
+    shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMinutes(1))
+    assertFalse(speech.isListening)
+    assertEquals(VoiceUiState.Preparing, viewModel.uiState.value.voice)
+    // The patient confirmed: the phone now says it downloads
+    speech.offline = OfflineSpeech.DOWNLOADING
+    compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+    compose.waitForIdle()
+
+    assertEquals(listOf(SpeechLanguage.ENGLISH), speech.downloads)
+    assertTrue(speech.isListening)
+    node(C.Tag.symptom_voice_downloading).assertIsDisplayed()
+    showScreenAgain()
+    node(C.Tag.symptom_voice_downloading).assertIsDisplayed()
   }
 
   @Test

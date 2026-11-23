@@ -95,6 +95,17 @@
         <item quantity="one">%1$d more</item>
         <item quantity="other">%1$d more</item>
     </plurals>
+    <!-- Doses ticked on the Overview (US-28): "1 of 3", then "All taken" -->
+    <string name="overview_doses_taken">%1$d of %2$d</string>
+    <string name="overview_doses_all_taken">All taken</string>
+    <!-- The round dose button, for TalkBack: "Tick a dose of Ondansetron 8 mg, 1 of 3 taken" -->
+    <plurals name="overview_dose_tick">
+        <item quantity="one">Tick a dose of %1$s, %2$d of %3$d taken</item>
+        <item quantity="other">Tick a dose of %1$s, %2$d of %3$d taken</item>
+    </plurals>
+    <string name="overview_dose_tick_once">Tick %1$s as taken</string>
+    <string name="overview_dose_untick">%1$s taken today, untick it</string>
+    <string name="overview_doses_all_taken_of">All doses of %1$s taken today</string>
     <string name="overview_planning_link">Planning</string>
     <string name="overview_next">Next</string>
     <string name="overview_now">Now</string>
@@ -110,11 +121,6 @@
     <string name="overview_care_of">%1$s\'s care</string>
     <string name="overview_switch_patient">Choose whose care to follow</string>
     <string name="overview_error_hint_caregiver">Please try again.</string>
-    <!-- US-43: on the Prescriptions shortcut, read by screen readers, e.g. "1 prescription to confirm" -->
-    <plurals name="overview_prescriptions_to_confirm">
-        <item quantity="one">%1$d prescription to confirm</item>
-        <item quantity="other">%1$d prescriptions to confirm</item>
-    </plurals>
 
     <!-- Symptoms -->
     <string name="symptom_type_fatigue">Fatigue</string>
@@ -237,11 +243,21 @@
     <string name="symptom_voice_no_speech_title">We didn\'t hear anything</string>
     <string name="symptom_voice_no_speech_message">Try again a little closer to the phone, or type instead.</string>
     <string name="symptom_voice_offline_title">Voice needs a connection</string>
-    <string name="symptom_voice_offline_message">Your phone can only understand this language online. Try again once you\'re connected, or type instead.</string>
+    <string name="symptom_voice_offline_message">Your phone needs a connection to understand you right now. Try again once you\'re connected, or type instead.</string>
     <string name="symptom_voice_unavailable_title">Voice isn\'t available on this phone</string>
     <string name="symptom_voice_unavailable_message">You can type your symptoms instead.</string>
     <string name="symptom_voice_failed_title">Voice didn\'t work</string>
     <string name="symptom_voice_failed_message">Try again, or type instead.</string>
+    <!-- Voice without a connection (US-45); %1$s is a language name below, e.g. "English" -->
+    <string name="symptom_voice_offline_offer_title">Use voice without a connection?</string>
+    <string name="symptom_voice_offline_offer_message">Your phone can download %1$s to understand you even without signal, like in a waiting room. You only need to do it once.</string>
+    <string name="symptom_voice_download">Download %1$s</string>
+    <string name="symptom_voice_not_now">Not now</string>
+    <string name="symptom_voice_downloading">Downloading %1$s. Voice will work without a connection once it\'s done.</string>
+    <string name="symptom_voice_language_english">English</string>
+    <string name="symptom_voice_language_french">French</string>
+    <string name="symptom_voice_preparing">Getting ready…</string>
+    <string name="symptom_voice_online_only">Your phone needs a connection to understand you. Without one, type your symptom instead.</string>
 
     <!-- Sign-in -->
     <string name="sign_in_welcome">Welcome to oncompanion</string>
@@ -273,8 +289,13 @@
     <string name="onboarding_error_not_signed_in">You\'re no longer signed in. Please sign in again.</string>
     <string name="onboarding_error_save_failed">Couldn\'t save your information. Please try again.</string>
 
-    <!-- Bottom navigation bar (Planning and Events use their screen titles) -->
+    <!-- Bottom navigation bar (Planning, Prescriptions and Events use their screen titles) -->
     <string name="tab_overview">Overview</string>
+    <!-- US-43: the Prescriptions tab's badge, read by screen readers, e.g. "1 prescription to confirm" -->
+    <plurals name="tab_prescriptions_to_confirm">
+        <item quantity="one">%1$d prescription to confirm</item>
+        <item quantity="other">%1$d prescriptions to confirm</item>
+    </plurals>
 
     <!-- Events -->
     <string name="events_screen_title">Upcoming events</string>
@@ -305,6 +326,8 @@
     <string name="event_detail_remove_message">This doesn\'t cancel your registration with the organizer.</string>
     <string name="event_detail_remove_cancel">Cancel</string>
     <string name="event_detail_remove_confirm">Remove</string>
+    <string name="event_detail_remove_title_caregiver">Remove %1$s\'s registration confirmation?</string>
+    <string name="event_detail_remove_message_caregiver">This only removes the confirmation in the app. The registration with the organizer stays in place.</string>
     <string name="event_detail_registration_error">Couldn\'t load or save your registration.</string>
     <string name="event_detail_website_error">Couldn\'t open the event website.</string>
     <string name="event_detail_website_error_can_confirm">Couldn\'t open the event website. You can still tap \"I\'m registered\".</string>
@@ -650,6 +673,10 @@
     <string name="prescription_delete_message_for">It will be removed from %1$s\'s prescriptions with all its medications. You can\'t undo this.</string>
     <string name="prescription_form_not_allowed_title">This prescription can\'t be edited</string>
     <string name="prescription_form_not_allowed_hint">You don\'t currently have permission to edit this patient\'s prescriptions.</string>
+    <!-- #549: the eyebrow of the card holding the doctor and the date, shown in capitals -->
+    <string name="prescription_form_prescription_section">Prescription</string>
+    <!-- #549: above the medications, with their number, e.g. "Medications (2)" -->
+    <string name="prescription_form_medications_heading">Medications (%1$d)</string>
 
     <!-- Prescription scan (US-10) -->
     <string name="prescription_scan_title">Scan prescription</string>

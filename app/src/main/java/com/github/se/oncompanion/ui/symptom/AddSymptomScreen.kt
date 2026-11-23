@@ -160,6 +160,12 @@ fun AddSymptomScreen(
     onPauseOrDispose {}
   }
 
+  // Tells the view model when the phone's download dialog covers the screen, and when it closes
+  LifecycleResumeEffect(viewModel) {
+    viewModel.onScreenShown()
+    onPauseOrDispose { viewModel.onScreenHidden() }
+  }
+
   // Leaves the screen once the symptom is saved
   val currentOnSaved by rememberUpdatedState(onSaved)
   LaunchedEffect(uiState.save) { if (uiState.save == SavePhase.SAVED) currentOnSaved() }
@@ -188,6 +194,8 @@ fun AddSymptomScreen(
         onOpenSettings = { context.startActivity(appSettingsIntent(context)) },
         onDone = viewModel::onDone,
         onStartOver = viewModel::restartListening,
+        onDownloadForOffline = viewModel::onDownloadForOffline,
+        onNotNow = viewModel::onNotNow,
         modifier = modifier,
     )
     return

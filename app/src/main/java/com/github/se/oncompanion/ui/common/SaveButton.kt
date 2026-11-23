@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
 import com.github.se.oncompanion.ui.theme.Spacing
 
@@ -14,7 +15,8 @@ import com.github.se.oncompanion.ui.theme.Spacing
  * The Save button at the bottom of a form, as the form's bottom bar (Figma: "Button", Style=Filled,
  * pinned 16 dp from the sides and 24 dp from the bottom). While [isSaving], a spinner tagged
  * [savingTestTag] replaces [text] on the full teal button, so the user sees the tap was taken into
- * account; otherwise a disabled button fades.
+ * account; otherwise a disabled button fades. An [icon], if given, leads the label (the
+ * prescription form's check, Figma M3).
  */
 @Composable
 fun SaveButton(
@@ -25,11 +27,13 @@ fun SaveButton(
     testTag: String,
     savingTestTag: String,
     modifier: Modifier = Modifier,
+    icon: Painter? = null,
 ) {
   LakeButton(
       text = text,
       onClick = onClick,
       enabled = enabled,
+      icon = icon,
       isWorking = isSaving,
       workingTestTag = savingTestTag,
       modifier =
