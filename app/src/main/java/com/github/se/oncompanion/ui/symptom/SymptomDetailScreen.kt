@@ -275,8 +275,14 @@ private fun SymptomsSection(entry: SymptomEntry) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
+      // A long name of "Other" is cut rather than wrapped; the edit form shows it whole
       entry.types.forEach { type ->
-        LakeFilterChip(selected = true, onClick = null, label = stringResource(type.label))
+        LakeFilterChip(
+            selected = true,
+            onClick = null,
+            label = entry.nameOf(type),
+            singleLine = true,
+        )
       }
     }
   }

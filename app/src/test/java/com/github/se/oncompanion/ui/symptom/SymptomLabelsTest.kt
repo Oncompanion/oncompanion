@@ -3,6 +3,7 @@
 package com.github.se.oncompanion.ui.symptom
 
 import android.content.Context
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -71,11 +72,16 @@ class SymptomLabelsTest {
   }
 
   @Test
-  fun title_ofOther_isOther_theNotesSayWhichSymptom() {
+  fun title_ofOther_isItsName_orOtherWithoutOne() {
+    val other = fatigue.copy(types = listOf(SymptomType.FATIGUE, SymptomType.OTHER))
     composeTestRule.setContent {
-      Text(fatigue.copy(types = listOf(SymptomType.OTHER), notes = "Hiccups").title())
+      Column {
+        Text(other.copy(otherName = "Hiccups").title())
+        Text(other.copy(notes = "Hiccups").title())
+      }
     }
-    composeTestRule.onNodeWithText("Other").assertExists()
+    composeTestRule.onNodeWithText("Fatigue, Hiccups").assertExists()
+    composeTestRule.onNodeWithText("Fatigue, Other").assertExists()
   }
 
   @Test

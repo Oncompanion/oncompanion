@@ -66,7 +66,7 @@ fun WeekCard(summary: WeekSummary, modifier: Modifier = Modifier) {
                     R.plurals.symptom_week_summary,
                     summary.entryCount,
                     summary.entryCount,
-                    stringResource(it.label),
+                    it.otherName ?: stringResource(it.type.label),
                 )
               }
                   ?: pluralStringResource(

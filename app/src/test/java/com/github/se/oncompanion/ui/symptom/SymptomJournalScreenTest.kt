@@ -252,7 +252,16 @@ class SymptomJournalScreenTest {
   }
 
   @Test
-  fun otherEntry_showsWhichSymptomFromItsNotes() {
+  fun otherEntry_showsItsName() {
+    setSingleEntry(
+        fatigue.copy(types = listOf(SymptomType.FATIGUE, SymptomType.OTHER), otherName = "Hiccups")
+    )
+
+    assertTextInside("Fatigue, Hiccups", C.Tag.symptomJournalItem("fatigue"))
+  }
+
+  @Test
+  fun otherEntry_fromBeforeItCouldBeNamed_staysOther_withItsNotes() {
     setSingleEntry(
         fatigue.copy(types = listOf(SymptomType.FATIGUE, SymptomType.OTHER), notes = "Hiccups")
     )

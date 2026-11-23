@@ -65,11 +65,12 @@ class SymptomRepositoryFirestoreTest {
           notes = "After the walk",
       )
 
-  /** "Other" with the notes saying which symptom, and no intensity. */
+  /** "Other", named, and no intensity. */
   private fun hiccups() =
       SymptomEntry(
           types = listOf(SymptomType.HEADACHE, SymptomType.OTHER),
           occurredAt = Instant.parse("2026-10-04T18:30:00Z"),
+          otherName = "Hiccups",
           notes = "Hiccups",
       )
 
@@ -220,6 +221,56 @@ class SymptomRepositoryFirestoreTest {
   }
 
   @Test
+  fun theNameOfOther_roundTrips_andAnOfflineEditRemovingOther_clearsIt(): Unit = runBlocking {
+    val id = repository.addSymptom(aliceUid, hiccups())
+    awaitServerAck()
+    assertEquals("Hiccups", observeOnce(id)!!.otherName)
+
+    // The form keeps the name it had; removing "Other" is enough to clear it
+    val edited = hiccups().copy(id = id, types = listOf(SymptomType.HEADACHE))
+    db.disableNetwork().await()
+    try {
+      withTimeout(5_000) { repository.updateSymptom(aliceUid, edited) }
+      assertNull("cleared at once on the device", observeOnce(id)!!.otherName)
+    } finally {
+      db.enableNetwork().await()
+    }
+    awaitServerAck()
+    val server =
+        withTimeout(10_000) {
+          db.collection(symptomsPath(aliceUid)).document(id).get(Source.SERVER).await()
+        }
+    assertNull(server.get(SymptomRepositoryFirestore.FIELD_OTHER_NAME))
+  }
+
+  @Test
+  fun aNameWithoutOther_orAnOtherFromBefore_showsNoName(): Unit = runBlocking {
+    // An older app version removed "Other" and left its name
+    EmulatorTestData.createRawDocument(
+        symptomsPath(aliceUid),
+        "leftBehind",
+        """{"types": {"arrayValue": {"values": [{"stringValue": "FATIGUE"}]}},
+           "otherName": {"stringValue": "Hiccups"},
+           "occurredAt": {"timestampValue": "2026-10-01T00:00:00Z"},
+           "createdAt": {"timestampValue": "2026-10-01T00:00:00Z"}}""",
+    )
+    // Saved before the name existed: the notes said which symptom it was
+    EmulatorTestData.createRawDocument(
+        symptomsPath(aliceUid),
+        "before",
+        """{"types": {"arrayValue": {"values": [{"stringValue": "OTHER"}]}},
+           "notes": {"stringValue": "Hiccups"},
+           "occurredAt": {"timestampValue": "2026-10-01T00:00:00Z"},
+           "createdAt": {"timestampValue": "2026-10-01T00:00:00Z"}}""",
+    )
+
+    assertNull(observeOnce("leftBehind")!!.otherName)
+    val before = observeOnce("before")!!
+    assertNull(before.otherName)
+    assertEquals("Hiccups", before.notes)
+  }
+
+  @Test
   fun anEntryFromBefore_keepsItsOneIntensity_andNoStrengths(): Unit = runBlocking {
     val id = repository.addSymptom(aliceUid, fatigue())
     awaitServerAck()
@@ -257,6 +308,7 @@ class SymptomRepositoryFirestoreTest {
     assertEquals("intensity", SymptomRepositoryFirestore.FIELD_INTENSITY)
     assertEquals("occurredAt", SymptomRepositoryFirestore.FIELD_OCCURRED_AT)
     assertEquals("notes", SymptomRepositoryFirestore.FIELD_NOTES)
+    assertEquals("otherName", SymptomRepositoryFirestore.FIELD_OTHER_NAME)
     assertEquals("createdAt", SymptomRepositoryFirestore.FIELD_CREATED_AT)
     assertEquals("editedBy", SymptomRepositoryFirestore.FIELD_EDITED_BY)
     assertEquals("editedByName", SymptomRepositoryFirestore.FIELD_EDITED_BY_NAME)
@@ -537,7 +589,8 @@ class SymptomRepositoryFirestoreTest {
             fatigue().copy(intensity = 11),
             fatigue().copy(types = emptyList()),
             fatigue().copy(types = listOf(SymptomType.PAIN, SymptomType.PAIN)),
-            hiccups().copy(notes = " "),
+            hiccups().copy(otherName = " "),
+            hiccups().copy(otherName = "h".repeat(41)),
             fatigue().copy(notes = "n".repeat(1001)),
             fatigue().copy(occurredAt = Instant.now().plusSeconds(3600)),
         )
