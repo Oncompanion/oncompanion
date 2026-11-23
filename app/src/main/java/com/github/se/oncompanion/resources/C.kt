@@ -200,6 +200,7 @@ object C {
     const val symptom_add_intensity_track = "symptom_add_intensity_track"
     const val symptom_add_when = "symptom_add_when"
     const val symptom_add_notes = "symptom_add_notes"
+    const val symptom_add_other_name = "symptom_add_other_name"
     const val symptom_add_save = "symptom_add_save"
     const val symptom_add_saving = "symptom_add_saving"
     const val symptom_add_date_picker = "symptom_add_date_picker"

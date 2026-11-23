@@ -147,6 +147,10 @@
         {
           "type": "text",
           "id": "screens_t"
+        },
+        {
+          "type": "arrow",
+          "id": "screens_notifications"
         }
       ],
       "updated": 1794000000000,
@@ -987,6 +991,10 @@
         {
           "type": "text",
           "id": "firestore_t"
+        },
+        {
+          "type": "arrow",
+          "id": "notifications_fs"
         }
       ],
       "updated": 1794000000000,
@@ -2001,7 +2009,7 @@
       "x": 20,
       "y": 700,
       "width": 1804,
-      "height": 180.0,
+      "height": 225.0,
       "angle": 0,
       "strokeColor": "#495057",
       "backgroundColor": "transparent",
@@ -2014,15 +2022,15 @@
       "frameId": null,
       "roundness": null,
       "seed": 254861318,
-      "version": 2,
+      "version": 3,
       "versionNonce": 267186447,
       "isDeleted": false,
       "boundElements": [],
       "updated": 1794000000000,
       "link": null,
       "locked": false,
-      "text": "Nothing drafted from a scan is saved until the user confirms it in the prescription form. ManageMedicationSchedule is the only way\nmedications are written, so reminders can follow them later (see Reminders). A caregiver allowed to adds one from the same form (US-43),\nsigned with their first name: it shows as not confirmed, and observeMedications (what reminders read) leaves it out until the patient confirms it; one they reject moves apart, for the caregiver who added it only.\nUS-28: DoseCount reads how many doses a day a frequency says, and none when it's taken only if needed, up to a maximum, less than daily or unclear;\nTakenDosesRepository keeps one count per medication per day, written by the patient only.\nUS-35: MedicationDetailScreen reads one prescription through ObserveCareSection, then opens PrescriptionDetailScreen.\nUS-46 data: caregiver updates omit confirmation to preserve concurrent patient decisions; patient updates confirm pending entries.\nUS-46 UI: existing detail actions and form use canEditEntries; EditedBy names the editor, and deletion asks whose prescription is removed.",
-      "originalText": "Nothing drafted from a scan is saved until the user confirms it in the prescription form. ManageMedicationSchedule is the only way\nmedications are written, so reminders can follow them later (see Reminders). A caregiver allowed to adds one from the same form (US-43),\nsigned with their first name: it shows as not confirmed, and observeMedications (what reminders read) leaves it out until the patient confirms it; one they reject moves apart, for the caregiver who added it only.\nUS-28: DoseCount reads how many doses a day a frequency says, and none when it's taken only if needed, up to a maximum, less than daily or unclear;\nTakenDosesRepository keeps one count per medication per day, written by the patient only.\nUS-35: MedicationDetailScreen reads one prescription through ObserveCareSection, then opens PrescriptionDetailScreen.\nUS-46 data: caregiver updates omit confirmation to preserve concurrent patient decisions; patient updates confirm pending entries.\nUS-46 UI: existing detail actions and form use canEditEntries; EditedBy names the editor, and deletion asks whose prescription is removed.",
+      "text": "Nothing drafted from a scan is saved until the user confirms it in the prescription form. ManageMedicationSchedule is the only way\nmedications are written, so reminders can follow them later (see Reminders). A caregiver allowed to adds one from the same form (US-43),\nsigned with their first name: it shows as not confirmed, and observeMedications (what reminders read) leaves it out until the patient confirms it; one they reject moves apart, for the caregiver who added it only.\nUS-28: DoseCount reads how many doses a day a frequency says, and none when it's taken only if needed, up to a maximum, less than daily or unclear;\nTakenDosesRepository keeps one count per medication per day, written by the patient only.\nUS-35: MedicationDetailScreen reads one prescription through ObserveCareSection, then opens PrescriptionDetailScreen.\nUS-46 data: caregiver updates omit confirmation to preserve concurrent patient decisions; patient updates confirm pending entries.\nUS-46 UI: existing detail actions and form use canEditEntries; EditedBy names the editor, and deletion asks whose prescription is removed.\nUS-50: a caregiver's form will notify the patient that a prescription waits for review, and the patient's decision notifies that caregiver (NotificationRepository, see Planning).\nUS-72: a prescription can carry an optional note (planned): one more field of the prescription, no new class.",
+      "originalText": "Nothing drafted from a scan is saved until the user confirms it in the prescription form. ManageMedicationSchedule is the only way\nmedications are written, so reminders can follow them later (see Reminders). A caregiver allowed to adds one from the same form (US-43),\nsigned with their first name: it shows as not confirmed, and observeMedications (what reminders read) leaves it out until the patient confirms it; one they reject moves apart, for the caregiver who added it only.\nUS-28: DoseCount reads how many doses a day a frequency says, and none when it's taken only if needed, up to a maximum, less than daily or unclear;\nTakenDosesRepository keeps one count per medication per day, written by the patient only.\nUS-35: MedicationDetailScreen reads one prescription through ObserveCareSection, then opens PrescriptionDetailScreen.\nUS-46 data: caregiver updates omit confirmation to preserve concurrent patient decisions; patient updates confirm pending entries.\nUS-46 UI: existing detail actions and form use canEditEntries; EditedBy names the editor, and deletion asks whose prescription is removed.\nUS-50: a caregiver's form will notify the patient that a prescription waits for review, and the patient's decision notifies that caregiver (NotificationRepository, see Planning).\nUS-72: a prescription can carry an optional note (planned): one more field of the prescription, no new class.",
       "fontSize": 18,
       "fontFamily": 2,
       "textAlign": "left",
@@ -2131,6 +2139,190 @@
       },
       "endBinding": {
         "elementId": "firestore",
+        "focus": 0,
+        "gap": 4
+      }
+    },
+    {
+      "id": "notifications",
+      "type": "rectangle",
+      "x": 480,
+      "y": 380,
+      "width": 220,
+      "height": 100,
+      "angle": 0,
+      "strokeColor": "#868e96",
+      "backgroundColor": "#ffffff",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "seed": 712830241,
+      "version": 2,
+      "versionNonce": 1908633991,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "notifications_t"
+        },
+        {
+          "type": "arrow",
+          "id": "screens_notifications"
+        },
+        {
+          "type": "arrow",
+          "id": "notifications_fs"
+        }
+      ],
+      "updated": 1794000000000,
+      "link": null,
+      "locked": false
+    },
+    {
+      "id": "notifications_t",
+      "type": "text",
+      "x": 490,
+      "y": 396.25,
+      "width": 200,
+      "height": 67.5,
+      "angle": 0,
+      "strokeColor": "#868e96",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 1155654885,
+      "version": 3,
+      "versionNonce": 648650499,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1794000000000,
+      "link": null,
+      "locked": false,
+      "text": "NotificationRepository\nreview notifications\n(US-50, planned)",
+      "originalText": "NotificationRepository\nreview notifications\n(US-50, planned)",
+      "fontSize": 18,
+      "fontFamily": 2,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "notifications",
+      "lineHeight": 1.25,
+      "autoResize": true
+    },
+    {
+      "id": "notifications_fs",
+      "type": "arrow",
+      "x": 590,
+      "y": 480,
+      "width": 0,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#868e96",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "dotted",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "seed": 942642810,
+      "version": 2,
+      "versionNonce": 1075530999,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1794000000000,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          80
+        ]
+      ],
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "notifications",
+        "focus": 0,
+        "gap": 4
+      },
+      "endBinding": {
+        "elementId": "firestore",
+        "focus": 0,
+        "gap": 4
+      }
+    },
+    {
+      "id": "screens_notifications",
+      "type": "arrow",
+      "x": 730,
+      "y": 120,
+      "width": 26,
+      "height": 310,
+      "angle": 0,
+      "strokeColor": "#868e96",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "dotted",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 86697065,
+      "version": 3,
+      "versionNonce": 2021733873,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1794000000000,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          310
+        ],
+        [
+          -26,
+          310
+        ]
+      ],
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "screens",
+        "focus": 0,
+        "gap": 4
+      },
+      "endBinding": {
+        "elementId": "notifications",
         "focus": 0,
         "gap": 4
       }
