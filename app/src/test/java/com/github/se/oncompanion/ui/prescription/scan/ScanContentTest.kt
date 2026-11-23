@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.prescription.scan
@@ -10,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -18,6 +20,7 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.filterToOne
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -28,6 +31,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
@@ -683,7 +687,6 @@ class ScanContentTest {
             ScanUiState(permission = CameraPermission.REFUSED) to
                 listOf(
                     text(R.string.prescription_scan_camera_off_title),
-                    text(R.string.prescription_scan_camera_off_explanation),
                     tag(C.Tag.prescription_scan_open_settings_button),
                     tag(C.Tag.prescription_scan_enter_manually_button),
                 ),
@@ -714,6 +717,16 @@ class ScanContentTest {
         assertTrue("$name at $bounds is off the screen", bounds.top >= 0f)
         assertTrue("$name at $bounds is off the screen", bounds.bottom <= screen.size.height)
         assertEquals("$name is cut", node.size.height.toFloat(), bounds.height, 1f)
+      }
+      if (case.permission == CameraPermission.REFUSED) {
+        // The explanation can exceed the viewport while the bottom actions stay pinned.
+        compose.onNode(hasScrollAction()).performSemanticsAction(SemanticsActions.ScrollBy) {
+          it(0f, screen.size.height.toFloat())
+        }
+        val explanation = compose.onNode(text(R.string.prescription_scan_camera_off_explanation))
+        val node = explanation.fetchSemanticsNode()
+        assertTrue("The end of the explanation must be visible", node.boundsInRoot.height > 0f)
+        assertEquals(node.positionInRoot.y + node.size.height, node.boundsInRoot.bottom, 1f)
       }
     }
   }
