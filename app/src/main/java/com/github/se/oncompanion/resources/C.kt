@@ -205,6 +205,7 @@ object C {
     const val symptom_add_intensity_track = "symptom_add_intensity_track"
     const val symptom_add_when = "symptom_add_when"
     const val symptom_add_notes = "symptom_add_notes"
+    const val symptom_add_other_name = "symptom_add_other_name"
     const val symptom_add_save = "symptom_add_save"
     const val symptom_add_saving = "symptom_add_saving"
     const val symptom_add_date_picker = "symptom_add_date_picker"
@@ -237,6 +238,9 @@ object C {
     const val symptom_voice_type_instead = "symptom_voice_type_instead"
     const val symptom_voice_allow = "symptom_voice_allow"
     const val symptom_voice_open_settings = "symptom_voice_open_settings"
+    const val symptom_voice_download = "symptom_voice_download"
+    const val symptom_voice_not_now = "symptom_voice_not_now"
+    const val symptom_voice_downloading = "symptom_voice_downloading"
     const val prescriptions_screen = "prescriptions_screen"
     const val care_circle_screen = "care_circle_screen"
     // Settings

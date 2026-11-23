@@ -11,6 +11,9 @@ import com.github.se.oncompanion.domain.symptom.parseSpokenSymptom
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.signedInUid
+import com.github.se.oncompanion.model.speech.DeclinedDownloads
+import com.github.se.oncompanion.model.speech.DeclinedDownloadsProvider
+import com.github.se.oncompanion.model.speech.OfflineSpeech
 import com.github.se.oncompanion.model.speech.SpeechError
 import com.github.se.oncompanion.model.speech.SpeechEvent
 import com.github.se.oncompanion.model.speech.SpeechLanguage
@@ -43,6 +46,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** Why saving the symptom failed, so the screen can show the right message. */
 enum class AddSymptomError {
@@ -70,7 +74,10 @@ data class EditedSymptom(val entry: SymptomEntry, val date: LocalDate, val time:
  *   day the time was chosen, so the entry doesn't move a day ahead if the form stays open past
  *   midnight
  * @property time the time the user chose, or `null` for the current time
- * @property notes free text; required when [SymptomType.OTHER] is picked
+ * @property otherName which symptom [SymptomType.OTHER] is ("Hiccups"); required when it is picked
+ * @property otherNameListedAs the symptom of the list [otherName] already names ("Nausea"), if any:
+ *   it is picked there, so one entry never names it twice
+ * @property notes free text
  * @property isInFuture the chosen day and time are later than now, which can't be saved
  * @property save where saving the symptom is; once [SavePhase.SAVED], the form is done
  * @property error why the last save failed, until the screen has shown it
@@ -89,6 +96,8 @@ data class AddSymptomUiState(
     val intensity: Int? = null,
     val date: LocalDate? = null,
     val time: LocalTime? = null,
+    val otherName: String = "",
+    val otherNameListedAs: SymptomType? = null,
     val notes: String = "",
     val isInFuture: Boolean = false,
     val save: SavePhase = SavePhase.EDITING,
@@ -120,15 +129,24 @@ data class AddSymptomUiState(
             isWhenChanged ||
             types.toSet() != edited.entry.types.toSet() ||
             intensity != edited.entry.intensity ||
+            savedOtherName != edited.entry.otherName ||
             notes.trim().ifEmpty { null } != edited.entry.notes
 
-  /** "Other" is picked, so the notes have to say which symptom it was. */
-  val notesRequired: Boolean
+  /** "Other" is picked, so the user names it: the form asks "Which symptom?". */
+  val isOtherPicked: Boolean
     get() = SymptomType.OTHER in types
 
-  /** The notes are required but still empty. */
-  val isMissingNotes: Boolean
-    get() = notesRequired && notes.isBlank()
+  /** "Other" is picked but not named yet. */
+  val isMissingOtherName: Boolean
+    get() = isOtherPicked && otherName.isBlank()
+
+  /** "Other" is named after a symptom of the list, which can't be saved: it's picked there. */
+  val isOtherNameListed: Boolean
+    get() = isOtherPicked && otherNameListedAs != null
+
+  /** The name saved with the symptom: only with "Other", without the spaces around it. */
+  val savedOtherName: String?
+    get() = otherName.trim().ifEmpty { null }?.takeIf { isOtherPicked }
 
   /** Neither a day nor a time is chosen: the symptom happens "now". */
   val isNow: Boolean
@@ -142,7 +160,8 @@ data class AddSymptomUiState(
     get() =
         isFormShown &&
             types.isNotEmpty() &&
-            !isMissingNotes &&
+            !isMissingOtherName &&
+            !isOtherNameListed &&
             !isInFuture &&
             save == SavePhase.EDITING &&
             hasChanges
@@ -167,8 +186,12 @@ data class AddSymptomUiState(
  * @param speechRecognizer listens when the symptom is dictated (US-44)
  * @param locale the phone's language: a symptom is dictated in French on a French phone, in English
  *   otherwise
+ * @param symptomName the name of each symptom of the list, as the form shows it, so "Other" isn't
+ *   named after one of them
  * @param picked a symptom already ticked when logging a new one (a check-in tile on the Overview);
  *   the user can still untick it. Ignored when editing
+ * @param declinedDownloads the languages the patient said Not now to downloading for offline
+ *   dictation (US-45), so they aren't offered again in the next forms
  */
 class AddSymptomViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
@@ -180,6 +203,8 @@ class AddSymptomViewModel(
     private val speechRecognizer: SpeechRecognizer = SpeechRecognizerProvider.recognizer,
     private val locale: Locale = Locale.getDefault(),
     picked: SymptomType? = null,
+    private val symptomName: (SymptomType) -> String,
+    private val declinedDownloads: DeclinedDownloads = DeclinedDownloadsProvider.declined,
 ) : ViewModel() {
 
   /** The first name a caregiver's symptom is signed with. */
@@ -244,6 +269,8 @@ class AddSymptomViewModel(
         intensity = entry.intensity,
         date = edited.date,
         time = edited.time,
+        otherName = entry.otherName.orEmpty(),
+        otherNameListedAs = listedAs(entry.otherName.orEmpty()),
         notes = entry.notes.orEmpty(),
     )
   }
@@ -290,10 +317,25 @@ class AddSymptomViewModel(
     return Duration.between(now, now.truncatedTo(ChronoUnit.MINUTES).plusMinutes(1))
   }
 
-  /** Text longer than an entry can store is cut. */
-  fun onNotesChange(notes: String) {
-    edit { it.copy(notes = notes.take(SymptomEntry.MAX_NOTES_LENGTH)) }
+  /**
+   * Names the "Other" symptom; a name longer than an entry can store is cut, after the spaces
+   * before it, which aren't saved.
+   */
+  fun onOtherNameChange(name: String) {
+    val otherName = name.trimStart().take(SymptomEntry.MAX_OTHER_NAME_LENGTH)
+    edit { it.copy(otherName = otherName, otherNameListedAs = listedAs(otherName)) }
   }
+
+  /** Text longer than an entry can store is cut, after the spaces before it, which aren't saved. */
+  fun onNotesChange(notes: String) {
+    edit { it.copy(notes = notes.trimStart().take(SymptomEntry.MAX_NOTES_LENGTH)) }
+  }
+
+  /** The symptom of the list called [name], however it's typed ("nausea", " Nausea "). */
+  private fun listedAs(name: String): SymptomType? =
+      SymptomType.entries.firstOrNull {
+        it != SymptomType.OTHER && sameName(symptomName(it)) == sameName(name)
+      }
 
   /**
    * Saves the symptom for the signed-in user, if [AddSymptomUiState.canSave]: a new one, or the
@@ -323,6 +365,7 @@ class AddSymptomViewModel(
             // symptoms still in the entry, or saving would erase them (#543)
             strengths = state.edited?.entry?.strengths.orEmpty().filterKeys { it in state.types },
             notes = state.notes.trim().ifEmpty { null },
+            otherName = state.savedOtherName,
         )
     _uiState.update { it.copy(save = SavePhase.SAVING, error = null) }
     viewModelScope.launch {
@@ -352,7 +395,7 @@ class AddSymptomViewModel(
    */
   fun onSpeak(hasMicrophone: Boolean) {
     if (!_uiState.value.canStartDictating) return
-    if (hasMicrophone) startListening()
+    if (hasMicrophone) startDictating()
     else _uiState.update { it.copy(voice = VoiceUiState.ExplainingMicrophone) }
   }
 
@@ -363,7 +406,7 @@ class AddSymptomViewModel(
   fun onMicrophoneAnswer(granted: Boolean) {
     val state = _uiState.value
     if (state.voice != VoiceUiState.ExplainingMicrophone || !state.canStartDictating) return
-    if (granted) startListening()
+    if (granted) startDictating()
     else _uiState.update { it.copy(voice = VoiceUiState.MicrophoneRefused) }
   }
 
@@ -374,7 +417,25 @@ class AddSymptomViewModel(
    */
   fun onMicrophoneAllowedInSettings() {
     val state = _uiState.value
-    if (state.voice == VoiceUiState.MicrophoneRefused && state.canStartDictating) startListening()
+    if (state.voice == VoiceUiState.MicrophoneRefused && state.canStartDictating) startDictating()
+  }
+
+  /** The patient accepted the offer: the phone downloads their language while they speak. */
+  fun onDownloadForOffline() {
+    val offer = _uiState.value.voice as? VoiceUiState.OfferingOffline ?: return
+    speechRecognizer.downloadForOffline(offer.language)
+    phone = OfflineSpeech.DOWNLOADING
+    startListening()
+  }
+
+  /**
+   * The patient declined the offer: listens without downloading, and it isn't offered again until
+   * the app restarts.
+   */
+  fun onNotNow() {
+    val offer = _uiState.value.voice as? VoiceUiState.OfferingOffline ?: return
+    declinedDownloads.decline(offer.language)
+    startListening()
   }
 
   /** Drops what was heard and listens again. */
@@ -384,6 +445,7 @@ class AddSymptomViewModel(
 
   /** Back to the form without using what was said; it is dropped. */
   fun cancelVoice() {
+    checkingOffline?.cancel()
     listening?.cancel()
     listening = null
     _uiState.update { it.copy(voice = null) }
@@ -411,13 +473,56 @@ class AddSymptomViewModel(
     edit { it.filledFrom(draft).copy(voice = null, isDrafted = true).withFutureCheck() }
   }
 
+  /** Asks the phone whether it understands the patient's language offline, before listening. */
+  private var checkingOffline: Job? = null
+
+  /**
+   * What the phone last said about understanding the patient's language without a connection;
+   * `null` until it said something. Kept outside the UI state because it outlives each dictation: a
+   * phone that can't answer next time still has the download it started.
+   */
+  private var phone: OfflineSpeech? = null
+
+  /**
+   * Starts dictating (US-45): shows the voice screen at once while the phone is asked whether it
+   * understands the patient's language offline, then offers the download when it could get it and
+   * the patient hasn't declined it, or listens. A phone slow to answer isn't waited for: the
+   * patient came to speak.
+   */
+  private fun startDictating() {
+    if (checkingOffline?.isActive == true) return
+    val language = SpeechLanguage.of(locale)
+    _uiState.update { it.copy(voice = VoiceUiState.Preparing) }
+    // Cancelled by cancelVoice, so it never listens after the patient left
+    checkingOffline = viewModelScope.launch {
+      val support =
+          withTimeoutOrNull(OFFLINE_CHECK_TIMEOUT) { speechRecognizer.offlineSupport(language) }
+      // Without an answer, keep what the phone said last time
+      if (support != null && support != OfflineSpeech.UNKNOWN) phone = support
+      when {
+        // A form saved meanwhile goes back to the form instead of listening
+        !_uiState.value.canStartDictating -> _uiState.update { it.copy(voice = null) }
+        support == OfflineSpeech.DOWNLOADABLE && language !in declinedDownloads ->
+            _uiState.update { it.copy(voice = VoiceUiState.OfferingOffline(language)) }
+        else -> startListening()
+      }
+    }
+  }
+
+  /** The language the phone is downloading, said while listening; see [phone]. */
+  private fun downloading(language: SpeechLanguage): SpeechLanguage? = language.takeIf {
+    phone == OfflineSpeech.DOWNLOADING
+  }
+
   /** Listens to the patient in the phone's language, replacing any session already running. */
   private fun startListening() {
     listening?.cancel()
-    _uiState.update { it.copy(voice = VoiceUiState.Listening()) }
     val language = SpeechLanguage.of(locale)
+    _uiState.update { it.copy(voice = VoiceUiState.Listening(downloading = downloading(language))) }
+    // The language is on the phone: listen with the recognizer that has it, so it works offline
+    val onDevice = phone == OfflineSpeech.READY
     listening = viewModelScope.launch {
-      speechRecognizer.listen(language).collect { event ->
+      speechRecognizer.listen(language, onDevice).collect { event ->
         if (event is SpeechEvent.Level) hearLevel(event.level)
         else voiceAfter(event, language)?.let(::show)
       }
@@ -432,10 +537,17 @@ class AddSymptomViewModel(
     val current = _uiState.value.voice as? VoiceUiState.Listening
     when {
       current?.isFinishing == true && next is VoiceUiState.Heard -> useDraft(next.draft)
-      // New words keep how loud the patient is and whether Done was tapped
+      // New words keep how loud the patient is, whether Done was tapped and what is downloading
       current != null && next is VoiceUiState.Listening ->
           _uiState.update {
-            it.copy(voice = next.copy(isFinishing = current.isFinishing, level = current.level))
+            it.copy(
+                voice =
+                    next.copy(
+                        isFinishing = current.isFinishing,
+                        level = current.level,
+                        downloading = current.downloading,
+                    )
+            )
           }
       else -> _uiState.update { it.copy(voice = next) }
     }
@@ -545,6 +657,9 @@ class AddSymptomViewModel(
 
   private companion object {
     const val TAG = "AddSymptomViewModel"
+
+    /** How long the phone may take to say whether it understands the language offline. */
+    const val OFFLINE_CHECK_TIMEOUT = 2_000L
   }
 }
 

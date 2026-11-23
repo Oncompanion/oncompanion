@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -63,6 +64,8 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -184,6 +187,8 @@ fun AddSymptomScreen(
         onOpenSettings = { context.startActivity(appSettingsIntent(context)) },
         onDone = viewModel::onDone,
         onStartOver = viewModel::restartListening,
+        onDownloadForOffline = viewModel::onDownloadForOffline,
+        onNotNow = viewModel::onNotNow,
         modifier = modifier,
     )
     return
@@ -199,6 +204,7 @@ fun AddSymptomScreen(
       onDateChange = viewModel::onDateChange,
       onTimeChange = viewModel::onTimeChange,
       onNotesChange = viewModel::onNotesChange,
+      onOtherNameChange = viewModel::onOtherNameChange,
       onSave = viewModel::save,
       onErrorShown = viewModel::clearError,
       onRetry = viewModel::load,
@@ -233,6 +239,7 @@ fun AddSymptomContent(
     onSpeak: () -> Unit = {},
     onRetry: () -> Unit = {},
     caregiverOf: String? = null,
+    onOtherNameChange: (String) -> Unit = {},
 ) {
   // Not while saving or once saved: the screen then leaves by itself, and going back as well would
   // also leave the journal
@@ -302,6 +309,7 @@ fun AddSymptomContent(
               onDateChange = onDateChange,
               onTimeChange = onTimeChange,
               onNotesChange = onNotesChange,
+              onOtherNameChange = onOtherNameChange,
               onSpeak = onSpeak,
               scrollsEverything = scrollsEverything,
               caregiverOf = caregiverOf,
@@ -419,6 +427,7 @@ private fun SymptomFields(
     onDateChange: (LocalDate) -> Unit,
     onTimeChange: (LocalTime) -> Unit,
     onNotesChange: (String) -> Unit,
+    onOtherNameChange: (String) -> Unit,
     onSpeak: () -> Unit,
     scrollsEverything: Boolean,
     caregiverOf: String?,
@@ -442,7 +451,11 @@ private fun SymptomFields(
             modifier = Modifier.testTag(C.Tag.symptom_add_drafted),
         )
       }
-      FormGroup(R.string.symptom_add_types) { TypeChips(uiState.types, onToggleType) }
+      FormGroup(R.string.symptom_add_types) {
+        TypeChips(uiState.types, onToggleType)
+        // Under the chips, as soon as "Other" is picked: it can't be saved without a name
+        if (uiState.isOtherPicked) OtherNameField(uiState, onOtherNameChange)
+      }
       FormGroup(R.string.symptom_add_intensity) {
         IntensitySlider(uiState.intensity, onIntensityChange, onClearIntensity)
       }
@@ -706,21 +719,41 @@ private fun WhenField(
   }
 }
 
-/** Free text; with "Other" it asks which symptom it was, and is required. */
+/**
+ * "Which symptom?", the name of the "Other" symptom, required to save it (Figma: "Check-in · Other,
+ * not named yet"). A name of the list says to pick that symptom instead.
+ */
+@Composable
+private fun OtherNameField(uiState: AddSymptomUiState, onOtherNameChange: (String) -> Unit) {
+  val listedAs = uiState.otherNameListedAs
+  LakeTextField(
+      value = uiState.otherName,
+      onValueChange = onOtherNameChange,
+      placeholder = { Text(stringResource(R.string.symptom_add_other_name_placeholder)) },
+      supportingText =
+          listedAs?.let {
+            {
+              Text(stringResource(R.string.symptom_add_other_name_listed, stringResource(it.label)))
+            }
+          },
+      isError = listedAs != null,
+      singleLine = true,
+      keyboardOptions =
+          KeyboardOptions(
+              capitalization = KeyboardCapitalization.Sentences,
+              imeAction = ImeAction.Done,
+          ),
+      modifier = Modifier.fillMaxWidth().testTag(C.Tag.symptom_add_other_name),
+  )
+}
+
+/** Free text. */
 @Composable
 private fun NotesField(uiState: AddSymptomUiState, onNotesChange: (String) -> Unit) {
   LakeTextField(
       value = uiState.notes,
       onValueChange = onNotesChange,
       label = { Text(stringResource(R.string.symptom_add_notes)) },
-      placeholder =
-          if (uiState.notesRequired) {
-            { Text(stringResource(R.string.symptom_add_notes_other_placeholder)) }
-          } else null,
-      supportingText =
-          if (uiState.notesRequired) {
-            { Text(stringResource(R.string.symptom_add_notes_required)) }
-          } else null,
       maxLines = 6,
       modifier = Modifier.fillMaxWidth().testTag(C.Tag.symptom_add_notes),
   )
