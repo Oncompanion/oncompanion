@@ -650,6 +650,10 @@
     <string name="prescription_delete_message_for">It will be removed from %1$s\'s prescriptions with all its medications. You can\'t undo this.</string>
     <string name="prescription_form_not_allowed_title">This prescription can\'t be edited</string>
     <string name="prescription_form_not_allowed_hint">You don\'t currently have permission to edit this patient\'s prescriptions.</string>
+    <!-- #549: the eyebrow of the card holding the doctor and the date, shown in capitals -->
+    <string name="prescription_form_prescription_section">Prescription</string>
+    <!-- #549: above the medications, with their number, e.g. "Medications (2)" -->
+    <string name="prescription_form_medications_heading">Medications (%1$d)</string>
 
     <!-- Prescription scan (US-10) -->
     <string name="prescription_scan_title">Scan prescription</string>
