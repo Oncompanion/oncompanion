@@ -20,6 +20,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.se.oncompanion.R
 import com.github.se.oncompanion.domain.carecircle.FollowedPatient
 import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
 import com.github.se.oncompanion.model.carecircle.CarePermission
@@ -140,6 +141,22 @@ class CaregiverOverviewScreenTest {
       // Everything is shared: no banner, no locked card
       compose.onNodeWithTag(C.Tag.caregiver_overview_shared_only).assertDoesNotExist()
     }
+  }
+
+  @Test
+  fun nothingUpcoming_saysNothingElseToday_onceTheDayHasStarted() {
+    var state by mutableStateOf(shared.copy(nextUp = null))
+    compose.setContent { CaregiverOverviewContent(state, "Alex", CaregiverOverviewActions()) }
+    val nothingPlanned = compose.activity.getString(R.string.overview_nothing_today)
+    val nothingElse = compose.activity.getString(R.string.overview_nothing_else_today)
+
+    compose.onNodeWithText(nothingPlanned).assertIsDisplayed()
+    compose.onNodeWithText(nothingElse).assertDoesNotExist()
+
+    state = state.copy(dayStarted = true)
+    compose.waitForIdle()
+    compose.onNodeWithText(nothingElse).assertIsDisplayed()
+    compose.onNodeWithText(nothingPlanned).assertDoesNotExist()
   }
 
   @Test

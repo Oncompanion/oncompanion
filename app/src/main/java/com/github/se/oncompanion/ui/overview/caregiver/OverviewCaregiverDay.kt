@@ -107,12 +107,15 @@ private fun SharedDay(
   }
 }
 
-/** Next up, or "Nothing planned" when the patient has nothing coming. */
+/**
+ * Next up, or when the patient has nothing coming "Nothing planned today", or "Nothing else today"
+ * once something planned today has started.
+ */
 @Composable
 private fun PlanningCard(uiState: CaregiverOverviewUiState, actions: CaregiverOverviewActions) {
   val nextUp = uiState.nextUp
   if (nextUp == null) {
-    NothingPlannedCard(dayStarted = false, actions.onOpenPlanning, Modifier)
+    NothingPlannedCard(uiState.dayStarted, actions.onOpenPlanning, Modifier)
     return
   }
   NextUpCard(
