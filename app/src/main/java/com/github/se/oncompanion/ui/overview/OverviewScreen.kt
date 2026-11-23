@@ -402,7 +402,7 @@ private fun CareTitle(
 
 /** "Good morning, Alex" and today's date, on the header. */
 @Composable
-private fun Greeting(firstName: String?, now: LocalDateTime, titleStyle: TextStyle) {
+internal fun Greeting(firstName: String?, now: LocalDateTime, titleStyle: TextStyle) {
   val name = firstName?.takeIf { it.isNotBlank() }
   val greeting =
       when (now.hour) {
@@ -470,7 +470,7 @@ private val tilePadding = 8.dp
  * one per row when a label wouldn't fit in a third of the width (small screen or large font).
  */
 @Composable
-private fun Shortcuts(
+internal fun Shortcuts(
     onShortcutClick: (OverviewShortcut) -> Unit,
     tiles: List<OverviewShortcut>,
     withQuestion: Boolean = true,

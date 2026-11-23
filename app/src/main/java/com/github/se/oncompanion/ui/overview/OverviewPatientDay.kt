@@ -174,7 +174,7 @@ private fun Eyebrow(text: String, modifier: Modifier = Modifier) {
  * Tapping it opens its page; "Planning ›" opens Planning.
  */
 @Composable
-private fun NextUpCard(
+internal fun NextUpCard(
     nextUp: NextUp,
     today: LocalDate,
     onOpenPlanning: () -> Unit,
@@ -321,7 +321,7 @@ internal fun FrequencyChip(text: String) {
  * where the day is filled in.
  */
 @Composable
-private fun NothingPlannedCard(
+internal fun NothingPlannedCard(
     dayStarted: Boolean,
     onOpenPlanning: () -> Unit,
     modifier: Modifier,
