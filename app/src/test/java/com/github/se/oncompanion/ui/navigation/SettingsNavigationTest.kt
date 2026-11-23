@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.ui.navigation
@@ -63,6 +64,11 @@ class SettingsNavigationTest {
       }
     }
     compose.onNodeWithTag(C.Tag.profile_settings).performScrollTo().performClick()
+    compose.onNodeWithTag(C.Tag.settings_screen).assertIsDisplayed()
+    compose.onNodeWithTag(C.Tag.settings_language).performScrollTo().performClick()
+    compose.onNodeWithTag(C.Tag.language_screen).assertIsDisplayed()
+    compose.runOnIdle { assertEquals(Screen.LANGUAGE, nav.currentDestination?.route) }
+    compose.onNodeWithTag(C.Tag.settings_back).performClick()
     compose.onNodeWithTag(C.Tag.settings_screen).assertIsDisplayed()
     compose.onNodeWithTag(C.Tag.settings_appearance).performClick()
     compose.onNodeWithTag(C.Tag.appearance_screen).assertIsDisplayed()

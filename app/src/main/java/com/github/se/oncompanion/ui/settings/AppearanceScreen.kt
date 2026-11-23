@@ -1,24 +1,19 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.ui.settings
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.settings.AppearancePreference
 import com.github.se.oncompanion.resources.C
-import com.github.se.oncompanion.ui.theme.Spacing
 
 /** Collects appearance state while navigation remains owned by the host. */
 @Composable
@@ -54,36 +49,18 @@ fun AppearanceContent(
         Column(Modifier.selectableGroup()) {
           AppearancePreference.entries.forEach { preference ->
             val selected = state.settings.appearance == preference
-            Row(
-                Modifier.fillMaxWidth()
-                    .selectable(
-                        selected,
-                        enabled = !state.saving,
-                        role = Role.RadioButton,
-                        onClick = { onAppearance(preference) },
-                    )
-                    .testTag(appearanceTag(preference))
-                    .padding(Spacing.lg),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-              Column(Modifier.weight(1f)) {
-                Text(appearanceLabel(preference), style = MaterialTheme.typography.titleMedium)
-                if (preference == AppearancePreference.FOLLOW_DEVICE)
-                    Text(
-                        stringResource(R.string.appearance_device_hint),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-              }
-              if (selected) {
-                Icon(
-                    Icons.Default.Check,
-                    contentDescription = null,
-                    modifier = Modifier.testTag(C.Tag.appearance_selected),
-                )
-              }
-            }
+            SettingsChoiceRow(
+                label = appearanceLabel(preference),
+                hint =
+                    if (preference == AppearancePreference.FOLLOW_DEVICE)
+                        stringResource(R.string.appearance_device_hint)
+                    else null,
+                selected = selected,
+                onClick = { onAppearance(preference) },
+                modifier = Modifier.testTag(appearanceTag(preference)),
+                enabled = !state.saving,
+                checkModifier = Modifier.testTag(C.Tag.appearance_selected),
+            )
           }
         }
       }

@@ -266,6 +266,11 @@ object C {
     const val settings_screen = "settings_screen"
     const val settings_back = "settings_back"
     const val profile_settings = "profile_settings"
+    const val settings_language = "settings_language"
+    const val language_screen = "language_screen"
+    const val language_device = "language_device"
+    const val language_english = "language_english"
+    const val language_french = "language_french"
 
     // Profile
     const val profile_edit = "profile_edit"

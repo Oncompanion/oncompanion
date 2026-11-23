@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.ui.settings
@@ -35,7 +36,7 @@ class SettingsScreenTest {
     compose.onNodeWithTag(C.Tag.settings_back).performClick()
     assertEquals(1, backs)
     assertEquals(1, appearances)
-    listOf("Language", "Date and time", "Notifications", "Text size").forEach {
+    listOf("Date and time", "Notifications", "Text size").forEach {
       compose.onNodeWithText(it).assertDoesNotExist()
     }
   }

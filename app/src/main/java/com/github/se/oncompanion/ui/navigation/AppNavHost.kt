@@ -88,6 +88,7 @@ import com.github.se.oncompanion.ui.profile.EditProfileViewModel
 import com.github.se.oncompanion.ui.profile.ProfileScreen
 import com.github.se.oncompanion.ui.profile.ProfileViewModel
 import com.github.se.oncompanion.ui.settings.AppearanceScreen
+import com.github.se.oncompanion.ui.settings.LanguageScreen
 import com.github.se.oncompanion.ui.settings.SettingsScreen
 import com.github.se.oncompanion.ui.settings.SettingsViewModel
 import com.github.se.oncompanion.ui.symptom.AddSymptomScreen
@@ -739,8 +740,10 @@ private fun SessionNavHost(
             viewModel { SettingsViewModel() },
             onBack = navigationActions::goBack,
             onAppearance = { navigationActions.navigateTo(Screen.APPEARANCE) },
+            onLanguage = { navigationActions.navigateTo(Screen.LANGUAGE) },
         )
       }
+      composable(Screen.LANGUAGE) { LanguageScreen(onBack = navigationActions::goBack) }
       composable(Screen.APPEARANCE) {
         AppearanceScreen(viewModel { SettingsViewModel() }, onBack = navigationActions::goBack)
       }

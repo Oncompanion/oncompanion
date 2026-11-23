@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.ui.settings
@@ -28,19 +29,30 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onAppearance: () -> Unit,
     modifier: Modifier = Modifier,
+    onLanguage: () -> Unit = {},
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
-  SettingsContent(state, onBack, onAppearance, viewModel::retry, modifier)
+  SettingsContent(
+      state,
+      onBack,
+      onAppearance,
+      viewModel::retry,
+      modifier,
+      AppLanguage.current(),
+      onLanguage,
+  )
 }
 
 /** Displays only implemented categories and their persisted values. */
 @Composable
-fun SettingsContent(
+internal fun SettingsContent(
     state: SettingsUiState,
     onBack: () -> Unit,
     onAppearance: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
+    language: AppLanguage = AppLanguage.FOLLOW_DEVICE,
+    onLanguage: () -> Unit = {},
 ) {
   SettingsLayout(
       stringResource(R.string.settings_title),
@@ -54,35 +66,53 @@ fun SettingsContent(
           style = MaterialTheme.typography.bodyMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
-      Surface(
-          onClick = onAppearance,
-          shape = MaterialTheme.shapes.large,
-          color = MaterialTheme.colorScheme.surfaceContainerLowest,
-          modifier = Modifier.fillMaxWidth().testTag(C.Tag.settings_appearance),
-      ) {
-        Row(
-            Modifier.padding(Spacing.lg),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-          Column(Modifier.weight(1f)) {
-            Text(
-                stringResource(R.string.settings_appearance),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                appearanceLabel(settings.appearance),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-          }
-          Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
-        }
-      }
+      SettingsLinkRow(
+          stringResource(R.string.settings_appearance),
+          appearanceLabel(settings.appearance),
+          onAppearance,
+          Modifier.testTag(C.Tag.settings_appearance),
+      )
+    }
+    SettingsLinkRow(
+        stringResource(R.string.settings_language),
+        languageLabel(language),
+        onLanguage,
+        Modifier.testTag(C.Tag.settings_language),
+    )
+    if (state.settings != null) {
       Text(
           stringResource(R.string.appearance_phone_scope),
           style = MaterialTheme.typography.bodyMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
+    }
+  }
+}
+
+@Composable
+private fun SettingsLinkRow(title: String, value: String, onClick: () -> Unit, modifier: Modifier) {
+  Surface(
+      onClick = onClick,
+      shape = MaterialTheme.shapes.large,
+      color = MaterialTheme.colorScheme.surfaceContainerLowest,
+      modifier = modifier.fillMaxWidth(),
+  ) {
+    Row(
+        Modifier.padding(Spacing.lg),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Column(Modifier.weight(1f)) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
+      Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
     }
   }
 }

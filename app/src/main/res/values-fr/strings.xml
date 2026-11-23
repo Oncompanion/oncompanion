@@ -1,0 +1,13 @@
+<!-- Co-authored-by: Codex <noreply@openai.com> -->
+<resources>
+    <string name="settings_language">Langue</string>
+    <string name="settings_title">Paramètres</string>
+    <string name="settings_back">Retour</string>
+    <string name="language_intro">Choisissez la langue d’oncompanion.</string>
+    <string name="language_device">Suivre l’appareil</string>
+    <string name="language_device_hint">Français si disponible, sinon anglais</string>
+    <string name="language_user_data_scope">Vos notes, ordonnances et noms restent tels que vous les avez saisis.</string>
+    <string name="language_preview">Aperçu</string>
+    <string name="language_preview_appointment">Rendez-vous</string>
+    <string name="language_preview_date">mercredi 18 novembre, 14:30</string>
+</resources>
