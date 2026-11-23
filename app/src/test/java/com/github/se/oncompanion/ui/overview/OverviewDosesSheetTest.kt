@@ -1,0 +1,283 @@
+// Co-authored-by: Claude Code <noreply@anthropic.com>
+
+package com.github.se.oncompanion.ui.overview
+
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.unit.dp
+import androidx.navigation.testing.TestNavHostController
+import androidx.test.espresso.Espresso
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.se.oncompanion.domain.planning.ownPlanning
+import com.github.se.oncompanion.model.auth.AuthUser
+import com.github.se.oncompanion.model.medication.FakeTakenDosesRepository
+import com.github.se.oncompanion.model.planning.FakePlanningRepository
+import com.github.se.oncompanion.model.planning.PlanningItem
+import com.github.se.oncompanion.model.planning.PlanningSource
+import com.github.se.oncompanion.model.planning.PlanningTiming
+import com.github.se.oncompanion.model.user.FakeUserProfileRepository
+import com.github.se.oncompanion.resources.C
+import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
+import com.github.se.oncompanion.ui.SMALL_LANDSCAPE_PHONE
+import com.github.se.oncompanion.ui.assertIsFullyVisible
+import com.github.se.oncompanion.ui.auth.FakeAuthRepository
+import com.github.se.oncompanion.ui.navigation.NavigationActions
+import java.time.Clock
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
+
+@RunWith(AndroidJUnit4::class)
+class OverviewDosesSheetTest {
+
+  // An activity rule, so the phone can be rotated (the activity recreated)
+  @get:Rule val composeTestRule = createAndroidComposeRule<ComponentActivity>()
+
+  private val ondansetron =
+      TodayMedication(
+          key = "k",
+          medicationId = "ondansetron",
+          name = "Ondansetron 8 mg",
+          frequency = "3 times a day",
+          dosesPerDay = 3,
+          taken = 1,
+      )
+
+  /** What each callback of the sheet was called for, in order. */
+  private val calls = mutableListOf<String>()
+
+  /** Shows the sheet with [draft], replacing what was shown, so a test can show it again. */
+  private fun showSheet(draft: Int, medication: TodayMedication = ondansetron, doses: Int = 3) {
+    composeTestRule.runOnUiThread {
+      composeTestRule.activity.setContent {
+        OverviewDosesSheet(
+            DosesSheet(medication, doses = doses, draft = draft),
+            onLess = { calls += "less" },
+            onMore = { calls += "more" },
+            onDone = { calls += "done" },
+            onClose = { calls += "close" },
+        )
+      }
+    }
+  }
+
+  private fun node(tag: String) = composeTestRule.onNodeWithTag(tag)
+
+  @Test
+  fun theSheet_showsTheMedication_itsFrequencyToday_andTheCountSet() {
+    showSheet(draft = 2)
+
+    composeTestRule.onNodeWithText("Ondansetron 8 mg").assertIsDisplayed()
+    composeTestRule.onNodeWithText("3 times a day · today").assertIsDisplayed()
+    node(C.Tag.overview_doses_count)
+        .assertTextEquals("2 of 3 taken")
+        // TalkBack reads it again after each − or +
+        .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+    node(C.Tag.overview_doses_less)
+        .assertContentDescriptionEquals("One dose fewer of Ondansetron 8 mg")
+        .assertHeightIsAtLeast(48.dp)
+    node(C.Tag.overview_doses_more)
+        .assertContentDescriptionEquals("One more dose of Ondansetron 8 mg")
+        .assertHeightIsAtLeast(48.dp)
+  }
+
+  @Test
+  fun lessAndMore_eachCallBack_andStopAtTheirLimit() {
+    // (draft) to (less enabled, more enabled)
+    listOf(0 to (false to true), 1 to (true to true), 3 to (true to false)).forEach {
+        (draft, enabled) ->
+      calls.clear()
+      showSheet(draft)
+      val (less, more) = enabled
+
+      listOf(C.Tag.overview_doses_less to less, C.Tag.overview_doses_more to more).forEach {
+          (tag, isEnabled) ->
+        val button = node(tag)
+        if (isEnabled) button.assertIsEnabled() else button.assertIsNotEnabled()
+        button.performClick()
+      }
+      composeTestRule.runOnIdle {
+        assertEquals(
+            "draft $draft",
+            listOfNotNull("less".takeIf { less }, "more".takeIf { more }),
+            calls,
+        )
+      }
+    }
+  }
+
+  @Test
+  fun done_saves_afterTheSheetSlidesAway() {
+    showSheet(draft = 2)
+
+    node(C.Tag.overview_doses_done).performClick()
+
+    composeTestRule.runOnIdle { assertEquals(listOf("done"), calls) }
+  }
+
+  @Test
+  fun back_orASwipeDown_closesWithoutSaving() {
+    showSheet(draft = 2)
+    Espresso.pressBack()
+    composeTestRule.runOnIdle { assertEquals(listOf("close"), calls) }
+
+    calls.clear()
+    showSheet(draft = 2)
+    node(C.Tag.overview_doses_sheet).performTouchInput { swipeDown() }
+    composeTestRule.runOnIdle { assertEquals(listOf("close"), calls) }
+  }
+
+  @Test
+  @Config(qualifiers = LANDSCAPE_PHONE)
+  fun inLandscape_doneIsReachable() {
+    showSheet(draft = 1)
+
+    node(C.Tag.overview_doses_done).performScrollTo().assertIsFullyVisible()
+  }
+
+  @Test
+  @Config(qualifiers = "w360dp-h640dp", fontScale = 2f)
+  fun at200PercentText_theButtonsAndDoneCanBeReachedWhole() = assertButtonsReachableWhole()
+
+  @Test
+  @Config(qualifiers = SMALL_LANDSCAPE_PHONE, fontScale = 2f)
+  fun onASmallPhoneHeldSideways_at200PercentText_theButtonsAndDoneCanBeReachedWhole() =
+      assertButtonsReachableWhole()
+
+  /**
+   * The tightest layout: a long name and a two-digit count. Each of −, + and Done can be scrolled
+   * to and seen whole.
+   */
+  private fun assertButtonsReachableWhole() {
+    val longName =
+        ondansetron.copy(
+            name = "Ondansetron hydrochloride dihydrate 8 mg orodispersible tablets",
+            frequency = "every hour",
+            dosesPerDay = 24,
+        )
+    showSheet(draft = 12, medication = longName, doses = 24)
+
+    node(C.Tag.overview_doses_count).assertTextEquals("12 of 24 taken")
+    listOf(C.Tag.overview_doses_less, C.Tag.overview_doses_more, C.Tag.overview_doses_done)
+        .forEach { node(it).performScrollTo().assertIsFullyVisible() }
+  }
+
+  /** The taken doses saved, and what shows the Overview, again after the activity is recreated. */
+  private class OverviewWithOneMedication(
+      val doses: FakeTakenDosesRepository,
+      val viewModel: OverviewViewModel,
+      val show: () -> Unit,
+  )
+
+  /** An Overview with Ondansetron, 3 times a day and none taken, over a ViewModel that survives. */
+  private fun overviewWithOneMedication(): OverviewWithOneMedication {
+    val now = LocalDateTime.of(2026, 10, 3, 9, 0)
+    val doses = FakeTakenDosesRepository()
+    val auth =
+        FakeAuthRepository(onSignIn = { AuthUser(uid = "patient", displayName = "Alex") }).also {
+          runBlocking { it.signInWithGoogle("token") }
+        }
+    val viewModel =
+        OverviewViewModel(
+            authRepository = auth,
+            profileRepository = FakeUserProfileRepository(),
+            observePlanning =
+                ownPlanning(
+                    FakePlanningRepository().apply {
+                      items.value =
+                          listOf(
+                              PlanningItem(
+                                  PlanningSource.Medication("prescription", "ondansetron"),
+                                  PlanningTiming.DateOnly(now.toLocalDate()),
+                                  "Ondansetron",
+                                  frequency = "3 times a day",
+                              )
+                          )
+                    }
+                ),
+            clock = Clock.fixed(now.toInstant(ZoneOffset.UTC), ZoneOffset.UTC),
+            zoneId = ZoneOffset.UTC,
+            takenDosesRepository = doses,
+        )
+    val show = {
+      composeTestRule.activity.setContent {
+        OverviewScreen(
+            navigationActions = NavigationActions(TestNavHostController(LocalContext.current)),
+            viewModel = viewModel,
+        )
+      }
+    }
+    return OverviewWithOneMedication(doses, viewModel, show)
+  }
+
+  /** Opens the medication's sheet and sets it to 2 of 3. */
+  private fun OverviewWithOneMedication.openSheetAtTwo() {
+    composeTestRule.runOnUiThread(show)
+    node(C.Tag.overviewMedication(viewModel.uiState.value.todayMedications.single().key))
+        .performClick()
+    node(C.Tag.overview_doses_more).performClick()
+    node(C.Tag.overview_doses_more).performClick()
+  }
+
+  @Test
+  fun phoneRotated_theSheetKeepsItsCount_andDoneSavesIt() {
+    val overview = overviewWithOneMedication()
+    val (doses, show) = overview.doses to overview.show
+    overview.openSheetAtTwo()
+
+    // Rotating recreates the activity; the ViewModel, and the sheet's count with it, survives it
+    composeTestRule.activityRule.scenario.recreate()
+    composeTestRule.runOnUiThread(show)
+    node(C.Tag.overview_doses_count).assertTextEquals("2 of 3 taken")
+
+    node(C.Tag.overview_doses_done).performClick()
+    composeTestRule.waitForIdle()
+    node(C.Tag.overview_doses_sheet).assertDoesNotExist()
+    assertEquals(listOf(2), doses.writes.map { it.count })
+  }
+
+  @Test
+  fun phoneRotated_whileTheSheetSlidesAwayAfterDone_theCountIsSavedOnce() {
+    val overview = overviewWithOneMedication()
+    overview.openSheetAtTwo()
+
+    // Done starts the sheet sliding away; the count is saved once it is gone
+    composeTestRule.mainClock.autoAdvance = false
+    node(C.Tag.overview_doses_done).performClick()
+    composeTestRule.mainClock.advanceTimeByFrame()
+    composeTestRule.mainClock.advanceTimeByFrame()
+    assertEquals("still sliding away", emptyList<Int>(), overview.doses.writes.map { it.count })
+
+    // Rotating then ends that animation early: Done was tapped, so the count is still saved
+    composeTestRule.activityRule.scenario.recreate()
+    composeTestRule.runOnUiThread(overview.show)
+    composeTestRule.mainClock.autoAdvance = true
+    composeTestRule.waitForIdle()
+
+    assertEquals(listOf(2), overview.doses.writes.map { it.count })
+    node(C.Tag.overview_doses_sheet).assertDoesNotExist()
+  }
+}

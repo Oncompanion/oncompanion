@@ -134,6 +134,17 @@ data class TodayMedication(
 )
 
 /**
+ * The sheet where the patient corrects how many doses of a medication taken several times a day
+ * they took today (#546). Nothing is saved until Done: a sheet closed any other way, or an app
+ * stopped with it open, leaves the saved count as it was.
+ *
+ * @property medication the medication corrected, as the card shows it now
+ * @property doses its doses a day, at least 2
+ * @property draft the count the patient set with − and +, from 0 to [doses]
+ */
+data class DosesSheet(val medication: TodayMedication, val doses: Int, val draft: Int)
+
+/**
  * What the Overview shows.
  *
  * @property now the current time, for the greeting, today's date and the entries' status
@@ -145,6 +156,7 @@ data class TodayMedication(
  * @property hasError true if it couldn't be loaded
  * @property isNotShared in caregiver mode, the patient doesn't share their planning: no entries
  * @property sharedSections in caregiver mode, the sections behind the shortcuts the patient shares
+ * @property dosesSheet the sheet correcting a medication's doses, or `null` when it is closed
  */
 data class OverviewUiState(
     val now: LocalDateTime,
@@ -157,6 +169,7 @@ data class OverviewUiState(
     val hasError: Boolean = false,
     val isNotShared: Boolean = false,
     val sharedSections: Set<CarePermission> = emptySet(),
+    val dosesSheet: DosesSheet? = null,
 )
 
 /**
@@ -246,7 +259,10 @@ class OverviewViewModel(
     val now = now()
     val today = now.toLocalDate()
     if (patientUid != null) followSharedSections(patientUid) else followTakenDoses(today)
-    _uiState.update { it.copy(now = now, isLoading = true, hasError = false) }
+    // A draft was for the day it was opened on: at midnight it would be saved on the new day. The
+    // planning's loading state also empties today's medications, which closes it, but that's not
+    // what the sheet should rely on
+    _uiState.update { it.copy(now = now, isLoading = true, hasError = false, dosesSheet = null) }
     val range = overviewRange(today, zoneId)
     dayObservation = viewModelScope.launch {
       observePlanning(patientUid, range)
@@ -294,11 +310,39 @@ class OverviewViewModel(
   /** The next appointment and today's entries from [planned], at [now]. */
   private fun OverviewUiState.withItems(planned: List<PlanningItem>, now: LocalDateTime) =
       copy(
-          nextAppointment = nextAppointmentOf(planned, now),
-          nextUp = nextUpOf(planned, now, zoneId),
-          todayMedications = medicationsOf(planned, now),
-          todayEntries = entriesOf(planned, now),
+              nextAppointment = nextAppointmentOf(planned, now),
+              nextUp = nextUpOf(planned, now, zoneId),
+              todayEntries = entriesOf(planned, now),
+          )
+          .withMedications(medicationsOf(planned, now))
+
+  /**
+   * [medications] shown, and the sheet kept only while its medication is still there with several
+   * doses to tick (a caregiver can delete the prescription, or its frequency can change), its draft
+   * within the new count.
+   */
+  private fun OverviewUiState.withMedications(medications: List<TodayMedication>) =
+      copy(
+          todayMedications = medications,
+          dosesSheet =
+              dosesSheet?.let { sheet ->
+                sheetOf(
+                    medications.find { it.medicationId == sheet.medication.medicationId },
+                    sheet.draft,
+                )
+              },
       )
+
+  /**
+   * The sheet for [medication], with [draft] (its count saved for `null`), or `null` if it can't be
+   * corrected there: unknown, nothing to tick, or taken once a day.
+   */
+  private fun sheetOf(medication: TodayMedication?, draft: Int?): DosesSheet? {
+    if (medication == null) return null
+    val doses = medication.dosesPerDay ?: return null
+    if (doses < 2) return null
+    return DosesSheet(medication, doses, draft?.coerceAtMost(doses) ?: medication.taken)
+  }
 
   /**
    * Today's medications, with their dosage after their name and the doses ticked. One a caregiver
@@ -348,7 +392,7 @@ class OverviewViewModel(
   }
 
   private fun refreshMedications() {
-    _uiState.update { it.copy(todayMedications = medicationsOf(items.value, it.now)) }
+    _uiState.update { it.withMedications(medicationsOf(items.value, it.now)) }
   }
 
   /**
@@ -363,6 +407,45 @@ class OverviewViewModel(
         if (doses == 1) 1 - medication.taken.coerceAtMost(1)
         else (medication.taken + 1).coerceAtMost(doses)
     if (count != medication.taken) saveTaken(medicationId, count)
+  }
+
+  /**
+   * Opens the sheet to correct the doses of [medicationId], from the count saved. Only for a
+   * medication taken several times a day whose ticks are known: one taken once a day toggles.
+   */
+  fun openDoses(medicationId: String) {
+    _uiState.update { state ->
+      val sheet = sheetOf(state.todayMedications.find { it.medicationId == medicationId }, null)
+      if (sheet == null) state else state.copy(dosesSheet = sheet)
+    }
+  }
+
+  /** One dose fewer in the sheet's draft, not below 0. */
+  fun lessDoses() = changeDraft(-1)
+
+  /** One dose more in the sheet's draft, up to the doses a day. */
+  fun moreDoses() = changeDraft(1)
+
+  private fun changeDraft(by: Int) {
+    _uiState.update { state ->
+      val sheet = state.dosesSheet ?: return@update state
+      state.copy(dosesSheet = sheet.copy(draft = (sheet.draft + by).coerceIn(0, sheet.doses)))
+    }
+  }
+
+  /**
+   * Done: closes the sheet and saves its draft, if it differs from the count saved now (another
+   * phone may have ticked since it opened).
+   */
+  fun saveDoses() {
+    val sheet = _uiState.value.dosesSheet ?: return
+    closeDoses()
+    if (sheet.draft != sheet.medication.taken) saveTaken(sheet.medication.medicationId, sheet.draft)
+  }
+
+  /** Closes the sheet without saving: swiped down, Back, or a tap outside it. */
+  fun closeDoses() {
+    _uiState.update { it.copy(dosesSheet = null) }
   }
 
   /** Saves [count] doses of [medicationId] on the day shown; the repository reports a rejection. */
