@@ -856,4 +856,22 @@
     <string name="settings_title">Settings</string>
     <string name="settings_back">Back</string>
     <string name="settings_profile_summary">Appearance, language and more</string>
+    <string name="settings_date_time">Date and time</string>
+    <string name="settings_date_time_intro">Choose how dates and times appear.</string>
+    <string name="settings_time_format">Time format</string>
+    <string name="settings_date_format">Date format</string>
+    <string name="settings_format_summary">%1$s · %2$s</string>
+    <string name="settings_format_preview">Preview</string>
+    <string name="settings_preview_appointment">Appointment</string>
+    <string name="settings_preview_date_time">%1$s, %2$s</string>
+    <string name="settings_date_time_scope">Your choices are saved on this phone. This preview uses your phone\'s time zone.</string>
+    <string name="settings_time_format_hint">Times are shown in your phone\'s time zone.</string>
+    <string name="settings_date_format_hint">Each option shows the same example date.</string>
+    <string name="settings_phone_format_example">%1$s · current phone format</string>
+    <string name="settings_date_language_hint">Month and weekday names follow the app language.</string>
+    <string name="settings_time_12">12-hour</string>
+    <string name="settings_time_24">24-hour</string>
+    <string name="settings_date_text">Day month year</string>
+    <string name="settings_date_dmy">Day / month / year</string>
+    <string name="settings_date_ymd">Year–month–day</string>
 </resources>

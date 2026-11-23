@@ -85,8 +85,11 @@ import com.github.se.oncompanion.ui.profile.EditProfileViewModel
 import com.github.se.oncompanion.ui.profile.ProfileScreen
 import com.github.se.oncompanion.ui.profile.ProfileViewModel
 import com.github.se.oncompanion.ui.settings.AppearanceScreen
+import com.github.se.oncompanion.ui.settings.DateFormatScreen
+import com.github.se.oncompanion.ui.settings.DateTimeSettingsScreen
 import com.github.se.oncompanion.ui.settings.SettingsScreen
 import com.github.se.oncompanion.ui.settings.SettingsViewModel
+import com.github.se.oncompanion.ui.settings.TimeFormatScreen
 import com.github.se.oncompanion.ui.symptom.AddSymptomScreen
 import com.github.se.oncompanion.ui.symptom.AddSymptomViewModel
 import com.github.se.oncompanion.ui.symptom.SymptomDetailScreen
@@ -746,10 +749,25 @@ private fun SessionNavHost(
             viewModel { SettingsViewModel() },
             onBack = navigationActions::goBack,
             onAppearance = { navigationActions.navigateTo(Screen.APPEARANCE) },
+            onDateTime = { navigationActions.navigateTo(Screen.DATE_TIME_SETTINGS) },
         )
       }
       composable(Screen.APPEARANCE) {
         AppearanceScreen(viewModel { SettingsViewModel() }, onBack = navigationActions::goBack)
+      }
+      composable(Screen.DATE_TIME_SETTINGS) {
+        DateTimeSettingsScreen(
+            viewModel { SettingsViewModel() },
+            onBack = navigationActions::goBack,
+            onTimeFormat = { navigationActions.navigateTo(Screen.TIME_FORMAT_SETTINGS) },
+            onDateFormat = { navigationActions.navigateTo(Screen.DATE_FORMAT_SETTINGS) },
+        )
+      }
+      composable(Screen.TIME_FORMAT_SETTINGS) {
+        TimeFormatScreen(viewModel { SettingsViewModel() }, navigationActions::goBack)
+      }
+      composable(Screen.DATE_FORMAT_SETTINGS) {
+        DateFormatScreen(viewModel { SettingsViewModel() }, navigationActions::goBack)
       }
     }
     navigation(startDestination = Screen.PROFILE, route = Route.PROFILE) {
