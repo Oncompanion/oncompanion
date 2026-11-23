@@ -22,6 +22,16 @@ class SymptomWeekTest {
           LocalTime.NOON,
       )
 
+  private fun other(name: String?) =
+      JournalEntry(
+          SymptomEntry(
+              types = listOf(SymptomType.OTHER),
+              otherName = name,
+              occurredAt = Instant.EPOCH,
+          ),
+          LocalTime.NOON,
+      )
+
   private fun day(date: String, vararg entries: JournalEntry) =
       JournalDay(LocalDate.parse(date), entries.toList())
 
@@ -85,10 +95,16 @@ class SymptomWeekTest {
     val cases =
         listOf(
             listOf(entry(SymptomType.PAIN), entry(SymptomType.FATIGUE, SymptomType.PAIN)) to
-                SymptomType.PAIN,
+                WeekSymptom(SymptomType.PAIN),
             listOf(entry(SymptomType.NAUSEA), entry(SymptomType.FATIGUE)) to null,
             listOf(entry(SymptomType.HEADACHE, SymptomType.FATIGUE)) to null,
-            listOf(entry(SymptomType.OTHER)) to SymptomType.OTHER,
+            // An "Other" from before it could be named
+            listOf(entry(SymptomType.OTHER)) to WeekSymptom(SymptomType.OTHER),
+            // Each named "Other" is its own symptom, however its name was typed
+            listOf(other("Hiccups"), other(" hiccups "), entry(SymptomType.NAUSEA)) to
+                WeekSymptom(SymptomType.OTHER, "Hiccups"),
+            listOf(other("Hiccups"), other("Cramps"), entry(SymptomType.NAUSEA)) to null,
+            listOf(other("Hiccups"), other(null), entry(SymptomType.NAUSEA)) to null,
         )
     for ((entries, expected) in cases) {
       val summary = weekSummaryOf(listOf(JournalDay(today, entries)), today)!!

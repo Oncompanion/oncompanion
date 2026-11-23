@@ -545,7 +545,8 @@ See the [Firebase Android lifecycle reference](https://firebase.google.com/docs/
 
 ```
 /users/{uid}                          profile (owner only)
-/users/{uid}/symptoms/{id}
+/users/{uid}/symptoms/{id}            symptoms felt together, a strength per symptom, notes, and
+                                      the name of an "Other" symptom (otherName, #545)
 /users/{uid}/prescriptions/{id}       doctor, date and the list of its medications; who added it and
                                       whether the patient confirmed it (US-43)
 /users/{uid}/rejectedPrescriptions/{id}
