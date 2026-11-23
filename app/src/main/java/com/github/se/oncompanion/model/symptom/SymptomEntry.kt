@@ -90,6 +90,26 @@ data class SymptomEntry(
           (editedBy == null ||
               (!editedByName.isNullOrBlank() && editedByName.length <= MAX_ADDED_BY_NAME_LENGTH))
 
+  /**
+   * The symptoms given a strength, each with it, in the order of [types]. Empty for an entry saved
+   * before [strengths] existed: it has at most the [overallIntensity].
+   */
+  fun strengthsInOrder(): List<Pair<SymptomType, Int>> = types.mapNotNull { type ->
+    strengths[type]?.let { type to it }
+  }
+
+  /**
+   * The single [intensity] of an entry saved before [strengths] existed, or `null`. Once a symptom
+   * has its own strength, the strengths say how strong it was and an old intensity isn't shown.
+   */
+  fun overallIntensity(): Int? = intensity.takeIf { strengths.isEmpty() }
+
+  /**
+   * How strong the entry felt at most: its strongest symptom, else its [overallIntensity]; `null`
+   * when no strength was given.
+   */
+  fun strongest(): Int? = strengths.values.maxOrNull() ?: overallIntensity()
+
   companion object {
     /** Keep in sync with `firestore.rules`. */
     const val MIN_INTENSITY = 1
