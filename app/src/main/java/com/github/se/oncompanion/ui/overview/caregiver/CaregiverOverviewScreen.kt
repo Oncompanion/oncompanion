@@ -37,6 +37,7 @@ import com.github.se.oncompanion.ui.common.PaperLakeHeader
 import com.github.se.oncompanion.ui.common.PaperLakeStatusBar
 import com.github.se.oncompanion.ui.common.isPaperLakeHeaderBand
 import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
+import com.github.se.oncompanion.ui.navigation.BottomBarUiState
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Tab
 import com.github.se.oncompanion.ui.overview.Greeting
@@ -52,6 +53,7 @@ import com.github.se.oncompanion.ui.theme.lakeColors
  * @param onOpenAppointment opens the appointment in Next up
  * @param onOpenEvent opens the event in Next up
  * @param onSwitchPatient opens "Whose care?"
+ * @param bottomBar what the bottom bar shows: a caregiver's has no Prescriptions tab
  */
 @Composable
 fun CaregiverOverviewScreen(
@@ -62,6 +64,7 @@ fun CaregiverOverviewScreen(
     onOpenEvent: (String) -> Unit,
     onSwitchPatient: () -> Unit,
     modifier: Modifier = Modifier,
+    bottomBar: BottomBarUiState = BottomBarUiState(caregiverMode = true),
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   // Keeps the date, the greeting and Next up current while the Overview is shown
@@ -89,6 +92,7 @@ fun CaregiverOverviewScreen(
         BottomNavigationBar(
             selectedTab = Tab.OVERVIEW,
             onTabSelected = { tab -> navigationActions.navigateToTab(tab.route) },
+            state = bottomBar,
         )
       },
   )
