@@ -199,11 +199,10 @@ class CaregiverOverviewViewModel(
               }
             }
             .orEmpty()
+    val readsPlanning = sections[CarePermission.PLANNING] == SectionVisibility.SHOWN
     // Dropped as soon as the patient stops sharing their planning, before the planning says so
     items.value =
-        if (sections[CarePermission.PLANNING] == SectionVisibility.SHOWN)
-            (planning as? CarePlanning.Shown)?.items.orEmpty()
-        else emptyList()
+        if (readsPlanning) (planning as? CarePlanning.Shown)?.items.orEmpty() else emptyList()
     // Only read while the symptoms are shared, so waiting for them or failing to read them too
     val readsJournal = sections[CarePermission.SYMPTOMS] == SectionVisibility.SHOWN
     _uiState.update {
@@ -215,6 +214,7 @@ class CaregiverOverviewViewModel(
           isLoading =
               access is CareAccess.Unconfirmed ||
                   planning is CarePlanning.Loading ||
+                  (readsPlanning && planning.notReadYet()) ||
                   (readsJournal && journal is CareSection.Loading),
           hasError =
               planning is CarePlanning.Failed || (readsJournal && journal is CareSection.Failed),
@@ -233,6 +233,13 @@ class CaregiverOverviewViewModel(
           symptoms = entry.types.map { it to entry.strengths[it] },
           overall = entry.intensity.takeIf { entry.strengths.isEmpty() },
       )
+
+  /**
+   * Whether the planning's own listener doesn't read it yet although the access says it is shared,
+   * as when the patient has just started sharing it: "Nothing planned today" would be wrong.
+   */
+  private fun CarePlanning.notReadYet(): Boolean =
+      this is CarePlanning.NotShared || this is CarePlanning.NoAccess
 
   /** The caregiver's name for the greeting; without a name if it is not known. */
   private fun loadFirstName() {

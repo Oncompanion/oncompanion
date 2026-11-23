@@ -146,18 +146,24 @@ class CaregiverOverviewViewModelTest {
             // Events aren't a card of the day
             setOf(CarePermission.EVENTS) to listOf(PRIVATE, PRIVATE, PRIVATE),
         )
-    for ((shared, expected) in cases) {
+    // The cards' order, written out: Planning, then Prescriptions, then the journal
+    val privateSections =
+        listOf(
+            emptyList(),
+            listOf(PLANNING),
+            listOf(PRESCRIPTIONS, SYMPTOMS),
+            listOf(PLANNING, PRESCRIPTIONS, SYMPTOMS),
+        )
+    for ((case, expectedPrivate) in cases.zip(privateSections)) {
+      val (shared, expected) = case
       val state = viewModel(FollowedPatient(*shared.toTypedArray())).uiState.value
       assertEquals(
           shared.toString(),
-          listOf(PLANNING, PRESCRIPTIONS, SYMPTOMS).zip(expected).toMap(),
-          state.sections,
+          listOf(PLANNING, PRESCRIPTIONS, SYMPTOMS),
+          state.sections.keys.toList(),
       )
-      assertEquals(
-          shared.toString(),
-          state.sections.filterValues { it == PRIVATE }.keys.toList(),
-          state.privateSections,
-      )
+      assertEquals(shared.toString(), expected, state.sections.values.toList())
+      assertEquals(shared.toString(), expectedPrivate, state.privateSections)
       assertFalse(shared.toString(), state.isLoading)
     }
   }
@@ -213,10 +219,55 @@ class CaregiverOverviewViewModelTest {
   }
 
   @Test
-  fun accessNotConfirmedYet_isLoading_withNoSection() {
-    val patient = FollowedPatient(PLANNING).apply { isUnconfirmed() }
+  fun planningStartedSharingWhileOpen_staysLoading_untilThePlanningFollows() {
+    val patient = FollowedPatient(SYMPTOMS)
+    // The planning's own listener answers later than the access, so it still says "not shared"
+    val planningNotYetShared = FollowedPatient(SYMPTOMS)
+    val vm =
+        viewModel(
+            patient,
+            planning(appointment("chemo", now.plusDays(2))),
+            planningOf = planningNotYetShared,
+        )
 
-    val state = viewModel(patient).uiState.value
+    patient.shares(PLANNING, SYMPTOMS)
+    ShadowLooper.idleMainLooper()
+
+    // Not "Nothing planned today" while the patient has a chemo
+    assertEquals(SHOWN, vm.uiState.value.sections[PLANNING])
+    assertTrue(vm.uiState.value.isLoading)
+
+    planningNotYetShared.shares(PLANNING, SYMPTOMS)
+    ShadowLooper.idleMainLooper()
+    assertFalse(vm.uiState.value.isLoading)
+    assertEquals("chemo", vm.uiState.value.nextUp?.id)
+  }
+
+  @Test
+  fun planningNotLoadedYet_isLoading_evenOnceTheAccessIsKnown() {
+    // The access is known, but the planning's listener isn't confirmed yet
+    val state =
+        viewModel(
+                FollowedPatient(PLANNING),
+                planningOf = FollowedPatient(PLANNING).apply { isUnconfirmed() },
+            )
+            .uiState
+            .value
+
+    assertEquals(SHOWN, state.sections[PLANNING])
+    assertTrue(state.isLoading)
+  }
+
+  @Test
+  fun accessNotConfirmedYet_isLoading_evenOnceThePlanningIsKnown() {
+    val state =
+        viewModel(
+                FollowedPatient(PLANNING).apply { isUnconfirmed() },
+                planning(appointment("chemo", now.plusDays(2))),
+                planningOf = FollowedPatient(PLANNING),
+            )
+            .uiState
+            .value
 
     assertTrue(state.isLoading)
     assertTrue(state.sections.isEmpty())
@@ -375,6 +426,21 @@ class CaregiverOverviewViewModelTest {
     ShadowLooper.idleMainLooper()
 
     assertFalse(vm.uiState.value.hasError)
+    assertEquals("chemo", vm.uiState.value.nextUp?.id)
+  }
+
+  @Test
+  fun retry_stopsFollowingTheOldDay_beforeFollowingItAgain() {
+    val patient = FollowedPatient(PLANNING)
+    val vm = viewModel(patient, planning(appointment("chemo", now.plusDays(2))))
+    val following = patient.circle.activeObservations
+
+    repeat(3) {
+      vm.retry()
+      ShadowLooper.idleMainLooper()
+    }
+
+    assertEquals(following, patient.circle.activeObservations)
     assertEquals("chemo", vm.uiState.value.nextUp?.id)
   }
 
