@@ -17,7 +17,7 @@ oncompanion is used by people in cancer therapy. It is an organizational tool, *
 1. **Find or create an issue.** Use a template: a user story (`US-<n>: ...`) under its epic, a sprint task under its story, or a bug (`fix: ...`). Fill in its fields on the Scrum board. See [Issues and the Scrum board](AGENTS.md#issues-and-the-scrum-board).
 2. **Move it to In Development** when you start, and read [docs/architecture.md](docs/architecture.md) before adding a feature, a collection or a use case.
 3. **Branch** from `main`: `feature/<short-name>`, `fix/...`, `chore/...`, `ci/...` or `docs/...`. Never push to `main`.
-4. **Write the code and its tests** following [Architecture](AGENTS.md#architecture), [Code style](AGENTS.md#code-style), [Firebase and data](AGENTS.md#firebase-and-data) and [Tests](AGENTS.md#tests). New code needs 90% coverage.
+4. **Write the code and its tests** following [Architecture](AGENTS.md#architecture), [Code style](AGENTS.md#code-style), [Firebase and data](AGENTS.md#firebase-and-data) and [Tests](AGENTS.md#tests). Aim for 95% line coverage on new code.
 5. **Commit** with [Conventional Commits](AGENTS.md#commits) (`feat: add one-tap fatigue logging`): one logical change per commit, with its tests.
 6. **Run the checks** before pushing ([Build, format, test](AGENTS.md#build-format-test)):
 
@@ -41,13 +41,13 @@ Details in [Reviews](AGENTS.md#reviews).
 
 ## Using AI
 
-The course counts an AI that writes code as a contributor. Credit it at the top of every file it wrote or changed, above `package`:
+An AI that writes code is a contributor. Credit it at the top of every file it wrote or changed, above `package`:
 
 ```kotlin
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 ```
 
-Use `#` in YAML and `<!-- ... -->` in Markdown. A missing line counts as plagiarism. Coding agents read [AGENTS.md](AGENTS.md) directly.
+Use `#` in YAML and `<!-- ... -->` in Markdown. Coding agents read [AGENTS.md](AGENTS.md) directly.
 
 ## Where to read more
 
