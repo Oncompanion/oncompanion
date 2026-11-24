@@ -341,6 +341,16 @@ to the originating screen/day. Only creation sends the saved-day result to Plann
 shared `DetailWithActions` and `DetailActions`: supported actions stay visible in normal windows
 and scroll after the content in compact windows. Edit mode reuses the form's keyboard handling.
 
+### Appointment reminder reconciliation (#453, inactive foundation)
+
+`domain/reminder/ReconcileAppointmentReminders` combines the signed-in patient's profile and appointment snapshots with `ReminderScheduler` and `AppointmentReminderPlans`. Nothing starts until `observe()` is collected. This slice adds no app/lifecycle collector or provider installation, so it does not activate end-to-end delivery. Account changes cancel the old observation; each scheduling batch rechecks the current uid inside `SessionAccess.immediate`.
+
+The saved #489 choice determines the offset: None, 15 minutes, one hour (including legacy defaults), three hours or one day. Offsets are elapsed durations; display text uses the phone's locale and zone. Past appointments get no alarm, and an elapsed reminder time for a future appointment schedules immediately. Caregiver changes arrive through the same patient repository. Notes/attribution changes do not reschedule. Before due time, title/location changes replace content; once due, unchanged timing never triggers another immediate alarm. Appointment-time or reminder-choice changes constitute a new timing. None/deletion cancels only that appointment. Read failures never stand for an empty/deleted list.
+
+`AppointmentReminderPlansPreferences` stores accepted scheduling receipts per account/item: the original due instant and SHA-256 timing/content identifiers, without title, location, notes or credentials. Reads and checked synchronous commits join the session fence; malformed receipts fail closed instead of replaying. Its provider preserves injected fakes. Receipts survive normal collector/process recreation; blocked schedules are not recorded as accepted and can be retried by recollection.
+
+Receipts acknowledge **scheduling**, not notification display. Preferences and AlarmManager are not atomic: process death between scheduling and receipt commit, device-reboot recovery and permission revocation of an already accepted alarm need delivery/lifecycle reconciliation under #454. The activation PR must wire permission-resume retries and notification-tap navigation. Sign-out cancellation and sign-in restoration remain #454; #638's persisted cleanup/account/version checks still protect the receiver. No Firebase rules, remote resources, forms or UI change.
+
 ### Appointment reminder choices
 
 Appointments store one shared `reminder` enum name: `NONE`, `FIFTEEN_MINUTES`, `ONE_HOUR`,
