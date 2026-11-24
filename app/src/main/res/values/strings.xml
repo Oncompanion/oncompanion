@@ -146,6 +146,8 @@
     <string name="overview_care_of">%1$s\'s care</string>
     <string name="overview_switch_patient">Choose whose care to follow</string>
     <string name="overview_error_hint_caregiver">Please try again.</string>
+    <!-- US-73: the check-in's button to say how you feel instead of tapping a tile -->
+    <string name="overview_speak">Speak how you feel</string>
 
     <!-- Caregiver Overview: the caregiver's own home, with the day of the patient they follow -->
     <string name="caregiver_overview_day">%1$s\'s day</string>
@@ -293,6 +295,8 @@
     <!-- A symptom's strength in the journal, e.g. "mild" "nausea" -->
     <string name="symptom_strength_in_words">%1$s %2$s</string>
     <string name="symptom_strength_description">Intensity %1$d out of 10, %2$s</string>
+    <!-- The voice screen's close button when it was opened from "Speak how you feel" on the Overview (US-73) -->
+    <string name="symptom_voice_leave">Close</string>
 
     <!-- Sign-in -->
     <string name="sign_in_welcome">Welcome to oncompanion</string>
