@@ -243,10 +243,12 @@ class SymptomDetailScreenTest {
     }
   }
 
-  // The title shows one line: the card is where every symptom can be read, whatever the font
+  // The title shows one line: the card is where every symptom can be read, whatever the font.
+  // Native graphics so the text has its real width, on the narrowest phone at the largest font
   @Test
-  @Config(qualifiers = "w411dp-h891dp", fontScale = 2f)
-  fun everySymptom_isShownInFull_atALargeFont() {
+  @Config(qualifiers = "w360dp-h740dp", fontScale = 2f)
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  fun everySymptom_isShownInFull_withWholeWords_atALargeFont() {
     // Each beside the widest strength
     val strengths = SymptomType.entries.associateWith { SymptomEntry.MAX_INTENSITY }
     setContent(
@@ -264,6 +266,10 @@ class SymptomDetailScreenTest {
       val layout = layouts.single()
       assertFalse("$label is cut at the bottom", layout.didOverflowHeight)
       assertEquals(label, label.length, layout.getLineEnd(layout.lineCount - 1, visibleEnd = true))
+      // and no word is cut in two: every line but the last ends at a space
+      for (line in 0 until layout.lineCount - 1) {
+        assertEquals("$label, line $line", ' ', label[layout.getLineEnd(line) - 1])
+      }
     }
   }
 
