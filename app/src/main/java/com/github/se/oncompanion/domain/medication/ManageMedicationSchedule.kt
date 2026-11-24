@@ -51,9 +51,8 @@ class ManageMedicationSchedule(
       addedBy: String? = null,
       addedByName: String? = null,
   ) {
-    // A caregiver signs with their uid and first name; the patient's own prescription with neither
     val signature = addedBy?.let {
-      it to requireNotNull(addedByName) { "A caregiver signs with both" }
+      Signature(it, requireNotNull(addedByName) { "A caregiver signs with both" })
     }
     require(signature != null || addedByName == null) { "A caregiver signs with both" }
     // Adding a draft made from a saved prescription would leave two prescriptions sharing the
@@ -68,19 +67,20 @@ class ManageMedicationSchedule(
           if (signature == null) it
           else
               it.copy(
-                  addedBy = signature.first,
-                  addedByName = signature.second,
+                  addedBy = signature.uid,
+                  addedByName = signature.firstName,
                   confirmation = PrescriptionConfirmation.PENDING,
               )
         }
     medicationRepository.addPrescription(uid, prescription)
-    if (signature != null) notifyThePatient(uid, prescription.id, signature.first, signature.second)
+    if (signature != null) notifyThePatient(uid, prescription.id, signature)
   }
 
   /**
-   * Tells patient [uid] that the caregiver [addedBy] added prescription [prescriptionId] for them
-   * to review (US-50). Sent after the prescription: the server applies the two writes in that
-   * order, and its rules only accept a notification about a prescription it already has.
+   * Tells patient [uid] that the caregiver who signed [signature] added prescription
+   * [prescriptionId] for them to review (US-50). Sent after the prescription: the server applies
+   * the two writes in that order, and its rules only accept a notification about a prescription it
+   * already has.
    *
    * The prescription is saved whatever happens here: a notification that can't be written is only
    * logged, as the repository does when the server refuses one.
@@ -88,8 +88,7 @@ class ManageMedicationSchedule(
   private suspend fun notifyThePatient(
       uid: String,
       prescriptionId: String,
-      addedBy: String,
-      addedByName: String,
+      signature: Signature,
   ) {
     try {
       notificationRepository.notify(
@@ -97,8 +96,8 @@ class ManageMedicationSchedule(
           CircleNotification(
               kind = NotificationKind.PRESCRIPTION_ADDED,
               itemId = prescriptionId,
-              actorUid = addedBy,
-              actorFirstName = addedByName,
+              actorUid = signature.uid,
+              actorFirstName = signature.firstName,
               // Ignored: the server sets it
               createdAt = Instant.now(),
           ),
@@ -201,3 +200,6 @@ class ManageMedicationSchedule(
     const val TAG = "ManageMedicationSchedule"
   }
 }
+
+/** Who signs a caregiver's prescription: both, or neither for the patient's own. */
+private data class Signature(val uid: String, val firstName: String)
