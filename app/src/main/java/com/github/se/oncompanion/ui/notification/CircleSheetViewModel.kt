@@ -2,6 +2,7 @@
 
 package com.github.se.oncompanion.ui.notification
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.oncompanion.model.auth.AuthRepository
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -147,16 +149,24 @@ class CircleSheetViewModel(
             .map { it?.uid }
             .distinctUntilChanged()
             .flatMapLatest { uid ->
-              if (uid == null) flowOf(CircleSheetUiState.Error) else circleOf(uid)
+              if (uid == null) flowOf(CircleSheetUiState.Error)
+              // Caught for this account only: the next one signed in still reads its own circle
+              else circleOf(uid).catch { emit(failed("Couldn't read the circle", it)) }
             }
             .collect { _uiState.value = it }
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        // A refused read: showing part of the circle would hide what failed
-        _uiState.value = CircleSheetUiState.Error
+        _uiState.value = failed("Couldn't follow the signed-in user", e)
       }
     }
+  }
+
+  /** A refused read: showing part of the circle would hide what failed. */
+  private fun failed(message: String, e: Throwable): CircleSheetUiState {
+    // The type only: a Firestore error's message can name the document path (AGENTS.md)
+    Log.w(TAG, "$message: ${e.javaClass.simpleName}")
+    return CircleSheetUiState.Error
   }
 
   private fun circleOf(uid: String): Flow<CircleSheetUiState> =
@@ -214,5 +224,9 @@ class CircleSheetViewModel(
         today = today,
         days = days,
     )
+  }
+
+  private companion object {
+    const val TAG = "CircleSheetViewModel"
   }
 }

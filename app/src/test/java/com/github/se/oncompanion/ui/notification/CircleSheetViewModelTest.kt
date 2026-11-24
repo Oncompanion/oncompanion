@@ -286,6 +286,30 @@ class CircleSheetViewModelTest {
   }
 
   @Test
+  fun aReadFailure_stillFollowsTheAccount_soTheNextOneSeesItsCircle() = runViewModelTest {
+    medications.readError = IOException("refused")
+    val vm = viewModel()
+    runCurrent()
+    assertEquals(CircleSheetUiState.Error, vm.uiState.value)
+
+    // Without tapping Retry: another account signs in and reads its own circle
+    medications.readError = null
+    auth.signOut()
+    circle.setMembers("sam", listOf(member("lea", "Léa")))
+    auth.signInWithGoogle("sam")
+    runCurrent()
+    assertEquals(listOf("Léa"), vm.circleState.joined)
+  }
+
+  @Test
+  fun aFailureToFollowTheSignedInUser_isAnError() = runViewModelTest {
+    auth.observeError = IllegalStateException("auth")
+    val vm = viewModel()
+    runCurrent()
+    assertEquals(CircleSheetUiState.Error, vm.uiState.value)
+  }
+
+  @Test
   fun signingOut_dropsTheAccountsCircle_andAnotherAccountSeesOnlyItsOwn() = runViewModelTest {
     notifications.deliver(uid, added("p1", at(today, 8, 5)))
     val vm = viewModel()
