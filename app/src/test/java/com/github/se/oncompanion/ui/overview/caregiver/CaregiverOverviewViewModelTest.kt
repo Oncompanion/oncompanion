@@ -585,8 +585,8 @@ class CaregiverOverviewViewModelTest {
       TakenDosesRepository by fake {
     val reads = mutableListOf<Pair<String, LocalDate>>()
 
-    override fun observeDay(uid: String, date: LocalDate) =
-        fake.observeDay(uid, date).also { reads += uid to date }
+    override fun observeDayIfKnown(uid: String, date: LocalDate) =
+        fake.observeDayIfKnown(uid, date).also { reads += uid to date }
   }
 
   @Test
@@ -651,7 +651,7 @@ class CaregiverOverviewViewModelTest {
         listOf<TakenDosesRepository>(
             FakeTakenDosesRepository(readFailure = IllegalStateException("Permission denied")),
             object : TakenDosesRepository by FakeTakenDosesRepository() {
-              override fun observeDay(uid: String, date: LocalDate) =
+              override fun observeDayIfKnown(uid: String, date: LocalDate) =
                   throw IllegalStateException("No listener")
             },
         )
@@ -671,6 +671,28 @@ class CaregiverOverviewViewModelTest {
       assertFalse(state.isLoading)
       assertFalse(state.hasError)
     }
+  }
+
+  @Test
+  fun dosesNotKnownYet_hideTheCount_untilThePatientsDayArrives() {
+    // Offline, a caregiver's phone has no copy of the patient's day: it isn't "0 of 3"
+    val doses = ticked("ondansetron" to 2).apply { isUnknown.value = true }
+    val vm =
+        viewModel(
+            FollowedPatient(PRESCRIPTIONS),
+            medications = medications(medication("ondansetron", "1-1-1")),
+            doses = doses,
+        )
+    val unknown = vm.uiState.value.todayMedications.single()
+    assertEquals("Ondansetron 8 mg", unknown.name)
+    assertNull(unknown.dosesPerDay)
+    assertFalse(vm.uiState.value.isLoading)
+
+    doses.isUnknown.value = false
+    ShadowLooper.idleMainLooper()
+
+    val known = vm.uiState.value.todayMedications.single()
+    assertEquals(3 to 2, known.dosesPerDay to known.taken)
   }
 
   @Test

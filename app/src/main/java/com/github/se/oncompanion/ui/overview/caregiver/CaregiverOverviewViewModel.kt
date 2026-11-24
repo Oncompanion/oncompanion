@@ -210,7 +210,8 @@ class CaregiverOverviewViewModel(
 
   /**
    * The medications the patient takes on [day], with the doses they ticked. Doses that can't be
-   * read leave the medications without them, not the card in an error.
+   * read, or aren't known yet (this phone has no copy of the day, offline), leave the medications
+   * without them, not the card in an error nor a wrong "0 of 3".
    */
   private fun observeMedications(day: LocalDate): Flow<CareSection<List<TodayMedication>>> =
       observeSection(CarePermission.PRESCRIPTIONS, patientUid) { ownerUid ->
@@ -221,7 +222,7 @@ class CaregiverOverviewViewModel(
                 setOf(CarePermission.PRESCRIPTIONS),
             ),
             // In a flow, so that even a read that throws right away only loses the doses
-            flow<Map<String, Int>?> { emitAll(takenDoses.observeDay(ownerUid, day)) }
+            flow { emitAll(takenDoses.observeDayIfKnown(ownerUid, day)) }
                 .catch { e ->
                   if (e is CancellationException) throw e
                   Log.w(TAG, "Couldn't read the doses taken today", e)
