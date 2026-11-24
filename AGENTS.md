@@ -113,6 +113,7 @@ com.github.se.oncompanion/
 - Tests worth their lines: cases that differ only by their input go in one test that runs through a list of cases (`for ((input, expected) in cases)`), not one test each. A fake is never tested on its own: test the code that uses it (cleanup in #296).
 - A feature that works with others extends `M1EndToEndTest` (`app/src/androidTest`).
 - Coroutines: use `StandardTestDispatcher` with `runTest` and virtual time (`advanceTimeBy`, `advanceUntilIdle`). Never `Thread.sleep` or real delays.
+- To prove a write is saved on the device first, run it with the network off (`assertReturnsOffline`, or `assertReturnsWithoutServer` in a test that's already offline, both in `utils/OfflineAssertions.kt`), never with a time limit.
 - While working, run only the tests you touch (`./gradlew testDebugUnitTest --tests '*Symptom*'`). The full checks below take about 10 minutes; run them before pushing.
 
 ## Build, format, test
