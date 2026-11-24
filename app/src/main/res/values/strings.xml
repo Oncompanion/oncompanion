@@ -146,6 +146,11 @@
     <string name="overview_care_of">%1$s\'s care</string>
     <string name="overview_switch_patient">Choose whose care to follow</string>
     <string name="overview_error_hint_caregiver">Please try again.</string>
+    <!-- The same count on the caregiver's read-only card, for TalkBack: no button says it there -->
+    <plurals name="overview_doses_taken_read_only">
+        <item quantity="one">%1$d of %2$d dose taken today</item>
+        <item quantity="other">%1$d of %2$d doses taken today</item>
+    </plurals>
 
     <!-- Caregiver Overview: the caregiver's own home, with the day of the patient they follow -->
     <string name="caregiver_overview_day">%1$s\'s day</string>
@@ -162,6 +167,9 @@
     <string name="caregiver_overview_journal_overall">%1$s · %2$d/10</string>
     <string name="caregiver_overview_private">%1$s keeps this private</string>
     <string name="caregiver_overview_error_title">Couldn\'t load %1$s\'s day</string>
+    <!-- The caregiver's read-only medications card (Figma M3): "Medications today · 4" -->
+    <string name="caregiver_overview_medications">Medications today</string>
+    <string name="caregiver_overview_medications_count">Medications today · %1$d</string>
 
     <!-- Symptoms -->
     <string name="symptom_type_fatigue">Fatigue</string>
