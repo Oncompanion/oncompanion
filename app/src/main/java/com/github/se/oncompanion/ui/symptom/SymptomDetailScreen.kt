@@ -57,13 +57,12 @@ import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
 import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.NotSharedMessage
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Screen
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.full
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 private val actionTags =
     DetailActionTags(edit = C.Tag.symptom_detail_edit, delete = C.Tag.symptom_detail_delete)
@@ -77,8 +76,8 @@ private val deleteDialogTags =
     )
 
 /** "Monday 5 October 2026, 14:30". The app's UI is in English. */
-private val detailDateFormatter =
-    DateTimeFormatter.ofPattern("EEEE d MMMM yyyy, HH:mm", Locale.ENGLISH)
+private val detailDateFormatter
+  @Composable get() = rememberAppDateFormatter("EEEE d MMMM yyyy, HH:mm")
 
 /**
  * The detail of one symptom of the journal (US-8), from which the user can edit or delete it

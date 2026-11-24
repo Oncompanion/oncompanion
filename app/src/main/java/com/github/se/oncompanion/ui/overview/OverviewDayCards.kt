@@ -37,6 +37,7 @@ import com.github.se.oncompanion.ui.common.EmptyLake
 import com.github.se.oncompanion.ui.common.LARGE_FONT_SCALE
 import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.buttonLabel
 import com.github.se.oncompanion.ui.theme.full
@@ -46,7 +47,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /** "Sun 4 Oct · 09:30". The app's UI is in English. */
-private val appointmentFormatter = DateTimeFormatter.ofPattern("EEE d MMM · HH:mm", Locale.ENGLISH)
+private val appointmentFormatter
+  @Composable get() = rememberAppDateFormatter("EEE d MMM · HH:mm")
 
 /** "08:00" */
 private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)

@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.carecircle
@@ -76,8 +77,6 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 
 /** "19 Oct 2026", how long an invite code works. */
-private val validityFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH)
-
 /**
  * One invitation to the care circle (#150), following the Figma "US-15 / Invite code" frames: its
  * invite code to send by email, share or copy, what the person will see, and "Cancel invitation".
@@ -209,7 +208,10 @@ private fun invitationMessage(resources: Resources, invite: CareCircleInvite): S
         invite.displayInviteCode,
         invite.ownerFirstName,
         invite.expiresAt?.let {
-          resources.getString(R.string.care_circle_invite_message_valid_until, formatDay(it))
+          resources.getString(
+              R.string.care_circle_invite_message_valid_until,
+              formatDay(it, resources.configuration.locales[0]),
+          )
         } ?: resources.getString(R.string.care_circle_invite_message_valid_once_sent),
     )
 
@@ -459,7 +461,8 @@ private fun InviteCodeCard(invite: CareCircleInvite, expired: Boolean) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-      val expiresAt = invite.expiresAt?.let { formatDay(it) }
+      val locale = LocalResources.current.configuration.locales[0]
+      val expiresAt = invite.expiresAt?.let { formatDay(it, locale) }
       if (expired) {
         Text(
             text = stringResource(R.string.care_circle_invite_expired),
@@ -497,8 +500,8 @@ private fun InviteCodeCard(invite: CareCircleInvite, expired: Boolean) {
 }
 
 /** The day [instant] falls on in the phone's time zone, e.g. "19 Oct 2026". */
-private fun formatDay(instant: Instant): String =
-    validityFormatter.format(instant.atZone(ZoneId.systemDefault()))
+private fun formatDay(instant: Instant, locale: Locale): String =
+    DateTimeFormatter.ofPattern("d MMM yyyy", locale).format(instant.atZone(ZoneId.systemDefault()))
 
 /**
  * The invite code only works on another phone once the server has it (architecture.md). Waiting for

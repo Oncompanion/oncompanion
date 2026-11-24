@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.common
@@ -19,4 +20,11 @@ fun rememberDayFormatter(skeleton: String): DateTimeFormatter {
   return remember(locale, skeleton) {
     DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, skeleton), locale)
   }
+}
+
+/** Keeps the specified display pattern while using the app locale for day and month names. */
+@Composable
+internal fun rememberAppDateFormatter(pattern: String): DateTimeFormatter {
+  val locale = LocalConfiguration.current.locales[0]
+  return remember(locale, pattern) { DateTimeFormatter.ofPattern(pattern, locale) }
 }

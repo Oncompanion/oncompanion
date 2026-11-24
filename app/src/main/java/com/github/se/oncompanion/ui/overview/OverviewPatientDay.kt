@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.overview
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.cardChip
 import com.github.se.oncompanion.ui.theme.cardDetail
@@ -49,7 +51,8 @@ import java.util.Locale
 private val nextUpTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)
 
 /** "Thu 8 Oct · 10:00", for a later day. The app's UI is in English. */
-private val nextUpDayFormatter = DateTimeFormatter.ofPattern("EEE d MMM · HH:mm", Locale.ENGLISH)
+private val nextUpDayFormatter
+  @Composable get() = rememberAppDateFormatter("EEE d MMM · HH:mm")
 
 /** How many medications the card lists before "N more ›", so the cards under it never move. */
 internal const val MEDICATIONS_SHOWN = 2

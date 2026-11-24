@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -10,6 +11,7 @@ import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.symptom.Severity
 import com.github.se.oncompanion.model.symptom.SymptomEntry
 import com.github.se.oncompanion.model.symptom.SymptomType
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -60,10 +62,12 @@ val Severity.label: Int
       }
 
 /** "Mon 28 Sep", as in the mockups. The app's UI is in English. */
-private val dayFormatter = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH)
+private val dayFormatter
+  @Composable get() = rememberAppDateFormatter("EEE d MMM")
 
 /** "Mon 28 Sep 2025", for a day of another year. */
-private val dayWithYearFormatter = DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.ENGLISH)
+private val dayWithYearFormatter
+  @Composable get() = rememberAppDateFormatter("EEE d MMM yyyy")
 
 /** "14:30", the time of day shown by the symptom screens. */
 internal val symptomTimeFormatter: DateTimeFormatter =
