@@ -103,6 +103,16 @@ internal fun nextUpOf(planned: List<PlanningItem>, now: LocalDateTime, zoneId: Z
   }
 }
 
+/**
+ * Whether an event or appointment of today has already started at [now], so a day without anything
+ * upcoming isn't one where nothing was planned.
+ */
+internal fun startedToday(planned: List<PlanningItem>, now: LocalDateTime, zoneId: ZoneId) =
+    planned.any { item ->
+      item.startIn(zoneId)?.let { it.toLocalDate() == now.toLocalDate() && !it.isAfter(now) } ==
+          true
+    }
+
 /** When a timed entry ends, in [zoneId]. */
 internal fun PlanningItem.endIn(zoneId: ZoneId): LocalDateTime =
     LocalDateTime.ofInstant((timing as PlanningTiming.Timed).endOrDefault(), zoneId)
