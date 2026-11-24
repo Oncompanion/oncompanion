@@ -114,7 +114,7 @@ Every Thursday, [release.yml](.github/workflows/release.yml) publishes the signe
 
 ### Contributing
 
-Read [AGENTS.md](AGENTS.md) first. It covers the architecture rules, code style, tests, commits, pull requests and the Scrum board, for people and coding agents alike. Work on a branch, open a pull request with the [template](.github/PULL_REQUEST_TEMPLATE.md), and merge once it has an approving review and a green CI.
+Start with [CONTRIBUTING.md](CONTRIBUTING.md): how to go from an issue to a merged pull request. The rules behind each step, for people and coding agents alike, are in [AGENTS.md](AGENTS.md).
 
 ## Acknowledgements
 

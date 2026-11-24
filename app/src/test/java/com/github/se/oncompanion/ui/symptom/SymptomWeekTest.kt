@@ -91,6 +91,39 @@ class SymptomWeekTest {
   }
 
   @Test
+  fun aDay_showsItsStrongestSymptom_amongOldAndNewEntries() {
+    val strengths =
+        JournalEntry(
+            SymptomEntry(
+                types = listOf(SymptomType.FATIGUE, SymptomType.NAUSEA),
+                strengths = mapOf(SymptomType.FATIGUE to 4, SymptomType.NAUSEA to 6),
+                occurredAt = Instant.EPOCH,
+            ),
+            LocalTime.NOON,
+        )
+
+    // An intensity an older app version left beside a strength doesn't count
+    val leftover =
+        JournalEntry(
+            SymptomEntry(
+                types = listOf(SymptomType.FEVER),
+                intensity = 10,
+                strengths = mapOf(SymptomType.FEVER to 2),
+                occurredAt = Instant.EPOCH,
+            ),
+            LocalTime.NOON,
+        )
+
+    val summary =
+        weekSummaryOf(
+            listOf(day("2026-10-06", entry(SymptomType.PAIN, intensity = 5), strengths, leftover)),
+            today,
+        )!!
+
+    assertEquals(6, summary.days.single { it.date == LocalDate.parse("2026-10-06") }.intensity)
+  }
+
+  @Test
   fun mostOften_isTheSymptomLoggedTheMost_orNoneOnATie() {
     val cases =
         listOf(
