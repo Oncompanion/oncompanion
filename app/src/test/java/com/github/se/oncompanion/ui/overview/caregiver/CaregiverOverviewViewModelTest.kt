@@ -337,6 +337,10 @@ class CaregiverOverviewViewModelTest {
             // Saved before #615: one intensity for the whole entry
             entry("new", yesterday, intensity = 6) to
                 (listOf(NAUSEA to null, FATIGUE to null) to 6),
+            // A strength for some symptoms only: the others have none, and a leftover overall
+            // intensity isn't used for them
+            entry("new", yesterday, intensity = 6, strengths = mapOf(FATIGUE to 4)) to
+                (listOf(NAUSEA to null, FATIGUE to 4) to null),
             // No number at all: only the names
             entry("new", yesterday) to (listOf(NAUSEA to null, FATIGUE to null) to null),
         )
@@ -382,6 +386,15 @@ class CaregiverOverviewViewModelTest {
     runBlocking { symptoms.deleteSymptom("patient", "new") }
     ShadowLooper.idleMainLooper()
     assertEquals("old", vm.uiState.value.latestEntry?.entry?.id)
+
+    // The last one deleted too: the journal is empty, still shared, and nothing waits
+    runBlocking { symptoms.deleteSymptom("patient", "old") }
+    ShadowLooper.idleMainLooper()
+    val state = vm.uiState.value
+    assertNull(state.latestEntry)
+    assertEquals(SHOWN, state.sections[SYMPTOMS])
+    assertFalse(state.isLoading)
+    assertFalse(state.hasError)
   }
 
   @Test

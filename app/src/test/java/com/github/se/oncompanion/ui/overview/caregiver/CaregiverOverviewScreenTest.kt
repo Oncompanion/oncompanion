@@ -228,6 +228,9 @@ class CaregiverOverviewScreenTest {
             latest(symptoms = listOf(NAUSEA to null, FATIGUE to null), overall = 6) to
                 listOf("Nausea, Fatigue · 6/10"),
             latest(symptoms = listOf(NAUSEA to null, FATIGUE to null)) to listOf("Nausea, Fatigue"),
+            // A strength for some symptoms only: the others by their name alone
+            latest(symptoms = listOf(NAUSEA to null, FATIGUE to 4)) to
+                listOf("Nausea · Fatigue 4/10"),
             // "Other" by the name it was given, or "Other" in older entries
             latest(symptoms = listOf(OTHER to 4), otherName = "Hiccups") to listOf("Hiccups 4/10"),
             latest(symptoms = listOf(OTHER to 4)) to listOf("Other 4/10"),
@@ -240,14 +243,25 @@ class CaregiverOverviewScreenTest {
   }
 
   @Test
-  fun emptyJournal_saysNoEntriesYet_andStillOpensTheJournal() {
+  fun journalEmptiedWhileOpen_theCardSaysNoEntriesYet_andStillOpensTheJournal() {
+    var state by mutableStateOf(shared.copy(latestEntry = latest()))
     var opened = 0
-    setContent(shared, CaregiverOverviewActions(onOpenJournal = { opened++ }))
+    compose.setContent {
+      CaregiverOverviewContent(
+          state,
+          "Alex",
+          CaregiverOverviewActions(onOpenJournal = { opened++ }),
+      )
+    }
+    assertTextInside("Nausea 7/10 · Fatigue 6/10", C.Tag.caregiver_overview_journal)
+
+    state = shared
+    compose.waitForIdle()
 
     assertTextInside("Journal", C.Tag.caregiver_overview_journal)
     assertTextInside("No entries yet", C.Tag.caregiver_overview_journal)
+    compose.onNodeWithText("Nausea 7/10 · Fatigue 6/10").assertDoesNotExist()
     compose.onNodeWithTag(C.Tag.caregiver_overview_full_journal).performScrollTo().performClick()
-
     assertEquals(1, opened)
   }
 
