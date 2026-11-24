@@ -181,7 +181,7 @@ private fun StrengthSlider(
       if (strength == null) stringResource(R.string.symptom_add_intensity_not_set)
       else
           stringResource(
-              R.string.symptom_strength_value,
+              R.string.symptom_add_intensity_value,
               strength,
               stringResource(Severity.of(strength).label),
           )

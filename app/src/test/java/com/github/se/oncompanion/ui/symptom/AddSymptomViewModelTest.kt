@@ -1657,6 +1657,100 @@ class AddSymptomViewModelTest {
         assertEquals(listOf(SymptomType.SLEEP_PROBLEMS), viewModel.state.types)
       }
 
+  // ----- Speaking from the Overview (US-73) -----
+
+  /** A form opened from the Overview's mic, to speak. */
+  private fun openedToSpeak() =
+      AddSymptomViewModel(
+          auth,
+          repository,
+          clock,
+          speechRecognizer = speech,
+          locale = Locale.ENGLISH,
+          symptomName = ::listedName,
+          declinedDownloads = declined,
+          speakOnOpen = true,
+      )
+
+  @Test
+  fun openedToSpeak_showsTheVoiceScreenAtOnce_thenListensOnlyOnce() =
+      runTest(dispatcher) {
+        val viewModel = openedToSpeak()
+        // The voice screen before the screen is even shown, so the empty form never flashes
+        assertEquals(VoiceUiState.Preparing, viewModel.state.voice)
+        assertTrue(viewModel.state.leavesOnClose)
+        assertFalse(speech.isListening)
+
+        viewModel.onOpened(hasMicrophone = true)
+        advanceUntilIdle()
+        assertEquals(VoiceUiState.Listening(), viewModel.state.voice)
+        assertTrue(speech.isListening)
+
+        // Shown again after a rotation: the session keeps going, none starts
+        viewModel.onOpened(hasMicrophone = true)
+        advanceUntilIdle()
+        assertEquals(1, speech.languages.size)
+        viewModel.cancelVoice()
+      }
+
+  @Test
+  fun openedToSpeak_withoutTheMicrophone_explainsBeforeAndroidAsks() =
+      runTest(dispatcher) {
+        val viewModel = openedToSpeak()
+        viewModel.onOpened(hasMicrophone = false)
+        advanceUntilIdle()
+
+        assertEquals(VoiceUiState.ExplainingMicrophone, viewModel.state.voice)
+        assertTrue(viewModel.state.leavesOnClose)
+        assertFalse(speech.isListening)
+      }
+
+  @Test
+  fun openedToSpeak_closingLeavesUntilTheFormIsShown() =
+      runTest(dispatcher) {
+        // Type instead: the empty form
+        val typing = openedToSpeak()
+        typing.onOpened(hasMicrophone = true)
+        advanceUntilIdle()
+        typing.cancelVoice()
+        assertNull(typing.state.voice)
+        assertFalse(typing.state.leavesOnClose)
+        assertTrue(typing.state.types.isEmpty())
+        // Speaking again from the form: closing now goes back to it
+        typing.onSpeak(hasMicrophone = true)
+        advanceUntilIdle()
+        assertFalse(typing.state.leavesOnClose)
+        typing.cancelVoice()
+
+        // Done: the form filled from what was said, to check, and nothing saved yet
+        val done = openedToSpeak()
+        done.onOpened(hasMicrophone = true)
+        advanceUntilIdle()
+        hear(SpeechEvent.FinalText("I feel sick"))
+        done.onDone()
+        assertNull(done.state.voice)
+        assertFalse(done.state.leavesOnClose)
+        assertTrue(done.state.isDrafted)
+        assertEquals(listOf(SymptomType.NAUSEA), done.state.types)
+        assertTrue(repository.symptoms(uid).isEmpty())
+      }
+
+  @Test
+  fun notOpenedToSpeak_orOnAPhoneThatCantListen_showsTheForm() =
+      runTest(dispatcher) {
+        val cases = listOf(true to { viewModel() }, false to { openedToSpeak() })
+        for ((available, create) in cases) {
+          speech.available = available
+          val form = create()
+          form.onOpened(hasMicrophone = true)
+          advanceUntilIdle()
+
+          assertNull(form.state.voice)
+          assertFalse(form.state.leavesOnClose)
+          assertFalse(speech.isListening)
+        }
+      }
+
   // ----- Voice without a connection (US-45) -----
 
   @Test

@@ -8,7 +8,7 @@
       "type": "rectangle",
       "x": 20,
       "y": 38,
-      "width": 3024,
+      "width": 3274,
       "height": 140,
       "angle": 0,
       "strokeColor": "transparent",
@@ -109,7 +109,7 @@
       "type": "rectangle",
       "x": 20,
       "y": 228,
-      "width": 3024,
+      "width": 3274,
       "height": 140,
       "angle": 0,
       "strokeColor": "transparent",
@@ -210,7 +210,7 @@
       "type": "rectangle",
       "x": 20,
       "y": 418,
-      "width": 3024,
+      "width": 3274,
       "height": 140,
       "angle": 0,
       "strokeColor": "transparent",
@@ -311,7 +311,7 @@
       "type": "rectangle",
       "x": 20,
       "y": 608,
-      "width": 3024,
+      "width": 3274,
       "height": 140,
       "angle": 0,
       "strokeColor": "transparent",
@@ -620,7 +620,7 @@
     {
       "id": "planning_ui",
       "type": "rectangle",
-      "x": 1050,
+      "x": 1300,
       "y": 60,
       "width": 220,
       "height": 96,
@@ -654,7 +654,7 @@
     {
       "id": "planning_ui_t",
       "type": "text",
-      "x": 1071.175,
+      "x": 1321.175,
       "y": 97.375,
       "width": 177.65,
       "height": 21.25,
@@ -690,7 +690,7 @@
     {
       "id": "circle_ui",
       "type": "rectangle",
-      "x": 1300,
+      "x": 1550,
       "y": 60,
       "width": 220,
       "height": 96,
@@ -724,7 +724,7 @@
     {
       "id": "circle_ui_t",
       "type": "text",
-      "x": 1358.575,
+      "x": 1608.575,
       "y": 97.375,
       "width": 102.85000000000001,
       "height": 21.25,
@@ -760,7 +760,7 @@
     {
       "id": "ligue_ui",
       "type": "rectangle",
-      "x": 1550,
+      "x": 1800,
       "y": 60,
       "width": 220,
       "height": 96,
@@ -794,7 +794,7 @@
     {
       "id": "ligue_ui_t",
       "type": "text",
-      "x": 1603.9,
+      "x": 1853.9,
       "y": 97.375,
       "width": 112.2,
       "height": 21.25,
@@ -830,7 +830,7 @@
     {
       "id": "account_ui",
       "type": "rectangle",
-      "x": 1800,
+      "x": 2050,
       "y": 60,
       "width": 220,
       "height": 96,
@@ -864,7 +864,7 @@
     {
       "id": "account_ui_t",
       "type": "text",
-      "x": 1816.5,
+      "x": 2066.5,
       "y": 86.75,
       "width": 187.00000000000003,
       "height": 42.5,
@@ -900,7 +900,7 @@
     {
       "id": "scan_ui",
       "type": "rectangle",
-      "x": 2050,
+      "x": 2300,
       "y": 60,
       "width": 220,
       "height": 96,
@@ -934,7 +934,7 @@
     {
       "id": "scan_ui_t",
       "type": "text",
-      "x": 2080.525,
+      "x": 2330.525,
       "y": 86.75,
       "width": 158.95000000000002,
       "height": 42.5,
@@ -970,7 +970,7 @@
     {
       "id": "hospital_ui",
       "type": "rectangle",
-      "x": 2300,
+      "x": 2550,
       "y": 60,
       "width": 220,
       "height": 96,
@@ -1004,7 +1004,7 @@
     {
       "id": "hospital_ui_t",
       "type": "text",
-      "x": 2344.55,
+      "x": 2594.55,
       "y": 86.75,
       "width": 130.9,
       "height": 42.5,
@@ -1040,7 +1040,7 @@
     {
       "id": "voice_ui",
       "type": "rectangle",
-      "x": 2550,
+      "x": 2800,
       "y": 60,
       "width": 220,
       "height": 96,
@@ -1058,8 +1058,8 @@
         "type": 3
       },
       "seed": 2080317198,
-      "version": 2,
-      "versionNonce": 523691981,
+      "version": 1,
+      "versionNonce": 515515126,
       "isDeleted": false,
       "boundElements": [
         {
@@ -1074,7 +1074,7 @@
     {
       "id": "voice_ui_t",
       "type": "text",
-      "x": 2560,
+      "x": 2810.0,
       "y": 97.375,
       "width": 200,
       "height": 21.25,
@@ -1090,8 +1090,8 @@
       "frameId": null,
       "roundness": null,
       "seed": 235944160,
-      "version": 2,
-      "versionNonce": 1745010009,
+      "version": 1,
+      "versionNonce": 1996830428,
       "isDeleted": false,
       "boundElements": [],
       "updated": 1794000000000,
@@ -1110,7 +1110,7 @@
     {
       "id": "reminders_ui",
       "type": "rectangle",
-      "x": 2800,
+      "x": 3050,
       "y": 60,
       "width": 220,
       "height": 96,
@@ -1144,7 +1144,7 @@
     {
       "id": "reminders_ui_t",
       "type": "text",
-      "x": 2830.525,
+      "x": 3080.525,
       "y": 86.75,
       "width": 158.95000000000002,
       "height": 42.5,
@@ -1205,6 +1205,10 @@
         {
           "type": "text",
           "id": "access_t"
+        },
+        {
+          "type": "arrow",
+          "id": "caregiver_access"
         }
       ],
       "updated": 1794000000000,
@@ -1275,6 +1279,10 @@
         {
           "type": "text",
           "id": "observe_t"
+        },
+        {
+          "type": "arrow",
+          "id": "caregiver_observe"
         }
       ],
       "updated": 1794000000000,
@@ -1320,7 +1328,7 @@
     {
       "id": "signout",
       "type": "rectangle",
-      "x": 1800,
+      "x": 2050,
       "y": 250,
       "width": 220,
       "height": 96,
@@ -1354,7 +1362,7 @@
     {
       "id": "signout_t",
       "type": "text",
-      "x": 1877.275,
+      "x": 2127.275,
       "y": 287.375,
       "width": 65.45,
       "height": 21.25,
@@ -1390,7 +1398,7 @@
     {
       "id": "meds",
       "type": "rectangle",
-      "x": 2050,
+      "x": 2300,
       "y": 250,
       "width": 220,
       "height": 96,
@@ -1424,7 +1432,7 @@
     {
       "id": "meds_t",
       "type": "text",
-      "x": 2043.125,
+      "x": 2293.125,
       "y": 276.75,
       "width": 233.75000000000003,
       "height": 42.5,
@@ -1532,7 +1540,7 @@
       "type": "rectangle",
       "x": 550,
       "y": 440,
-      "width": 1470,
+      "width": 1720,
       "height": 96,
       "angle": 0,
       "strokeColor": "#2f9e44",
@@ -1566,7 +1574,7 @@
       "type": "text",
       "x": 929.7,
       "y": 466.75,
-      "width": 710.6,
+      "width": 960.6,
       "height": 42.5,
       "angle": 0,
       "strokeColor": "#1e1e1e",
@@ -1600,7 +1608,7 @@
     {
       "id": "device",
       "type": "rectangle",
-      "x": 2050,
+      "x": 2300,
       "y": 440,
       "width": 220,
       "height": 96,
@@ -1634,7 +1642,7 @@
     {
       "id": "device_t",
       "type": "text",
-      "x": 2094.55,
+      "x": 2344.55,
       "y": 456.125,
       "width": 130.9,
       "height": 63.75,
@@ -1670,7 +1678,7 @@
     {
       "id": "hospital",
       "type": "rectangle",
-      "x": 2300,
+      "x": 2550,
       "y": 440,
       "width": 220,
       "height": 96,
@@ -1704,7 +1712,7 @@
     {
       "id": "hospital_t",
       "type": "text",
-      "x": 2302.475,
+      "x": 2552.475,
       "y": 477.375,
       "width": 215.05,
       "height": 21.25,
@@ -1740,7 +1748,7 @@
     {
       "id": "speech",
       "type": "rectangle",
-      "x": 2550,
+      "x": 2800,
       "y": 440,
       "width": 220,
       "height": 96,
@@ -1774,7 +1782,7 @@
     {
       "id": "speech_t",
       "type": "text",
-      "x": 2585.2,
+      "x": 2835.2,
       "y": 477.375,
       "width": 149.60000000000002,
       "height": 21.25,
@@ -1810,7 +1818,7 @@
     {
       "id": "reminders",
       "type": "rectangle",
-      "x": 2800,
+      "x": 3050,
       "y": 440,
       "width": 220,
       "height": 96,
@@ -1844,7 +1852,7 @@
     {
       "id": "reminders_t",
       "type": "text",
-      "x": 2830.525,
+      "x": 3080.525,
       "y": 466.75,
       "width": 158.95000000000002,
       "height": 42.5,
@@ -2020,7 +2028,7 @@
     {
       "id": "firebase_auth",
       "type": "rectangle",
-      "x": 1800,
+      "x": 2050,
       "y": 630,
       "width": 220,
       "height": 96,
@@ -2054,7 +2062,7 @@
     {
       "id": "firebase_auth_t",
       "type": "text",
-      "x": 1849.225,
+      "x": 2099.225,
       "y": 667.375,
       "width": 121.55000000000001,
       "height": 21.25,
@@ -2090,7 +2098,7 @@
     {
       "id": "sdks",
       "type": "rectangle",
-      "x": 2050,
+      "x": 2300,
       "y": 630,
       "width": 220,
       "height": 96,
@@ -2124,7 +2132,7 @@
     {
       "id": "sdks_t",
       "type": "text",
-      "x": 2085.2,
+      "x": 2335.2,
       "y": 656.75,
       "width": 149.60000000000002,
       "height": 42.5,
@@ -2160,7 +2168,7 @@
     {
       "id": "proxy",
       "type": "rectangle",
-      "x": 2300,
+      "x": 2550,
       "y": 630,
       "width": 220,
       "height": 96,
@@ -2194,7 +2202,7 @@
     {
       "id": "proxy_t",
       "type": "text",
-      "x": 2311.825,
+      "x": 2561.825,
       "y": 656.75,
       "width": 196.35000000000002,
       "height": 42.5,
@@ -2230,7 +2238,7 @@
     {
       "id": "android_speech",
       "type": "rectangle",
-      "x": 2550,
+      "x": 2800,
       "y": 630,
       "width": 220,
       "height": 96,
@@ -2264,7 +2272,7 @@
     {
       "id": "android_speech_t",
       "type": "text",
-      "x": 2594.55,
+      "x": 2844.55,
       "y": 667.375,
       "width": 130.9,
       "height": 21.25,
@@ -2300,7 +2308,7 @@
     {
       "id": "workmanager",
       "type": "rectangle",
-      "x": 2800,
+      "x": 3050,
       "y": 630,
       "width": 220,
       "height": 96,
@@ -2334,7 +2342,7 @@
     {
       "id": "workmanager_t",
       "type": "text",
-      "x": 2858.575,
+      "x": 3108.575,
       "y": 656.75,
       "width": 102.85000000000001,
       "height": 42.5,
@@ -3474,9 +3482,9 @@
     {
       "id": "planning_observe",
       "type": "arrow",
-      "x": 1160.0,
+      "x": 1320,
       "y": 156,
-      "width": 0.0,
+      "width": 70,
       "height": 94,
       "angle": 0,
       "strokeColor": "#868e96",
@@ -3505,7 +3513,7 @@
           0
         ],
         [
-          0.0,
+          -70,
           94
         ]
       ],
@@ -3578,7 +3586,7 @@
     {
       "id": "circle_repos",
       "type": "arrow",
-      "x": 1410.0,
+      "x": 1660.0,
       "y": 156,
       "width": 0.0,
       "height": 284,
@@ -3630,7 +3638,7 @@
     {
       "id": "ligue_repos",
       "type": "arrow",
-      "x": 1660,
+      "x": 1910,
       "y": 156,
       "width": 0,
       "height": 284,
@@ -3648,7 +3656,7 @@
         "type": 2
       },
       "seed": 1615806038,
-      "version": 2,
+      "version": 1,
       "versionNonce": 1031219303,
       "isDeleted": false,
       "boundElements": [],
@@ -3682,7 +3690,7 @@
     {
       "id": "account_signout",
       "type": "arrow",
-      "x": 1870.0,
+      "x": 2120.0,
       "y": 156,
       "width": 0.0,
       "height": 94,
@@ -3734,7 +3742,7 @@
     {
       "id": "account_repos",
       "type": "arrow",
-      "x": 1970.0,
+      "x": 2220.0,
       "y": 156,
       "width": 0.0,
       "height": 284,
@@ -3786,7 +3794,7 @@
     {
       "id": "signout_repos",
       "type": "arrow",
-      "x": 1870.0,
+      "x": 2120.0,
       "y": 346,
       "width": 0.0,
       "height": 94,
@@ -3838,7 +3846,7 @@
     {
       "id": "auth_firebase",
       "type": "arrow",
-      "x": 1910.0,
+      "x": 2160.0,
       "y": 536,
       "width": 0.0,
       "height": 94,
@@ -3890,7 +3898,7 @@
     {
       "id": "scan_meds",
       "type": "arrow",
-      "x": 2160.0,
+      "x": 2410.0,
       "y": 156,
       "width": 0.0,
       "height": 94,
@@ -3942,7 +3950,7 @@
     {
       "id": "meds_device",
       "type": "arrow",
-      "x": 2160.0,
+      "x": 2410.0,
       "y": 346,
       "width": 0.0,
       "height": 94,
@@ -3994,7 +4002,7 @@
     {
       "id": "meds_repos",
       "type": "arrow",
-      "x": 2080,
+      "x": 2330,
       "y": 346,
       "width": 60,
       "height": 94,
@@ -4046,7 +4054,7 @@
     {
       "id": "device_sdks",
       "type": "arrow",
-      "x": 2160.0,
+      "x": 2410.0,
       "y": 536,
       "width": 0.0,
       "height": 94,
@@ -4098,7 +4106,7 @@
     {
       "id": "hospital_client",
       "type": "arrow",
-      "x": 2410.0,
+      "x": 2660.0,
       "y": 156,
       "width": 0.0,
       "height": 284,
@@ -4150,7 +4158,7 @@
     {
       "id": "client_proxy",
       "type": "arrow",
-      "x": 2410.0,
+      "x": 2660.0,
       "y": 536,
       "width": 0.0,
       "height": 94,
@@ -4202,7 +4210,7 @@
     {
       "id": "voice_speech",
       "type": "arrow",
-      "x": 2660.0,
+      "x": 2910.0,
       "y": 156,
       "width": 0.0,
       "height": 284,
@@ -4220,8 +4228,8 @@
         "type": 2
       },
       "seed": 1720030922,
-      "version": 2,
-      "versionNonce": 1925868597,
+      "version": 1,
+      "versionNonce": 1356960357,
       "isDeleted": false,
       "boundElements": [],
       "updated": 1794000000000,
@@ -4254,7 +4262,7 @@
     {
       "id": "speech_android",
       "type": "arrow",
-      "x": 2660.0,
+      "x": 2910.0,
       "y": 536,
       "width": 0.0,
       "height": 94,
@@ -4306,7 +4314,7 @@
     {
       "id": "reminders_ui_data",
       "type": "arrow",
-      "x": 2910.0,
+      "x": 3160.0,
       "y": 156,
       "width": 0.0,
       "height": 284,
@@ -4358,7 +4366,7 @@
     {
       "id": "reminders_work",
       "type": "arrow",
-      "x": 2910.0,
+      "x": 3160.0,
       "y": 536,
       "width": 0.0,
       "height": 94,
@@ -4650,6 +4658,188 @@
       "containerId": null,
       "lineHeight": 1.25,
       "autoResize": true
+    },
+    {
+      "id": "caregiver_ui",
+      "type": "rectangle",
+      "x": 1050,
+      "y": 60,
+      "width": 220,
+      "height": 96,
+      "angle": 0,
+      "strokeColor": "#7048e8",
+      "backgroundColor": "#e5dbff",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "seed": 91823311,
+      "version": 1,
+      "versionNonce": 19283746,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "caregiver_ui_t"
+        },
+        {
+          "type": "arrow",
+          "id": "caregiver_observe"
+        },
+        {
+          "type": "arrow",
+          "id": "caregiver_access"
+        }
+      ],
+      "updated": 1794000000000,
+      "link": null,
+      "locked": false
+    },
+    {
+      "id": "caregiver_ui_t",
+      "type": "text",
+      "x": 1060,
+      "y": 76.125,
+      "width": 200,
+      "height": 63.75,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 55120987,
+      "version": 1,
+      "versionNonce": 88213409,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1794000000000,
+      "link": null,
+      "locked": false,
+      "text": "Caregiver's Overview\nown ViewModel,\nshares OverviewDay",
+      "originalText": "Caregiver's Overview\nown ViewModel,\nshares OverviewDay",
+      "fontSize": 17,
+      "fontFamily": 2,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "caregiver_ui",
+      "lineHeight": 1.25,
+      "autoResize": true
+    },
+    {
+      "id": "caregiver_observe",
+      "type": "arrow",
+      "x": 1160,
+      "y": 156,
+      "width": 0,
+      "height": 94,
+      "angle": 0,
+      "strokeColor": "#868e96",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "seed": 925563159,
+      "version": 1,
+      "versionNonce": 233354366,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1794000000000,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          94
+        ]
+      ],
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "caregiver_ui",
+        "focus": 0,
+        "gap": 4
+      },
+      "endBinding": {
+        "elementId": "observe",
+        "focus": 0,
+        "gap": 4
+      }
+    },
+    {
+      "id": "caregiver_access",
+      "type": "arrow",
+      "x": 1070,
+      "y": 156,
+      "width": 70,
+      "height": 94,
+      "angle": 0,
+      "strokeColor": "#868e96",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "seed": 228288776,
+      "version": 1,
+      "versionNonce": 564501143,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1794000000000,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -70,
+          94
+        ]
+      ],
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "caregiver_ui",
+        "focus": 0,
+        "gap": 4
+      },
+      "endBinding": {
+        "elementId": "access",
+        "focus": 0,
+        "gap": 4
+      }
     }
   ],
   "appState": {

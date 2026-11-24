@@ -52,6 +52,8 @@ data class Prescription(
           // A caregiver's prescription says who added it; the patient's is confirmed
           (if (addedBy == null) isConfirmed
           else !addedByName.isNullOrBlank() && addedByName.length <= MAX_ADDED_BY_NAME_LENGTH) &&
+          // Reminders only once the patient confirmed it (US-32, US-43)
+          (isConfirmed || medications.all { it.reminderTimes.isEmpty() }) &&
           // An edit is signed with both parts, or neither when the patient edited last.
           (if (editedBy == null) editedByName == null
           else

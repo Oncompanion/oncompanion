@@ -95,6 +95,8 @@ data class EditedSymptom(val entry: SymptomEntry, val date: LocalDate, val time:
  * @property canDictate the phone has a speech recognizer, so the symptom can be dictated
  * @property voice where dictating is, shown instead of the form; `null` while the form shows
  * @property isDrafted the form was filled from what the patient said, so they should check it
+ * @property leavesOnClose the form was opened to speak ("Speak how you feel" on the Overview) and
+ *   hasn't been shown yet, so closing the voice screen leaves instead of showing an empty form
  */
 data class AddSymptomUiState(
     val now: LocalDateTime,
@@ -118,6 +120,7 @@ data class AddSymptomUiState(
     val canDictate: Boolean = false,
     val voice: VoiceUiState? = null,
     val isDrafted: Boolean = false,
+    val leavesOnClose: Boolean = false,
 ) {
   /** The fields are shown: always when logging, once the symptom is loaded when editing. */
   val isFormShown: Boolean
@@ -201,6 +204,9 @@ data class AddSymptomUiState(
  *   the user can still untick it. Ignored when editing
  * @param declinedDownloads the languages the patient said Not now to downloading for offline
  *   dictation (US-45), so they aren't offered again in the next forms
+ * @param speakOnOpen the form is opened to speak (US-73, "Speak how you feel" on the Overview): it
+ *   shows the voice screen at once and starts dictating in [onOpened]. Ignored when editing or when
+ *   the phone can't listen
  */
 class AddSymptomViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
@@ -214,10 +220,16 @@ class AddSymptomViewModel(
     picked: SymptomType? = null,
     private val symptomName: (SymptomType) -> String,
     private val declinedDownloads: DeclinedDownloads = DeclinedDownloadsProvider.declined,
+    speakOnOpen: Boolean = false,
 ) : ViewModel() {
 
   /** The first name a caregiver's symptom is signed with. */
   private val caregiverName = CaregiverName(profileRepository, authRepository)
+
+  private val canDictate = speechRecognizer.isAvailable()
+
+  /** Opened to speak, and dictating hasn't started yet: [onOpened] starts it. */
+  private var speakPending = speakOnOpen && symptomId == null && canDictate
 
   private val _uiState =
       MutableStateFlow(
@@ -226,7 +238,10 @@ class AddSymptomViewModel(
               types = listOfNotNull(picked.takeIf { symptomId == null }),
               strengthOf = picked.takeIf { symptomId == null },
               isEditing = symptomId != null,
-              canDictate = speechRecognizer.isAvailable(),
+              canDictate = canDictate,
+              // The voice screen from the start, so the empty form never flashes before it
+              voice = VoiceUiState.Preparing.takeIf { speakPending },
+              leavesOnClose = speakPending,
           )
       )
   val uiState: StateFlow<AddSymptomUiState> = _uiState.asStateFlow()
@@ -445,6 +460,17 @@ class AddSymptomViewModel(
   }
 
   /**
+   * The screen is shown. Opened to speak ("Speak how you feel" on the Overview), it starts
+   * dictating as if the patient tapped Speak instead, only once: showing the screen again after a
+   * rotation doesn't restart it.
+   */
+  fun onOpened(hasMicrophone: Boolean) {
+    if (!speakPending) return
+    speakPending = false
+    onSpeak(hasMicrophone)
+  }
+
+  /**
    * Android's answer when asked for the microphone: listens if [granted]. An answer that comes
    * after the patient left dictating (cancelled, or the app was restarted meanwhile) is ignored.
    */
@@ -520,10 +546,11 @@ class AddSymptomViewModel(
 
   /** Back to the form without using what was said; it is dropped. */
   fun cancelVoice() {
+    speakPending = false
     checkingOffline?.cancel()
     listening?.cancel()
     listening = null
-    _uiState.update { it.copy(voice = null) }
+    _uiState.update { it.copy(voice = null, leavesOnClose = false) }
   }
 
   /**
@@ -545,7 +572,11 @@ class AddSymptomViewModel(
 
   /** Fills the form with [draft] and goes back to it. */
   private fun useDraft(draft: SymptomDraft) {
-    edit { it.filledFrom(draft).copy(voice = null, isDrafted = true).withFutureCheck() }
+    edit {
+      it.filledFrom(draft)
+          .copy(voice = null, isDrafted = true, leavesOnClose = false)
+          .withFutureCheck()
+    }
   }
 
   /** Asks the phone whether it understands the patient's language offline, before listening. */

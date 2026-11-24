@@ -171,7 +171,9 @@ fun OverviewScreen(
       onOpenAppointment = onOpenAppointment,
       onOpenEvent = onOpenEvent,
       onLogSymptom = { navigationActions.navigateTo(Screen.symptomAdd(it)) },
+      onSpeak = { navigationActions.navigateTo(Screen.symptomSpeak()) },
       onTickDose = viewModel::tickDose,
+      onOpenDoses = viewModel::openDoses,
       onRetry = viewModel::loadDay,
       modifier = modifier,
       caregiverOf = caregiverOf,
@@ -184,6 +186,15 @@ fun OverviewScreen(
         )
       },
   )
+  uiState.dosesSheet?.let { sheet ->
+    OverviewDosesSheet(
+        sheet,
+        onLess = viewModel::lessDoses,
+        onMore = viewModel::moreDoses,
+        onDone = viewModel::saveDoses,
+        onClose = viewModel::closeDoses,
+    )
+  }
 }
 
 /**
@@ -197,8 +208,11 @@ fun OverviewScreen(
  * @param onOpenAppointment opens the recorded appointment directly
  * @param onOpenEvent opens the event shown in the patient's "Next up"
  * @param onTickDose ticks a dose of one of the patient's medications, by its ID
+ * @param onOpenDoses opens the sheet to correct the doses of one, by its ID
  * @param onLogSymptom opens the symptom form from the patient's check-in, with that symptom picked
  *   or empty for `null`
+ * @param onSpeak opens the symptom form already listening, from the check-in's "Speak how you feel"
+ *   (US-73), shown only when [OverviewUiState.canSpeak]
  * @param onRetry reloads the day after an error
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
  * @param onSwitchPatient opens "Whose care?", in caregiver mode
@@ -214,7 +228,9 @@ fun OverviewContent(
     modifier: Modifier = Modifier,
     onOpenEvent: (String) -> Unit = {},
     onLogSymptom: (SymptomType?) -> Unit = {},
+    onSpeak: () -> Unit = {},
     onTickDose: (String) -> Unit = {},
+    onOpenDoses: (String) -> Unit = {},
     caregiverOf: String? = null,
     onSwitchPatient: () -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
@@ -273,6 +289,7 @@ fun OverviewContent(
                     onOpenEvent,
                     modifier = if (overlaps) Modifier.overlapLayout() else Modifier,
                     onTickDose = onTickDose,
+                    onOpenDoses = onOpenDoses,
                 )
             else -> {
               NextAppointmentCard(
@@ -292,6 +309,7 @@ fun OverviewContent(
             CheckInDock(
                 onLogSymptom = onLogSymptom,
                 onOpenJournal = { onShortcutClick(OverviewShortcut.SYMPTOMS) },
+                onSpeak = onSpeak.takeIf { uiState.canSpeak },
             )
           }
           val tiles =
@@ -402,7 +420,7 @@ private fun CareTitle(
 
 /** "Good morning, Alex" and today's date, on the header. */
 @Composable
-private fun Greeting(firstName: String?, now: LocalDateTime, titleStyle: TextStyle) {
+internal fun Greeting(firstName: String?, now: LocalDateTime, titleStyle: TextStyle) {
   val name = firstName?.takeIf { it.isNotBlank() }
   val greeting =
       when (now.hour) {
@@ -470,7 +488,7 @@ private val tilePadding = 8.dp
  * one per row when a label wouldn't fit in a third of the width (small screen or large font).
  */
 @Composable
-private fun Shortcuts(
+internal fun Shortcuts(
     onShortcutClick: (OverviewShortcut) -> Unit,
     tiles: List<OverviewShortcut>,
     withQuestion: Boolean = true,

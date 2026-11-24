@@ -127,10 +127,25 @@ object C {
     const val overview_medications = "overview_medications"
     const val overview_planning_link = "overview_planning_link"
     const val overview_more_medications = "overview_more_medications"
+    // The sheet to correct a medication's doses (#546)
+    const val overview_doses_sheet = "overview_doses_sheet"
+    const val overview_doses_count = "overview_doses_count"
+    const val overview_doses_less = "overview_doses_less"
+    const val overview_doses_more = "overview_doses_more"
+    const val overview_doses_done = "overview_doses_done"
     const val overview_nothing_planned = "overview_nothing_planned"
     const val overview_check_in = "overview_check_in"
     const val overview_check_in_more = "overview_check_in_more"
     const val overview_journal_link = "overview_journal_link"
+    const val overview_speak = "overview_speak"
+
+    // Caregiver Overview
+    const val caregiver_overview_screen = "caregiver_overview_screen"
+    const val caregiver_overview_day_title = "caregiver_overview_day_title"
+    const val caregiver_overview_shared_only = "caregiver_overview_shared_only"
+    const val caregiver_overview_loading = "caregiver_overview_loading"
+    const val caregiver_overview_error = "caregiver_overview_error"
+    const val caregiver_overview_retry = "caregiver_overview_retry"
 
     const val bottom_navigation_bar = "bottom_navigation_bar"
     const val bottom_navigation_tab_overview = "bottom_navigation_tab_overview"
@@ -221,12 +236,6 @@ object C {
     const val symptom_edit_not_found = "symptom_edit_not_found"
     const val symptom_detail_edit = "symptom_detail_edit"
     const val symptom_detail_symptoms = "symptom_detail_symptoms"
-
-    /**
-     * The strength bar of a symptom on its detail, by
-     * [com.github.se.oncompanion.model.symptom.SymptomType] name.
-     */
-    fun symptomDetailStrengthBar(type: String) = "symptom_detail_strength_bar_$type"
 
     const val symptom_add_speak = "symptom_add_speak"
     const val symptom_add_drafted = "symptom_add_drafted"
@@ -319,6 +328,9 @@ object C {
     /** A check-in tile on the Overview, by its symptom type's name. */
     fun overviewCheckIn(type: String) = "overview_check_in_$type"
 
+    /** The locked card of a section the patient keeps private, by its [CarePermission] name. */
+    fun caregiverOverviewPrivate(section: String) = "caregiver_overview_private_$section"
+
     fun symptomJournalItem(symptomId: String) = "symptom_journal_item_$symptomId"
 
     /** The header of a day of the journal; [date] is ISO, e.g. `2026-10-05`. */
@@ -335,6 +347,12 @@ object C {
 
     /** The chip choosing which picked symptom the slider sets; [type] is its enum name. */
     fun symptomAddStrengthChip(type: String) = "symptom_add_strength_chip_$type"
+
+    /**
+     * The strength bar of a symptom on its detail, by
+     * [com.github.se.oncompanion.model.symptom.SymptomType] name.
+     */
+    fun symptomDetailStrengthBar(type: String) = "symptom_detail_strength_bar_$type"
 
     // Care circle
     const val care_circle_back_button = "care_circle_back_button"

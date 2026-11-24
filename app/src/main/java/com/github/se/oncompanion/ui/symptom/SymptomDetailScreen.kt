@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -13,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -55,10 +55,12 @@ import com.github.se.oncompanion.ui.common.DetailWithActions
 import com.github.se.oncompanion.ui.common.EditedBy
 import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
+import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.NotSharedMessage
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Screen
 import com.github.se.oncompanion.ui.theme.Spacing
+import com.github.se.oncompanion.ui.theme.full
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -149,23 +151,25 @@ fun SymptomDetailContent(
                 Modifier.align(Alignment.Center).testTag(C.Tag.symptom_detail_loading)
             )
         uiState.hasError ->
-            LakeMessageState(
-                title = stringResource(R.string.symptom_detail_error_title),
-                message = stringResource(R.string.symptom_error_hint),
-                actionLabel = stringResource(R.string.symptom_retry),
-                onAction = onRetry,
-                actionTestTag = C.Tag.symptom_detail_retry,
-                modifier = Modifier.align(Alignment.Center).testTag(C.Tag.symptom_detail_error),
-            )
+            MessageArea(Modifier.testTag(C.Tag.symptom_detail_error)) {
+              LakeMessageState(
+                  title = stringResource(R.string.symptom_detail_error_title),
+                  message = stringResource(R.string.symptom_error_hint),
+                  actionLabel = stringResource(R.string.symptom_retry),
+                  onAction = onRetry,
+                  actionTestTag = C.Tag.symptom_detail_retry,
+              )
+            }
         // The patient a caregiver follows doesn't share their symptoms (anymore)
         uiState.isNotShared && caregiverOf != null ->
-            NotSharedMessage(caregiverOf, CarePermission.SYMPTOMS, Modifier.align(Alignment.Center))
+            MessageArea { NotSharedMessage(caregiverOf, CarePermission.SYMPTOMS) }
         entry == null ->
-            LakeMessageState(
-                title = stringResource(R.string.symptom_detail_not_found_title),
-                message = stringResource(R.string.symptom_detail_not_found_hint),
-                modifier = Modifier.align(Alignment.Center).testTag(C.Tag.symptom_detail_not_found),
-            )
+            MessageArea(Modifier.testTag(C.Tag.symptom_detail_not_found)) {
+              LakeMessageState(
+                  title = stringResource(R.string.symptom_detail_not_found_title),
+                  message = stringResource(R.string.symptom_detail_not_found_hint),
+              )
+            }
         // Edit and Delete at the bottom, away from the back button, as in the Figma mockup
         else ->
             DetailWithActions(
@@ -285,32 +289,24 @@ private fun SymptomsSection(entry: SymptomEntry) {
 
 /**
  * A symptom's [name], then its [strength] as "5/10 · Moderate" over a bar filled to it; the name
- * alone when it has no strength. A long name wraps, so the detail shows it whole.
+ * alone when it has no strength. The value has its own line so the name gets the card's whole width
+ * and a long one wraps between words, even at a large font.
  */
 @Composable
 private fun StrengthRow(type: SymptomType, name: String, strength: Int?) {
   Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    Text(text = name, style = MaterialTheme.typography.titleMedium)
+    if (strength != null) {
+      val severity = stringResource(Severity.of(strength).label)
+      val description = stringResource(R.string.symptom_strength_description, strength, severity)
       Text(
-          text = name,
-          style = MaterialTheme.typography.titleMedium,
-          modifier = Modifier.weight(1f),
+          text = stringResource(R.string.symptom_add_intensity_value, strength, severity),
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          modifier = Modifier.semantics { contentDescription = description },
       )
-      if (strength != null) {
-        val severity = stringResource(Severity.of(strength).label)
-        val description = stringResource(R.string.symptom_strength_description, strength, severity)
-        Text(
-            text = stringResource(R.string.symptom_strength_value, strength, severity),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.semantics { contentDescription = description },
-        )
-      }
+      StrengthBar(type, strength)
     }
-    if (strength != null) StrengthBar(type, strength)
   }
 }
 
@@ -324,14 +320,14 @@ private fun StrengthBar(type: SymptomType, strength: Int) {
   Box(
       Modifier.fillMaxWidth()
           .height(BAR_HEIGHT)
-          .clip(CircleShape)
+          .clip(MaterialTheme.shapes.full)
           .background(MaterialTheme.colorScheme.surfaceVariant)
           .clearAndSetSemantics { testTag = tag }
   ) {
     Box(
         Modifier.fillMaxWidth(strength.toFloat() / SymptomEntry.MAX_INTENSITY)
             .fillMaxHeight()
-            .clip(CircleShape)
+            .clip(MaterialTheme.shapes.full)
             .background(MaterialTheme.colorScheme.primary)
     )
   }

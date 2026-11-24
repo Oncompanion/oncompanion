@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -50,6 +51,7 @@ import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonDefaults
 import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
+import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.NotSharedMessage
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Screen
@@ -135,20 +137,21 @@ fun SymptomJournalContent(
                 Modifier.align(Alignment.Center).testTag(C.Tag.symptom_journal_loading)
             )
         uiState.hasError ->
-            LakeMessageState(
-                title =
-                    caregiverOf?.let {
-                      stringResource(R.string.symptom_journal_error_title_for, it)
-                    } ?: stringResource(R.string.symptom_journal_error_title),
-                message = stringResource(R.string.symptom_error_hint),
-                actionLabel = stringResource(R.string.symptom_retry),
-                onAction = onRetry,
-                actionTestTag = C.Tag.symptom_journal_retry,
-                modifier = Modifier.align(Alignment.Center).testTag(C.Tag.symptom_journal_error),
-            )
+            MessageArea(Modifier.testTag(C.Tag.symptom_journal_error)) {
+              LakeMessageState(
+                  title =
+                      caregiverOf?.let {
+                        stringResource(R.string.symptom_journal_error_title_for, it)
+                      } ?: stringResource(R.string.symptom_journal_error_title),
+                  message = stringResource(R.string.symptom_error_hint),
+                  actionLabel = stringResource(R.string.symptom_retry),
+                  onAction = onRetry,
+                  actionTestTag = C.Tag.symptom_journal_retry,
+              )
+            }
         // The patient a caregiver follows doesn't share their symptoms
         uiState.isNotShared && caregiverOf != null ->
-            NotSharedMessage(caregiverOf, CarePermission.SYMPTOMS, Modifier.align(Alignment.Center))
+            MessageArea { NotSharedMessage(caregiverOf, CarePermission.SYMPTOMS) }
         uiState.days.isEmpty() ->
             EmptyJournal(
                 // A caregiver isn't told the symptoms are theirs to show their doctor

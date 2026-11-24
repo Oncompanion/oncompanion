@@ -57,6 +57,7 @@ internal const val MEDICATIONS_SHOWN = 2
  * a single "Nothing planned today" card when there is neither.
  *
  * @param onTickDose ticks a dose of a medication, by its ID (see [OverviewViewModel.tickDose])
+ * @param onOpenDoses opens the sheet to correct a medication's doses, by its ID
  * @param modifier for the first card, e.g. to overlap the header's lower edge
  */
 @Composable
@@ -67,6 +68,7 @@ internal fun PatientDay(
     onOpenEvent: (String) -> Unit,
     modifier: Modifier = Modifier,
     onTickDose: (String) -> Unit = {},
+    onOpenDoses: (String) -> Unit = {},
 ) {
   val nextUp = uiState.nextUp
   val medications = uiState.todayMedications
@@ -92,6 +94,7 @@ internal fun PatientDay(
         medications,
         onOpenPlanning,
         onTickDose,
+        onOpenDoses,
         if (nextUp == null) modifier else Modifier,
     )
   }
@@ -174,7 +177,7 @@ private fun Eyebrow(text: String, modifier: Modifier = Modifier) {
  * Tapping it opens its page; "Planning ›" opens Planning.
  */
 @Composable
-private fun NextUpCard(
+internal fun NextUpCard(
     nextUp: NextUp,
     today: LocalDate,
     onOpenPlanning: () -> Unit,
@@ -235,12 +238,14 @@ private fun nextUpWhen(nextUp: NextUp, today: LocalDate): String {
  * title instead.
  *
  * @param onTickDose ticks the next dose of a medication, by its ID, or unticks one taken once a day
+ * @param onOpenDoses opens the sheet to correct the doses of one taken several times a day
  */
 @Composable
 internal fun MedicationsCard(
     medications: List<TodayMedication>,
     onOpenPlanning: () -> Unit,
     onTickDose: (String) -> Unit,
+    onOpenDoses: (String) -> Unit,
     modifier: Modifier,
 ) {
   DayCard(modifier.testTag(C.Tag.overview_medications)) {
@@ -266,7 +271,7 @@ internal fun MedicationsCard(
           PlanningLink(onOpenPlanning, Modifier.testTag(C.Tag.overview_planning_link))
         }
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-          medications.take(MEDICATIONS_SHOWN).forEach { MedicationRow(it, onTickDose) }
+          medications.take(MEDICATIONS_SHOWN).forEach { MedicationRow(it, onTickDose, onOpenDoses) }
         }
         if (hidden > 0) MoreLink(hidden, onOpenPlanning)
       }
@@ -321,7 +326,7 @@ internal fun FrequencyChip(text: String) {
  * where the day is filled in.
  */
 @Composable
-private fun NothingPlannedCard(
+internal fun NothingPlannedCard(
     dayStarted: Boolean,
     onOpenPlanning: () -> Unit,
     modifier: Modifier,

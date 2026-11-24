@@ -21,6 +21,13 @@ object SpeechRecognizerProvider {
     }
 
   /**
+   * The recognizer, or `null` before [install]: for a screen that only offers to speak (the
+   * Overview's "Speak how you feel"), so it can be shown in tests that never start the app.
+   */
+  val installed: SpeechRecognizer?
+    get() = current
+
+  /**
    * Uses the phone's recognizer with [context]'s app context, unless one was already set: a test's
    * fake stays when the app starts. Creating it starts nothing until the user speaks.
    */
