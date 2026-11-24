@@ -23,7 +23,15 @@ internal typealias Phrase = List<String>
  * @property negations words that negate the symptom said soon after them, in the same clause
  * @property negationsAfterNe words that only negate after "ne" ("je n'ai plus de fièvre"), as
  *   "plus" alone also means "more"
+ * @property clauseNegations phrases that negate every symptom up to the end of their clause ("I
+ *   don't think I have a fever")
+ * @property listJoins words that join the last item of a list ("no fever, nausea or pain"): a
+ *   negation goes on through the list
  * @property clauseBreaks words that end what a negation applies to ("but", "mais")
+ * @property endings phrases that say the symptom said just before them is over ("the nausea is
+ *   gone")
+ * @property pronounEndings phrases that say the symptoms said before them are over, even in the
+ *   clause before ("I had a headache but it's gone")
  * @property ignored phrases that look like a negation or a symptom but are neither
  * @property fillers words that may come between the words of a symptom or ignored phrase ("feel a
  *   bit sick", "pas très faim") without changing what it says
@@ -44,7 +52,11 @@ internal class SpokenVocabulary(
     symptoms: Map<SymptomType, List<String>>,
     val negations: Set<String>,
     val negationsAfterNe: Set<String> = emptySet(),
+    clauseNegations: List<String>,
+    val listJoins: Set<String>,
     val clauseBreaks: Set<String>,
+    endings: List<String>,
+    pronounEndings: List<String>,
     ignored: List<String>,
     fillers: List<String>,
     val numbers: Map<String, Int>,
@@ -65,6 +77,9 @@ internal class SpokenVocabulary(
     phrases.map { spokenWords(it) to type }
   }
   val ignored: List<Phrase> = phrases(ignored)
+  val clauseNegations: List<Phrase> = phrases(clauseNegations)
+  val endings: List<Phrase> = phrases(endings)
+  val pronounEndings: List<Phrase> = phrases(pronounEndings)
   val fillers: List<Phrase> = phrases(fillers)
   val outOf: List<Phrase> = phrases(outOf)
   val agoBefore: List<Phrase> = phrases(agoBefore)
@@ -238,6 +253,8 @@ internal class SpokenVocabulary(
             // "t" is what is left of "n't" ("don't" → "don t")
             negations =
                 setOf("no", "not", "t", "without", "never", "nor", "neither", "none", "nothing"),
+            clauseNegations = listOf("don't think", "do not think", "don't believe"),
+            listJoins = setOf("or", "nor"),
             clauseBreaks =
                 setOf(
                     ",",
@@ -250,6 +267,35 @@ internal class SpokenVocabulary(
                     "then",
                     "otherwise",
                     "just",
+                ),
+            endings =
+                listOf(
+                    "is gone",
+                    "are gone",
+                    "has gone",
+                    "have gone",
+                    "'s gone",
+                    "went away",
+                    "has gone away",
+                    "is over",
+                    "has passed",
+                    "have passed",
+                    "has stopped",
+                    "have stopped",
+                    "disappeared",
+                    "has disappeared",
+                ),
+            pronounEndings =
+                listOf(
+                    "it's gone",
+                    "it is gone",
+                    "it has gone",
+                    "it went away",
+                    "it's over",
+                    "it is over",
+                    "it has passed",
+                    "it stopped",
+                    "it has stopped",
                 ),
             ignored =
                 listOf(
@@ -466,8 +512,30 @@ internal class SpokenVocabulary(
                 ),
             negations = setOf("pas", "sans", "aucun", "aucune", "jamais", "ni", "rien"),
             negationsAfterNe = setOf("plus"),
+            clauseNegations = listOf("crois pas", "pense pas"),
+            listJoins = setOf("ou", "ni"),
             clauseBreaks =
                 setOf(",", "mais", "et", "cependant", "pourtant", "sauf", "puis", "sinon", "juste"),
+            endings =
+                listOf(
+                    "est passé*",
+                    "sont passé*",
+                    "est parti*",
+                    "sont parti*",
+                    "a disparu",
+                    "ont disparu",
+                    "est tombé*",
+                    "s'est arrêté*",
+                    "est fini*",
+                ),
+            pronounEndings =
+                listOf(
+                    "c'est passé",
+                    "c'est parti",
+                    "c'est fini",
+                    "ça a disparu",
+                    "ça s'est arrêté",
+                ),
             ignored =
                 listOf(
                     // "pas mal de" is "quite a lot of"; "je ne sais pas" negates nothing

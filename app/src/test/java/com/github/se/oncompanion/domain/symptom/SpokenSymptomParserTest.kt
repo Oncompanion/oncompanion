@@ -269,6 +269,43 @@ class SpokenSymptomParserTest {
   }
 
   @Test
+  fun aSymptomNegatedOrSaidToBeOver_isNotDrafted() {
+    check(
+        Locale.ENGLISH,
+        listOf(
+            // A negation that reaches further than 3 words
+            Case("I don't think I have a fever"),
+            Case("I don't think so, I'm tired", listOf(FATIGUE)),
+            // A negated list, with or without the recognizer's commas
+            Case("no fever, nausea or pain"),
+            Case("no fever nausea or pain"),
+            Case("no fever, nausea or pain, just tired", listOf(FATIGUE)),
+            // Over
+            Case("the nausea is gone"),
+            Case("the pain's gone"),
+            Case("the nausea really has gone"),
+            Case("the nausea is completely gone, but I'm tired", listOf(FATIGUE)),
+            Case("I had a headache this morning but it's gone now, I'm tired", listOf(FATIGUE)),
+            // "has gone" right after a symptom only
+            Case("headache since my husband has gone", listOf(HEADACHE)),
+        ),
+    )
+    check(
+        Locale.FRENCH,
+        listOf(
+            // "vraiment" doesn't count in the negation's reach
+            Case("je n'ai pas vraiment eu de fièvre"),
+            Case("je pense pas que j'aie de la fièvre"),
+            Case("pas de fièvre, de nausées ni de douleur"),
+            Case("la nausée est passée"),
+            Case("la fièvre est tombée, je suis fatiguée", listOf(FATIGUE)),
+            Case("j'avais mal à la tête mais c'est passé"),
+            Case("j'ai mal depuis que le médecin est passé", listOf(PAIN)),
+        ),
+    )
+  }
+
+  @Test
   fun anotherLanguage_isParsedAsEnglish() {
     check(Locale.GERMAN, listOf(Case("tired 4 out of 10", listOf(FATIGUE), 4)))
   }

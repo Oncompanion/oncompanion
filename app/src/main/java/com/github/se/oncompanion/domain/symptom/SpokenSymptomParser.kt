@@ -23,7 +23,7 @@ fun parseSpokenSymptom(transcript: String, locale: Locale, now: ZonedDateTime): 
   val vocabulary = SpokenVocabulary.of(locale.language)
   val (date, time) = SpokenWhen(words, vocabulary, now).resolve()
   return SymptomDraft(
-      types = symptomsSaid(words, vocabulary),
+      types = SpokenSymptoms(words, vocabulary).read(),
       intensity = intensitySaid(words, vocabulary),
       date = date,
       time = time,
@@ -126,44 +126,125 @@ private fun symptomAt(
   return found.takeUnless { overtaken }
 }
 
-/** A negation reaches a symptom said at most this many words after it ("no nausea or headache"). */
+/**
+ * A negation reaches a symptom said at most this many words after it ("no nausea or headache"), not
+ * counting [SpokenVocabulary.fillers] ("je n'ai pas vraiment eu de fièvre").
+ */
 private const val NEGATION_REACH = 3
 
 /**
- * The symptoms in [words], in the order they were first said, without those negated. A symptom both
- * said and negated ("headache this morning, no headache now") is left out: not guessed.
+ * The symptoms in [words], in the order they were first said, without those negated or said to be
+ * over. A symptom both said and negated ("headache this morning, no headache now") is left out: not
+ * guessed.
  */
-private fun symptomsSaid(words: List<String>, vocabulary: SpokenVocabulary): List<SymptomType> {
-  val said = mutableListOf<SymptomType>()
-  val negated = mutableSetOf<SymptomType>()
-  // Where the last negation of the current clause was said
-  var negation = Int.MIN_VALUE / 2
-  var i = 0
-  while (i < words.size) {
-    val ignored = anyAt(words, i, vocabulary.ignored, vocabulary.fillers)
-    val symptom = symptomAt(words, i, vocabulary)
-    when {
-      words[i] in vocabulary.clauseBreaks -> negation = Int.MIN_VALUE / 2
-      ignored > 0 -> {
-        i += ignored
-        continue
-      }
-      symptom != null -> {
-        val (length, type) = symptom
-        val phrase = words.subList(i, i + length)
-        // "pas faim" or "can't sleep" is the symptom itself, not its negation
-        val negatesItself = phrase.any { isNegation(it, vocabulary) }
-        if (!negatesItself && i - negation <= NEGATION_REACH) negated += type else said += type
-        i += length
-        continue
-      }
-      isNegation(words[i], vocabulary) &&
-          (words[i] !in vocabulary.negationsAfterNe ||
-              words.subList(maxOf(0, i - 2), i).any { it == "n" || it == "ne" }) -> negation = i
+private class SpokenSymptoms(
+    private val words: List<String>,
+    private val vocabulary: SpokenVocabulary,
+) {
+  private val said = mutableListOf<SymptomType>()
+  private val negated = mutableSetOf<SymptomType>()
+  /** How many more words the last negation reaches. */
+  private var reach = 0
+  /** Whether a negation reaches the end of the clause ("I don't think I have a fever"). */
+  private var clauseNegated = false
+  /** The symptoms said in the current and previous clauses, which "it's gone" says are over. */
+  private var clause = mutableListOf<SymptomType>()
+  private var previousClause = listOf<SymptomType>()
+  /** The symptom said just before the current word, which "is gone" says is over. */
+  private var justSaid: SymptomType? = null
+
+  fun read(): List<SymptomType> {
+    var i = 0
+    while (i < words.size) {
+      val before = justSaid
+      justSaid = null
+      i +=
+          readBreak(i).takeIf { it > 0 }
+              ?: readIgnored(i).takeIf { it > 0 }
+              ?: readClauseNegation(i).takeIf { it > 0 }
+              ?: readEnding(i, before).takeIf { it > 0 }
+              ?: readSymptom(i).takeIf { it > 0 }
+              ?: readFiller(i, before).takeIf { it > 0 }
+              ?: readWord(i)
     }
-    i++
+    return said.distinct().filter { it !in negated }
   }
-  return said.distinct().filter { it !in negated }
+
+  private fun negationReaches() = reach > 0 || clauseNegated
+
+  /** "," or "but": ends the clause, unless a negated list goes on ("no fever, nausea or pain"). */
+  private fun readBreak(i: Int): Int {
+    if (words[i] !in vocabulary.clauseBreaks) return 0
+    if (words[i] == "," && negationReaches() && listGoesOn(i + 1)) {
+      reach = NEGATION_REACH
+    } else {
+      reach = 0
+      clauseNegated = false
+      if (clause.isNotEmpty()) previousClause = clause
+      clause = mutableListOf()
+    }
+    return 1
+  }
+
+  /** Whether the clause from [start] goes on with "or" or "ni" before it ends. */
+  private fun listGoesOn(start: Int): Boolean {
+    val end = (start until words.size).firstOrNull { words[it] in vocabulary.clauseBreaks }
+    return words.subList(start, end ?: words.size).any { it in vocabulary.listJoins }
+  }
+
+  private fun readIgnored(i: Int): Int =
+      anyAt(words, i, vocabulary.ignored, vocabulary.fillers).also { reach = maxOf(0, reach - it) }
+
+  private fun readClauseNegation(i: Int): Int =
+      anyAt(words, i, vocabulary.clauseNegations).also { if (it > 0) clauseNegated = true }
+
+  /**
+   * "it's gone" says the symptoms of its clause are over, or else those of the clause before ("I
+   * had a headache but it's gone"). "is gone" only says it of the symptom [before] it: "le médecin
+   * est passé" says nothing of a pain said earlier.
+   */
+  private fun readEnding(i: Int, before: SymptomType?): Int {
+    val pronounEnding = anyAt(words, i, vocabulary.pronounEndings, vocabulary.fillers)
+    if (pronounEnding > 0) {
+      negated += clause.ifEmpty { previousClause }
+      return pronounEnding
+    }
+    return anyAt(words, i, vocabulary.endings, vocabulary.fillers).also {
+      if (it > 0 && before != null) negated += before
+    }
+  }
+
+  private fun readSymptom(i: Int): Int {
+    val (length, type) = symptomAt(words, i, vocabulary) ?: return 0
+    // "pas faim" or "can't sleep" is the symptom itself, not its negation
+    val negatesItself = words.subList(i, i + length).any { isNegation(it, vocabulary) }
+    if (!negatesItself && negationReaches()) negated += type else said += type
+    clause += type
+    justSaid = type
+    reach = maxOf(0, reach - length)
+    return length
+  }
+
+  /** "really", "vraiment": counts for neither a negation's reach nor "is gone". */
+  private fun readFiller(i: Int, before: SymptomType?): Int =
+      anyAt(words, i, vocabulary.fillers).also { if (it > 0) justSaid = before }
+
+  /** A negation, "or" in a negated list, or any other word. */
+  private fun readWord(i: Int): Int {
+    val word = words[i]
+    val negates =
+        isNegation(word, vocabulary) &&
+            (word !in vocabulary.negationsAfterNe ||
+                words.subList(maxOf(0, i - 2), i).any { it == "n" || it == "ne" })
+    reach =
+        when {
+          negates -> NEGATION_REACH
+          // "no nausea or headache": the list goes on as far again
+          word in vocabulary.listJoins && reach > 0 -> NEGATION_REACH
+          else -> maxOf(0, reach - 1)
+        }
+    return 1
+  }
 }
 
 private fun isNegation(word: String, vocabulary: SpokenVocabulary) =
