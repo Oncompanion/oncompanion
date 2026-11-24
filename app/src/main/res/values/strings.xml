@@ -1,7 +1,9 @@
 <!-- Co-authored-by: ChatGPT <noreply@openai.com> -->
 <!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
 <!-- Co-authored-by: Codex <noreply@openai.com> -->
-<resources>
+<!-- #559 translates the picker first. Remove the incomplete-catalog allowance in #560. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="MissingTranslation">
     <string name="app_name">oncompanion</string>
     <!-- Planning -->
     <string name="planning_today">Today</string>
@@ -904,6 +906,15 @@
     <string name="settings_title">Settings</string>
     <string name="settings_back">Back</string>
     <string name="settings_profile_summary">Appearance, language and more</string>
+    <string name="settings_language">Language</string>
+    <string name="language_intro">Choose the language used by oncompanion.</string>
+    <string name="language_device">Follow device</string>
+    <string name="language_device_hint">French on French phones; English otherwise</string>
+    <string name="language_english" translatable="false">English</string>
+    <string name="language_french" translatable="false">Français</string>
+    <string name="language_user_data_scope">Your notes, prescriptions and names stay as you entered them.</string>
+    <string name="language_preview">Preview</string>
+    <string name="language_preview_appointment">Appointment</string>
     <string name="settings_date_time">Date and time</string>
     <string name="settings_date_time_intro">Choose how dates and times appear.</string>
     <string name="settings_time_format">Time format</string>

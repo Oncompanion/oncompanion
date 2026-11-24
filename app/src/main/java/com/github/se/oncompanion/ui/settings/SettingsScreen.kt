@@ -17,7 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.settings.DateFormatPreference
 import com.github.se.oncompanion.model.settings.TimeFormatPreference
@@ -33,20 +35,38 @@ fun SettingsScreen(
     onAppearance: () -> Unit,
     onDateTime: () -> Unit,
     modifier: Modifier = Modifier,
+    onLanguage: () -> Unit = {},
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
-  SettingsContent(state, onBack, onAppearance, viewModel::retry, onDateTime, modifier)
+  val languageModel: LanguageViewModel = viewModel()
+  val language by languageModel.uiState.collectAsStateWithLifecycle()
+  LifecycleResumeEffect(languageModel) {
+    languageModel.refresh()
+    onPauseOrDispose {}
+  }
+  SettingsContent(
+      state,
+      onBack,
+      onAppearance,
+      viewModel::retry,
+      onDateTime,
+      modifier,
+      language,
+      onLanguage,
+  )
 }
 
 /** Displays only implemented categories and their persisted values. */
 @Composable
-fun SettingsContent(
+internal fun SettingsContent(
     state: SettingsUiState,
     onBack: () -> Unit,
     onAppearance: () -> Unit,
     onRetry: () -> Unit,
     onDateTime: () -> Unit,
     modifier: Modifier = Modifier,
+    language: AppLanguage = AppLanguage.FOLLOW_DEVICE,
+    onLanguage: () -> Unit = {},
 ) {
   SettingsLayout(
       stringResource(R.string.settings_title),
@@ -71,6 +91,12 @@ fun SettingsContent(
               onAppearance,
               Modifier.testTag(C.Tag.settings_appearance),
           )
+          Text(
+              stringResource(R.string.appearance_phone_scope),
+              modifier = Modifier.padding(horizontal = Spacing.lg),
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
           SettingsLinkRow(
               stringResource(R.string.settings_date_time),
               if (
@@ -89,10 +115,16 @@ fun SettingsContent(
           )
         }
       }
-      Text(
-          stringResource(R.string.appearance_phone_scope),
-          style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
+    }
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+    ) {
+      SettingsLinkRow(
+          stringResource(R.string.settings_language),
+          languageLabel(language),
+          onLanguage,
+          Modifier.testTag(C.Tag.settings_language),
       )
     }
   }

@@ -176,6 +176,7 @@ object Screen {
   // Route.SETTINGS
   const val SETTINGS = "settings_home"
   const val APPEARANCE = "appearance"
+  const val LANGUAGE = "language"
   const val DATE_TIME_SETTINGS = "settings_date_time"
   const val TIME_FORMAT_SETTINGS = "settings_time_format"
   const val DATE_FORMAT_SETTINGS = "settings_date_format"

@@ -91,6 +91,7 @@ import com.github.se.oncompanion.ui.reminder.ReminderPermissionViewModel
 import com.github.se.oncompanion.ui.settings.AppearanceScreen
 import com.github.se.oncompanion.ui.settings.DateFormatScreen
 import com.github.se.oncompanion.ui.settings.DateTimeSettingsScreen
+import com.github.se.oncompanion.ui.settings.LanguageScreen
 import com.github.se.oncompanion.ui.settings.SettingsScreen
 import com.github.se.oncompanion.ui.settings.SettingsViewModel
 import com.github.se.oncompanion.ui.settings.TimeFormatScreen
@@ -753,9 +754,11 @@ private fun SessionNavHost(
             viewModel { SettingsViewModel() },
             onBack = navigationActions::goBack,
             onAppearance = { navigationActions.navigateTo(Screen.APPEARANCE) },
+            onLanguage = { navigationActions.navigateTo(Screen.LANGUAGE) },
             onDateTime = { navigationActions.navigateTo(Screen.DATE_TIME_SETTINGS) },
         )
       }
+      composable(Screen.LANGUAGE) { LanguageScreen(onBack = navigationActions::goBack) }
       composable(Screen.APPEARANCE) {
         AppearanceScreen(viewModel { SettingsViewModel() }, onBack = navigationActions::goBack)
       }
