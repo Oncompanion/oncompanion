@@ -555,7 +555,8 @@ See the [Firebase Android lifecycle reference](https://firebase.google.com/docs/
 /users/{uid}/symptoms/{id}            symptoms felt together, a strength per symptom, notes, and
                                       the name of an "Other" symptom (otherName, #545)
 /users/{uid}/prescriptions/{id}       doctor, date and the list of its medications; who added it and
-                                      whether the patient confirmed it (US-43)
+                                      whether the patient confirmed it (US-43); the reminder times the
+                                      patient chose, by medication (US-32)
 /users/{uid}/rejectedPrescriptions/{id}
                                       a caregiver's prescription the patient rejected, for that
                                       caregiver to see (US-43)

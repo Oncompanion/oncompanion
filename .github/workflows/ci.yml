@@ -77,10 +77,6 @@ jobs:
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Grant execute permission for gradlew
-        run: |
-          chmod +x ./gradlew
-
       # The daemon runs on the JDK pinned in gradle/gradle-daemon-jvm.properties: show which one
       - name: Gradle and JDK versions
         run: |
@@ -131,10 +127,6 @@ jobs:
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Grant execute permission for gradlew
-        run: |
-          chmod +x ./gradlew
-
       - name: Lint
         run: |
           ./gradlew lintDebug --build-cache
@@ -172,10 +164,6 @@ jobs:
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Grant execute permission for gradlew
-        run: |
-          chmod +x ./gradlew
-
       - name: Assemble release
         run: |
           ./gradlew assembleRelease --build-cache
@@ -202,10 +190,6 @@ jobs:
 
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v6
-
-      - name: Grant execute permission for gradlew
-        run: |
-          chmod +x ./gradlew
 
       - name: Build the APKs
         run: |
@@ -387,10 +371,6 @@ jobs:
 
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v6
-
-      - name: Grant execute permission for gradlew
-        run: |
-          chmod +x ./gradlew
 
       # The SonarCloud upload needs the app compiled (its sonarResolver task, even with
       # sonar.gradle.skipCompile): done while the tests run. The coverage report doesn't use these
