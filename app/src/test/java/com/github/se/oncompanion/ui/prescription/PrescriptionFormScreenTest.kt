@@ -32,6 +32,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -1813,6 +1814,9 @@ class PrescriptionFormScreenTest {
     node(C.Tag.medication_reminders_switch).performScrollTo().assertIsOff()
     composeTestRule.onNodeWithText(string(R.string.medication_reminders_off)).assertIsDisplayed()
     node(C.Tag.medicationReminderTime(0)).assertDoesNotExist()
+    composeTestRule
+        .onNodeWithText(string(R.string.medication_reminders_only_help))
+        .assertDoesNotExist()
 
     node(C.Tag.medication_reminders_switch).performClick()
 
@@ -1838,7 +1842,11 @@ class PrescriptionFormScreenTest {
     screenshot("prescription-reminders")
 
     node(C.Tag.medication_reminders_add_time).performScrollTo().performClick()
-    node(C.Tag.medicationReminderRemove(1)).performScrollTo().performClick()
+    // TalkBack says which one it removes
+    node(C.Tag.medicationReminderRemove(1))
+        .performScrollTo()
+        .assert(hasContentDescription("Remove Reminder 2"))
+        .performClick()
 
     assertEquals(listOf("addTime", "removeTime=1"), events)
   }
@@ -1857,6 +1865,7 @@ class PrescriptionFormScreenTest {
     reminderTime(1).performClick()
     node(C.Tag.medication_reminders_picker_confirm).performClick()
     assertEquals(listOf("time=1,18:00"), events)
+    node(C.Tag.medication_reminders_picker).assertDoesNotExist()
 
     uiState = reminded(hours(9, 9))
     composeTestRule
@@ -1946,6 +1955,48 @@ class PrescriptionFormScreenTest {
         .assertIsDisplayed()
     node(C.Tag.medication_reminders_switch).assertDoesNotExist()
     node(C.Tag.medicationReminderTime(0)).assertDoesNotExist()
+  }
+
+  @Test
+  fun anOpenPicker_staysOpenWhenThePhoneRotates() {
+    val restoration = StateRestorationTester(composeTestRule)
+    restoration.setContent {
+      MedicationReminders(
+          ondansetron.copy(reminderTimes = hours(9, 18)),
+          ReminderActions(),
+          caregiverOf = null,
+      )
+    }
+    node(C.Tag.medicationReminderTime(1)).performClick()
+
+    restoration.emulateSavedInstanceStateRestore()
+
+    node(C.Tag.medication_reminders_picker).assertIsDisplayed()
+  }
+
+  @Test
+  fun eachChange_reachesTheViewModel() {
+    val auth = FakeAuthRepository(onSignIn = { AuthUser(uid = "patient-1") })
+    runBlocking { auth.signInWithGoogle("token") }
+    val viewModel = PrescriptionFormViewModel(auth, FakeMedicationRepository())
+    composeTestRule.setContent {
+      PrescriptionFormScreen(viewModel = viewModel, onClose = {}, onSaved = {})
+    }
+    val times = { viewModel.uiState.value.draft.medications.single().reminderTimes }
+
+    // No frequency: one suggested time, then one added and the first removed
+    node(C.Tag.medication_reminders_switch).performScrollTo().performClick()
+    node(C.Tag.medication_reminders_add_time).performScrollTo().performClick()
+    assertEquals(hours(9, 13), times())
+    node(C.Tag.medicationReminderRemove(0)).performScrollTo().performClick()
+    assertEquals(hours(13), times())
+
+    // A frequency the app can't read: the time chosen in the picker is the first reminder
+    node(C.Tag.medication_reminders_switch).performScrollTo().performClick()
+    field(C.Tag.prescription_form_frequency_field).performTextInput("Once a week")
+    node(C.Tag.medication_reminders_switch).performScrollTo().performClick()
+    node(C.Tag.medication_reminders_picker_confirm).performClick()
+    assertEquals(hours(9), times())
   }
 
   @Test
