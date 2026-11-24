@@ -9,7 +9,6 @@ import androidx.lifecycle.viewModelScope
 import com.github.se.oncompanion.domain.carecircle.CareAccess
 import com.github.se.oncompanion.domain.carecircle.ResolveCareCircleAccess
 import com.github.se.oncompanion.domain.medication.DailyDoses
-import com.github.se.oncompanion.domain.medication.DoseCount
 import com.github.se.oncompanion.domain.planning.CarePlanning
 import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
 import com.github.se.oncompanion.model.auth.AuthRepository
@@ -318,7 +317,7 @@ class OverviewViewModel(
               nextUp = nextUpOf(planned, now, zoneId),
               todayEntries = entriesOf(planned, now),
           )
-          .withMedications(medicationsOf(planned, now))
+          .withMedications(todayMedicationsOf(planned, now, zoneId, takenToday))
 
   /**
    * [medications] shown, and the sheet kept only while its medication is still there with several
@@ -349,31 +348,6 @@ class OverviewViewModel(
   }
 
   /**
-   * Today's medications, with their dosage after their name and the doses ticked. One a caregiver
-   * added stays off the Overview until the patient confirms its prescription: it isn't part of
-   * their treatment before (Planning still lists it).
-   */
-  private fun medicationsOf(planned: List<PlanningItem>, now: LocalDateTime) =
-      planned
-          .filter { it.isConfirmed && it.timing.dateIn(zoneId) == now.toLocalDate() }
-          .mapNotNull { item ->
-            val source = item.source as? PlanningSource.Medication ?: return@mapNotNull null
-            val frequency = item.frequency?.takeIf { it.isNotBlank() }
-            val doses = DoseCount.of(frequency).takeIf { takenToday != null }
-            TodayMedication(
-                key = item.key,
-                medicationId = source.medicationId,
-                name =
-                    listOfNotNull(item.title, item.dosage?.takeIf { it.isNotBlank() })
-                        .joinToString(" "),
-                frequency = frequency,
-                dailyDoses = DoseCount.describe(frequency),
-                dosesPerDay = doses,
-                taken = doses?.let { takenToday?.get(source.medicationId)?.coerceIn(0, it) } ?: 0,
-            )
-          }
-
-  /**
    * Follows the doses the patient ticked on [day], in patient mode. If they can't be read, nothing
    * can be ticked until the day is loaded again (Retry, or the next day).
    */
@@ -397,7 +371,9 @@ class OverviewViewModel(
   }
 
   private fun refreshMedications() {
-    _uiState.update { it.withMedications(medicationsOf(items.value, it.now)) }
+    _uiState.update {
+      it.withMedications(todayMedicationsOf(items.value, it.now, zoneId, takenToday))
+    }
   }
 
   /**
