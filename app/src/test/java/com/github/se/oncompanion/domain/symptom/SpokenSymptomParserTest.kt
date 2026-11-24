@@ -280,14 +280,24 @@ class SpokenSymptomParserTest {
             Case("no fever, nausea or pain"),
             Case("no fever nausea or pain"),
             Case("no fever, nausea or pain, just tired", listOf(FATIGUE)),
+            // A comma before "or", and a symptom of several words in the list
+            Case("no fever, nausea, or pain"),
+            Case("no loss of appetite or nausea"),
+            // A new clause isn't part of the list
+            Case("no fever, but I have nausea", listOf(NAUSEA)),
             // Over
             Case("the nausea is gone"),
             Case("the pain's gone"),
             Case("the nausea really has gone"),
             Case("the nausea is completely gone, but I'm tired", listOf(FATIGUE)),
             Case("I had a headache this morning but it's gone now, I'm tired", listOf(FATIGUE)),
+            // "are gone" is about all the symptoms said together, "is gone" only the last one
+            Case("the nausea and pain are gone"),
+            Case("the nausea is gone, but I still have pain", listOf(PAIN)),
+            Case("I'm tired and the nausea is gone", listOf(FATIGUE)),
             // "has gone" right after a symptom only
             Case("headache since my husband has gone", listOf(HEADACHE)),
+            Case("pain since the nurses have gone", listOf(PAIN)),
         ),
     )
     check(
@@ -297,7 +307,9 @@ class SpokenSymptomParserTest {
             Case("je n'ai pas vraiment eu de fièvre"),
             Case("je pense pas que j'aie de la fièvre"),
             Case("pas de fièvre, de nausées ni de douleur"),
+            Case("pas de fièvre, de nausées, ni de douleur"),
             Case("la nausée est passée"),
+            Case("les nausées et les douleurs sont passées"),
             Case("la fièvre est tombée, je suis fatiguée", listOf(FATIGUE)),
             Case("j'avais mal à la tête mais c'est passé"),
             Case("j'ai mal depuis que le médecin est passé", listOf(PAIN)),

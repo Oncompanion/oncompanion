@@ -19,9 +19,13 @@ internal typealias Phrase = List<String>
  *   don't think I have a fever")
  * @property listJoins words that join the last item of a list ("no fever, nausea or pain"): a
  *   negation goes on through the list
+ * @property determiners small words a list of symptoms may have before each one ("the", "de")
  * @property clauseBreaks words that end what a negation applies to ("but", "mais")
+ * @property groupJoins words that join symptoms said together ("the nausea and pain")
  * @property endings phrases that say the symptom said just before them is over ("the nausea is
  *   gone")
+ * @property pluralEndings phrases that say the symptoms said together just before them are over
+ *   ("the nausea and pain are gone")
  * @property pronounEndings phrases that say the symptoms said before them are over, even in the
  *   clause before ("I had a headache but it's gone")
  * @property ignored phrases that look like a negation or a symptom but are neither
@@ -46,8 +50,11 @@ internal class SpokenVocabulary(
     val negationsAfterNe: Set<String> = emptySet(),
     clauseNegations: List<String>,
     val listJoins: Set<String>,
+    val determiners: Set<String>,
     val clauseBreaks: Set<String>,
+    val groupJoins: Set<String>,
     endings: List<String>,
+    pluralEndings: List<String>,
     pronounEndings: List<String>,
     ignored: List<String>,
     fillers: List<String>,
@@ -71,6 +78,7 @@ internal class SpokenVocabulary(
   val ignored: List<Phrase> = phrases(ignored)
   val clauseNegations: List<Phrase> = phrases(clauseNegations)
   val endings: List<Phrase> = phrases(endings)
+  val pluralEndings: List<Phrase> = phrases(pluralEndings)
   val pronounEndings: List<Phrase> = phrases(pronounEndings)
   val fillers: List<Phrase> = phrases(fillers)
   val outOf: List<Phrase> = phrases(outOf)
@@ -156,16 +164,22 @@ internal class SpokenVocabulary(
                 phraseList("no, not, t, without, never, nor, neither, none, nothing").toSet(),
             clauseNegations = phraseList("don't think, do not think, don't believe"),
             listJoins = setOf("or", "nor"),
+            determiners = setOf("the", "a", "an", "any", "my", "some"),
             clauseBreaks =
                 phraseList("but, and, though, although, however, except, then, otherwise, just")
                     .toSet() + ",",
+            groupJoins = setOf(",", "and"),
+            // "went away" and "disappeared" could be either: only the last symptom is over
             endings =
                 phraseList(
                     """
-                is gone, are gone, has gone, have gone, 's gone, went away, has gone away,
-                is over, has passed, have passed, has stopped, have stopped, disappeared,
-                has disappeared
+                is gone, has gone, 's gone, went away, has gone away, is over, has passed,
+                has stopped, disappeared, has disappeared
                 """
+                ),
+            pluralEndings =
+                phraseList(
+                    "are gone, have gone, are over, have passed, have stopped, have disappeared"
                 ),
             pronounEndings =
                 phraseList(
@@ -269,13 +283,19 @@ internal class SpokenVocabulary(
             negationsAfterNe = setOf("plus"),
             clauseNegations = phraseList("crois pas, pense pas"),
             listJoins = setOf("ou", "ni"),
+            // After spokenWords, "d'" and "l'" are "d" and "l"
+            determiners = setOf("de", "des", "du", "d", "la", "le", "les", "l", "mes", "ma", "mon"),
             clauseBreaks =
                 phraseList("mais, et, cependant, pourtant, sauf, puis, sinon, juste").toSet() + ",",
+            groupJoins = setOf(",", "et"),
             endings =
                 phraseList(
+                    "est passé*, est parti*, a disparu, est tombé*, s'est arrêté*, est fini*"
+                ),
+            pluralEndings =
+                phraseList(
                     """
-                est passé*, sont passé*, est parti*, sont parti*, a disparu, ont disparu,
-                est tombé*, s'est arrêté*, est fini*
+                sont passé*, sont parti*, ont disparu, sont tombé*, se sont arrêté*, sont fini*
                 """
                 ),
             pronounEndings =
