@@ -153,6 +153,15 @@
     <string name="caregiver_overview_day">%1$s\'s day</string>
     <string name="caregiver_overview_shared_only">You see what %1$s chose to share. Only %1$s can change it.</string>
     <!-- On the locked card of a section the patient doesn't share, under its name -->
+    <string name="caregiver_overview_journal">Journal</string>
+    <string name="caregiver_overview_full_journal">Full journal</string>
+    <string name="caregiver_overview_journal_empty">No entries yet</string>
+    <!-- When the patient last logged a symptom, e.g. "Yesterday at 18:10" -->
+    <string name="caregiver_overview_journal_at">%1$s at %2$s</string>
+    <!-- A symptom and its strength out of 10, e.g. "Nausea 7/10" -->
+    <string name="caregiver_overview_journal_strength">%1$s %2$d/10</string>
+    <!-- The symptoms of an entry and its one intensity, e.g. "Nausea, Fatigue · 6/10" -->
+    <string name="caregiver_overview_journal_overall">%1$s · %2$d/10</string>
     <string name="caregiver_overview_private">%1$s keeps this private</string>
     <string name="caregiver_overview_error_title">Couldn\'t load %1$s\'s day</string>
 

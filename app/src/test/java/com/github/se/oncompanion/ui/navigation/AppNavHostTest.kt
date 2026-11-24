@@ -673,12 +673,16 @@ class AppNavHostTest {
     )
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
-          .onAllNodesWithTag(OverviewShortcut.SYMPTOMS.testTag)
+          .onAllNodesWithTag(C.Tag.caregiver_overview_full_journal)
           .fetchSemanticsNodes()
           .isNotEmpty()
     }
 
-    composeTestRule.onNodeWithTag(OverviewShortcut.SYMPTOMS.testTag).performClick()
+    // The journal card on Anne's day opens her journal
+    composeTestRule
+        .onNodeWithTag(C.Tag.caregiver_overview_full_journal)
+        .performScrollTo()
+        .performClick()
 
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
@@ -704,11 +708,15 @@ class AppNavHostTest {
     )
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
-          .onAllNodesWithTag(OverviewShortcut.SYMPTOMS.testTag)
+          .onAllNodesWithTag(C.Tag.caregiver_overview_full_journal)
           .fetchSemanticsNodes()
           .isNotEmpty()
     }
-    composeTestRule.onNodeWithTag(OverviewShortcut.SYMPTOMS.testTag).performClick()
+    // The journal card on Anne's day opens her journal
+    composeTestRule
+        .onNodeWithTag(C.Tag.caregiver_overview_full_journal)
+        .performScrollTo()
+        .performClick()
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
           .onAllNodesWithTag(C.Tag.symptom_journal_add)
