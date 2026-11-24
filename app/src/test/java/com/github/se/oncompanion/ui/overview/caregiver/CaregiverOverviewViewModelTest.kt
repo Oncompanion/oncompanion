@@ -13,8 +13,11 @@ import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.carecircle.CarePermission.PLANNING
 import com.github.se.oncompanion.model.carecircle.CarePermission.PRESCRIPTIONS
 import com.github.se.oncompanion.model.carecircle.CarePermission.SYMPTOMS
+import com.github.se.oncompanion.model.medication.FakeTakenDosesRepository
+import com.github.se.oncompanion.model.medication.TakenDosesRepository
 import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningItem
+import com.github.se.oncompanion.model.planning.PlanningRange
 import com.github.se.oncompanion.model.planning.PlanningSource
 import com.github.se.oncompanion.model.planning.PlanningTiming
 import com.github.se.oncompanion.model.symptom.FakeSymptomRepository
@@ -29,6 +32,7 @@ import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.overview.caregiver.SectionVisibility.PRIVATE
 import com.github.se.oncompanion.ui.overview.caregiver.SectionVisibility.SHOWN
 import java.time.Clock
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import kotlin.time.Duration.Companion.hours
@@ -36,6 +40,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -77,8 +82,8 @@ class CaregiverOverviewViewModelTest {
 
   /**
    * The Overview of "caregiver", who follows [patient]: the access comes from [patient], the
-   * planning from [planningOf] and the journal from [journalOf], the same patient unless a test
-   * makes them disagree.
+   * planning from [planningOf], and the journal and the medications from [journalOf], the same
+   * patient unless a test makes them disagree.
    */
   private fun viewModel(
       patient: FollowedPatient,
@@ -90,6 +95,8 @@ class CaregiverOverviewViewModelTest {
       patientUid: String = "patient",
       auth: AuthRepository = patient.auth,
       profiles: FakeUserProfileRepository = patient.profiles,
+      medications: FakePlanningRepository = FakePlanningRepository(),
+      doses: TakenDosesRepository = FakeTakenDosesRepository(),
   ) =
       CaregiverOverviewViewModel(
               patientUid = patientUid,
@@ -99,6 +106,8 @@ class CaregiverOverviewViewModelTest {
                   ObserveCarePlanning(planningOf.sectionAccess, planning, planningOf.circle),
               symptomRepository = symptoms,
               observeSection = ObserveCareSection(journalOf.sectionAccess),
+              medications = medications,
+              takenDoses = doses,
               resolveAccess = patient.careAccess,
               clock = clock,
               zoneId = zone,
@@ -531,6 +540,230 @@ class CaregiverOverviewViewModelTest {
     assertEquals(listOf("patient"), planning.owners.distinct())
   }
 
+  // ----- Today's medications -----
+
+  /** A medication of [day]'s, as the prescriptions give it to the Overview. */
+  private fun medication(
+      id: String,
+      frequency: String?,
+      day: LocalDate = now.toLocalDate(),
+      confirmed: Boolean = true,
+  ) =
+      PlanningItem(
+          PlanningSource.Medication("prescription", id),
+          PlanningTiming.DateOnly(day),
+          id.replaceFirstChar { it.uppercase() },
+          frequency = frequency,
+          dosage = "8 mg",
+          isConfirmed = confirmed,
+      )
+
+  private fun medications(vararg items: PlanningItem) =
+      FakePlanningRepository().apply { this.items.value = items.toList() }
+
+  /** Doses the patient ticked on [day], by medication ID. */
+  private fun ticked(vararg taken: Pair<String, Int>, day: LocalDate = now.toLocalDate()) =
+      FakeTakenDosesRepository().apply {
+        runBlocking { taken.forEach { (id, count) -> setTaken("patient", day, id, count) } }
+      }
+
+  /** A [FakeTakenDosesRepository] that counts whose doses are read, for which day. */
+  private class CountingDoses(val fake: FakeTakenDosesRepository = FakeTakenDosesRepository()) :
+      TakenDosesRepository by fake {
+    val reads = mutableListOf<Pair<String, LocalDate>>()
+
+    override fun observeDay(uid: String, date: LocalDate) =
+        fake.observeDay(uid, date).also { reads += uid to date }
+  }
+
+  @Test
+  fun medications_showTheirFrequencyAndTheDosesTicked_onlyConfirmedOnesOfToday() {
+    val medications =
+        medications(
+            medication("ondansetron", "1-1-1"),
+            medication("dexamethasone", "1-0-0"),
+            medication("paracetamol", "si besoin"),
+            // A caregiver added it: not part of the treatment until the patient confirms it
+            medication("aprepitant", "1-0-0", confirmed = false),
+            medication("lorazepam", "1-0-0", day = now.toLocalDate().plusDays(1)),
+        )
+
+    val state =
+        viewModel(
+                FollowedPatient(PRESCRIPTIONS),
+                medications = medications,
+                doses = ticked("ondansetron" to 1, "dexamethasone" to 1),
+            )
+            .uiState
+            .value
+
+    assertEquals(
+        listOf(
+            Triple("Ondansetron 8 mg", 3, 1),
+            Triple("Dexamethasone 8 mg", 1, 1),
+            // Taken only if needed: nothing to count
+            Triple("Paracetamol 8 mg", null, 0),
+        ),
+        state.todayMedications.map { Triple(it.name, it.dosesPerDay, it.taken) },
+    )
+    assertFalse(state.isLoading)
+    // Only the patient's prescriptions, for today: never their appointments nor a whole year
+    assertEquals(listOf("patient"), medications.owners)
+    assertEquals(listOf(setOf(PRESCRIPTIONS)), medications.sections)
+    assertEquals(
+        listOf(PlanningRange(now.toLocalDate(), now.toLocalDate().plusDays(1), zone)),
+        medications.ranges,
+    )
+  }
+
+  @Test
+  fun prescriptionsPrivate_neitherTheMedicationsNorTheDosesAreRead() {
+    val medications = medications(medication("ondansetron", "1-1-1"))
+    val doses = CountingDoses()
+
+    val state =
+        viewModel(FollowedPatient(PLANNING), medications = medications, doses = doses).uiState.value
+
+    assertEquals(PRIVATE, state.sections[PRESCRIPTIONS])
+    assertTrue(state.todayMedications.isEmpty())
+    assertFalse(state.isLoading)
+    assertTrue(medications.owners.isEmpty())
+    assertTrue(doses.reads.isEmpty())
+  }
+
+  @Test
+  fun dosesCantBeRead_theMedicationsShowWithoutDoses_neverLoadingNorAnError() {
+    // A read that fails at once, and one whose listener throws when asked: neither loses the card
+    val failures =
+        listOf<TakenDosesRepository>(
+            FakeTakenDosesRepository(readFailure = IllegalStateException("Permission denied")),
+            object : TakenDosesRepository by FakeTakenDosesRepository() {
+              override fun observeDay(uid: String, date: LocalDate) =
+                  throw IllegalStateException("No listener")
+            },
+        )
+    for (doses in failures) {
+      val state =
+          viewModel(
+                  FollowedPatient(PRESCRIPTIONS),
+                  medications = medications(medication("ondansetron", "1-1-1")),
+                  doses = doses,
+              )
+              .uiState
+              .value
+
+      assertEquals(listOf("Ondansetron 8 mg"), state.todayMedications.map { it.name })
+      // Without the doses, nothing shows as ticked: no bar, no "0 of 3"
+      assertNull(state.todayMedications.single().dosesPerDay)
+      assertFalse(state.isLoading)
+      assertFalse(state.hasError)
+    }
+  }
+
+  @Test
+  fun medicationsCantBeRead_giveAnError_andRetryLoadsThem() {
+    val medications = medications(medication("ondansetron", "1-1-1")).apply { fail = true }
+    val vm = viewModel(FollowedPatient(PRESCRIPTIONS), medications = medications)
+    assertTrue(vm.uiState.value.hasError)
+    assertFalse(vm.uiState.value.isLoading)
+
+    medications.fail = false
+    vm.retry()
+    ShadowLooper.idleMainLooper()
+
+    assertFalse(vm.uiState.value.hasError)
+    assertEquals(listOf("Ondansetron 8 mg"), vm.uiState.value.todayMedications.map { it.name })
+  }
+
+  @Test
+  fun aDoseTickedWhileOpen_showsAtOnce() {
+    val doses = FakeTakenDosesRepository()
+    val vm =
+        viewModel(
+            FollowedPatient(PRESCRIPTIONS),
+            medications = medications(medication("ondansetron", "1-1-1")),
+            doses = doses,
+        )
+    assertEquals(0, vm.uiState.value.todayMedications.single().taken)
+
+    runBlocking { doses.setTaken("patient", now.toLocalDate(), "ondansetron", 2) }
+    ShadowLooper.idleMainLooper()
+
+    assertEquals(2, vm.uiState.value.todayMedications.single().taken)
+  }
+
+  @Test
+  fun prescriptionsWithdrawnWhileOpen_dropTheMedicationsAtOnce_evenBeforeTheirListenerFollows() {
+    val patient = FollowedPatient(PRESCRIPTIONS)
+    // The medications' own listener still sees them shared, as when it answers later
+    val stillShared = FollowedPatient(PRESCRIPTIONS)
+    val vm =
+        viewModel(
+            patient,
+            journalOf = stillShared,
+            medications = medications(medication("ondansetron", "1-1-1")),
+        )
+    assertEquals(1, vm.uiState.value.todayMedications.size)
+
+    patient.shares(PLANNING)
+    ShadowLooper.idleMainLooper()
+
+    assertEquals(PRIVATE, vm.uiState.value.sections[PRESCRIPTIONS])
+    assertTrue(vm.uiState.value.todayMedications.isEmpty())
+    assertFalse(vm.uiState.value.isLoading)
+  }
+
+  @Test
+  fun prescriptionsStartedSharingWhileOpen_staysLoading_untilTheirListenerFollows() {
+    val patient = FollowedPatient(PLANNING)
+    val notYetShared = FollowedPatient(PLANNING)
+    val vm =
+        viewModel(
+            patient,
+            journalOf = notYetShared,
+            medications = medications(medication("ondansetron", "1-1-1")),
+        )
+
+    patient.shares(PLANNING, PRESCRIPTIONS)
+    ShadowLooper.idleMainLooper()
+    assertEquals(SHOWN, vm.uiState.value.sections[PRESCRIPTIONS])
+    assertTrue(vm.uiState.value.isLoading)
+
+    notYetShared.shares(PLANNING, PRESCRIPTIONS)
+    ShadowLooper.idleMainLooper()
+    assertFalse(vm.uiState.value.isLoading)
+    assertEquals(1, vm.uiState.value.todayMedications.size)
+  }
+
+  @Test
+  fun twoPatients_neverShowTheOtherPatientsTicks() {
+    val patient = FollowedPatient(PRESCRIPTIONS)
+    patient.circle.setMembers(
+        "other",
+        listOf(
+            CareCircleMember(
+                uid = "caregiver",
+                firstName = "Sam",
+                permissions = setOf(PRESCRIPTIONS),
+            )
+        ),
+    )
+    // Both take ondansetron; only the first ticked it
+    val medications =
+        FakePlanningRepository().apply {
+          itemsOf["patient"] = MutableStateFlow(listOf(medication("ondansetron", "1-1-1")))
+          itemsOf["other"] = MutableStateFlow(listOf(medication("ondansetron", "1-1-1")))
+        }
+    val doses = CountingDoses(ticked("ondansetron" to 2))
+
+    val first = viewModel(patient, medications = medications, doses = doses)
+    val second = viewModel(patient, medications = medications, doses = doses, patientUid = "other")
+
+    assertEquals(2, first.uiState.value.todayMedications.single().taken)
+    assertEquals(0, second.uiState.value.todayMedications.single().taken)
+    assertEquals(setOf("patient", "other"), doses.reads.map { it.first }.toSet())
+  }
+
   // ----- Keeping today current -----
 
   /** Runs [test] with `viewModelScope` on the test's virtual time. */
@@ -581,6 +814,38 @@ class CaregiverOverviewViewModelTest {
     assertEquals(tomorrow, vm.uiState.value.now.toLocalDate())
     assertEquals(tomorrow, planning.ranges.last().startDateInclusive)
     assertEquals(2, planning.ranges.size)
+    following.cancel()
+  }
+
+  @OptIn(ExperimentalCoroutinesApi::class)
+  @Test
+  fun followToday_atMidnight_theTicksStartOverForTheNewDay() = runTestOnVirtualMain {
+    val today = now.toLocalDate()
+    val tomorrow = today.plusDays(1)
+    val lateEvening = now.withHour(23).withMinute(59)
+    val clock = VirtualClock(testScheduler, lateEvening.toInstant(zone), zone)
+    // Ticked today; the prescription goes on tomorrow
+    val doses = CountingDoses(ticked("ondansetron" to 3))
+    val vm =
+        viewModel(
+            FollowedPatient(PRESCRIPTIONS),
+            clock = clock,
+            medications =
+                medications(
+                    medication("ondansetron", "1-1-1"),
+                    medication("ondansetron", "1-1-1", day = tomorrow),
+                ),
+            doses = doses,
+        )
+    val following = vm.followToday()
+    runCurrent()
+    assertEquals(3, vm.uiState.value.todayMedications.single().taken)
+
+    advanceTimeBy(1.minutes)
+    runCurrent()
+
+    assertEquals(0, vm.uiState.value.todayMedications.single().taken)
+    assertEquals("patient" to tomorrow, doses.reads.last())
     following.cancel()
   }
 }
