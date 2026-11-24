@@ -45,6 +45,7 @@ import com.github.se.oncompanion.model.event.Event
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeBanner
 import com.github.se.oncompanion.ui.common.LakeMessageState
+import com.github.se.oncompanion.ui.navigation.BottomBarUiState
 import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Screen
@@ -56,12 +57,17 @@ import java.util.Locale
 /** "Sat 3 Oct · 10:00", as in the mockup. The app's UI is in English. */
 private val eventDateFormatter = DateTimeFormatter.ofPattern("EEE d MMM · HH:mm", Locale.ENGLISH)
 
-/** The Events tab (Figma: "US-03 / Events"): the Ligue's upcoming events. */
+/**
+ * The Events tab (Figma: "US-03 / Events"): the Ligue's upcoming events.
+ *
+ * @param bottomBar what the bottom bar shows on every tab: its tabs and the Prescriptions badge
+ */
 @Composable
 fun EventsScreen(
     navigationActions: NavigationActions,
     modifier: Modifier = Modifier,
     viewModel: EventsViewModel = viewModel(),
+    bottomBar: BottomBarUiState = BottomBarUiState(),
 ) {
   val uiState by viewModel.uiState.collectAsState()
   EventsContent(
@@ -73,6 +79,7 @@ fun EventsScreen(
         BottomNavigationBar(
             selectedTab = Tab.EVENTS,
             onTabSelected = { tab -> navigationActions.navigateToTab(tab.route) },
+            state = bottomBar,
         )
       },
   )

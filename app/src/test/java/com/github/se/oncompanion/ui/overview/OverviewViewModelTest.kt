@@ -5,6 +5,8 @@ package com.github.se.oncompanion.ui.overview
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.domain.carecircle.FollowedPatient
+import com.github.se.oncompanion.domain.medication.DailyDoses
+import com.github.se.oncompanion.domain.medication.DoseCondition
 import com.github.se.oncompanion.domain.planning.MedicationPlanningSource
 import com.github.se.oncompanion.domain.planning.ObservePlanning
 import com.github.se.oncompanion.domain.planning.followedPlanning
@@ -13,9 +15,10 @@ import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthUser
 import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.medication.FakeMedicationRepository
+import com.github.se.oncompanion.model.medication.FakeTakenDosesRepository
 import com.github.se.oncompanion.model.medication.Medication
 import com.github.se.oncompanion.model.medication.Prescription
-import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
+import com.github.se.oncompanion.model.medication.TakenDosesRepository
 import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningRepository
@@ -43,7 +46,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -110,7 +112,16 @@ class OverviewViewModelTest {
       profiles: FakeUserProfileRepository = FakeUserProfileRepository(),
       planning: PlanningRepository = FakePlanningRepository(),
       clock: Clock = TestClock(now),
-  ) = OverviewViewModel(auth, profiles, ownPlanning(planning), clock, zone)
+      doses: TakenDosesRepository = FakeTakenDosesRepository(),
+  ) =
+      OverviewViewModel(
+          auth,
+          profiles,
+          ownPlanning(planning),
+          clock,
+          zone,
+          takenDosesRepository = doses,
+      )
 
   /** Saved medication days reach Overview without a time or a claim about intake status. */
   @OptIn(ExperimentalCoroutinesApi::class)
@@ -164,7 +175,14 @@ class OverviewViewModelTest {
       assertNull(vm.uiState.value.nextAppointment)
       // The patient's card names it with its dosage
       assertEquals(
-          listOf(TodayMedication(entry.key, "Active medication 8 mg", "As recorded")),
+          listOf(
+              TodayMedication(
+                  entry.key,
+                  medicationId = "active",
+                  name = "Active medication 8 mg",
+                  frequency = "As recorded",
+              )
+          ),
           vm.uiState.value.todayMedications,
       )
     } finally {
@@ -452,7 +470,7 @@ class OverviewViewModelTest {
   }
 
   @Test
-  fun todayMedications_areTodaysOnly_withTheirDosage_frequency_andWhoAddedThem() {
+  fun todayMedications_areTodaysConfirmedOnly_withTheirDosage_andFrequency() {
     val vm =
         viewModel(
             planning =
@@ -460,6 +478,7 @@ class OverviewViewModelTest {
                     medication("a", frequency = "Twice a day").copy(dosage = "8 mg"),
                     // Blank fields show nothing rather than an empty chip or a trailing space
                     medication("b", frequency = " ").copy(dosage = " "),
+                    // A caregiver's prescription stays off the Overview until it is confirmed
                     medication("c").copy(addedByName = "Sam", isConfirmed = false),
                     medication("tomorrow", date = now.toLocalDate().plusDays(1)),
                     event("yoga", now.withHour(10)),
@@ -468,14 +487,415 @@ class OverviewViewModelTest {
 
     assertEquals(
         listOf(
-            Triple("Medication a 8 mg", "Twice a day", null),
-            Triple("Medication b", null, null),
-            Triple("Medication c", null, "Sam"),
+            Triple("a", "Medication a 8 mg", "Twice a day"),
+            Triple("b", "Medication b", null),
         ),
-        vm.uiState.value.todayMedications.map {
-          Triple(it.name, it.frequency, it.notConfirmedAddedBy)
-        },
+        vm.uiState.value.todayMedications.map { Triple(it.medicationId, it.name, it.frequency) },
     )
+  }
+
+  // ----- Doses ticked on the Overview (US-28) -----
+
+  private val patient = AuthUser(uid = "patient", displayName = "Alex Martin")
+
+  /** A signed-in patient's Overview whose doses are kept in [doses]. */
+  private fun patientViewModel(
+      doses: FakeTakenDosesRepository,
+      vararg items: PlanningItem,
+      clock: Clock = TestClock(now),
+  ) = viewModel(signedIn(patient), planning = planning(*items), clock = clock, doses = doses)
+
+  private fun FakeTakenDosesRepository.saved(medicationId: String, count: Int) {
+    days.value = days.value + (("patient" to now.toLocalDate()) to mapOf(medicationId to count))
+  }
+
+  private fun OverviewViewModel.medication(id: String) =
+      uiState.value.todayMedications.single { it.medicationId == id }
+
+  @Test
+  fun eachMedication_hasItsDosesADay_fromItsFrequency_andTheDosesTickedToday() {
+    // (frequency, saved count) to (doses a day, taken)
+    listOf(
+            ("3 times a day" to 1) to (3 to 1),
+            ("Once a day" to 0) to (1 to 0),
+            ("1-0-1" to 2) to (2 to 2),
+            // Nothing to tick: taken only if needed, or a frequency that doesn't say how many
+            ("If needed" to 0) to (null to 0),
+            (null to 0) to (null to 0),
+            // A count above today's doses (the frequency was edited since) shows as all taken
+            ("Twice a day" to 5) to (2 to 2),
+        )
+        .forEach { (input, expected) ->
+          val (frequency, saved) = input
+          val doses = FakeTakenDosesRepository().apply { saved("m", saved) }
+          val vm = patientViewModel(doses, medication("m", frequency = frequency))
+          ShadowLooper.idleMainLooper()
+
+          val shown = vm.medication("m")
+          assertEquals("$input", expected, shown.dosesPerDay to shown.taken)
+        }
+  }
+
+  @Test
+  fun eachMedication_saysItsFrequencyInWords_whenItCan() {
+    val vm =
+        patientViewModel(
+            FakeTakenDosesRepository(),
+            medication("scheme", frequency = "1-0-0"),
+            medication("condition", frequency = "1-1-1 si nausées"),
+            medication("unknown", frequency = "en cas de toux"),
+        )
+    ShadowLooper.idleMainLooper()
+
+    assertEquals(DailyDoses(1, null), vm.medication("scheme").dailyDoses)
+    // Taken only if nauseous: said in words, but there is nothing to tick each day
+    assertEquals(DailyDoses(3, DoseCondition.IF_NAUSEOUS), vm.medication("condition").dailyDoses)
+    assertNull(vm.medication("condition").dosesPerDay)
+    assertNull(vm.medication("unknown").dailyDoses)
+  }
+
+  @Test
+  fun tickDose_ticksTheNextDose_upToTheDosesADay_neverMore() {
+    val doses = FakeTakenDosesRepository()
+    val vm = patientViewModel(doses, medication("m", frequency = "3 times a day"))
+    ShadowLooper.idleMainLooper()
+
+    repeat(4) {
+      vm.tickDose("m")
+      ShadowLooper.idleMainLooper()
+    }
+
+    assertEquals(listOf(1, 2, 3), doses.writes.map { it.count })
+    assertEquals(3, vm.medication("m").taken)
+    assertEquals(
+        FakeTakenDosesRepository.Write("patient", now.toLocalDate(), "m", 1),
+        doses.writes[0],
+    )
+  }
+
+  @Test
+  fun twoQuickTaps_tickTwoDoses_beforeTheRepositoryAnswers() = runTestOnVirtualMain {
+    val doses = FakeTakenDosesRepository()
+    val vm = patientViewModel(doses, medication("m", frequency = "3 times a day"))
+    runCurrent()
+
+    // The second tap comes before the first one's save: it must build on it, not save 1 again
+    vm.tickDose("m")
+    vm.tickDose("m")
+    runCurrent()
+
+    assertEquals(listOf(1, 2), doses.writes.map { it.count })
+    assertEquals(2, vm.medication("m").taken)
+  }
+
+  @Test
+  fun tickDose_onAMedicationTakenOnceADay_togglesIt() {
+    val doses = FakeTakenDosesRepository()
+    val vm = patientViewModel(doses, medication("m", frequency = "Once a day"))
+    ShadowLooper.idleMainLooper()
+
+    repeat(3) {
+      vm.tickDose("m")
+      ShadowLooper.idleMainLooper()
+    }
+
+    assertEquals(listOf(1, 0, 1), doses.writes.map { it.count })
+    assertEquals(1, vm.medication("m").taken)
+  }
+
+  @Test
+  fun tickDose_doesNothing_withoutDosesToTick_orForAnUnknownMedication() {
+    val doses = FakeTakenDosesRepository()
+    val vm = patientViewModel(doses, medication("m", frequency = "If needed"))
+    ShadowLooper.idleMainLooper()
+
+    vm.tickDose("m")
+    vm.tickDose("unknown")
+    ShadowLooper.idleMainLooper()
+
+    assertEquals(emptyList<FakeTakenDosesRepository.Write>(), doses.writes)
+  }
+
+  @Test
+  fun whenTodaysDosesCantBeRead_nothingCanBeTicked() {
+    // A tick saves a count: ticking from a wrong 0 would overwrite the real one
+    val doses = FakeTakenDosesRepository(readFailure = IllegalStateException("denied"))
+    val vm = patientViewModel(doses, medication("m", frequency = "Twice a day"))
+    ShadowLooper.idleMainLooper()
+
+    vm.tickDose("m")
+    ShadowLooper.idleMainLooper()
+
+    assertNull(vm.medication("m").dosesPerDay)
+    assertEquals(emptyList<FakeTakenDosesRepository.Write>(), doses.writes)
+  }
+
+  @Test
+  fun aNewDay_startsWithNoDoseTicked() = runTestOnVirtualMain {
+    val lateEvening = now.withHour(23).withMinute(59)
+    val doses =
+        FakeTakenDosesRepository().apply {
+          days.value = mapOf(("patient" to now.toLocalDate()) to mapOf("m" to 1))
+        }
+    val vm =
+        patientViewModel(
+            doses,
+            medication("m", frequency = "Once a day"),
+            medication("m", date = now.toLocalDate().plusDays(1), frequency = "Once a day"),
+            clock = VirtualClock(testScheduler, lateEvening.toInstant(zone), zone),
+        )
+    val following = vm.followToday()
+    runCurrent()
+    assertEquals(1, vm.medication("m").taken)
+
+    advanceTimeBy(1.minutes)
+    runCurrent()
+
+    assertEquals(0, vm.medication("m").taken)
+    vm.tickDose("m")
+    runCurrent()
+    assertEquals(now.toLocalDate().plusDays(1), doses.writes.single().date)
+    following.cancel()
+  }
+
+  @Test
+  fun signedOut_orAsACaregiver_nothingCanBeTicked() {
+    val doses = FakeTakenDosesRepository()
+    val signedOut =
+        viewModel(planning = planning(medication("m", frequency = "Once a day")), doses = doses)
+    ShadowLooper.idleMainLooper()
+    signedOut.tickDose("m")
+    ShadowLooper.idleMainLooper()
+
+    assertNull(signedOut.medication("m").dosesPerDay)
+    assertEquals(emptyList<FakeTakenDosesRepository.Write>(), doses.writes)
+
+    // The caregiver's Overview shows no bar: the patient ticks their own doses
+    val caregiver =
+        caregiverViewModel(
+            planning(medication("m", frequency = "Once a day")),
+            CarePermission.PLANNING,
+            CarePermission.PRESCRIPTIONS,
+        )
+    ShadowLooper.idleMainLooper()
+    assertNull(caregiver.uiState.value.todayMedications.single().dosesPerDay)
+  }
+
+  // ----- The sheet to correct the doses (#546) -----
+
+  private fun OverviewViewModel.sheetOf() = uiState.value.dosesSheet
+
+  @Test
+  fun openDoses_onlyForAMedicationTakenSeveralTimesADay_fromItsSavedCount() {
+    val doses = FakeTakenDosesRepository().apply { saved("thrice", 1) }
+    val vm =
+        patientViewModel(
+            doses,
+            medication("thrice", frequency = "3 times a day"),
+            medication("once", frequency = "Once a day"),
+            medication("ifNeeded", frequency = "If needed"),
+        )
+    ShadowLooper.idleMainLooper()
+
+    // Once a day toggles on the card, and there is nothing to correct without doses to tick
+    listOf("once", "ifNeeded", "unknown").forEach { id ->
+      vm.openDoses(id)
+      assertNull(id, vm.sheetOf())
+    }
+    vm.openDoses("thrice")
+    assertEquals(DosesSheet(vm.medication("thrice"), doses = 3, draft = 1), vm.sheetOf())
+    // Opening one that can't be corrected leaves the open sheet as it is
+    vm.openDoses("once")
+    assertEquals("thrice", vm.sheetOf()?.medication?.medicationId)
+  }
+
+  @Test
+  fun lessAndMore_changeOnlyTheDraft_from0ToTheDosesADay() {
+    val doses = FakeTakenDosesRepository().apply { saved("m", 1) }
+    val vm = patientViewModel(doses, medication("m", frequency = "3 times a day"))
+    ShadowLooper.idleMainLooper()
+    vm.openDoses("m")
+
+    repeat(3) { vm.moreDoses() }
+    assertEquals(3, vm.sheetOf()?.draft)
+    repeat(4) { vm.lessDoses() }
+    assertEquals(0, vm.sheetOf()?.draft)
+
+    ShadowLooper.idleMainLooper()
+    assertEquals(emptyList<FakeTakenDosesRepository.Write>(), doses.writes)
+    assertEquals(1, vm.medication("m").taken)
+  }
+
+  @Test
+  fun done_savesTheDraftOnTheDayShown_onceAndOnlyIfItChanged_andClosesTheSheet() {
+    val doses = FakeTakenDosesRepository().apply { saved("m", 1) }
+    val vm = patientViewModel(doses, medication("m", frequency = "3 times a day"))
+    ShadowLooper.idleMainLooper()
+
+    // Unchanged: nothing to save
+    vm.openDoses("m")
+    vm.saveDoses()
+    ShadowLooper.idleMainLooper()
+    assertNull(vm.sheetOf())
+    assertEquals(emptyList<FakeTakenDosesRepository.Write>(), doses.writes)
+
+    vm.openDoses("m")
+    vm.lessDoses()
+    vm.saveDoses()
+    // A second tap on Done, before the sheet is gone, saves nothing more
+    vm.saveDoses()
+    ShadowLooper.idleMainLooper()
+    assertNull(vm.sheetOf())
+    assertEquals(
+        listOf(FakeTakenDosesRepository.Write("patient", now.toLocalDate(), "m", 0)),
+        doses.writes,
+    )
+    assertEquals(0, vm.medication("m").taken)
+
+    // The server refuses it: the day's next snapshot brings the saved count back
+    doses.saved("m", 1)
+    ShadowLooper.idleMainLooper()
+    assertEquals(1, vm.medication("m").taken)
+  }
+
+  @Test
+  fun closingWithoutDone_orSigningOut_savesNothing_andReopeningStartsFromTheSavedCount() {
+    val doses = FakeTakenDosesRepository().apply { saved("m", 1) }
+    val auth = signedIn(patient)
+    val vm =
+        viewModel(
+            auth,
+            planning = planning(medication("m", frequency = "3 times a day")),
+            doses = doses,
+        )
+    ShadowLooper.idleMainLooper()
+
+    vm.openDoses("m")
+    vm.moreDoses()
+    vm.closeDoses()
+    ShadowLooper.idleMainLooper()
+    assertNull(vm.sheetOf())
+    assertEquals(1, vm.medication("m").taken)
+
+    // The draft went with the sheet
+    vm.openDoses("m")
+    assertEquals(1, vm.sheetOf()?.draft)
+
+    vm.moreDoses()
+    auth.signOut()
+    vm.saveDoses()
+    ShadowLooper.idleMainLooper()
+    assertEquals(emptyList<FakeTakenDosesRepository.Write>(), doses.writes)
+  }
+
+  @Test
+  fun aTickFromAnotherPhone_keepsTheDraft_andDoneStillSavesIt() {
+    val doses = FakeTakenDosesRepository().apply { saved("m", 1) }
+    val vm = patientViewModel(doses, medication("m", frequency = "3 times a day"))
+    ShadowLooper.idleMainLooper()
+    vm.openDoses("m")
+    vm.moreDoses()
+
+    doses.saved("m", 3)
+    ShadowLooper.idleMainLooper()
+    assertEquals(2, vm.sheetOf()?.draft)
+    assertEquals(3, vm.sheetOf()?.medication?.taken)
+
+    vm.saveDoses()
+    ShadowLooper.idleMainLooper()
+    assertEquals(2, doses.writes.single().count)
+  }
+
+  @Test
+  fun theSheetFollowsItsMedication_closingWhenItCantBeCorrectedThereAnyMore() {
+    val doses = FakeTakenDosesRepository()
+    val plan = planning(medication("m", frequency = "3 times a day"))
+    val vm = viewModel(signedIn(patient), planning = plan, doses = doses)
+    ShadowLooper.idleMainLooper()
+    vm.openDoses("m")
+    repeat(3) { vm.moreDoses() }
+
+    // Another medication added: the sheet and its draft stay
+    plan.items.value =
+        listOf(
+            medication("m", frequency = "3 times a day"),
+            medication("other", frequency = "Once a day"),
+        )
+    ShadowLooper.idleMainLooper()
+    assertEquals(3, vm.sheetOf()?.draft)
+
+    // The frequency is edited to twice a day: the draft stays within it
+    plan.items.value = listOf(medication("m", frequency = "Twice a day"))
+    ShadowLooper.idleMainLooper()
+    assertEquals(DosesSheet(vm.medication("m"), doses = 2, draft = 2), vm.sheetOf())
+
+    // Once a day, then deleted by a caregiver: each closes it, unsaved
+    listOf(listOf(medication("m", frequency = "Once a day")), emptyList()).forEach { items ->
+      plan.items.value = listOf(medication("m", frequency = "3 times a day"))
+      ShadowLooper.idleMainLooper()
+      vm.openDoses("m")
+      plan.items.value = items
+      ShadowLooper.idleMainLooper()
+      assertNull("$items", vm.sheetOf())
+    }
+    assertEquals(emptyList<FakeTakenDosesRepository.Write>(), doses.writes)
+  }
+
+  @Test
+  fun atMidnight_orWhenTheDayReloads_theSheetClosesUnsaved() = runTestOnVirtualMain {
+    val lateEvening = now.withHour(23).withMinute(59)
+    val doses = FakeTakenDosesRepository()
+    val vm =
+        patientViewModel(
+            doses,
+            medication("m", frequency = "3 times a day"),
+            medication("m", date = now.toLocalDate().plusDays(1), frequency = "3 times a day"),
+            clock = VirtualClock(testScheduler, lateEvening.toInstant(zone), zone),
+        )
+    val following = vm.followToday()
+    runCurrent()
+    vm.openDoses("m")
+    vm.moreDoses()
+
+    advanceTimeBy(1.minutes)
+    runCurrent()
+
+    // Its draft was for yesterday: Done would have saved it on the new day
+    assertNull(vm.sheetOf())
+    vm.saveDoses()
+    runCurrent()
+    assertEquals(emptyList<FakeTakenDosesRepository.Write>(), doses.writes)
+
+    // Retry reloads the day too, which closes it the same way
+    vm.openDoses("m")
+    vm.moreDoses()
+    vm.loadDay()
+    runCurrent()
+    assertNull(vm.sheetOf())
+    assertEquals(emptyList<FakeTakenDosesRepository.Write>(), doses.writes)
+    following.cancel()
+  }
+
+  @Test
+  fun signedOut_asACaregiver_orBeforeTheTicksAreKnown_noSheetOpens() {
+    val signedOut = viewModel(planning = planning(medication("m", frequency = "Twice a day")))
+    val caregiver =
+        caregiverViewModel(
+            planning(medication("m", frequency = "Twice a day")),
+            CarePermission.PLANNING,
+            CarePermission.PRESCRIPTIONS,
+        )
+    val unknown =
+        patientViewModel(
+            FakeTakenDosesRepository(readFailure = IllegalStateException("denied")),
+            medication("m", frequency = "Twice a day"),
+        )
+    ShadowLooper.idleMainLooper()
+
+    listOf(signedOut, caregiver, unknown).forEach { vm ->
+      vm.openDoses("m")
+      assertNull(vm.sheetOf())
+    }
   }
 
   @Test
@@ -943,71 +1363,5 @@ class OverviewViewModelTest {
             .value
             .sharedSections,
     )
-  }
-
-  @OptIn(ExperimentalCoroutinesApi::class)
-  @Test
-  fun prescriptionsToConfirm_countsThoseACaregiverAddedThatWait() = runTest {
-    Dispatchers.setMain(StandardTestDispatcher(testScheduler))
-    try {
-      val auth = signedIn(AuthUser("patient"))
-      val medications = FakeMedicationRepository()
-      val date = now.toLocalDate()
-      fun prescription(id: String, confirmation: PrescriptionConfirmation) =
-          Prescription(
-              id = id,
-              prescribedOn = date,
-              medications =
-                  listOf(
-                      Medication(id = "$id-1", prescriptionId = id, name = id, startDate = date)
-                  ),
-              addedBy = "sam",
-              addedByName = "Sam",
-              confirmation = confirmation,
-          )
-      listOf(
-              prescription("waiting", PrescriptionConfirmation.PENDING),
-              prescription("alsoWaiting", PrescriptionConfirmation.PENDING),
-              prescription("confirmed", PrescriptionConfirmation.CONFIRMED),
-              prescription("rejected", PrescriptionConfirmation.REJECTED),
-          )
-          .forEach { medications.seed("patient", it) }
-      val vm =
-          OverviewViewModel(
-              auth,
-              FakeUserProfileRepository(),
-              ownPlanning(FakePlanningRepository()),
-              TestClock(now),
-              zone,
-              medicationRepository = medications,
-          )
-      advanceUntilIdle()
-      assertEquals(2, vm.uiState.value.prescriptionsToConfirm)
-
-      // The patient confirms one: the count follows
-      medications.seed("patient", prescription("waiting", PrescriptionConfirmation.CONFIRMED))
-      advanceUntilIdle()
-      assertEquals(1, vm.uiState.value.prescriptionsToConfirm)
-
-      // They can't be read when the Overview opens: no badge, until Retry reads them again
-      medications.readError = IllegalStateException("unavailable")
-      val failing =
-          OverviewViewModel(
-              auth,
-              FakeUserProfileRepository(),
-              ownPlanning(FakePlanningRepository()),
-              TestClock(now),
-              zone,
-              medicationRepository = medications,
-          )
-      advanceUntilIdle()
-      assertEquals(0, failing.uiState.value.prescriptionsToConfirm)
-      medications.readError = null
-      failing.loadDay()
-      advanceUntilIdle()
-      assertEquals(1, failing.uiState.value.prescriptionsToConfirm)
-    } finally {
-      Dispatchers.resetMain()
-    }
   }
 }

@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -41,6 +42,7 @@ import com.github.se.oncompanion.model.symptom.SymptomEntry
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
+import com.github.se.oncompanion.ui.SMALL_LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.navigation.NavigationActions
@@ -159,6 +161,18 @@ class SymptomJournalScreenTest {
     )
     composeTestRule.onNodeWithTag(C.Tag.symptom_journal_retry).assertDoesNotExist()
     composeTestRule.onNodeWithTag(C.Tag.symptom_journal_list).assertDoesNotExist()
+  }
+
+  @Test
+  @Config(qualifiers = SMALL_LANDSCAPE_PHONE, fontScale = 2f)
+  fun error_at200PercentInShortLandscape_canScrollToRetry() {
+    var retries = 0
+    setContent(loaded.copy(hasError = true), onRetry = { retries++ })
+
+    val retry = composeTestRule.onNodeWithTag(C.Tag.symptom_journal_retry)
+    retry.performScrollTo().assertIsFullyVisible()
+    retry.performClick()
+    assertEquals(1, retries)
   }
 
   @Test

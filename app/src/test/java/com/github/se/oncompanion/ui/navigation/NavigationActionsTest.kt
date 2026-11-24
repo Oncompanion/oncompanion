@@ -329,6 +329,37 @@ class NavigationActionsTest {
   }
 
   @Test
+  fun navigateAndClearBackStack_forgetsWhatEveryTabKept() {
+    setNavHost(Route.OVERVIEW)
+    val tabs =
+        listOf(
+            Route.PLANNING to Screen.PLANNING,
+            Route.PRESCRIPTIONS to Screen.PRESCRIPTIONS,
+            Route.EVENTS to Screen.EVENTS,
+        )
+    // Each tab keeps something when the user switches away, as its ViewModel would
+    for ((route, screen) in tabs) {
+      composeTestRule.runOnIdle {
+        navigationActions.navigateToTab(route)
+        navController.getBackStackEntry(screen).savedStateHandle[KEPT] = true
+      }
+    }
+    composeTestRule.runOnIdle {
+      navigationActions.navigateToTab(Route.OVERVIEW)
+      // e.g. signing in again: the next session must not find the previous one's tabs
+      navigationActions.navigateAndClearBackStack(Route.OVERVIEW)
+    }
+
+    for ((route, screen) in tabs) {
+      composeTestRule.runOnIdle { navigationActions.navigateToTab(route) }
+      composeTestRule.runOnIdle {
+        val kept = navController.getBackStackEntry(screen).savedStateHandle.get<Boolean>(KEPT)
+        assertEquals("$route came back with its old state", null, kept)
+      }
+    }
+  }
+
+  @Test
   fun symptomDetail_putsTheIdInTheRoute() {
     assertEquals("symptoms_detail/{symptomId}", Screen.SYMPTOM_DETAIL)
     assertEquals("symptomId", Screen.SYMPTOM_DETAIL_ID)
@@ -354,5 +385,12 @@ class NavigationActionsTest {
   fun medicationDetailEncodesBothIdentifiers() {
     assertEquals("medication_detail/{prescriptionId}/{medicationId}", Screen.MEDICATION_DETAIL)
     assertEquals("medication_detail/p%20%3F%23/m%2F1", Screen.medicationDetail("p ?#", "m/1"))
+  }
+
+  private companion object {
+    /**
+     * What a tab keeps in its saved state, in [navigateAndClearBackStack_forgetsWhatEveryTabKept].
+     */
+    const val KEPT = "kept"
   }
 }
