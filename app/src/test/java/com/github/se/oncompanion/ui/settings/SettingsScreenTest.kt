@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.ui.settings
@@ -18,7 +19,7 @@ import org.junit.Assert.*
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
-/** Verifies the only implemented category and its observed current value. */
+/** Verifies the implemented categories and its observed current value. */
 @RunWith(AndroidJUnit4::class)
 class SettingsScreenTest {
   @get:Rule val compose = createComposeRule()
@@ -29,13 +30,18 @@ class SettingsScreenTest {
     val vm = SettingsViewModel(repo)
     var backs = 0
     var appearances = 0
-    compose.setContent { OncompanionTheme { SettingsScreen(vm, { backs++ }, { appearances++ }) } }
+    var formatPages = 0
+    compose.setContent {
+      OncompanionTheme { SettingsScreen(vm, { backs++ }, { appearances++ }, { formatPages++ }) }
+    }
     compose.onNodeWithText("Dark").assertIsDisplayed()
     compose.onNodeWithTag(C.Tag.settings_appearance).performClick()
     compose.onNodeWithTag(C.Tag.settings_back).performClick()
+    compose.onNodeWithTag(C.Tag.settings_date_time).performScrollTo().performClick()
+    assertEquals(1, formatPages)
     assertEquals(1, backs)
     assertEquals(1, appearances)
-    listOf("Language", "Date and time", "Notifications", "Text size").forEach {
+    listOf("Language", "Notifications", "Text size").forEach {
       compose.onNodeWithText(it).assertDoesNotExist()
     }
   }
@@ -46,7 +52,7 @@ class SettingsScreenTest {
     compose.setContent {
       OncompanionTheme {
         CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, 2f)) {
-          SettingsContent(SettingsUiState(DeviceSettings()), {}, {}, {})
+          SettingsContent(SettingsUiState(DeviceSettings()), {}, {}, {}, onDateTime = {})
         }
       }
     }

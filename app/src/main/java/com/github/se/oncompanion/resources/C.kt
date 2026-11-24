@@ -137,6 +137,7 @@ object C {
     const val overview_check_in = "overview_check_in"
     const val overview_check_in_more = "overview_check_in_more"
     const val overview_journal_link = "overview_journal_link"
+    const val overview_speak = "overview_speak"
 
     // Caregiver Overview
     const val caregiver_overview_screen = "caregiver_overview_screen"
@@ -145,6 +146,8 @@ object C {
     const val caregiver_overview_loading = "caregiver_overview_loading"
     const val caregiver_overview_error = "caregiver_overview_error"
     const val caregiver_overview_retry = "caregiver_overview_retry"
+    const val caregiver_overview_journal = "caregiver_overview_journal"
+    const val caregiver_overview_full_journal = "caregiver_overview_full_journal"
 
     const val bottom_navigation_bar = "bottom_navigation_bar"
     const val bottom_navigation_tab_overview = "bottom_navigation_tab_overview"
@@ -267,6 +270,19 @@ object C {
     const val settings_screen = "settings_screen"
     const val settings_back = "settings_back"
     const val profile_settings = "profile_settings"
+    const val settings_date_time = "settings_date_time"
+    const val settings_date_time_screen = "settings_date_time_screen"
+    const val settings_time_format = "settings_time_format"
+    const val settings_time_format_screen = "settings_time_format_screen"
+    const val settings_date_format = "settings_date_format"
+    const val settings_date_format_screen = "settings_date_format_screen"
+    const val settings_format_preview = "settings_format_preview"
+
+    /** Identifies a clock-format option by its stable preference name. */
+    fun settingsTimeChoice(name: String) = "settings_time_choice_$name"
+
+    /** Identifies a date-format option by its stable preference name. */
+    fun settingsDateChoice(name: String) = "settings_date_choice_$name"
 
     // Profile
     const val profile_edit = "profile_edit"
