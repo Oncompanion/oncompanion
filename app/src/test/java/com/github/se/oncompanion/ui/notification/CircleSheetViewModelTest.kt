@@ -353,6 +353,31 @@ class CircleSheetViewModelTest {
   }
 
   @Test
+  fun anInvitationExpiringWhileTheSheetIsOpen_leaves_andAloneLeavesNobodyYet() = runViewModelTest {
+    // A clock that moves with the test's time
+    val movingClock =
+        object : Clock() {
+          override fun getZone() = zurich
+
+          override fun withZone(zone: ZoneId?) = this
+
+          override fun instant() = now.plusMillis(dispatcher.scheduler.currentTime)
+        }
+    circle.setMembers(uid, emptyList())
+    // One minute left, and nothing else in the circle
+    val sentAt = now.minus(CareCircleInvite.VALIDITY).plusSeconds(60)
+    invites.setInvites(listOf(invite("JULIEJULIE", "Julie", sentAt)))
+    val vm = viewModel(movingClock)
+    runCurrent()
+    assertEquals(listOf("Julie"), vm.circleState.invited)
+
+    // Nothing is sent when it expires: the sheet still drops it, leaving nobody
+    dispatcher.scheduler.advanceTimeBy(Duration.ofMinutes(2).toMillis())
+    runCurrent()
+    assertEquals(CircleSheetUiState.NobodyYet, vm.uiState.value)
+  }
+
+  @Test
   fun backAfterSleepingPastMidnight_todayMovesOnRightAway() = runViewModelTest {
     var time = at(today, 23, 0)
     val movingClock =

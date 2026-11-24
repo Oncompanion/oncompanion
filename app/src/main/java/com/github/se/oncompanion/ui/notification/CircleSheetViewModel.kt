@@ -13,6 +13,7 @@ import com.github.se.oncompanion.model.carecircle.CareCircleInviteRepositoryProv
 import com.github.se.oncompanion.model.carecircle.CareCircleMember
 import com.github.se.oncompanion.model.carecircle.CareCircleRepository
 import com.github.se.oncompanion.model.carecircle.CareCircleRepositoryProvider
+import com.github.se.oncompanion.model.common.keepUntilExpired
 import com.github.se.oncompanion.model.medication.MedicationRepository
 import com.github.se.oncompanion.model.medication.MedicationRepositoryProvider
 import com.github.se.oncompanion.model.medication.Prescription
@@ -173,7 +174,11 @@ class CircleSheetViewModel(
       combine(
           notificationRepository.observeRecent(uid),
           careCircleRepository.observeMembers(uid),
-          inviteRepository.observePendingInvites(uid),
+          // An expired invitation can't be used anymore: that person isn't coming. It leaves the
+          // moment it expires, even while the sheet stays open
+          inviteRepository.observePendingInvites(uid).keepUntilExpired(clock::instant) {
+            it.expiresAt
+          },
           prescriptionsOf(uid),
           today,
       ) { notifications, members, invites, prescriptions, today ->
@@ -198,9 +203,7 @@ class CircleSheetViewModel(
       prescriptions: Map<String, Prescription>,
       today: LocalDate,
   ): CircleSheetUiState {
-    // An expired invitation can't be used anymore: that person isn't coming
-    val invited = invites.filterNot { it.isExpired(clock.instant()) }
-    if (members.isEmpty() && invited.isEmpty() && notifications.isEmpty()) {
+    if (members.isEmpty() && invites.isEmpty() && notifications.isEmpty()) {
       return CircleSheetUiState.NobodyYet
     }
     val days =
@@ -220,7 +223,7 @@ class CircleSheetViewModel(
             }
     return CircleSheetUiState.Circle(
         joined = members.map { it.firstName },
-        invited = invited.map { it.details.firstName },
+        invited = invites.map { it.details.firstName },
         today = today,
         days = days,
     )
