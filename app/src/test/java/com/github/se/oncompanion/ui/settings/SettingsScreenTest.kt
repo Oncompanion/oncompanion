@@ -52,6 +52,21 @@ class SettingsScreenTest {
   }
 
   @Test
+  fun appearanceNoteIsBetweenAppearanceAndAccessibility() {
+    compose.setContent {
+      OncompanionTheme { SettingsContent(SettingsUiState(DeviceSettings()), {}, {}, {}, 100, {}) }
+    }
+
+    val appearance = compose.onNodeWithTag(C.Tag.settings_appearance).getUnclippedBoundsInRoot()
+    val note =
+        compose.onNodeWithText("Appearance is saved on this phone.").getUnclippedBoundsInRoot()
+    val accessibility = compose.onNodeWithText("Accessibility").getUnclippedBoundsInRoot()
+
+    assertTrue(appearance.bottom < note.top)
+    assertTrue(note.bottom < accessibility.top)
+  }
+
+  @Test
   fun textSizeTracksConfigurationAndOpensAndroidSettings() {
     val vm = SettingsViewModel(FakeSettingsRepository(DeviceSettings()))
     val fontScale = mutableFloatStateOf(1f)

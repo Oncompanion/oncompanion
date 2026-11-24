@@ -83,6 +83,11 @@ fun SettingsContent(
           onAppearance,
           Modifier.testTag(C.Tag.settings_appearance),
       )
+      Text(
+          stringResource(R.string.appearance_phone_scope),
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
     }
     Text(
         stringResource(R.string.settings_accessibility),
@@ -95,13 +100,6 @@ fun SettingsContent(
         onTextSize,
         Modifier.testTag(C.Tag.settings_text_size),
     )
-    if (state.settings != null) {
-      Text(
-          stringResource(R.string.appearance_phone_scope),
-          style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
-    }
   }
 }
 
