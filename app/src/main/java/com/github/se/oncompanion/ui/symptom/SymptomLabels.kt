@@ -65,9 +65,21 @@ fun dayLabel(date: LocalDate, today: LocalDate): String =
  * What [type] is called in this entry: for "Other", the name the user gave it ("Hiccups"), or
  * "Other" in entries saved before it could be named; otherwise its label.
  */
+@Composable fun SymptomEntry.nameOf(type: SymptomType): String = symptomName(type, otherName)
+
+/** What [type] is called: for "Other", the name the user gave it, if any; otherwise its label. */
 @Composable
-fun SymptomEntry.nameOf(type: SymptomType): String =
+fun symptomName(type: SymptomType, otherName: String?): String =
     otherName?.takeIf { type == SymptomType.OTHER } ?: stringResource(type.label)
+
+/**
+ * What [type] is called inside a sentence: the label in lower case ("fatigue"), but the name of
+ * "Other" kept as the user typed it ("Hiccups").
+ */
+@Composable
+fun nameInSentence(type: SymptomType, otherName: String?): String =
+    otherName?.takeIf { type == SymptomType.OTHER }
+        ?: stringResource(type.label).lowercase(Locale.ENGLISH)
 
 /** What the entry is about: the names of its symptoms, e.g. "Fatigue, Hiccups". */
 @Composable fun SymptomEntry.title(): String = types.map { nameOf(it) }.joinToString(", ")
@@ -81,9 +93,7 @@ fun SymptomEntry.nameOf(type: SymptomType): String =
 fun SymptomEntry.strengthsInWords(): String? {
   val phrases =
       strengthsInOrder().map { (type, strength) ->
-        val name =
-            otherName?.takeIf { type == SymptomType.OTHER }
-                ?: stringResource(type.label).lowercase(Locale.ENGLISH)
+        val name = nameInSentence(type, otherName)
         val severity = stringResource(Severity.of(strength).label).lowercase(Locale.ENGLISH)
         stringResource(R.string.symptom_strength_in_words, severity, name)
       }
