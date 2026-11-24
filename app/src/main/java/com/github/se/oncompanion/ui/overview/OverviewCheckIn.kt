@@ -63,11 +63,11 @@ private val checkInTiles =
 
 /**
  * "How do you feel?" (Overview UX Refactor): the patient logs a symptom in one tap, as often as
- * they like during the day. A tile opens the check-in's sheet with that symptom picked (#544),
- * "More…" opens it empty, and "Journal ›" opens the journal. "Speak how you feel" under the tiles
- * (US-73) lets them say it instead.
+ * they like during the day. A tile opens the symptom form with that symptom picked, "More…" opens
+ * it empty, and "Journal ›" opens the journal. "Speak how you feel" under the tiles (US-73) lets
+ * them say it instead.
  *
- * @param onLogSymptom opens the check-in's sheet with that symptom picked, or empty for `null`
+ * @param onLogSymptom opens the symptom form with that symptom picked, or empty for `null`
  * @param onSpeak opens the symptom form already listening; `null` when the phone can't listen, so
  *   there is no button
  */
@@ -189,7 +189,7 @@ private fun JournalLink(onOpenJournal: () -> Unit) {
  * check-in and its sheet.
  *
  * @param picked the symptoms picked in the sheet, each tile then showing whether it is; `null` on
- *   the check-in, where a tile just opens the sheet
+ *   the check-in, whose tiles only open the symptom form
  * @param tagOf the test tag of each tile
  */
 @Composable
