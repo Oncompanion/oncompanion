@@ -643,6 +643,10 @@ object C {
     // A change the server rejected and was undone
     const val rejected_write_snackbar = "rejected_write_snackbar"
 
+    // Local reminder permissions
+    const val reminder_permission_notice = "reminder_permission_notice"
+    const val reminder_permission_action = "reminder_permission_action"
+
     // Shared dialog: the spinner while its action is on its way
     const val dialog_progress = "dialog_progress"
 

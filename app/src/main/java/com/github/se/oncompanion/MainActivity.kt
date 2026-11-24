@@ -17,6 +17,7 @@ import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.hospital.HospitalRepositoryProvider
 import com.github.se.oncompanion.model.medication.SeenPrescriptionsPreferences
 import com.github.se.oncompanion.model.medication.SeenPrescriptionsProvider
+import com.github.se.oncompanion.model.reminder.ReminderSchedulerProvider
 import com.github.se.oncompanion.model.session.PreferencesCleanupJournal
 import com.github.se.oncompanion.model.settings.SettingsRepositoryProvider
 import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
@@ -47,6 +48,7 @@ class MainActivity : AppCompatActivity() {
         !journal.pending &&
             runCatching { AuthRepositoryProvider.repository.currentUser != null }
                 .getOrDefault(false)
+    ReminderSchedulerProvider.install(applicationContext)
     SettingsRepositoryProvider.install(applicationContext)
     super.onCreate(if (restore) savedInstanceState else null)
     // Install the shared search adapter before fields capture it; blank configuration stays manual.

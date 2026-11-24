@@ -933,4 +933,12 @@
     <string name="settings_date_text">Day month year</string>
     <string name="settings_date_dmy">Day / month / year</string>
     <string name="settings_date_ymd">Year–month–day</string>
+    <!-- Local reminders -->
+    <string name="reminder_channel_name">Care reminders</string>
+    <string name="reminder_permission_offer">Enable notifications for your appointment reminders.</string>
+    <string name="reminder_permission_blocked">Notifications are blocked for oncompanion. You won\'t receive appointment reminders.</string>
+    <string name="reminder_permission_channel">Care reminders are blocked in Android settings. You won\'t receive appointment reminders.</string>
+    <string name="reminder_permission_exact">Allow alarms and reminders in Android settings so appointment reminders can arrive at the chosen time.</string>
+    <string name="reminder_permission_enable">Enable</string>
+    <string name="reminder_permission_settings">Open Android settings</string>
 </resources>

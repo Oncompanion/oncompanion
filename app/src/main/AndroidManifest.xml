@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Co-authored-by: Codex <noreply@openai.com> -->
+<!-- Co-authored-by: ChatGPT <noreply@openai.com> -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Reminder delivery; permission request UI follows separately in #452. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <!-- Sign-in checks for a connection before opening Google's dialog -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -42,6 +47,7 @@
             android:exported="false">
             <meta-data android:name="autoStoreLocales" android:value="true" />
         </service>
+        <receiver android:name=".model.reminder.ReminderReceiver" android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
