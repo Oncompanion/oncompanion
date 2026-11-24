@@ -48,18 +48,16 @@ fun AppearanceContent(
       ) {
         Column(Modifier.selectableGroup()) {
           AppearancePreference.entries.forEach { preference ->
-            val selected = state.settings.appearance == preference
             SettingsChoiceRow(
-                label = appearanceLabel(preference),
-                hint =
-                    if (preference == AppearancePreference.FOLLOW_DEVICE)
-                        stringResource(R.string.appearance_device_hint)
-                    else null,
-                selected = selected,
-                onClick = { onAppearance(preference) },
-                modifier = Modifier.testTag(appearanceTag(preference)),
-                enabled = !state.saving,
-                checkModifier = Modifier.testTag(C.Tag.appearance_selected),
+                appearanceLabel(preference),
+                if (preference == AppearancePreference.FOLLOW_DEVICE)
+                    stringResource(R.string.appearance_device_hint)
+                else null,
+                state.settings.appearance == preference,
+                !state.saving,
+                { onAppearance(preference) },
+                Modifier.testTag(appearanceTag(preference)),
+                selectedTag = C.Tag.appearance_selected,
             )
           }
         }

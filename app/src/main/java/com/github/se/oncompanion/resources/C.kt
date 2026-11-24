@@ -275,6 +275,19 @@ object C {
     const val language_device = "language_device"
     const val language_english = "language_english"
     const val language_french = "language_french"
+    const val settings_date_time = "settings_date_time"
+    const val settings_date_time_screen = "settings_date_time_screen"
+    const val settings_time_format = "settings_time_format"
+    const val settings_time_format_screen = "settings_time_format_screen"
+    const val settings_date_format = "settings_date_format"
+    const val settings_date_format_screen = "settings_date_format_screen"
+    const val settings_format_preview = "settings_format_preview"
+
+    /** Identifies a clock-format option by its stable preference name. */
+    fun settingsTimeChoice(name: String) = "settings_time_choice_$name"
+
+    /** Identifies a date-format option by its stable preference name. */
+    fun settingsDateChoice(name: String) = "settings_date_choice_$name"
 
     // Profile
     const val profile_edit = "profile_edit"

@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.model.settings
@@ -54,6 +55,72 @@ class SettingsRepositoryDataStoreTest {
     assertEquals(DeviceSettings(), repo.observeSettings().first())
     repo.setAppearance(AppearancePreference.DARK)
     assertEquals("kept", store.data.first()[stringPreferencesKey("other")])
+  }
+
+  @Test
+  fun formatChoicesSurviveReopeningAndKeepOtherPreferences() = runTest {
+    val file = temporary.newFolder().resolve("formats.preferences_pb")
+    val scope = CoroutineScope(SupervisorJob() + StandardTestDispatcher(testScheduler))
+    val repo =
+        SettingsRepositoryDataStore(
+            lazyOf(PreferenceDataStoreFactory.create(scope = scope) { file })
+        )
+    try {
+      repo.setAppearance(AppearancePreference.DARK)
+      assertEquals(DeviceSettings(AppearancePreference.DARK), repo.observeSettings().first())
+      for (date in DateFormatPreference.entries) {
+        repo.setDateFormat(date)
+        for (time in TimeFormatPreference.entries) {
+          repo.setTimeFormat(time)
+          assertEquals(
+              DeviceSettings(AppearancePreference.DARK, date, time),
+              repo.observeSettings().first(),
+          )
+        }
+      }
+    } finally {
+      scope.cancel()
+      scope.coroutineContext.job.join()
+    }
+
+    val reopened =
+        SettingsRepositoryDataStore(
+            lazyOf(PreferenceDataStoreFactory.create(scope = backgroundScope) { file })
+        )
+    assertEquals(
+        DeviceSettings(
+            AppearancePreference.DARK,
+            DateFormatPreference.YEAR_MONTH_DAY,
+            TimeFormatPreference.TWENTY_FOUR_HOUR,
+        ),
+        reopened.observeSettings().first(),
+    )
+    reopened.setAppearance(AppearancePreference.LIGHT)
+    assertEquals(DateFormatPreference.YEAR_MONTH_DAY, reopened.observeSettings().first().dateFormat)
+    assertEquals(
+        TimeFormatPreference.TWENTY_FOUR_HOUR,
+        reopened.observeSettings().first().timeFormat,
+    )
+  }
+
+  @Test
+  fun unknownFormatsFallBackIndependently() = runTest {
+    val file = temporary.newFolder().resolve("formats.preferences_pb")
+    val store = PreferenceDataStoreFactory.create(scope = backgroundScope) { file }
+    val repo = SettingsRepositoryDataStore(lazyOf(store))
+    store.edit { it[stringPreferencesKey("date_format")] = "future" }
+    repo.setTimeFormat(TimeFormatPreference.TWELVE_HOUR)
+    assertEquals(
+        DeviceSettings(timeFormat = TimeFormatPreference.TWELVE_HOUR),
+        repo.observeSettings().first(),
+    )
+
+    store.edit { it[stringPreferencesKey("time_format")] = "future" }
+    repo.setDateFormat(DateFormatPreference.TEXT_DATE)
+    assertEquals(
+        DeviceSettings(dateFormat = DateFormatPreference.TEXT_DATE),
+        repo.observeSettings().first(),
+    )
   }
 
   @Test

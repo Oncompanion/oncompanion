@@ -67,7 +67,8 @@ internal fun LanguageContent(
                       stringResource(R.string.language_device_hint)
                   else null,
               selected = selected == language,
-              onClick = { onSelect(language) },
+              enabled = true,
+              onSelect = { onSelect(language) },
               modifier = Modifier.testTag(tag),
           )
         }

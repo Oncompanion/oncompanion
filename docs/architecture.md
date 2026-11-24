@@ -645,7 +645,7 @@ does not join SessionAccess cleanup. Notification settings will be account-speci
 
 ### Appearance (#508)
 
-Settings exposes Appearance and its saved value. `SettingsViewModel` observes the same
+Settings shows the saved Appearance choice next to its entry. `SettingsViewModel` observes the same
 repository in both settings destinations; the shared repository keeps them synchronized.
 `AppearanceContent` uses selectable rows with a trailing checkmark for Follow device, Light and Dark. Writes disable
 selection until complete without shifting the list with a save spinner; failures retain the last confirmed choice and allow another attempt.
@@ -677,3 +677,14 @@ and delegates to Android's app locale service where available. Follow device cle
 override. The Activity and Compose read Android's localized resources, and the authenticated
 navigation stack is restored during a language change. The Account diagram shows the locale
 handoff. The French resource rollout across the rest of the app is tracked in #560.
+
+### Date and time formats (#557)
+
+Settings opens Date and time, with an appointment preview and separate Time format and Date format
+choice screens. The repository saves each preference under its own key in the existing device
+DataStore. Missing or unknown preferences default to Follow device independently. Confirmed
+selections update when the write succeeds. A failed write leaves the last saved choices visible.
+
+The preview uses one fixed example appointment. Follow device uses the phone's date ordering and
+12- or 24-hour setting. Textual month names use the app locale. Applying these preferences to
+Planning, Overview, forms, pickers, and detail screens is tracked in #558.

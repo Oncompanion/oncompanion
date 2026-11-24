@@ -19,7 +19,7 @@ import org.junit.Assert.*
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
-/** Verifies the only implemented category and its observed current value. */
+/** Verifies the implemented categories and its observed current value. */
 @RunWith(AndroidJUnit4::class)
 class SettingsScreenTest {
   @get:Rule val compose = createComposeRule()
@@ -30,27 +30,30 @@ class SettingsScreenTest {
     val vm = SettingsViewModel(repo)
     var backs = 0
     var appearances = 0
-    compose.setContent { OncompanionTheme { SettingsScreen(vm, { backs++ }, { appearances++ }) } }
+    var formatPages = 0
+    compose.setContent {
+      OncompanionTheme { SettingsScreen(vm, { backs++ }, { appearances++ }, { formatPages++ }) }
+    }
     compose.onNodeWithText("Dark").assertIsDisplayed()
     compose.onNodeWithTag(C.Tag.settings_appearance).performClick()
     compose.onNodeWithTag(C.Tag.settings_back).performClick()
+    compose.onNodeWithTag(C.Tag.settings_date_time).performScrollTo().performClick()
+    assertEquals(1, formatPages)
     assertEquals(1, backs)
     assertEquals(1, appearances)
-    listOf("Date and time", "Notifications", "Text size").forEach {
-      compose.onNodeWithText(it).assertDoesNotExist()
-    }
+    listOf("Notifications", "Text size").forEach { compose.onNodeWithText(it).assertDoesNotExist() }
   }
 
   @Test
-  fun appearanceScopeIsBetweenAppearanceAndLanguage() {
+  fun appearanceScopeIsDirectlyBelowAppearance() {
     compose.setContent {
-      OncompanionTheme { SettingsContent(SettingsUiState(DeviceSettings()), {}, {}, {}) }
+      OncompanionTheme { SettingsContent(SettingsUiState(DeviceSettings()), {}, {}, {}, {}) }
     }
     val appearance = compose.onNodeWithTag(C.Tag.settings_appearance).fetchSemanticsNode()
     val scope = compose.onNodeWithText("Appearance is saved on this phone.").fetchSemanticsNode()
-    val language = compose.onNodeWithTag(C.Tag.settings_language).fetchSemanticsNode()
+    val dateTime = compose.onNodeWithTag(C.Tag.settings_date_time).fetchSemanticsNode()
     assertTrue(appearance.boundsInRoot.bottom <= scope.boundsInRoot.top)
-    assertTrue(scope.boundsInRoot.bottom <= language.boundsInRoot.top)
+    assertTrue(scope.boundsInRoot.bottom <= dateTime.boundsInRoot.top)
   }
 
   @Test
@@ -62,12 +65,16 @@ class SettingsScreenTest {
             {},
             {},
             {},
+            onDateTime = {},
             language = AppLanguage.FRENCH,
         )
       }
     }
 
-    compose.onNode(hasText("Français") and hasTestTag(C.Tag.settings_language)).assertIsDisplayed()
+    compose
+        .onNode(hasText("Français") and hasTestTag(C.Tag.settings_language))
+        .performScrollTo()
+        .assertIsDisplayed()
   }
 
   @Test
@@ -76,7 +83,7 @@ class SettingsScreenTest {
     compose.setContent {
       OncompanionTheme {
         CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, 2f)) {
-          SettingsContent(SettingsUiState(DeviceSettings()), {}, {}, {})
+          SettingsContent(SettingsUiState(DeviceSettings()), {}, {}, {}, onDateTime = {})
         }
       }
     }

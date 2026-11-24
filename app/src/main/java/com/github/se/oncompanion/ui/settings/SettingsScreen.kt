@@ -3,6 +3,7 @@
 
 package com.github.se.oncompanion.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +21,8 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.oncompanion.R
+import com.github.se.oncompanion.model.settings.DateFormatPreference
+import com.github.se.oncompanion.model.settings.TimeFormatPreference
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
 import com.github.se.oncompanion.ui.theme.Spacing
@@ -30,6 +33,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
     onAppearance: () -> Unit,
+    onDateTime: () -> Unit,
     modifier: Modifier = Modifier,
     onLanguage: () -> Unit = {},
 ) {
@@ -45,6 +49,7 @@ fun SettingsScreen(
       onBack,
       onAppearance,
       viewModel::retry,
+      onDateTime,
       modifier,
       language,
       onLanguage,
@@ -58,6 +63,7 @@ internal fun SettingsContent(
     onBack: () -> Unit,
     onAppearance: () -> Unit,
     onRetry: () -> Unit,
+    onDateTime: () -> Unit,
     modifier: Modifier = Modifier,
     language: AppLanguage = AppLanguage.FOLLOW_DEVICE,
     onLanguage: () -> Unit = {},
@@ -74,54 +80,78 @@ internal fun SettingsContent(
           style = MaterialTheme.typography.bodyMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
+      Surface(
+          shape = MaterialTheme.shapes.large,
+          color = MaterialTheme.colorScheme.surfaceContainerLowest,
+      ) {
+        Column {
+          SettingsLinkRow(
+              stringResource(R.string.settings_appearance),
+              appearanceLabel(settings.appearance),
+              onAppearance,
+              Modifier.testTag(C.Tag.settings_appearance),
+          )
+          Text(
+              stringResource(R.string.appearance_phone_scope),
+              modifier = Modifier.padding(horizontal = Spacing.lg),
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+          SettingsLinkRow(
+              stringResource(R.string.settings_date_time),
+              if (
+                  settings.timeFormat == TimeFormatPreference.FOLLOW_DEVICE &&
+                      settings.dateFormat == DateFormatPreference.FOLLOW_DEVICE
+              )
+                  stringResource(R.string.appearance_device)
+              else
+                  stringResource(
+                      R.string.settings_format_summary,
+                      timeFormatLabel(settings.timeFormat),
+                      dateFormatLabel(settings.dateFormat),
+                  ),
+              onDateTime,
+              Modifier.testTag(C.Tag.settings_date_time),
+          )
+        }
+      }
+    }
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+    ) {
       SettingsLinkRow(
-          stringResource(R.string.settings_appearance),
-          appearanceLabel(settings.appearance),
-          onAppearance,
-          Modifier.testTag(C.Tag.settings_appearance),
+          stringResource(R.string.settings_language),
+          languageLabel(language),
+          onLanguage,
+          Modifier.testTag(C.Tag.settings_language),
       )
     }
-    if (state.settings != null) {
+  }
+}
+
+/** Opens a preference and shows its currently confirmed value. */
+@Composable
+internal fun SettingsLinkRow(
+    title: String,
+    value: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  Row(
+      modifier.fillMaxWidth().clickable(onClick = onClick).padding(Spacing.lg),
+      horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+      verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Column(Modifier.weight(1f)) {
+      Text(title, style = MaterialTheme.typography.titleMedium)
       Text(
-          stringResource(R.string.appearance_phone_scope),
+          value,
           style = MaterialTheme.typography.bodyMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
     }
-    SettingsLinkRow(
-        stringResource(R.string.settings_language),
-        languageLabel(language),
-        onLanguage,
-        Modifier.testTag(C.Tag.settings_language),
-    )
-  }
-}
-
-@Composable
-private fun SettingsLinkRow(title: String, value: String, onClick: () -> Unit, modifier: Modifier) {
-  Surface(
-      onClick = onClick,
-      shape = MaterialTheme.shapes.large,
-      color = MaterialTheme.colorScheme.surfaceContainerLowest,
-      modifier = modifier.fillMaxWidth(),
-  ) {
-    Row(
-        Modifier.padding(Spacing.lg),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Column(Modifier.weight(1f)) {
-        Text(
-            title,
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Text(
-            value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-      }
-      Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
-    }
+    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
   }
 }
 

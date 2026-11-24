@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.ui.settings
@@ -149,5 +150,39 @@ class SettingsViewModelTest {
     runCurrent()
     assertFalse(vm.uiState.value.saveFailed)
     assertFalse(vm.uiState.value.saving)
+  }
+
+  @Test
+  fun formatWritesKeepOtherChoicesAndRecoverFromFailure() = runTest {
+    val repo = FakeSettingsRepository(DeviceSettings(AppearancePreference.DARK))
+    repo.emitWrites = false
+    val vm = model(repo)
+    runCurrent()
+
+    vm.selectDateFormat(DateFormatPreference.DAY_MONTH_YEAR)
+    runCurrent()
+    assertEquals(
+        DeviceSettings(AppearancePreference.DARK, DateFormatPreference.DAY_MONTH_YEAR),
+        vm.uiState.value.settings,
+    )
+
+    repo.writeFailure = IOException("local write")
+    vm.selectTimeFormat(TimeFormatPreference.TWELVE_HOUR)
+    runCurrent()
+    assertTrue(vm.uiState.value.saveFailed)
+    assertEquals(TimeFormatPreference.FOLLOW_DEVICE, vm.uiState.value.settings?.timeFormat)
+
+    repo.writeFailure = null
+    vm.selectTimeFormat(TimeFormatPreference.TWENTY_FOUR_HOUR)
+    runCurrent()
+    assertEquals(
+        DeviceSettings(
+            AppearancePreference.DARK,
+            DateFormatPreference.DAY_MONTH_YEAR,
+            TimeFormatPreference.TWENTY_FOUR_HOUR,
+        ),
+        vm.uiState.value.settings,
+    )
+    assertFalse(vm.uiState.value.saveFailed)
   }
 }

@@ -12,24 +12,25 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import com.github.se.oncompanion.ui.theme.Spacing
 
-/** Retains the same radio selection layout in the Appearance and Language settings. */
+/** Shared accessible single-choice row with optional supporting text. */
 @Composable
 internal fun SettingsChoiceRow(
     label: String,
     hint: String?,
     selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier,
-    enabled: Boolean = true,
-    checkModifier: Modifier = Modifier,
+    enabled: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+    selectedTag: String? = null,
 ) {
   Row(
       modifier
           .fillMaxWidth()
-          .selectable(selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
+          .selectable(selected, enabled = enabled, role = Role.RadioButton, onClick = onSelect)
           .padding(Spacing.lg),
       horizontalArrangement = Arrangement.spacedBy(Spacing.md),
       verticalAlignment = Alignment.CenterVertically,
@@ -44,6 +45,12 @@ internal fun SettingsChoiceRow(
         )
       }
     }
-    if (selected) Icon(Icons.Default.Check, contentDescription = null, modifier = checkModifier)
+    if (selected) {
+      Icon(
+          Icons.Default.Check,
+          contentDescription = null,
+          modifier = if (selectedTag != null) Modifier.testTag(selectedTag) else Modifier,
+      )
+    }
   }
 }
