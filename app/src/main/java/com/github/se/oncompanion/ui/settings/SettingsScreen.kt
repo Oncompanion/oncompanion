@@ -3,6 +3,11 @@
 
 package com.github.se.oncompanion.ui.settings
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,8 +20,12 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -26,6 +35,7 @@ import com.github.se.oncompanion.model.settings.TimeFormatPreference
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
 import com.github.se.oncompanion.ui.theme.Spacing
+import kotlin.math.roundToInt
 
 /** Opens the device preferences; unfinished categories remain hidden. */
 @Composable
@@ -38,6 +48,8 @@ fun SettingsScreen(
     onLanguage: () -> Unit = {},
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+  val context = LocalContext.current
+  val textSizePercent = (LocalConfiguration.current.fontScale * 100).roundToInt()
   val languageModel: LanguageViewModel = viewModel()
   val language by languageModel.uiState.collectAsStateWithLifecycle()
   LifecycleResumeEffect(languageModel) {
@@ -53,6 +65,8 @@ fun SettingsScreen(
       modifier,
       language,
       onLanguage,
+      textSizePercent = textSizePercent,
+      onTextSize = { openTextSizeSettings(context) },
   )
 }
 
@@ -67,6 +81,8 @@ internal fun SettingsContent(
     modifier: Modifier = Modifier,
     language: AppLanguage = AppLanguage.FOLLOW_DEVICE,
     onLanguage: () -> Unit = {},
+    textSizePercent: Int = 100,
+    onTextSize: () -> Unit = {},
 ) {
   SettingsLayout(
       stringResource(R.string.settings_title),
@@ -127,6 +143,22 @@ internal fun SettingsContent(
           Modifier.testTag(C.Tag.settings_language),
       )
     }
+    Text(
+        stringResource(R.string.settings_accessibility),
+        modifier = Modifier.semantics { heading() },
+        style = MaterialTheme.typography.titleMedium,
+    )
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+    ) {
+      SettingsLinkRow(
+          stringResource(R.string.settings_text_size),
+          stringResource(R.string.settings_text_size_percent, textSizePercent),
+          onTextSize,
+          Modifier.testTag(C.Tag.settings_text_size),
+      )
+    }
   }
 }
 
@@ -153,6 +185,21 @@ internal fun SettingsLinkRow(
     }
     Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
   }
+}
+
+private const val TEXT_READING_SETTINGS = "android.settings.TEXT_READING_SETTINGS"
+
+private fun openTextSizeSettings(context: Context) {
+  // Older Android versions and some manufacturers expose font size under Accessibility.
+  for (action in listOf(TEXT_READING_SETTINGS, Settings.ACTION_ACCESSIBILITY_SETTINGS)) {
+    try {
+      context.startActivity(Intent(action))
+      return
+    } catch (_: ActivityNotFoundException) {
+      // Try the next Settings destination.
+    }
+  }
+  Toast.makeText(context, R.string.settings_text_size_unavailable, Toast.LENGTH_SHORT).show()
 }
 
 /** Shares the lake header and scrollable body between settings destinations. */

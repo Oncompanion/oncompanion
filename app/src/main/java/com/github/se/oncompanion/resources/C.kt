@@ -283,6 +283,7 @@ object C {
     const val settings_date_format = "settings_date_format"
     const val settings_date_format_screen = "settings_date_format_screen"
     const val settings_format_preview = "settings_format_preview"
+    const val settings_text_size = "settings_text_size"
 
     /** Identifies a clock-format option by its stable preference name. */
     fun settingsTimeChoice(name: String) = "settings_time_choice_$name"
