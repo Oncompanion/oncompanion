@@ -18,10 +18,12 @@ class ReminderTimesTest {
             "Twice a day" to times(9, 18),
             "3x/jour" to times(9, 13, 18),
             "4 times a day" to times(8, 12, 16, 20),
-            // No count it can remind of: one a day, the patient adds more
+            // Missing: one a day, the patient adds more
             "" to times(9),
-            "if needed" to times(9),
-            "5 times a day" to times(9),
+            // Not one the app can read: the patient chooses the times
+            "if needed" to emptyList(),
+            "Once a week" to emptyList(),
+            "5 times a day" to emptyList(),
         )
     for ((frequency, expected) in cases) {
       assertEquals(frequency, expected, ReminderTimes.suggested(frequency))

@@ -2452,6 +2452,36 @@ class PrescriptionFormViewModelTest {
   }
 
   @Test
+  fun theFrequencyChangedAndBack_givesBackThePatientsTimes() = runTest {
+    val viewModel = viewModelWith("Ondansetron")
+    viewModel.onFrequencyChange("Twice a day")
+    viewModel.onRemindChange(true)
+    viewModel.onReminderTimeChange(1, LocalTime.of(21, 15))
+
+    // Typed letter by letter, the frequency says one dose a day for a moment
+    viewModel.onFrequencyChange("Once a day")
+    assertEquals(hours(9), viewModel.medication.reminderTimes)
+    viewModel.onFrequencyChange("Twice a day")
+
+    assertEquals(
+        listOf(LocalTime.of(9, 0), LocalTime.of(21, 15)),
+        viewModel.medication.reminderTimes,
+    )
+  }
+
+  @Test
+  fun aFrequencyTheAppCantRead_suggestsNoTime_thePatientChoosesTheFirst() = runTest {
+    val viewModel = viewModelWith("Methotrexate")
+    viewModel.onFrequencyChange("Once a week")
+
+    viewModel.onRemindChange(true)
+    assertEquals(emptyList<LocalTime>(), viewModel.medication.reminderTimes)
+
+    viewModel.onReminderTimeChange(0, LocalTime.of(20, 30, 10))
+    assertEquals(listOf(LocalTime.of(20, 30)), viewModel.medication.reminderTimes)
+  }
+
+  @Test
   fun withoutAFrequency_thePatientAddsAndRemovesTimes_upToFour_keepingOne() = runTest {
     val viewModel = viewModelWith("Ondansetron")
     viewModel.onRemindChange(true)
@@ -2504,5 +2534,27 @@ class PrescriptionFormViewModelTest {
     viewModel.addReminderTime()
 
     assertEquals(emptyList<LocalTime>(), viewModel.medication.reminderTimes)
+  }
+
+  @Test
+  fun aCaregiverChangingTheFrequency_leavesThePatientsReminders() = runTest {
+    val reminded = hours(9, 21)
+    fakeMedications.seed(
+        "patient",
+        saved.copy(
+            medications =
+                saved.medications.map {
+                  if (it.id == "med-1") it.copy(reminderTimes = reminded) else it
+                }
+        ),
+    )
+    val viewModel = caregiverEditForm(editablePatient())
+    advanceUntilIdle()
+    viewModel.openMedication(0)
+
+    viewModel.onFrequencyChange("Once a day")
+
+    assertEquals("Once a day", viewModel.medication.frequency)
+    assertEquals(reminded, viewModel.medication.reminderTimes)
   }
 }

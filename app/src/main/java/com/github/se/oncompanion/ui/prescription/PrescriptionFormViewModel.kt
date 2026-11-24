@@ -506,29 +506,40 @@ class PrescriptionFormViewModel(
 
   /**
    * Text longer than a medication can store is cut. Reminders already on follow the new frequency:
-   * one per dose it says, keeping the patient's times (US-32).
+   * one per dose it says, from the times the patient chose (US-32), so a frequency typed letter by
+   * letter or changed and back keeps them. A caregiver's change leaves them as they are: only the
+   * patient chooses them.
    */
   fun onFrequencyChange(value: String) {
     editOpenMedication(MedicationDetail.FREQUENCY) {
       val frequency = value.take(Medication.MAX_TEXT_LENGTH)
-      it.copy(frequency = frequency, reminderTimes = ReminderTimes.fit(it.reminderTimes, frequency))
+      if (patientUid != null) it.copy(frequency = frequency)
+      else
+          it.copy(
+              frequency = frequency,
+              reminderTimes = ReminderTimes.fit(it.chosenReminderTimes, frequency),
+          )
     }
   }
 
   /**
    * Turns the open medication's reminders on, at the times suggested by its frequency, or off
-   * (US-32). Nothing is scheduled before the prescription is saved.
+   * (US-32). A frequency the app can't read suggests none: the patient chooses the first time
+   * ([onReminderTimeChange]). Nothing is scheduled before the prescription is saved.
    */
   fun onRemindChange(on: Boolean) {
     editReminders { if (on) ReminderTimes.suggested(it.frequency) else emptyList() }
   }
 
-  /** Moves the open medication's reminder at [index] to [time], to the minute. */
+  /**
+   * Moves the open medication's reminder at [index] to [time], to the minute. With reminders off,
+   * [time] is the first one the patient chose, for a frequency that suggests none.
+   */
   fun onReminderTimeChange(index: Int, time: LocalTime) {
+    val minute = time.truncatedTo(ChronoUnit.MINUTES)
     editReminders { medication ->
-      medication.reminderTimes.mapIndexed { i, old ->
-        if (i == index) time.truncatedTo(ChronoUnit.MINUTES) else old
-      }
+      if (medication.reminderTimes.isEmpty()) listOf(minute)
+      else medication.reminderTimes.mapIndexed { i, old -> if (i == index) minute else old }
     }
   }
 
@@ -882,7 +893,12 @@ class PrescriptionFormViewModel(
    */
   private fun editReminders(times: (MedicationDraft) -> List<LocalTime>) {
     if (patientUid != null) return
-    edit { state -> state.withOpenMedication { it.copy(reminderTimes = times(it)) } }
+    edit { state ->
+      state.withOpenMedication {
+        val chosen = times(it)
+        it.copy(reminderTimes = chosen, chosenReminderTimes = chosen)
+      }
+    }
   }
 
   /**
