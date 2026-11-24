@@ -15,19 +15,22 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.theme.Spacing
 
 /** Routes the selected option to Android's app locale storage. */
 @Composable
-internal fun LanguageScreen(onBack: () -> Unit) {
-  var selected by remember { mutableStateOf(AppLanguage.current()) }
-  LanguageContent(selected, onBack) { language ->
-    language.apply()
-    // Choosing the phone's current language can leave the configuration identical.
-    selected = language
+internal fun LanguageScreen(onBack: () -> Unit, viewModel: LanguageViewModel = viewModel()) {
+  val selected by viewModel.uiState.collectAsStateWithLifecycle()
+  LifecycleResumeEffect(viewModel) {
+    viewModel.refresh()
+    onPauseOrDispose {}
   }
+  LanguageContent(selected, onBack, viewModel::select)
 }
 
 /** Displays the choices and, in French, the sample appointment from the design. */

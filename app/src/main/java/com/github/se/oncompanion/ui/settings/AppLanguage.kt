@@ -13,14 +13,24 @@ internal enum class AppLanguage(private val tag: String) {
 
   internal fun locales(): LocaleListCompat = LocaleListCompat.forLanguageTags(tag)
 
-  internal fun apply() {
-    AppCompatDelegate.setApplicationLocales(locales())
-  }
-
   companion object {
-    internal fun current(): AppLanguage = fromLocales(AppCompatDelegate.getApplicationLocales())
-
     internal fun fromLocales(locales: LocaleListCompat): AppLanguage =
         entries.firstOrNull { it.tag == locales[0]?.language } ?: FOLLOW_DEVICE
+  }
+}
+
+/** Reads and applies the app-level override stored by Android or AppCompat. */
+internal interface AppLocaleAdapter {
+  fun current(): AppLanguage
+
+  fun apply(language: AppLanguage)
+}
+
+internal object AppCompatLocaleAdapter : AppLocaleAdapter {
+  override fun current(): AppLanguage =
+      AppLanguage.fromLocales(AppCompatDelegate.getApplicationLocales())
+
+  override fun apply(language: AppLanguage) {
+    AppCompatDelegate.setApplicationLocales(language.locales())
   }
 }

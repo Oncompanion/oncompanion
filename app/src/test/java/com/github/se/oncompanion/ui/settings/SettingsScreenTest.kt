@@ -54,6 +54,23 @@ class SettingsScreenTest {
   }
 
   @Test
+  fun languageRowShowsTheFrenchChoice() {
+    compose.setContent {
+      OncompanionTheme {
+        SettingsContent(
+            SettingsUiState(DeviceSettings()),
+            {},
+            {},
+            {},
+            language = AppLanguage.FRENCH,
+        )
+      }
+    }
+
+    compose.onNode(hasText("Français") and hasTestTag(C.Tag.settings_language)).assertIsDisplayed()
+  }
+
+  @Test
   @Config(qualifiers = LANDSCAPE_PHONE)
   fun landscapeAt200PercentKeepsCategoryAndBackReachable() {
     compose.setContent {

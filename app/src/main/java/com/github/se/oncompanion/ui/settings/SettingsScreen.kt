@@ -16,7 +16,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
@@ -32,13 +34,19 @@ fun SettingsScreen(
     onLanguage: () -> Unit = {},
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+  val languageModel: LanguageViewModel = viewModel()
+  val language by languageModel.uiState.collectAsStateWithLifecycle()
+  LifecycleResumeEffect(languageModel) {
+    languageModel.refresh()
+    onPauseOrDispose {}
+  }
   SettingsContent(
       state,
       onBack,
       onAppearance,
       viewModel::retry,
       modifier,
-      AppLanguage.current(),
+      language,
       onLanguage,
   )
 }

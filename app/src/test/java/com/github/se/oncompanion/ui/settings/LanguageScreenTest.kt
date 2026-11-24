@@ -25,6 +25,21 @@ class LanguageScreenTest {
   @get:Rule val compose = createComposeRule()
 
   @Test
+  fun pickerAppliesFrenchAndClearsTheOverrideWhenFollowingDevice() {
+    val adapter = FakeAppLocaleAdapter()
+    val model = LanguageViewModel(adapter)
+    compose.setContent { OncompanionTheme { LanguageScreen({}, model) } }
+
+    compose.onNodeWithTag(C.Tag.language_english).assertIsSelected()
+    compose.onNodeWithTag(C.Tag.language_french).performClick().assertIsSelected()
+    compose.runOnIdle { assertEquals(listOf(AppLanguage.FRENCH), adapter.applied) }
+    compose.onNodeWithTag(C.Tag.language_device).performClick().assertIsSelected()
+    compose.runOnIdle {
+      assertEquals(listOf(AppLanguage.FRENCH, AppLanguage.FOLLOW_DEVICE), adapter.applied)
+    }
+  }
+
+  @Test
   @Config(qualifiers = "en")
   fun choicesUseTheirOwnNamesAndReportTheSelectedOption() {
     val selected = mutableStateOf(AppLanguage.FOLLOW_DEVICE)
@@ -67,5 +82,15 @@ class LanguageScreenTest {
       compose.onNodeWithTag(tag).performScrollTo().assertIsFullyVisible()
     }
     compose.onNodeWithTag(C.Tag.settings_back).assertIsFullyVisible()
+  }
+}
+
+private class FakeAppLocaleAdapter : AppLocaleAdapter {
+  val applied = mutableListOf<AppLanguage>()
+
+  override fun current() = AppLanguage.ENGLISH
+
+  override fun apply(language: AppLanguage) {
+    applied.add(language)
   }
 }
