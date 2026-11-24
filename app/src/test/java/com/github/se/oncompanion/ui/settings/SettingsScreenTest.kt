@@ -42,6 +42,18 @@ class SettingsScreenTest {
   }
 
   @Test
+  fun appearanceScopeIsBetweenAppearanceAndLanguage() {
+    compose.setContent {
+      OncompanionTheme { SettingsContent(SettingsUiState(DeviceSettings()), {}, {}, {}) }
+    }
+    val appearance = compose.onNodeWithTag(C.Tag.settings_appearance).fetchSemanticsNode()
+    val scope = compose.onNodeWithText("Appearance is saved on this phone.").fetchSemanticsNode()
+    val language = compose.onNodeWithTag(C.Tag.settings_language).fetchSemanticsNode()
+    assertTrue(appearance.boundsInRoot.bottom <= scope.boundsInRoot.top)
+    assertTrue(scope.boundsInRoot.bottom <= language.boundsInRoot.top)
+  }
+
+  @Test
   @Config(qualifiers = LANDSCAPE_PHONE)
   fun landscapeAt200PercentKeepsCategoryAndBackReachable() {
     compose.setContent {

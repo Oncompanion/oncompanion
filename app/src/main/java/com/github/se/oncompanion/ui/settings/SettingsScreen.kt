@@ -73,12 +73,6 @@ internal fun SettingsContent(
           Modifier.testTag(C.Tag.settings_appearance),
       )
     }
-    SettingsLinkRow(
-        stringResource(R.string.settings_language),
-        languageLabel(language),
-        onLanguage,
-        Modifier.testTag(C.Tag.settings_language),
-    )
     if (state.settings != null) {
       Text(
           stringResource(R.string.appearance_phone_scope),
@@ -86,6 +80,12 @@ internal fun SettingsContent(
           color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
     }
+    SettingsLinkRow(
+        stringResource(R.string.settings_language),
+        languageLabel(language),
+        onLanguage,
+        Modifier.testTag(C.Tag.settings_language),
+    )
   }
 }
 
