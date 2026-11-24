@@ -9,7 +9,6 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -23,6 +22,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.oncompanion.R
@@ -67,7 +67,7 @@ fun rememberReminderPermissionNotice(
             opening = true
             // Read again at the tap: permission may have changed while Planning was visible.
             val access = reminderAccess(context, requestHistory)
-            if (access == ReminderAccess.OFFER) {
+            if (access == ReminderAccess.OFFER && Build.VERSION.SDK_INT >= 33) {
               requestHistory.markRequested()
               launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
             } else {
@@ -139,10 +139,14 @@ internal fun openReminderSettings(context: Context, access: ReminderAccess) {
                 .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
                 .putExtra(Settings.EXTRA_CHANNEL_ID, CHANNEL)
         ReminderAccess.EXACT_BLOCKED ->
-            Intent(
-                Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
-                Uri.parse("package:${context.packageName}"),
-            )
+            if (Build.VERSION.SDK_INT >= 31)
+                Intent(
+                    Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                    "package:${context.packageName}".toUri(),
+                )
+            else
+                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
         else ->
             Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                 .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
@@ -154,7 +158,7 @@ internal fun openReminderSettings(context: Context, access: ReminderAccess) {
     context.startActivity(
         Intent(
                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                Uri.parse("package:${context.packageName}"),
+                "package:${context.packageName}".toUri(),
             )
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     )

@@ -5,6 +5,7 @@ package com.github.se.oncompanion.ui.reminder
 import android.Manifest
 import android.app.Application
 import android.content.pm.PackageManager
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -240,6 +241,8 @@ class ReminderPermissionScreenTest {
     assertNull(shadowOf(compose.activity).lastRequestedPermission)
     compose.onNodeWithTag(C.Tag.reminder_permission_action).performClick()
     val request = shadowOf(compose.activity).lastRequestedPermission
+    compose.onNodeWithTag(C.Tag.reminder_permission_action).performClick()
+    assertSame(request, shadowOf(compose.activity).lastRequestedPermission)
     assertArrayEquals(arrayOf(Manifest.permission.POST_NOTIFICATIONS), request.requestedPermissions)
     compose.runOnUiThread {
       compose.activity.onRequestPermissionsResult(
@@ -258,6 +261,27 @@ class ReminderPermissionScreenTest {
         .assertTextEquals("Open Android settings")
     assertNull(shadowOf(compose.activity).lastRequestedPermission)
     assertTrue(vm.uiState.value.eligible)
+  }
+
+  @Test
+  @Config(sdk = [33])
+  fun blockedEnableOpensSettings_andAJustGrantedPermissionOnlyRefreshes() {
+    ShadowAlarmManager.setCanScheduleExactAlarms(true)
+    shadowOf(context).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
+    history.markRequested()
+    val vm = model()
+    show(vm)
+    compose.onNodeWithTag(C.Tag.reminder_permission_action).performClick()
+    assertEquals(
+        Settings.ACTION_APP_NOTIFICATION_SETTINGS,
+        shadowOf(context).nextStartedActivity.action,
+    )
+    // Access can change after the banner rendered, before its next action is processed.
+    shadowOf(context).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+    compose.onNodeWithTag(C.Tag.reminder_permission_action).performClick()
+    compose.onNodeWithTag(C.Tag.reminder_permission_notice).assertDoesNotExist()
+    assertNull(shadowOf(context).nextStartedActivity)
+    assertNull(shadowOf(compose.activity).lastRequestedPermission)
   }
 
   @Test

@@ -132,6 +132,16 @@ class ReminderAccessTest {
   }
 
   @Test
+  @Config(sdk = [28])
+  fun unavailableExactAlarmApiUsesAppNotificationSettings() {
+    openReminderSettings(context, ReminderAccess.EXACT_BLOCKED)
+    assertEquals(
+        Settings.ACTION_APP_NOTIFICATION_SETTINGS,
+        shadowOf(context).nextStartedActivity.action,
+    )
+  }
+
+  @Test
   fun unavailableSpecificSettingsFallsBackToAppDetails() {
     val started = mutableListOf<android.content.Intent>()
     val wrapper =

@@ -96,7 +96,7 @@ class ReminderPermissionViewModel(
     state.update { it.copy(eligible = eligible) }
     if (eligible)
         expiry = viewModelScope.launch {
-          delay(Duration.between(clock.instant(), requireNotNull(last)).toMillis().coerceAtLeast(1))
+          delay(Duration.between(clock.instant(), last).toMillis().coerceAtLeast(1))
           publish()
         }
   }
