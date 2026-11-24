@@ -473,6 +473,71 @@ class MedicationRepositoryFirestoreTest {
       }
 
   @Test
+  fun thePatientSeesEveryPrescriptionTheyRejected_neverAsGone_untilItIsDeleted(): Unit =
+      runBlocking {
+        val carols = carolAddsAPrescriptionForAlice()
+        val values = repository.observePrescriptionsWithRejected(aliceUid).produceIn(this)
+        values.awaitNext { all -> all.any { it.id == "presc-1" } }
+
+        assertTrue(ManageMedicationSchedule(repository).reject(aliceUid, "presc-1"))
+
+        // Every value until it shows as rejected still has it: never in neither collection
+        val seen = mutableListOf<List<Prescription>>()
+        values.awaitNext { all ->
+          seen += all
+          all.any { it.id == "presc-1" && it.confirmation == PrescriptionConfirmation.REJECTED }
+        }
+        assertTrue(
+            "a value had the prescription in neither collection: $seen",
+            seen.all { all -> all.any { it.id == "presc-1" } },
+        )
+        values.cancel()
+        awaitServerAck()
+
+        // One Dave added and Alice rejected earlier (from another device, bypassing the rules)
+        EmulatorTestData.replaceRawDocument(
+            "users/$aliceUid/rejectedPrescriptions",
+            "presc-dave",
+            """{"addedBy": {"stringValue": "presc-repo-dave"}, "addedByName": {"stringValue": "Dave"},
+            "confirmation": {"stringValue": "REJECTED"}, "prescribedOn": $rawDay,
+            "createdAt": $rawDay,
+            "medications": {"arrayValue": {"values": [${rawMedication("dave-1", "Ibuprofen")}]}}}""",
+        )
+
+        // Alice reads all her rejected prescriptions, whoever added them, with their medications
+        val all = repository.observePrescriptionsWithRejected(aliceUid).awaitFirst { it.size == 2 }
+        assertEquals(setOf("presc-1", "presc-dave"), all.map { it.id }.toSet())
+        assertTrue(all.all { it.confirmation == PrescriptionConfirmation.REJECTED })
+        assertEquals(
+            carols.medications.map { it.name },
+            all.single { it.id == "presc-1" }.medications.map { it.name },
+        )
+
+        // Carol may only read her own rejected ones: reading all of Alice's is refused
+        EmulatorTestData.signIn("presc-repo-carol")
+        try {
+          withTimeout(10.seconds) {
+            repository.observePrescriptionsWithRejected(aliceUid).collect {}
+          }
+          fail("Expected FirebaseFirestoreException")
+        } catch (e: FirebaseFirestoreException) {
+          assertEquals(FirebaseFirestoreException.Code.PERMISSION_DENIED, e.code)
+        }
+
+        // Once Carol deleted hers, Alice only has Dave's left
+        repository.deleteRejectedPrescription(aliceUid, "presc-1")
+        awaitServerAck()
+        EmulatorTestData.signIn("alice")
+        assertEquals(
+            listOf("presc-dave"),
+            repository
+                .observePrescriptionsWithRejected(aliceUid)
+                .awaitFirst { it.size == 1 }
+                .map { it.id },
+        )
+      }
+
+  @Test
   fun aPrescriptionSavedBeforeUs43_readsAsThePatientsOwn_confirmed(): Unit = runBlocking {
     EmulatorTestData.replaceRawDocument(
         "users/$aliceUid/prescriptions",

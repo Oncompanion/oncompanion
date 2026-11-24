@@ -27,7 +27,8 @@ import kotlinx.coroutines.flow.update
  * - [updatePrescription] requires [Prescription.isValid] and replaces everything but `createdAt`.
  *   It does nothing if the prescription doesn't exist.
  * - [deletePrescription] removes the prescription and its medications.
- * - [observePrescriptions], [observePrescription] and [observeMedications] emit the current value,
+ * - [observePrescriptions], [observePrescription], [observeMedications],
+ *   [observeRejectedPrescriptions] and [observePrescriptionsWithRejected] emit the current value,
  *   then every change.
  *
  * Test hooks: [readError], [failRunningReads] and [writeError] simulate unexpected failures,
@@ -44,17 +45,20 @@ class FakeMedicationRepository(
     rejectedWrites: RejectedWrites = RejectedWrites(),
 ) : MedicationRepository {
 
-  // uid -> prescription ID -> prescription
-  private val store = MutableStateFlow<Map<String, Map<String, Prescription>>>(emptyMap())
+  /**
+   * Everything stored, in one state so that rejecting moves a prescription in a single update, like
+   * Firestore's single write: uid -> prescription ID -> prescription, with the rejected ones kept
+   * apart (US-43).
+   */
+  private data class Stored(
+      val kept: Map<String, Map<String, Prescription>> = emptyMap(),
+      val rejected: Map<String, Map<String, Prescription>> = emptyMap(),
+  )
 
-  // uid -> prescription ID -> rejected prescription, kept apart (US-43)
-  private val rejected = MutableStateFlow<Map<String, Map<String, Prescription>>>(emptyMap())
+  private val store = MutableStateFlow(Stored())
   private var lastId = 0
 
-  /**
-   * When non-null, [observePrescriptions], [observePrescription] and [observeMedications] fail with
-   * it (checked when collection starts).
-   */
+  /** When non-null, every read fails with it (checked when collection starts). */
   var readError: Exception? = null
 
   // Sent to the reads being collected when the test calls failRunningReads
@@ -75,7 +79,7 @@ class FakeMedicationRepository(
   /** When non-null, every write throws it and stores nothing. */
   var writeError: Exception? = null
 
-  private val server = RejectingServer<Map<String, Map<String, Prescription>>>(rejectedWrites)
+  private val server = RejectingServer<Stored>(rejectedWrites)
 
   /** When true, writes still return as usual, until [rejectPendingWrites] undoes them. */
   var serverRejectsWrites by server::rejectsWrites
@@ -86,10 +90,11 @@ class FakeMedicationRepository(
   fun rejectPendingWrites() = server.reject { store.value = it }
 
   /** Snapshot of the prescriptions [uid] rejected. */
-  fun rejectedOf(uid: String): List<Prescription> = rejected.value[uid].orEmpty().values.toList()
+  fun rejectedOf(uid: String): List<Prescription> =
+      store.value.rejected[uid].orEmpty().values.toList()
 
   /** Snapshot of the prescriptions stored for [uid], in the order of [observePrescriptions]. */
-  fun prescriptionsOf(uid: String): List<Prescription> = sorted(store.value[uid])
+  fun prescriptionsOf(uid: String): List<Prescription> = sorted(store.value.kept[uid])
 
   /** Inserts [prescription] as-is (including its `createdAt`), bypassing validation. Test setup. */
   fun seed(uid: String, prescription: Prescription) {
@@ -99,15 +104,15 @@ class FakeMedicationRepository(
   override fun newId(): String = "id-${++lastId}"
 
   override fun observePrescriptions(uid: String): Flow<List<Prescription>> =
-      read(store.map { sorted(it[uid]) })
+      read(store.map { sorted(it.kept[uid]) })
 
   override fun observePrescription(uid: String, id: String): Flow<Prescription?> =
-      read(store.map { it[uid]?.get(id) })
+      read(store.map { it.kept[uid]?.get(id) })
           .onStart { prescriptionObservers++ }
           .onCompletion { prescriptionObservers-- }
 
   override fun observeMedications(uid: String): Flow<List<Medication>> =
-      read(store.map { all -> all[uid].orEmpty().values.toList().confirmedMedications() })
+      read(store.map { it.kept[uid].orEmpty().values.toList().confirmedMedications() })
 
   override suspend fun addPrescription(uid: String, prescription: Prescription) {
     writeError?.let { throw it }
@@ -122,7 +127,7 @@ class FakeMedicationRepository(
   override suspend fun updatePrescription(uid: String, prescription: Prescription) {
     writeError?.let { throw it }
     require(prescription.isValid()) { "Invalid prescription: $prescription" }
-    val existing = store.value[uid]?.get(prescription.id) ?: return
+    val existing = store.value.kept[uid]?.get(prescription.id) ?: return
     server.saving(store.value)
     put(
         uid,
@@ -137,26 +142,33 @@ class FakeMedicationRepository(
   override suspend fun deletePrescription(uid: String, id: String) {
     writeError?.let { throw it }
     server.saving(store.value)
-    store.update { all -> all + (uid to all[uid].orEmpty() - id) }
+    store.update { it.copy(kept = it.kept + (uid to it.kept[uid].orEmpty() - id)) }
   }
 
   override suspend fun rejectPrescription(uid: String, prescription: Prescription) {
     writeError?.let { throw it }
     val moved = prescription.copy(confirmation = PrescriptionConfirmation.REJECTED)
     require(moved.isValid() && moved.addedBy != null) { "Invalid rejected prescription: $moved" }
-    store.update { all -> all + (uid to all[uid].orEmpty() - prescription.id) }
-    rejected.update { all -> all + (uid to all[uid].orEmpty() + (moved.id to moved)) }
+    store.update {
+      Stored(
+          kept = it.kept + (uid to it.kept[uid].orEmpty() - prescription.id),
+          rejected = it.rejected + (uid to it.rejected[uid].orEmpty() + (moved.id to moved)),
+      )
+    }
   }
 
   override fun observeRejectedPrescriptions(
       uid: String,
       addedBy: String,
   ): Flow<List<Prescription>> =
-      read(rejected.map { all -> all[uid].orEmpty().values.filter { it.addedBy == addedBy } })
+      read(store.map { all -> all.rejected[uid].orEmpty().values.filter { it.addedBy == addedBy } })
+
+  override fun observePrescriptionsWithRejected(uid: String): Flow<List<Prescription>> =
+      read(store.map { sorted(it.kept[uid]) + it.rejected[uid].orEmpty().values })
 
   override suspend fun deleteRejectedPrescription(uid: String, id: String) {
     writeError?.let { throw it }
-    rejected.update { all -> all + (uid to all[uid].orEmpty() - id) }
+    store.update { it.copy(rejected = it.rejected + (uid to it.rejected[uid].orEmpty() - id)) }
   }
 
   /**
@@ -171,7 +183,9 @@ class FakeMedicationRepository(
   }
 
   private fun put(uid: String, prescription: Prescription) {
-    store.update { all -> all + (uid to all[uid].orEmpty() + (prescription.id to prescription)) }
+    store.update {
+      it.copy(kept = it.kept + (uid to it.kept[uid].orEmpty() + (prescription.id to prescription)))
+    }
   }
 
   // Most recently prescribed first, then most recently saved
