@@ -24,6 +24,7 @@ import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningSource
 import com.github.se.oncompanion.model.planning.PlanningTiming
+import com.github.se.oncompanion.model.speech.FakeSpeechRecognizer
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
 import com.github.se.oncompanion.model.user.Role
 import com.github.se.oncompanion.model.user.UserProfile
@@ -122,6 +123,29 @@ class OverviewViewModelTest {
           zone,
           takenDosesRepository = doses,
       )
+
+  @Test
+  fun canSpeak_onlyWhenThePhoneHasARecognizerThatCanListen() {
+    val cases =
+        listOf(
+            FakeSpeechRecognizer(available = true) to true,
+            FakeSpeechRecognizer(available = false) to false,
+            // Before the app installed the phone's recognizer
+            null to false,
+        )
+    for ((speech, expected) in cases) {
+      val viewModel =
+          OverviewViewModel(
+              FakeAuthRepository(),
+              FakeUserProfileRepository(),
+              ownPlanning(FakePlanningRepository()),
+              TestClock(now),
+              zone,
+              speechRecognizer = speech,
+          )
+      assertEquals("$speech", expected, viewModel.uiState.value.canSpeak)
+    }
+  }
 
   /** Saved medication days reach Overview without a time or a claim about intake status. */
   @OptIn(ExperimentalCoroutinesApi::class)

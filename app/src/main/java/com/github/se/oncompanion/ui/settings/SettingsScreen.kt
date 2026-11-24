@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Settings
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -25,8 +26,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.oncompanion.R
+import com.github.se.oncompanion.model.settings.DateFormatPreference
+import com.github.se.oncompanion.model.settings.TimeFormatPreference
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
 import com.github.se.oncompanion.ui.theme.Spacing
@@ -38,32 +43,46 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
     onAppearance: () -> Unit,
+    onDateTime: () -> Unit,
     modifier: Modifier = Modifier,
+    onLanguage: () -> Unit = {},
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val context = LocalContext.current
   val textSizePercent = (LocalConfiguration.current.fontScale * 100).roundToInt()
+  val languageModel: LanguageViewModel = viewModel()
+  val language by languageModel.uiState.collectAsStateWithLifecycle()
+  LifecycleResumeEffect(languageModel) {
+    languageModel.refresh()
+    onPauseOrDispose {}
+  }
   SettingsContent(
       state,
       onBack,
       onAppearance,
       viewModel::retry,
-      textSizePercent,
-      { openTextSizeSettings(context) },
+      onDateTime,
       modifier,
+      language,
+      onLanguage,
+      textSizePercent = textSizePercent,
+      onTextSize = { openTextSizeSettings(context) },
   )
 }
 
-/** Displays available preferences and their current values. */
+/** Displays only implemented categories and their persisted values. */
 @Composable
-fun SettingsContent(
+internal fun SettingsContent(
     state: SettingsUiState,
     onBack: () -> Unit,
     onAppearance: () -> Unit,
     onRetry: () -> Unit,
-    textSizePercent: Int,
-    onTextSize: () -> Unit,
+    onDateTime: () -> Unit,
     modifier: Modifier = Modifier,
+    language: AppLanguage = AppLanguage.FOLLOW_DEVICE,
+    onLanguage: () -> Unit = {},
+    textSizePercent: Int = 100,
+    onTextSize: () -> Unit = {},
 ) {
   SettingsLayout(
       stringResource(R.string.settings_title),
@@ -77,16 +96,51 @@ fun SettingsContent(
           style = MaterialTheme.typography.bodyMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
-      SettingsRow(
-          stringResource(R.string.settings_appearance),
-          appearanceLabel(settings.appearance),
-          onAppearance,
-          Modifier.testTag(C.Tag.settings_appearance),
-      )
-      Text(
-          stringResource(R.string.appearance_phone_scope),
-          style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
+      Surface(
+          shape = MaterialTheme.shapes.large,
+          color = MaterialTheme.colorScheme.surfaceContainerLowest,
+      ) {
+        Column {
+          SettingsLinkRow(
+              stringResource(R.string.settings_appearance),
+              appearanceLabel(settings.appearance),
+              onAppearance,
+              Modifier.testTag(C.Tag.settings_appearance),
+          )
+          Text(
+              stringResource(R.string.appearance_phone_scope),
+              modifier = Modifier.padding(horizontal = Spacing.lg),
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+          SettingsLinkRow(
+              stringResource(R.string.settings_date_time),
+              if (
+                  settings.timeFormat == TimeFormatPreference.FOLLOW_DEVICE &&
+                      settings.dateFormat == DateFormatPreference.FOLLOW_DEVICE
+              )
+                  stringResource(R.string.appearance_device)
+              else
+                  stringResource(
+                      R.string.settings_format_summary,
+                      timeFormatLabel(settings.timeFormat),
+                      dateFormatLabel(settings.dateFormat),
+                  ),
+              onDateTime,
+              Modifier.testTag(C.Tag.settings_date_time),
+          )
+        }
+      }
+    }
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+    ) {
+      SettingsLinkRow(
+          stringResource(R.string.settings_language),
+          languageLabel(language),
+          onLanguage,
+          Modifier.testTag(C.Tag.settings_language),
       )
     }
     Text(
@@ -94,34 +148,42 @@ fun SettingsContent(
         modifier = Modifier.semantics { heading() },
         style = MaterialTheme.typography.titleMedium,
     )
-    SettingsRow(
-        stringResource(R.string.settings_text_size),
-        stringResource(R.string.settings_text_size_percent, textSizePercent),
-        onTextSize,
-        Modifier.testTag(C.Tag.settings_text_size),
-    )
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+    ) {
+      SettingsLinkRow(
+          stringResource(R.string.settings_text_size),
+          stringResource(R.string.settings_text_size_percent, textSizePercent),
+          onTextSize,
+          Modifier.testTag(C.Tag.settings_text_size),
+      )
+    }
   }
 }
 
+/** Opens a preference and shows its currently confirmed value. */
 @Composable
-private fun SettingsRow(title: String, value: String, onClick: () -> Unit, modifier: Modifier) {
-  Surface(
-      onClick = onClick,
-      shape = MaterialTheme.shapes.large,
-      color = MaterialTheme.colorScheme.surfaceContainerLowest,
-      modifier = modifier.fillMaxWidth(),
+internal fun SettingsLinkRow(
+    title: String,
+    value: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  Row(
+      modifier.fillMaxWidth().clickable(onClick = onClick).padding(Spacing.lg),
+      horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+      verticalAlignment = Alignment.CenterVertically,
   ) {
-    Row(Modifier.padding(Spacing.lg), verticalAlignment = Alignment.CenterVertically) {
-      Column(Modifier.weight(1f)) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        Text(
-            value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-      }
-      Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+    Column(Modifier.weight(1f)) {
+      Text(title, style = MaterialTheme.typography.titleMedium)
+      Text(
+          value,
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
     }
+    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
   }
 }
 

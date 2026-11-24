@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.model.settings
@@ -11,4 +12,10 @@ interface SettingsRepository {
 
   /** Saves an appearance override; returns only after the local write succeeds. */
   suspend fun setAppearance(appearance: AppearancePreference)
+
+  /** Saves the chosen date format on this device. */
+  suspend fun setDateFormat(dateFormat: DateFormatPreference)
+
+  /** Saves the chosen clock format on this device. */
+  suspend fun setTimeFormat(timeFormat: TimeFormatPreference)
 }

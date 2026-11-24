@@ -29,7 +29,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
-/** Verifies the available Settings rows and their current values. */
+/** Verifies the implemented categories and its observed current value. */
 @RunWith(AndroidJUnit4::class)
 class SettingsScreenTest {
   @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
@@ -40,30 +40,51 @@ class SettingsScreenTest {
     val vm = SettingsViewModel(repo)
     var backs = 0
     var appearances = 0
-    compose.setContent { OncompanionTheme { SettingsScreen(vm, { backs++ }, { appearances++ }) } }
+    var formatPages = 0
+    compose.setContent {
+      OncompanionTheme { SettingsScreen(vm, { backs++ }, { appearances++ }, { formatPages++ }) }
+    }
     compose.onNodeWithText("Dark").assertIsDisplayed()
     compose.onNodeWithTag(C.Tag.settings_appearance).performClick()
     compose.onNodeWithTag(C.Tag.settings_back).performClick()
+    compose.onNodeWithTag(C.Tag.settings_date_time).performScrollTo().performClick()
+    assertEquals(1, formatPages)
     assertEquals(1, backs)
     assertEquals(1, appearances)
-    listOf("Language", "Date and time", "Notifications").forEach {
-      compose.onNodeWithText(it).assertDoesNotExist()
-    }
+    compose.onNodeWithText("Notifications").assertDoesNotExist()
   }
 
   @Test
-  fun appearanceNoteIsBetweenAppearanceAndAccessibility() {
+  fun appearanceScopeIsDirectlyBelowAppearance() {
     compose.setContent {
-      OncompanionTheme { SettingsContent(SettingsUiState(DeviceSettings()), {}, {}, {}, 100, {}) }
+      OncompanionTheme { SettingsContent(SettingsUiState(DeviceSettings()), {}, {}, {}, {}) }
+    }
+    val appearance = compose.onNodeWithTag(C.Tag.settings_appearance).fetchSemanticsNode()
+    val scope = compose.onNodeWithText("Appearance is saved on this phone.").fetchSemanticsNode()
+    val dateTime = compose.onNodeWithTag(C.Tag.settings_date_time).fetchSemanticsNode()
+    assertTrue(appearance.boundsInRoot.bottom <= scope.boundsInRoot.top)
+    assertTrue(scope.boundsInRoot.bottom <= dateTime.boundsInRoot.top)
+  }
+
+  @Test
+  fun languageRowShowsTheFrenchChoice() {
+    compose.setContent {
+      OncompanionTheme {
+        SettingsContent(
+            SettingsUiState(DeviceSettings()),
+            {},
+            {},
+            {},
+            onDateTime = {},
+            language = AppLanguage.FRENCH,
+        )
+      }
     }
 
-    val appearance = compose.onNodeWithTag(C.Tag.settings_appearance).getUnclippedBoundsInRoot()
-    val note =
-        compose.onNodeWithText("Appearance is saved on this phone.").getUnclippedBoundsInRoot()
-    val accessibility = compose.onNodeWithText("Accessibility").getUnclippedBoundsInRoot()
-
-    assertTrue(appearance.bottom < note.top)
-    assertTrue(note.bottom < accessibility.top)
+    compose
+        .onNode(hasText("Français") and hasTestTag(C.Tag.settings_language))
+        .performScrollTo()
+        .assertIsDisplayed()
   }
 
   @Test
@@ -74,18 +95,18 @@ class SettingsScreenTest {
       val configuration =
           Configuration(LocalConfiguration.current).apply { this.fontScale = fontScale.floatValue }
       CompositionLocalProvider(LocalConfiguration provides configuration) {
-        OncompanionTheme { SettingsScreen(vm, {}, {}) }
+        OncompanionTheme { SettingsScreen(vm, {}, {}, {}) }
       }
     }
     val textSize = compose.onNodeWithTag(C.Tag.settings_text_size)
-    textSize.assertTextContains("100% · Phone setting")
+    textSize.performScrollTo().assertTextContains("100% · Phone setting")
     textSize.performClick()
     assertEquals(
         "android.settings.TEXT_READING_SETTINGS",
         shadowOf(compose.activity).nextStartedActivity.action,
     )
     compose.runOnIdle { fontScale.floatValue = 1.5f }
-    textSize.assertTextContains("150% · Phone setting")
+    textSize.performScrollTo().assertTextContains("150% · Phone setting")
   }
 
   @Test
@@ -103,9 +124,9 @@ class SettingsScreenTest {
         }
     shadowOf(activity.packageManager).addResolveInfoForIntent(accessibility, handler)
     val vm = SettingsViewModel(FakeSettingsRepository(DeviceSettings()))
-    compose.setContent { OncompanionTheme { SettingsScreen(vm, {}, {}) } }
+    compose.setContent { OncompanionTheme { SettingsScreen(vm, {}, {}, {}) } }
 
-    compose.onNodeWithTag(C.Tag.settings_text_size).performClick()
+    compose.onNodeWithTag(C.Tag.settings_text_size).performScrollTo().performClick()
 
     assertEquals(accessibility.action, shadowOf(activity).nextStartedActivity.action)
   }
@@ -115,9 +136,9 @@ class SettingsScreenTest {
     val activity = compose.activity
     shadowOf(activity.application).checkActivities(true)
     val vm = SettingsViewModel(FakeSettingsRepository(DeviceSettings()))
-    compose.setContent { OncompanionTheme { SettingsScreen(vm, {}, {}) } }
+    compose.setContent { OncompanionTheme { SettingsScreen(vm, {}, {}, {}) } }
 
-    compose.onNodeWithTag(C.Tag.settings_text_size).performClick()
+    compose.onNodeWithTag(C.Tag.settings_text_size).performScrollTo().performClick()
 
     assertEquals(
         "Couldn't open your phone's text size settings.",
@@ -131,7 +152,14 @@ class SettingsScreenTest {
     compose.setContent {
       OncompanionTheme {
         CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, 2f)) {
-          SettingsContent(SettingsUiState(DeviceSettings()), {}, {}, {}, 200, {})
+          SettingsContent(
+              SettingsUiState(DeviceSettings()),
+              {},
+              {},
+              {},
+              onDateTime = {},
+              textSizePercent = 200,
+          )
         }
       }
     }

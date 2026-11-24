@@ -160,6 +160,11 @@ fun AddSymptomScreen(
     onPauseOrDispose {}
   }
 
+  // Opened from "Speak how you feel" on the Overview (US-73): starts dictating once shown
+  LaunchedEffect(viewModel) {
+    viewModel.onOpened(context.hasPermission(Manifest.permission.RECORD_AUDIO))
+  }
+
   // Tells the view model when the phone's download dialog covers the screen, and when it closes
   LifecycleResumeEffect(viewModel) {
     viewModel.onScreenShown()
@@ -185,11 +190,15 @@ fun AddSymptomScreen(
   // Dictating replaces the form until the patient is done or goes back to it
   val voice = uiState.voice
   if (voice != null) {
-    BackHandler(onBack = viewModel::cancelVoice)
+    // Opened from the Overview to speak, closing goes back there rather than to an empty form
+    val closeVoice = if (uiState.leavesOnClose) onBack else viewModel::cancelVoice
+    BackHandler(onBack = closeVoice)
     VoiceSymptomContent(
         voice = voice,
         today = uiState.now.toLocalDate(),
-        onClose = viewModel::cancelVoice,
+        onClose = closeVoice,
+        onTypeInstead = viewModel::cancelVoice,
+        leavesOnClose = uiState.leavesOnClose,
         onAllowMicrophone = { microphone.launch(Manifest.permission.RECORD_AUDIO) },
         onOpenSettings = { context.startActivity(appSettingsIntent(context)) },
         onDone = viewModel::onDone,

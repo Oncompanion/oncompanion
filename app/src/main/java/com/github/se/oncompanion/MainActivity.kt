@@ -1,13 +1,14 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -16,6 +17,7 @@ import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.hospital.HospitalRepositoryProvider
 import com.github.se.oncompanion.model.medication.SeenPrescriptionsPreferences
 import com.github.se.oncompanion.model.medication.SeenPrescriptionsProvider
+import com.github.se.oncompanion.model.reminder.ReminderSchedulerProvider
 import com.github.se.oncompanion.model.session.PreferencesCleanupJournal
 import com.github.se.oncompanion.model.settings.SettingsRepositoryProvider
 import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
@@ -25,7 +27,7 @@ import com.github.se.oncompanion.ui.theme.AppAppearanceRoot
 import com.github.se.oncompanion.ui.theme.AppAppearanceViewModel
 
 /** Installs session recovery before authenticated navigation or Firestore operations start. */
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
   private val startViewModel: StartViewModel by viewModels()
   private val appearanceViewModel: AppAppearanceViewModel by viewModels()
@@ -46,6 +48,7 @@ class MainActivity : ComponentActivity() {
         !journal.pending &&
             runCatching { AuthRepositoryProvider.repository.currentUser != null }
                 .getOrDefault(false)
+    ReminderSchedulerProvider.install(applicationContext)
     SettingsRepositoryProvider.install(applicationContext)
     super.onCreate(if (restore) savedInstanceState else null)
     // Install the shared search adapter before fields capture it; blank configuration stays manual.

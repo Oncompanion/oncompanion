@@ -10,7 +10,8 @@ import java.time.temporal.TemporalAdjusters
 /**
  * One day of the "This week" chart.
  *
- * @property intensity the highest intensity logged that day, `null` if none of its entries gave one
+ * @property intensity the strongest symptom logged that day (see [SymptomEntry.strongest]), `null`
+ *   if none of its entries gave a strength
  * @property hasEntries whether something was logged that day: without an [intensity] the chart
  *   shows an open dot, so a day logged without a number isn't mistaken for a day without symptoms
  */
@@ -56,7 +57,7 @@ fun weekSummaryOf(days: List<JournalDay>, today: LocalDate): WeekSummary? {
         val dayEntries = thisWeek.filter { it.date == date }.flatMap { it.entries }
         WeekDay(
             date = date,
-            intensity = dayEntries.mapNotNull { it.entry.intensity }.maxOrNull(),
+            intensity = dayEntries.mapNotNull { it.entry.strongest() }.maxOrNull(),
             hasEntries = dayEntries.isNotEmpty(),
         )
       }

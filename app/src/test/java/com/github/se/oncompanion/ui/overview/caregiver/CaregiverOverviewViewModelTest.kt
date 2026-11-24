@@ -4,6 +4,7 @@ package com.github.se.oncompanion.ui.overview.caregiver
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.domain.carecircle.FollowedPatient
+import com.github.se.oncompanion.domain.carecircle.ObserveCareSection
 import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthUser
@@ -16,6 +17,12 @@ import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningSource
 import com.github.se.oncompanion.model.planning.PlanningTiming
+import com.github.se.oncompanion.model.symptom.FakeSymptomRepository
+import com.github.se.oncompanion.model.symptom.SymptomEntry
+import com.github.se.oncompanion.model.symptom.SymptomRepository
+import com.github.se.oncompanion.model.symptom.SymptomType
+import com.github.se.oncompanion.model.symptom.SymptomType.FATIGUE
+import com.github.se.oncompanion.model.symptom.SymptomType.NAUSEA
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
 import com.github.se.oncompanion.ui.VirtualClock
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
@@ -28,6 +35,8 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -67,14 +76,17 @@ class CaregiverOverviewViewModelTest {
       FakePlanningRepository().apply { this.items.value = items.toList() }
 
   /**
-   * The Overview of "caregiver", who follows [patient]: the access comes from [patient] and the
-   * planning from [planningOf], the same patient unless a test makes the two disagree.
+   * The Overview of "caregiver", who follows [patient]: the access comes from [patient], the
+   * planning from [planningOf] and the journal from [journalOf], the same patient unless a test
+   * makes them disagree.
    */
   private fun viewModel(
       patient: FollowedPatient,
       planning: FakePlanningRepository = planning(),
       clock: Clock = fixedClock,
       planningOf: FollowedPatient = patient,
+      symptoms: SymptomRepository = FakeSymptomRepository(),
+      journalOf: FollowedPatient = patient,
       patientUid: String = "patient",
       auth: AuthRepository = patient.auth,
       profiles: FakeUserProfileRepository = patient.profiles,
@@ -85,6 +97,8 @@ class CaregiverOverviewViewModelTest {
               profileRepository = profiles,
               observePlanning =
                   ObserveCarePlanning(planningOf.sectionAccess, planning, planningOf.circle),
+              symptomRepository = symptoms,
+              observeSection = ObserveCareSection(journalOf.sectionAccess),
               resolveAccess = patient.careAccess,
               clock = clock,
               zoneId = zone,
@@ -293,7 +307,171 @@ class CaregiverOverviewViewModelTest {
     assertFalse(vm.uiState.value.isLoading)
   }
 
+  // ----- The journal -----
+
+  private fun entry(
+      id: String,
+      at: LocalDateTime,
+      intensity: Int? = null,
+      strengths: Map<SymptomType, Int> = emptyMap(),
+  ) =
+      SymptomEntry(
+          id = id,
+          types = listOf(NAUSEA, FATIGUE),
+          occurredAt = at.toInstant(zone),
+          intensity = intensity,
+          strengths = strengths,
+      )
+
+  private fun journal(vararg entries: SymptomEntry) =
+      FakeSymptomRepository().apply { seed("patient", *entries) }
+
+  @Test
+  fun latestEntry_isTheNewest_withAStrengthPerSymptom_orItsOneIntensity() {
+    val yesterday = now.minusDays(1).withHour(18).withMinute(10)
+    val cases =
+        listOf(
+            // A strength per symptom (#615): each symptom has its own, no overall one
+            entry("new", yesterday, intensity = 7, strengths = mapOf(NAUSEA to 7, FATIGUE to 6)) to
+                (listOf(NAUSEA to 7, FATIGUE to 6) to null),
+            // Saved before #615: one intensity for the whole entry
+            entry("new", yesterday, intensity = 6) to
+                (listOf(NAUSEA to null, FATIGUE to null) to 6),
+            // A strength for some symptoms only: the others have none, and a leftover overall
+            // intensity isn't used for them
+            entry("new", yesterday, intensity = 6, strengths = mapOf(FATIGUE to 4)) to
+                (listOf(NAUSEA to null, FATIGUE to 4) to null),
+            // No number at all: only the names
+            entry("new", yesterday) to (listOf(NAUSEA to null, FATIGUE to null) to null),
+        )
+    for ((newest, expected) in cases) {
+      // The older entry comes after the newest one, so the order of the list doesn't matter
+      val symptoms =
+          object : SymptomRepository by journal() {
+            override fun observeSymptoms(uid: String) = flow {
+              emit(listOf(entry("old", yesterday.minusDays(3), intensity = 2), newest))
+            }
+          }
+
+      val latest =
+          viewModel(FollowedPatient(SYMPTOMS), symptoms = symptoms).uiState.value.latestEntry
+
+      assertEquals(newest.toString(), "new", latest?.entry?.id)
+      assertEquals(newest.toString(), yesterday, latest?.at)
+      assertEquals(newest.toString(), expected.first, latest?.symptoms)
+      assertEquals(newest.toString(), expected.second, latest?.overall)
+    }
+  }
+
+  @Test
+  fun emptyJournal_hasNoEntry_andIsNotLoading() {
+    val state = viewModel(FollowedPatient(SYMPTOMS), symptoms = journal()).uiState.value
+
+    assertNull(state.latestEntry)
+    assertEquals(SHOWN, state.sections[SYMPTOMS])
+    assertFalse(state.isLoading)
+    assertFalse(state.hasError)
+  }
+
+  @Test
+  fun journalChangesWhileOpen_theEntryFollows() {
+    val symptoms = journal(entry("old", now.minusDays(2)))
+    val vm = viewModel(FollowedPatient(SYMPTOMS), symptoms = symptoms)
+    assertEquals("old", vm.uiState.value.latestEntry?.entry?.id)
+
+    symptoms.seed("patient", entry("new", now.minusHours(1)))
+    ShadowLooper.idleMainLooper()
+    assertEquals("new", vm.uiState.value.latestEntry?.entry?.id)
+
+    runBlocking { symptoms.deleteSymptom("patient", "new") }
+    ShadowLooper.idleMainLooper()
+    assertEquals("old", vm.uiState.value.latestEntry?.entry?.id)
+
+    // The last one deleted too: the journal is empty, still shared, and nothing waits
+    runBlocking { symptoms.deleteSymptom("patient", "old") }
+    ShadowLooper.idleMainLooper()
+    val state = vm.uiState.value
+    assertNull(state.latestEntry)
+    assertEquals(SHOWN, state.sections[SYMPTOMS])
+    assertFalse(state.isLoading)
+    assertFalse(state.hasError)
+  }
+
+  @Test
+  fun symptomsWithdrawnWhileOpen_hidesTheEntryAtOnce_evenBeforeTheJournalFollows() {
+    val patient = FollowedPatient(SYMPTOMS)
+    // The journal's own listener still sees it shared, as when it answers later than the access
+    val vm =
+        viewModel(
+            patient,
+            symptoms = journal(entry("new", now.minusHours(1))),
+            journalOf = FollowedPatient(SYMPTOMS),
+        )
+    assertEquals("new", vm.uiState.value.latestEntry?.entry?.id)
+
+    patient.shares(PLANNING)
+    ShadowLooper.idleMainLooper()
+
+    assertEquals(PRIVATE, vm.uiState.value.sections[SYMPTOMS])
+    assertNull(vm.uiState.value.latestEntry)
+  }
+
+  @Test
+  fun symptomsStartedSharingWhileOpen_staysLoading_untilTheJournalFollows() {
+    val patient = FollowedPatient(PLANNING)
+    // The journal's own listener answers later than the access, so it still says "not shared"
+    val journalNotYetShared = FollowedPatient(PLANNING)
+    val vm =
+        viewModel(
+            patient,
+            symptoms = journal(entry("new", now.minusHours(1))),
+            journalOf = journalNotYetShared,
+        )
+
+    patient.shares(PLANNING, SYMPTOMS)
+    ShadowLooper.idleMainLooper()
+
+    // Not "No entries yet" while the patient logged one an hour ago
+    assertEquals(SHOWN, vm.uiState.value.sections[SYMPTOMS])
+    assertTrue(vm.uiState.value.isLoading)
+
+    journalNotYetShared.shares(PLANNING, SYMPTOMS)
+    ShadowLooper.idleMainLooper()
+    assertFalse(vm.uiState.value.isLoading)
+    assertEquals("new", vm.uiState.value.latestEntry?.entry?.id)
+  }
+
+  @Test
+  fun journalNotReadYet_isLoading_onlyWhileTheSymptomsAreShared() {
+    // A journal that never answers, as offline with nothing cached
+    val silent =
+        object : SymptomRepository by journal() {
+          override fun observeSymptoms(uid: String) =
+              flow<List<SymptomEntry>> { awaitCancellation() }
+        }
+
+    assertTrue(viewModel(FollowedPatient(SYMPTOMS), symptoms = silent).uiState.value.isLoading)
+    // Kept private, the journal isn't waited for
+    assertFalse(viewModel(FollowedPatient(PLANNING), symptoms = silent).uiState.value.isLoading)
+  }
+
   // ----- Failures -----
+
+  @Test
+  fun journalFails_givesAnError_andRetryLoadsIt() {
+    val symptoms =
+        journal(entry("new", now.minusHours(1))).apply { observeError = IllegalStateException() }
+    val vm = viewModel(FollowedPatient(SYMPTOMS), symptoms = symptoms)
+    assertTrue(vm.uiState.value.hasError)
+    assertFalse(vm.uiState.value.isLoading)
+
+    symptoms.observeError = null
+    vm.retry()
+    ShadowLooper.idleMainLooper()
+
+    assertFalse(vm.uiState.value.hasError)
+    assertEquals("new", vm.uiState.value.latestEntry?.entry?.id)
+  }
 
   @Test
   fun planningFails_givesAnError_andRetryLoadsIt() {
