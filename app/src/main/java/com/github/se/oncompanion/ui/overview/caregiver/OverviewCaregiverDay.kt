@@ -78,12 +78,13 @@ internal fun CaregiverDay(
       else -> SharedDay(uiState, patientName, actions)
     }
     // Until the day has a card for each, the shared sections keep their tiles, as before; the
-    // journal card already opens the symptoms, and the medications card the prescriptions
+    // journal card already opens the symptoms, and the medications card, while it shows, the
+    // prescriptions
     val tiles =
         OverviewShortcut.entries.filter {
           it.section != null &&
               it != OverviewShortcut.SYMPTOMS &&
-              !(it == OverviewShortcut.PRESCRIPTIONS && uiState.todayMedications.isNotEmpty()) &&
+              !(it == OverviewShortcut.PRESCRIPTIONS && uiState.showsMedications) &&
               uiState.sections[it.section] == SectionVisibility.SHOWN
         }
     if (tiles.isNotEmpty()) Shortcuts(actions.onOpenShortcut, tiles, withQuestion = false)
@@ -111,7 +112,7 @@ private fun SharedDay(
       // The other shared sections get their cards in the next steps of the redesign
       section == CarePermission.PLANNING -> PlanningCard(uiState, actions)
       // Like the patient's card, none on a day without medications: the tile stays instead
-      section == CarePermission.PRESCRIPTIONS && uiState.todayMedications.isNotEmpty() ->
+      section == CarePermission.PRESCRIPTIONS && uiState.showsMedications ->
           MedicationsCard(
               uiState.todayMedications,
               onOpenLink = { actions.onOpenShortcut(OverviewShortcut.PRESCRIPTIONS) },

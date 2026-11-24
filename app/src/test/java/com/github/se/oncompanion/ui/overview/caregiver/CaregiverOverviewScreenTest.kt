@@ -445,6 +445,33 @@ class CaregiverOverviewScreenTest {
   }
 
   @Test
+  fun medicationsLoaded_butTheDayFailedOrIsLoading_thePrescriptionsTileStays() {
+    val opened = mutableListOf<OverviewShortcut>()
+    var state by mutableStateOf(shared.copy(todayMedications = medications))
+    compose.setContent {
+      CaregiverOverviewContent(
+          state,
+          "Alex",
+          CaregiverOverviewActions(onOpenShortcut = { opened += it }),
+      )
+    }
+    compose.onNodeWithTag(C.Tag.overview_medications).assertExists()
+    compose.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).assertDoesNotExist()
+
+    // The journal or the planning failed (or is still loading): no medications card, so the tile
+    // is the only way left to the prescriptions
+    for (day in listOf(shared.copy(hasError = true), shared.copy(isLoading = true))) {
+      state = day.copy(todayMedications = medications)
+      compose.waitForIdle()
+      compose.onNodeWithTag(C.Tag.overview_medications).assertDoesNotExist()
+      compose.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).performScrollTo().performClick()
+    }
+    compose.runOnIdle {
+      assertEquals(listOf(OverviewShortcut.PRESCRIPTIONS, OverviewShortcut.PRESCRIPTIONS), opened)
+    }
+  }
+
+  @Test
   @Config(qualifiers = "w360dp-h640dp", fontScale = 2f)
   fun largestFont_theMedicationsAreWhole_onceScrolledTo() {
     assertMedicationsReachable()

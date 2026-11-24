@@ -108,6 +108,17 @@ data class CaregiverOverviewUiState(
   /** The sections the patient keeps private, in display order. */
   val privateSections: List<CarePermission>
     get() = sections.filterValues { it == SectionVisibility.PRIVATE }.keys.toList()
+
+  /**
+   * Whether the day shows the medications card: loaded without an error, and with medications to
+   * take today, as on the patient's Overview. Otherwise the Prescriptions tile opens them.
+   */
+  val showsMedications: Boolean
+    get() =
+        !isLoading &&
+            !hasError &&
+            todayMedications.isNotEmpty() &&
+            sections[CarePermission.PRESCRIPTIONS] == SectionVisibility.SHOWN
 }
 
 /**
