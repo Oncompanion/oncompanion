@@ -115,6 +115,11 @@ class CircleSheetViewModel(
 ) : ViewModel() {
 
   private val _uiState = MutableStateFlow<CircleSheetUiState>(CircleSheetUiState.Loading)
+  /**
+   * What the sheet shows: [CircleSheetUiState.Loading] until every read answers, then the circle of
+   * the signed-in account ([CircleSheetUiState.Circle] or [CircleSheetUiState.NobodyYet]), or
+   * [CircleSheetUiState.Error] when a read fails or nobody is signed in.
+   */
   val uiState: StateFlow<CircleSheetUiState> = _uiState.asStateFlow()
 
   private var observeJob: Job? = null

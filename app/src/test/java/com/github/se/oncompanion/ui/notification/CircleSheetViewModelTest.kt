@@ -244,24 +244,30 @@ class CircleSheetViewModelTest {
   }
 
   @Test
-  fun nobodyInTheCircle_noInvitation_andNothingReceived_isNobodyYet_otherwiseTheCircle() =
-      runViewModelTest {
-        val cases =
-            listOf<Pair<suspend () -> Unit, Boolean>>(
-                suspend {} to true,
-                suspend { invites.setInvites(listOf(invite("JULIEJULIE", "Julie", now))) } to false,
-                // Someone who left the circle still shows what they did for the patient
-                suspend { notifications.deliver(uid, added("p1", at(today, 8, 5))) } to false,
-            )
-        for ((setUp, nobodyYet) in cases) {
-          circle.setMembers(uid, emptyList())
-          invites.setInvites(emptyList())
-          setUp()
-          val vm = viewModel()
-          runCurrent()
-          assertEquals(nobodyYet, vm.uiState.value == CircleSheetUiState.NobodyYet)
-        }
-      }
+  fun nobodyInTheCircle_noInvitation_andNothingReceived_isNobodyYet() = runViewModelTest {
+    circle.setMembers(uid, emptyList())
+    val vm = viewModel()
+    runCurrent()
+    assertEquals(CircleSheetUiState.NobodyYet, vm.uiState.value)
+  }
+
+  @Test
+  fun onlyAnInvitation_isTheCircle() = runViewModelTest {
+    circle.setMembers(uid, emptyList())
+    invites.setInvites(listOf(invite("JULIEJULIE", "Julie", now)))
+    val vm = viewModel()
+    runCurrent()
+    assertEquals(listOf("Julie"), vm.circleState.invited)
+  }
+
+  @Test
+  fun onlyANotification_fromSomeoneWhoLeftTheCircle_isTheCircle() = runViewModelTest {
+    circle.setMembers(uid, emptyList())
+    notifications.deliver(uid, added("p1", at(today, 8, 5)))
+    val vm = viewModel()
+    runCurrent()
+    assertEquals(1, vm.circleState.days.single().cards.size)
+  }
 
   @Test
   fun hasUnseen_whileOneNotificationIsUnseen() = runViewModelTest {
@@ -406,9 +412,11 @@ class CircleSheetViewModelTest {
         }
     notifications.deliver(uid, added("p1", at(today, 8, 5)))
     val vm = viewModel(movingClock)
-    // The sheet stops following when the screen goes off
-    vm.followToday().cancel()
+    // Following while the screen is on: it read the day and waits for midnight
+    val first = vm.followToday()
     runCurrent()
+    // The sheet stops following when the screen goes off
+    first.cancel()
 
     // Asleep overnight: the clock moves on, but no timer fires (Android's delay counts uptime)
     time = at(today.plusDays(1), 8, 0)
