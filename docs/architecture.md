@@ -256,8 +256,14 @@ The shared channel is created idempotently, preserving user settings. Scheduling
 `NOTIFICATIONS_BLOCKED` or `EXACT_ALARMS_BLOCKED` when access is missing, cancelling any obsolete
 alarm instead of silently delivering an inexact replacement. The non-exported `ReminderReceiver`
 checks current authentication and `SessionAccess.immediate` before showing private notification
-content. Payloads contain display text in the system-owned PendingIntent, never logs or a second
-local database. The receiver ignores another account's alarm and fails closed during cleanup.
+content, including the persisted cleanup journal when an alarm starts the process without an
+Activity. A checked synchronous preferences commit stores only the current random delivery version
+per account/feature/item key. Alarm payloads carry that version; cancellation/replacement invalidates
+it before touching Android, and the receiver checks and consumes it under the same process-wide
+lock as cancellation and posting. Queued obsolete or duplicate deliveries cannot show. Scheduling
+and delivery also pass through `SessionAccess.immediate`. Appointment display text remains only in
+the system-owned PendingIntent, never this version store or logs. No network access is needed.
+The receiver ignores another account's alarm and fails closed during cleanup.
 
 This foundation is not yet called by appointment saves. Permission explanations/requests remain
 in the next #452 slice. Appointment reconciliation, saved reminder choices (#489), notification
