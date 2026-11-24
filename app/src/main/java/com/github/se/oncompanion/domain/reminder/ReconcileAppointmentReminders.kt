@@ -16,6 +16,7 @@ import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import java.security.MessageDigest
 import java.time.Clock
 import java.time.Duration
+import java.time.Instant
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -52,26 +53,27 @@ class ReconcileAppointmentReminders(
    * separately.
    */
   @OptIn(ExperimentalCoroutinesApi::class)
-  fun observe(): Flow<AppointmentReminderSync> = channelFlow {
-    auth.observeCurrentUser().collectLatest { user ->
-      flow {
-        if (user == null) emit(AppointmentReminderSync.IDLE)
-        else
-            emitAll(
-                profiles.observeProfile(user.uid).flatMapLatest { profile ->
-                  if (profile?.role != Role.PATIENT) flowOf(AppointmentReminderSync.IDLE)
-                  else appointments.observeAppointments(user.uid).map { reconcile(user.uid, it) }
-                }
-            )
-      }
-          .catch { error ->
-            if (error is CancellationException) throw error
-            emit(AppointmentReminderSync.FAILED)
+  fun observe(): Flow<AppointmentReminderSync> =
+      auth
+          .observeCurrentUser()
+          .flatMapLatest { user ->
+            if (user == null) flowOf(AppointmentReminderSync.IDLE) else observePatient(user.uid)
           }
-          .collect { send(it) }
-    }
-  }
-      .catch { error ->
+          .failuresAsState()
+
+  @OptIn(ExperimentalCoroutinesApi::class)
+  private fun observePatient(owner: String): Flow<AppointmentReminderSync> =
+      profiles
+          .observeProfile(owner)
+          .flatMapLatest { profile ->
+            if (profile?.role != Role.PATIENT) flowOf(AppointmentReminderSync.IDLE)
+            else appointments.observeAppointments(owner).map { reconcile(owner, it) }
+          }
+          .failuresAsState()
+
+  // Keep failures local to their observation, while cancellation must still stop the old account.
+  private fun Flow<AppointmentReminderSync>.failuresAsState(): Flow<AppointmentReminderSync> =
+      catch { error ->
         if (error is CancellationException) throw error
         emit(AppointmentReminderSync.FAILED)
       }
@@ -82,36 +84,26 @@ class ReconcileAppointmentReminders(
         if (auth.currentUser?.uid != owner) return@immediate AppointmentReminderSync.IDLE
         val now = clock.instant()
         val saved = plans.read(owner).toMutableMap()
-        val eligible =
-            entries
-                .filter {
-                  it.id.isNotBlank() &&
-                      it.isValid() &&
-                      it.reminder != AppointmentReminder.NONE &&
-                      it.scheduledAt > now
-                }
-                .associateBy { it.id }
+        val eligible = eligibleAppointments(entries, now)
         for (id in saved.keys.toList() - eligible.keys) {
           scheduler.cancel(key(owner, id))
           saved.remove(id)
           plans.write(owner, saved)
         }
         var blocked = false
-        for ((id, appointment) in eligible) {
-          val due = appointment.scheduledAt.minus(offset(appointment.reminder))
+        for ((id, candidate) in eligible) {
+          val appointment = candidate.appointment
+          val due = candidate.due
           val timing = hash(listOf(appointment.scheduledAt.toString(), appointment.reminder.name))
           val content = text.format(appointment, zoneId)
           val revision = hash(listOf(content.title, content.text))
-          val previous = saved[id]
-          // Once due, unrelated edits must not replay the immediate reminder. Timing changes may.
-          if (previous?.timing == timing && (previous.content == revision || previous.due <= now))
-              continue
+          val next = AppointmentReminderPlan(due, timing, revision)
+          if (!needsUpdate(saved[id], next, now)) continue
           val result =
               scheduler.schedule(
                   Reminder(key(owner, id), maxOf(due, now), content.title, content.text)
               )
-          if (result == ReminderScheduleResult.SCHEDULED)
-              saved[id] = AppointmentReminderPlan(due, timing, revision)
+          if (result == ReminderScheduleResult.SCHEDULED) saved[id] = next
           else {
             saved.remove(id)
             blocked = true
@@ -122,6 +114,33 @@ class ReconcileAppointmentReminders(
         if (blocked) AppointmentReminderSync.BLOCKED else AppointmentReminderSync.SYNCHRONIZED
       }
 
+  private data class Candidate(val appointment: Appointment, val due: Instant)
+
+  private fun eligibleAppointments(
+      entries: List<Appointment>,
+      now: Instant,
+  ): Map<String, Candidate> =
+      entries
+          .mapNotNull { appointment ->
+            val offset = offset(appointment.reminder) ?: return@mapNotNull null
+            if (
+                appointment.id.isBlank() || !appointment.isValid() || appointment.scheduledAt <= now
+            )
+                null
+            else appointment.id to Candidate(appointment, appointment.scheduledAt.minus(offset))
+          }
+          .toMap()
+
+  // Once due, unrelated edits must not replay the immediate reminder. Timing changes may.
+  private fun needsUpdate(
+      previous: AppointmentReminderPlan?,
+      next: AppointmentReminderPlan,
+      now: Instant,
+  ): Boolean {
+    if (previous == null || previous.timing != next.timing) return true
+    return previous.content != next.content && previous.due > now
+  }
+
   private fun key(owner: String, id: String) = ReminderKey(owner, "appointment", id)
 
   private fun hash(parts: List<String>): String =
@@ -129,9 +148,9 @@ class ReconcileAppointmentReminders(
           .digest(parts.joinToString("") { "${it.length}:$it" }.toByteArray(Charsets.UTF_8))
           .joinToString("") { "%02x".format(it) }
 
-  private fun offset(choice: AppointmentReminder): Duration =
+  private fun offset(choice: AppointmentReminder): Duration? =
       when (choice) {
-        AppointmentReminder.NONE -> Duration.ZERO
+        AppointmentReminder.NONE -> null
         AppointmentReminder.FIFTEEN_MINUTES -> Duration.ofMinutes(15)
         AppointmentReminder.ONE_HOUR -> Duration.ofHours(1)
         AppointmentReminder.THREE_HOURS -> Duration.ofHours(3)

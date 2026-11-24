@@ -10,7 +10,10 @@ import com.github.se.oncompanion.model.session.SessionAccess
 import com.github.se.oncompanion.model.user.*
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import java.time.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -56,10 +59,11 @@ class ReconcileAppointmentRemindersTest {
   private fun Fixture.coordinator(
       receipts: AppointmentReminderPlans = plans,
       account: AuthRepository = auth,
+      source: AppointmentRepository = appointments,
   ) =
       ReconcileAppointmentReminders(
           text,
-          appointments,
+          source,
           account,
           profiles,
           scheduler,
@@ -87,9 +91,10 @@ class ReconcileAppointmentRemindersTest {
       states: MutableList<AppointmentReminderSync> = mutableListOf(),
       receipts: AppointmentReminderPlans = f.plans,
       account: AuthRepository = f.auth,
+      source: AppointmentRepository = f.appointments,
   ): kotlinx.coroutines.Job {
     val job = backgroundScope.launch {
-      f.coordinator(receipts, account).observe().collect { states += it }
+      f.coordinator(receipts, account, source).observe().collect { states += it }
     }
     runCurrent()
     return job
@@ -254,13 +259,15 @@ class ReconcileAppointmentRemindersTest {
   fun staleAccountSnapshotOrClosedSessionCannotSchedule() = runTest {
     val f = fixture()
     f.appointments.seed("patient", appointment())
-    val staleAuth =
-        object : AuthRepository by f.auth {
-          override val currentUser = AuthUser("someone-else")
-        }
-    val stale = watch(f, account = staleAuth)
-    assertTrue(f.scheduler.scheduled.isEmpty())
-    stop(stale)
+    for (current in listOf(AuthUser("someone-else"), null)) {
+      val staleAuth =
+          object : AuthRepository by f.auth {
+            override val currentUser = current
+          }
+      val stale = watch(f, account = staleAuth)
+      assertTrue(f.scheduler.scheduled.isEmpty())
+      stop(stale)
+    }
     SessionAccess.block()
     val states = mutableListOf<AppointmentReminderSync>()
     watch(f, states)
@@ -312,6 +319,28 @@ class ReconcileAppointmentRemindersTest {
     runCurrent()
     assertFalse(context.getSharedPreferences("appointment_reminder_plans", 0).contains("patient"))
     job.cancel()
+  }
+
+  @Test
+  fun blankIdentitiesAreIgnored_andUpstreamCancellationIsNotAnErrorState() = runTest {
+    val f = fixture()
+    val malformed =
+        object : AppointmentRepository by f.appointments {
+          override fun observeAppointments(uid: String) =
+              flowOf(listOf(appointment().copy(id = "")))
+        }
+    val job = watch(f, source = malformed)
+    assertTrue(f.scheduler.scheduled.isEmpty())
+    stop(job)
+    val cancelled =
+        object : AuthRepository by f.auth {
+          override fun observeCurrentUser() =
+              flow<AuthUser?> { throw CancellationException("cancelled") }
+        }
+    val states = mutableListOf<AppointmentReminderSync>()
+    val observation = watch(f, states, account = cancelled)
+    assertTrue(observation.isCancelled)
+    assertTrue(states.isEmpty())
   }
 
   @Test

@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.se.oncompanion.model.appointment.Appointment
 import com.github.se.oncompanion.model.appointment.AppointmentType
 import com.github.se.oncompanion.model.session.SessionAccess
+import com.github.se.oncompanion.utils.FailedCommitContext
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
@@ -56,6 +57,17 @@ class AppointmentReminderStorageTest {
     assertThrows(org.json.JSONException::class.java) { second.read("patient") }
     first.write("patient", emptyMap())
     assertTrue(second.read("patient").isEmpty())
+  }
+
+  @Test
+  fun failedCommitDoesNotAcceptThePlanOrApplyItAsynchronously() {
+    val failed = FailedCommitContext(context)
+    val store = AppointmentReminderPlansPreferences(failed)
+    assertThrows(IllegalStateException::class.java) {
+      store.write("patient", mapOf("visit" to AppointmentReminderPlan(due, "timing", "content")))
+    }
+    assertFalse(failed.applied)
+    assertTrue(AppointmentReminderPlansPreferences(context).read("patient").isEmpty())
   }
 
   @Test

@@ -4,6 +4,7 @@ package com.github.se.oncompanion.model.reminder
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.edit
 import com.github.se.oncompanion.model.session.SessionAccess
 import java.time.Instant
 import org.json.JSONObject
@@ -31,22 +32,24 @@ class AppointmentReminderPlansPreferences(context: Context) : AppointmentReminde
 
   override fun write(ownerUid: String, plans: Map<String, AppointmentReminderPlan>) =
       SessionAccess.immediate {
-        val editor = preferences.edit()
-        if (plans.isEmpty()) editor.remove(ownerUid)
-        else {
-          val data = JSONObject()
-          plans.forEach { (id, plan) ->
-            data.put(
-                id,
-                JSONObject()
-                    .put("due", plan.due.toString())
-                    .put("timing", plan.timing)
-                    .put("content", plan.content),
-            )
+        preferences.edit {
+          if (plans.isEmpty()) remove(ownerUid)
+          else {
+            val data = JSONObject()
+            plans.forEach { (id, plan) ->
+              data.put(
+                  id,
+                  JSONObject()
+                      .put("due", plan.due.toString())
+                      .put("timing", plan.timing)
+                      .put("content", plan.content),
+              )
+            }
+            putString(ownerUid, data.toString())
           }
-          editor.putString(ownerUid, data.toString())
+          // Check synchronous persistence before KTX's final no-op apply.
+          check(commit()) { "Could not persist appointment reminder plans" }
         }
-        check(editor.commit()) { "Could not persist appointment reminder plans" }
       }
 }
 

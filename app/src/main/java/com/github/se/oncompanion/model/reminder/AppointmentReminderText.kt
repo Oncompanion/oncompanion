@@ -13,7 +13,7 @@ import java.time.format.FormatStyle
 data class ReminderText(val title: String, val text: String)
 
 /** Formats only recorded appointment information, with the phone's display time zone. */
-interface AppointmentReminderText {
+fun interface AppointmentReminderText {
   /** Title, date/time and optional location, without private notes or caregiver attribution. */
   fun format(appointment: Appointment, zoneId: ZoneId): ReminderText
 }
