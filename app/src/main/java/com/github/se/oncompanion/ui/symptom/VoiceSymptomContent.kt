@@ -75,8 +75,8 @@ private val RIGHT_HALF_SIDES =
  * @param onDownloadForOffline downloads the language for use without a connection, then listens
  * @param onNotNow listens without downloading the language
  * @param onTypeInstead goes back to the form without what was said
- * @param leavesOnClose the close button leaves the form (opened from the Overview's mic, US-73)
- *   instead of going back to it, which screen readers say
+ * @param leavesOnClose the close button leaves the form (opened from "Speak how you feel" on the
+ *   Overview, US-73) instead of going back to it, which screen readers say
  */
 @Composable
 fun VoiceSymptomContent(

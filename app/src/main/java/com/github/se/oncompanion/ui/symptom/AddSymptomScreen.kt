@@ -160,7 +160,7 @@ fun AddSymptomScreen(
     onPauseOrDispose {}
   }
 
-  // Opened from the Overview's mic: starts dictating once the screen is shown (US-73)
+  // Opened from "Speak how you feel" on the Overview (US-73): starts dictating once shown
   LaunchedEffect(viewModel) {
     viewModel.onOpened(context.hasPermission(Manifest.permission.RECORD_AUDIO))
   }

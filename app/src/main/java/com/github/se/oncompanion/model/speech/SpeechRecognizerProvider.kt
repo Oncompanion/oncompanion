@@ -22,7 +22,7 @@ object SpeechRecognizerProvider {
 
   /**
    * The recognizer, or `null` before [install]: for a screen that only offers to speak (the
-   * Overview's mic), so it can be shown in tests that never start the app.
+   * Overview's "Speak how you feel"), so it can be shown in tests that never start the app.
    */
   val installed: SpeechRecognizer?
     get() = current

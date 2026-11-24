@@ -89,8 +89,8 @@ data class EditedSymptom(val entry: SymptomEntry, val date: LocalDate, val time:
  * @property canDictate the phone has a speech recognizer, so the symptom can be dictated
  * @property voice where dictating is, shown instead of the form; `null` while the form shows
  * @property isDrafted the form was filled from what the patient said, so they should check it
- * @property leavesOnClose the form was opened to speak (the Overview's mic) and hasn't been shown
- *   yet, so closing the voice screen leaves instead of showing an empty form
+ * @property leavesOnClose the form was opened to speak ("Speak how you feel" on the Overview) and
+ *   hasn't been shown yet, so closing the voice screen leaves instead of showing an empty form
  */
 data class AddSymptomUiState(
     val now: LocalDateTime,
@@ -195,9 +195,9 @@ data class AddSymptomUiState(
  *   the user can still untick it. Ignored when editing
  * @param declinedDownloads the languages the patient said Not now to downloading for offline
  *   dictation (US-45), so they aren't offered again in the next forms
- * @param speakOnOpen the form is opened to speak (US-73, the Overview's mic): it shows the voice
- *   screen at once and starts dictating in [onOpened]. Ignored when editing or when the phone can't
- *   listen
+ * @param speakOnOpen the form is opened to speak (US-73, "Speak how you feel" on the Overview): it
+ *   shows the voice screen at once and starts dictating in [onOpened]. Ignored when editing or when
+ *   the phone can't listen
  */
 class AddSymptomViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
@@ -415,9 +415,9 @@ class AddSymptomViewModel(
   }
 
   /**
-   * The screen is shown. Opened to speak (the Overview's mic), it starts dictating as if the
-   * patient tapped Speak instead, only once: showing the screen again after a rotation doesn't
-   * restart it.
+   * The screen is shown. Opened to speak ("Speak how you feel" on the Overview), it starts
+   * dictating as if the patient tapped Speak instead, only once: showing the screen again after a
+   * rotation doesn't restart it.
    */
   fun onOpened(hasMicrophone: Boolean) {
     if (!speakPending) return
