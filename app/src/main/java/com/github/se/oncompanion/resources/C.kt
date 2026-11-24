@@ -137,6 +137,7 @@ object C {
     const val overview_check_in = "overview_check_in"
     const val overview_check_in_more = "overview_check_in_more"
     const val overview_journal_link = "overview_journal_link"
+    const val overview_speak = "overview_speak"
 
     // Caregiver Overview
     const val caregiver_overview_screen = "caregiver_overview_screen"
