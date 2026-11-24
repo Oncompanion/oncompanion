@@ -140,6 +140,14 @@ object C {
     const val overview_speak = "overview_speak"
     // The check or empty ring of a tile in the check-in's sheet
     const val overview_tile_mark = "overview_tile_mark"
+    const val overview_check_in_sheet = "overview_check_in_sheet"
+    const val overview_check_in_sheet_close = "overview_check_in_sheet_close"
+    const val overview_check_in_sheet_when = "overview_check_in_sheet_when"
+    const val overview_check_in_sheet_note = "overview_check_in_sheet_note"
+    const val overview_check_in_sheet_speak = "overview_check_in_sheet_speak"
+    const val overview_check_in_sheet_error = "overview_check_in_sheet_error"
+    const val overview_check_in_sheet_save = "overview_check_in_sheet_save"
+    const val overview_check_in_sheet_saving = "overview_check_in_sheet_saving"
 
     // Caregiver Overview
     const val caregiver_overview_screen = "caregiver_overview_screen"
@@ -329,6 +337,9 @@ object C {
 
     /** A check-in tile on the Overview, by its symptom type's name. */
     fun overviewCheckIn(type: String) = "overview_check_in_$type"
+
+    /** A symptom tile of the check-in's sheet, by its symptom type's name. */
+    fun overviewCheckInSheet(type: String) = "overview_check_in_sheet_$type"
 
     /** The locked card of a section the patient keeps private, by its [CarePermission] name. */
     fun caregiverOverviewPrivate(section: String) = "caregiver_overview_private_$section"

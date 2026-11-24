@@ -303,6 +303,24 @@ class AddSymptomViewModel(
   }
 
   /**
+   * Starts a new check-in from the Overview's sheet (#544): an empty form with [picked] ticked, or
+   * nothing for "More…", whatever the last check-in left (saved, or closed without saving). Ignored
+   * when editing, and while a symptom is being saved, so a save in progress is never lost.
+   */
+  fun startCheckIn(picked: SymptomType?) {
+    _uiState.update { state ->
+      if (state.isEditing || state.save == SavePhase.SAVING) state
+      else
+          AddSymptomUiState(
+              now = LocalDateTime.now(clock),
+              types = listOfNotNull(picked),
+              strengthOf = picked,
+              canDictate = canDictate,
+          )
+    }
+  }
+
+  /**
    * Picks [type], so the slider asks how strong it was, or unpicks it if it is already picked: its
    * strength goes with it, and the slider moves to the last symptom still picked.
    */

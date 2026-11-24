@@ -148,6 +148,16 @@
     <string name="overview_error_hint_caregiver">Please try again.</string>
     <!-- US-73: the check-in's button to say how you feel instead of tapping a tile -->
     <string name="overview_speak">Speak how you feel</string>
+    <!-- The check-in's sheet (#544), opened by a tile: what was felt, how strong, when, a note -->
+    <string name="overview_check_in_sheet_title">What do you feel?</string>
+    <string name="overview_check_in_sheet_close">Close without saving</string>
+    <!-- When the symptom was felt, then the link to change it, e.g. "Now, 09:30 · Change" -->
+    <string name="overview_check_in_sheet_now">Now, %1$s · Change</string>
+    <!-- A day and time the patient chose, e.g. "Yesterday, 21:00 · Change" -->
+    <string name="overview_check_in_sheet_when">%1$s, %2$s · Change</string>
+    <string name="overview_check_in_sheet_note">Add a note (optional)</string>
+    <string name="overview_check_in_sheet_speak">Speak how you feel instead</string>
+    <string name="overview_check_in_sheet_save">Save to my journal</string>
 
     <!-- Caregiver Overview: the caregiver's own home, with the day of the patient they follow -->
     <string name="caregiver_overview_day">%1$s\'s day</string>
