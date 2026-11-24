@@ -240,9 +240,58 @@ remain separate work.
 
 ![Ligue events and directory](architecture-ligue.svg)
 
-### Reminders (planned)
+### Reminders (device foundation, #452)
 
-![Reminders (planned)](architecture-reminders.svg)
+![Reminders](architecture-reminders.svg)
+
+`model/reminder/ReminderScheduler` is the replaceable device-service contract. Its
+`AlarmReminderScheduler` implementation uses one-shot `RTC_WAKEUP` exact alarms that may run
+while idle. `ReminderSchedulerProvider.install` retains only the application context and preserves
+an injected fake; installing it starts no alarms and requests no permission. No new dependency.
+A `ReminderKey` includes owner, feature and item ID in an encoded URI, rather than a hash, so
+repeated scheduling replaces one alarm and different accounts/features cannot collide.
+Cancellation removes both the alarm and its displayed notification.
+
+The shared channel is created idempotently, preserving user settings. Scheduling returns
+`NOTIFICATIONS_BLOCKED` or `EXACT_ALARMS_BLOCKED` when access is missing, cancelling any obsolete
+alarm instead of silently delivering an inexact replacement. The non-exported `ReminderReceiver`
+checks current authentication and `SessionAccess.immediate` before showing private notification
+content, including the persisted cleanup journal when an alarm starts the process without an
+Activity. A checked synchronous preferences commit stores only the current random delivery version
+per account/feature/item key. Alarm payloads carry that version; cancellation/replacement invalidates
+it before touching Android, and the receiver checks and consumes it under the same process-wide
+lock as cancellation and posting. Queued obsolete or duplicate deliveries cannot show. Scheduling
+and delivery also pass through `SessionAccess.immediate`. Appointment display text remains only in
+the system-owned PendingIntent, never this version store or logs. No network access is needed.
+The receiver ignores another account's alarm and fails closed during cleanup.
+
+Permission UI (#452, stacked on #638) lives on Planning. `ReminderPermissionViewModel` observes
+all appointments of the signed-in patient, including caregiver additions, independently of the
+selected day. Only future appointments with a reminder other than None qualify. Account changes,
+missing/caregiver profiles and read failures hide the invitation; resume retries failed reads.
+The last eligible appointment expiring also hides it without user interaction.
+
+The view rechecks Android app/channel notification access and exact-alarm access on resume.
+`LakeBanner` supplies the approved quiet invitation and blocked notices inside the scrolling
+agenda. Only an explicit Enable tap requests Android 13+ notification permission. After one
+request, future taps open Android settings, avoiding repeated refusals or prompts on saves/edits.
+`ReminderPermissionHistory` separates OS request history from the screen. Its shared provider
+resolves the SharedPreferences adapter once using only the application context and preserves test
+fakes. The existing `reminder_permission_history/notifications_requested` key is retained, so an
+upgrade cannot cause another prompt. The local flag survives sign-out and records an OS request
+only, not an account preference or health data;
+Android notification access itself is device/app-wide. Channel blocking opens that channel's
+settings; exact-alarm access opens Alarms & reminders separately. Notification preference controls
+remain under #134. Layouts reuse Planning, without its unrelated Figma restyle.
+
+This foundation still does not schedule from appointment saves. Appointment reconciliation,
+saved reminder choices (#489), notification-tap navigation, sign-out cancellation, restoring
+alarms after sign-in/device restart and clearing displayed notifications on sign-out remain
+integration work under #453/#454. Granting permissions does not claim delivery. Figma frame #451/04 is planned for #453: its
+"Appointment reminders enabled" confirmation belongs after successful scheduling, not permission
+grants alone. The invitation uses timing-neutral wording, following #489's saved appointment
+choice. Exact-alarm
+access is separate from notification permission; there is no inexact fallback.
 
 ## Replacement messages on short windows
 
@@ -592,7 +641,7 @@ Care-circle members read a patient's data through rules that check `/users/{uid}
 
 **Editing and deleting for the patient** (US-46). When editing a member, the patient can also let them edit and delete in a section they add to: `canEditAndDelete` on the member only, a list of `CarePermission` names. The edit-member form shows "Allow editing and deleting symptoms" (for Events, "Allow removing confirmations") under each section's "Allow adding", off by default and greyed out ("Allow adding first") while adding is off; turning adding or sharing off also turns it off. The member view shows it. The add-member form and invites never offer it, so a new member never starts with it: the rules refuse the field on an invite and when redeeming, accept it only in the patient's update of a member, and only for sections also in `canAdd` (`isValidCanEditAndDelete`). A member saved before it existed has none. In `firestore.rules`, `canEditIn(uid, section)`, next to `canAddTo`, lets such a member update and delete any document of that section, the patient's included. Their edit is signed like an addition: `editedBy` must be their own uid and `editedByName` their first name (`isValidEditor`), a new document has neither, and who added it never changes. The patient's own edit removes them, since it is then the last one. `ResolveSectionAccess` gives screens `canEditEntries`, from `CareAccess.editable`. Appointments accept it (#341): the caregiver's appointment page shows Edit and Delete, the form ("Edit Anne's appointment") signs the edit with `CaregiverName`, deleting asks "Delete Anne's appointment?", and the page shows "Edited by Sam" (`ui/common/EditedBy`) under "Added by", with the name the patient gave that member. Prescriptions also accept signed caregiver updates and deletes in the data layer (#342): `Prescription.editedBy` / `editedByName` round-trip through `MedicationRepositoryFirestore`, and `ManageMedicationSchedule.update` preserves confirmation when a caregiver signs the edit. Caregiver writes omit confirmation, so an offline correction preserves a patient confirmation made before synchronization. Patient edits still confirm a pending prescription and clear the last caregiver editor. `addedBy`, `addedByName`, `createdAt` and existing medication IDs are retained. The existing prescription detail and form use `canEditEntries` too (#342), without a visual refactor: `DetailWithActions` / `DetailActions` offer Edit and Delete, `EditedBy` shows the last caregiver editor, and `DeleteConfirmation` / `DeleteConfirmationDialog` ask before removing the patient's prescription and all its medications. Navigation passes the chosen patient into the edit form, whose title names them; the form signs updates with `CaregiverName` and never offers caregiver Confirm/Reject. Permission revocation removes the actions and disables the form; account/access changes prevent stale saves. Prescription deletion targets the patient through the shared `DeleteConfirmation`; completed deletion reaches `DELETED` without prescription-specific account checks. Cross-feature live edit-permission handling is tracked in #506. Symptoms also support caregiver edits and deletion (#472). For Events, the same permission lets a caregiver remove a registration confirmation (#473). Event detail names the patient in the confirmation dialog and explains that registration with the organizer remains in place.
 
-**What the care circle did for the patient** (US-50, #456). The "Your circle" sheet of the Overview lists what members did for the user, e.g. "Marc added a prescription" to review. Each event is one `CircleNotification` at `/users/{uid}/notifications/{kind}_{itemId}`, under the person it is for: the rules let only them read it, by the path, and only mark it `seen`. Its ID is the kind and the item, so one addition or decision is stored once however often it is sent. It holds who acted (`actorUid`, `actorFirstName`), what (`kind`; its section follows from it and isn't stored), the item's ID and `createdAt`, **never the item's content**: the sheet reads the item live, so a prescription already reviewed or deleted shows as it is now, and no health detail is copied. **The caregiver's phone writes it** (`NotificationRepository.notify`, called by #458), as its own write right after the prescription, never in the same batch, so a refused notification can't block saving the prescription. The rules let a caregiver who may add prescriptions create one only about their own prescription still `PENDING`, signed with their uid, with the server's `createdAt`; the server applies a phone's writes in order, so the prescription is there when the notification arrives. It is sent once, ever: the phone writes it in one batch with an empty marker at `/users/{uid}/notificationsSent/{kind}_{itemId}`, and the rules accept a notification only if its marker doesn't exist yet and arrives with it. Nobody reads, changes or deletes a marker, and the TTL leaves it, so a resend is refused and ignored, also after the notification expired: a retry can't bring a notification back or make it unseen. Nobody deletes a notification: Firestore does, through a TTL policy on `expiresAt` (`firestore.indexes.json`). The phone sets `expiresAt` from its own clock, 7 days on; after an offline save that syncs days later it expires sooner, which the rules accept: they only refuse a later one (beyond 8 days, a day of margin for the phone's clock). `NotificationRepository.observeRecent` also leaves out notifications older than 7 days, since TTL deletion can take a day, and removes each one the moment it turns 7 days old while the feed stays open (`keepRecent`), offline too. A prescription still waiting after that stays visible through the Prescriptions tab's badge and the list. `markSeen` writes each notification on its own, offline too, so one already deleted doesn't stop the others; the tab counts come from `unseenCountBySection()` on the phone, with no extra query.
+**What the care circle did for the patient** (US-50, #456). The "Your circle" sheet of the Overview lists what members did for the user, e.g. "Marc added a prescription" to review. Each event is one `CircleNotification` at `/users/{uid}/notifications/{kind}_{itemId}`, under the person it is for: the rules let only them read it, by the path, and only mark it `seen`. Its ID is the kind and the item, so one addition or decision is stored once however often it is sent. It holds who acted (`actorUid`, `actorFirstName`), what (`kind`; its section follows from it and isn't stored), the item's ID and `createdAt`, **never the item's content**: the sheet reads the item live, so a prescription already reviewed or deleted shows as it is now, and no health detail is copied. **The caregiver's phone writes it** (`NotificationRepository.notify`, called by `ManageMedicationSchedule.add` when a caregiver adds a prescription, #458), as its own write right after the prescription, never in the same batch, so a refused notification can't block saving the prescription. Tapping it opens the screen that fits the prescription at that moment (`CircleNotification.route`): the review form while it waits, otherwise its page, which shows it as it is now or says it doesn't exist anymore. The rules let a caregiver who may add prescriptions create one only about their own prescription still `PENDING`, signed with their uid, with the server's `createdAt`; the server applies a phone's writes in order, so the prescription is there when the notification arrives. It is sent once, ever: the phone writes it in one batch with an empty marker at `/users/{uid}/notificationsSent/{kind}_{itemId}`, and the rules accept a notification only if its marker doesn't exist yet and arrives with it. Nobody reads, changes or deletes a marker, and the TTL leaves it, so a resend is refused and ignored, also after the notification expired: a retry can't bring a notification back or make it unseen. Nobody deletes a notification: Firestore does, through a TTL policy on `expiresAt` (`firestore.indexes.json`). The phone sets `expiresAt` from its own clock, 7 days on; after an offline save that syncs days later it expires sooner, which the rules accept: they only refuse a later one (beyond 8 days, a day of margin for the phone's clock). `NotificationRepository.observeRecent` also leaves out notifications older than 7 days, since TTL deletion can take a day, and removes each one the moment it turns 7 days old while the feed stays open (`keepRecent`), offline too. A prescription still waiting after that stays visible through the Prescriptions tab's badge and the list. `markSeen` writes each notification on its own, offline too, so one already deleted doesn't stop the others; the tab counts come from `unseenCountBySection()` on the phone, with no extra query.
 
 It is read only, except adding where `canAdd` allows it, and editing and deleting appointments, symptoms and prescriptions, or removing event registration confirmations, where `canEditAndDelete` allows it. The profile (`/users/{uid}`) is never shared; the caregiver gets the patient's first name from their own `patients/{patientUid}` link. The rule reads the member doc on every request, so removing the member or turning a permission off stops the next server read and ends open listeners with `PERMISSION_DENIED`. Rules can't reach what is already cached on the caregiver's phone: the screens must stop showing a patient's section as soon as it is no longer shared or the caregiver is removed, and never fall back to the cache for it.
 
@@ -645,7 +694,7 @@ does not join SessionAccess cleanup. Notification settings will be account-speci
 
 ### Appearance (#508)
 
-Settings now exposes only Appearance and its saved value. `SettingsViewModel` observes the same
+Settings shows the saved Appearance choice next to its entry. `SettingsViewModel` observes the same
 repository in both settings destinations; the shared repository keeps them synchronized.
 `AppearanceContent` uses selectable rows with a trailing checkmark for Follow device, Light and Dark. Writes disable
 selection until complete without shifting the list with a save spinner; failures retain the last confirmed choice and allow another attempt.
@@ -667,3 +716,14 @@ contrast follows the app override; navigation bars retain AndroidX default contr
 Both destinations use theme colors, shapes, typography and spacing, and scroll at large text
 sizes and in landscape. Rotation tests recreate the Activity and restore content with the same
 ViewModel; startup tests also exercise the root Activity recreation.
+
+### Date and time formats (#557)
+
+Settings opens Date and time, with an appointment preview and separate Time format and Date format
+choice screens. The repository saves each preference under its own key in the existing device
+DataStore. Missing or unknown preferences default to Follow device independently. Confirmed
+selections update when the write succeeds. A failed write leaves the last saved choices visible.
+
+The preview uses one fixed example appointment. Follow device uses the phone's date ordering and
+12- or 24-hour setting. Textual month names use the app locale. Applying these preferences to
+Planning, Overview, forms, pickers, and detail screens is tracked in #558.
