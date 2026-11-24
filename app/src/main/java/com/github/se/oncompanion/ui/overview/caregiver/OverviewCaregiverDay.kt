@@ -27,6 +27,7 @@ import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.carecircle.label
 import com.github.se.oncompanion.ui.common.LakeMessageState
+import com.github.se.oncompanion.ui.overview.MedicationsCard
 import com.github.se.oncompanion.ui.overview.NextUpCard
 import com.github.se.oncompanion.ui.overview.NothingPlannedCard
 import com.github.se.oncompanion.ui.overview.OverviewShortcut
@@ -39,9 +40,10 @@ import com.github.se.oncompanion.ui.theme.cardEyebrow
 import com.github.se.oncompanion.ui.theme.lakeColors
 
 /**
- * "Alex's day" and what Alex shares of it: Next up while they share their planning, their newest
- * journal entry while they share their symptoms, a locked card for each section they keep private,
- * under a line saying only they can change it.
+ * "Alex's day" and what Alex shares of it: Next up while they share their planning, today's
+ * medications (read-only) while they share their prescriptions, their newest journal entry while
+ * they share their symptoms, a locked card for each section they keep private, under a line saying
+ * only they can change it.
  */
 @Composable
 internal fun CaregiverDay(
@@ -76,11 +78,13 @@ internal fun CaregiverDay(
       else -> SharedDay(uiState, patientName, actions)
     }
     // Until the day has a card for each, the shared sections keep their tiles, as before; the
-    // journal card already opens the symptoms
+    // journal card already opens the symptoms, and the medications card, while it shows, the
+    // prescriptions
     val tiles =
         OverviewShortcut.entries.filter {
           it.section != null &&
               it != OverviewShortcut.SYMPTOMS &&
+              !(it == OverviewShortcut.PRESCRIPTIONS && uiState.showsMedications) &&
               uiState.sections[it.section] == SectionVisibility.SHOWN
         }
     if (tiles.isNotEmpty()) Shortcuts(actions.onOpenShortcut, tiles, withQuestion = false)
@@ -107,6 +111,14 @@ private fun SharedDay(
       visibility == SectionVisibility.PRIVATE -> PrivateCard(section, patientName)
       // The other shared sections get their cards in the next steps of the redesign
       section == CarePermission.PLANNING -> PlanningCard(uiState, actions)
+      // Like the patient's card, none on a day without medications: the tile stays instead
+      section == CarePermission.PRESCRIPTIONS && uiState.showsMedications ->
+          MedicationsCard(
+              uiState.todayMedications,
+              onOpenLink = { actions.onOpenShortcut(OverviewShortcut.PRESCRIPTIONS) },
+              doseActions = null,
+              modifier = Modifier,
+          )
       section == CarePermission.SYMPTOMS ->
           JournalCard(uiState.latestEntry, uiState.now.toLocalDate(), actions.onOpenJournal)
     }

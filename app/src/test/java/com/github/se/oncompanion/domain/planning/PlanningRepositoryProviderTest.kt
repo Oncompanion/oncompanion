@@ -218,6 +218,30 @@ class PlanningRepositoryProviderTest {
     assertEquals("Medication read failed", failure?.message)
   }
 
+  /**
+   * The caregiver's medications come from the medication provider in place when they are read, and
+   * nothing else: not the patient's appointments, which they may keep private.
+   */
+  @Test
+  fun medications_areOnlyThePatientsMedications_fromTheCurrentProvider() = runTest {
+    val day = LocalDate.of(2026, 10, 25)
+    val range = PlanningRange(day, day.plusDays(1), ZoneId.of("Europe/Zurich"))
+    val appointments = FakeAppointmentRepository()
+    appointments.seed(
+        "patient",
+        Appointment("a", "Consultation", range.startInclusive, AppointmentType.CONSULTATION),
+    )
+    AppointmentRepositoryProvider.repository = appointments
+    medications.seed("patient", prescription(day))
+
+    val items =
+        PlanningRepositoryProvider.medications
+            .observeItems("patient", range, setOf(CarePermission.PRESCRIPTIONS))
+            .first()
+
+    assertEquals(listOf("Medication"), items.map { it.title })
+  }
+
   /** The repository given to the provider is the one it hands out afterwards. */
   @Test
   fun exposesTheRepositoryItWasGiven() {

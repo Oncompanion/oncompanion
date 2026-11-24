@@ -148,6 +148,7 @@ object C {
     const val caregiver_overview_retry = "caregiver_overview_retry"
     const val caregiver_overview_journal = "caregiver_overview_journal"
     const val caregiver_overview_full_journal = "caregiver_overview_full_journal"
+    const val caregiver_overview_prescriptions_link = "caregiver_overview_prescriptions_link"
 
     const val bottom_navigation_bar = "bottom_navigation_bar"
     const val bottom_navigation_tab_overview = "bottom_navigation_tab_overview"
