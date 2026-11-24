@@ -127,10 +127,27 @@ object C {
     const val overview_medications = "overview_medications"
     const val overview_planning_link = "overview_planning_link"
     const val overview_more_medications = "overview_more_medications"
+    // The sheet to correct a medication's doses (#546)
+    const val overview_doses_sheet = "overview_doses_sheet"
+    const val overview_doses_count = "overview_doses_count"
+    const val overview_doses_less = "overview_doses_less"
+    const val overview_doses_more = "overview_doses_more"
+    const val overview_doses_done = "overview_doses_done"
     const val overview_nothing_planned = "overview_nothing_planned"
     const val overview_check_in = "overview_check_in"
     const val overview_check_in_more = "overview_check_in_more"
     const val overview_journal_link = "overview_journal_link"
+    const val overview_speak = "overview_speak"
+
+    // Caregiver Overview
+    const val caregiver_overview_screen = "caregiver_overview_screen"
+    const val caregiver_overview_day_title = "caregiver_overview_day_title"
+    const val caregiver_overview_shared_only = "caregiver_overview_shared_only"
+    const val caregiver_overview_loading = "caregiver_overview_loading"
+    const val caregiver_overview_error = "caregiver_overview_error"
+    const val caregiver_overview_retry = "caregiver_overview_retry"
+    const val caregiver_overview_journal = "caregiver_overview_journal"
+    const val caregiver_overview_full_journal = "caregiver_overview_full_journal"
 
     const val bottom_navigation_bar = "bottom_navigation_bar"
     const val bottom_navigation_tab_overview = "bottom_navigation_tab_overview"
@@ -219,6 +236,7 @@ object C {
     const val symptom_edit_not_found = "symptom_edit_not_found"
     const val symptom_detail_edit = "symptom_detail_edit"
     const val symptom_detail_symptoms = "symptom_detail_symptoms"
+
     const val symptom_add_speak = "symptom_add_speak"
     const val symptom_add_drafted = "symptom_add_drafted"
     const val symptom_voice_screen = "symptom_voice_screen"
@@ -252,6 +270,19 @@ object C {
     const val settings_screen = "settings_screen"
     const val settings_back = "settings_back"
     const val profile_settings = "profile_settings"
+    const val settings_date_time = "settings_date_time"
+    const val settings_date_time_screen = "settings_date_time_screen"
+    const val settings_time_format = "settings_time_format"
+    const val settings_time_format_screen = "settings_time_format_screen"
+    const val settings_date_format = "settings_date_format"
+    const val settings_date_format_screen = "settings_date_format_screen"
+    const val settings_format_preview = "settings_format_preview"
+
+    /** Identifies a clock-format option by its stable preference name. */
+    fun settingsTimeChoice(name: String) = "settings_time_choice_$name"
+
+    /** Identifies a date-format option by its stable preference name. */
+    fun settingsDateChoice(name: String) = "settings_date_choice_$name"
 
     // Profile
     const val profile_edit = "profile_edit"
@@ -310,6 +341,9 @@ object C {
     /** A check-in tile on the Overview, by its symptom type's name. */
     fun overviewCheckIn(type: String) = "overview_check_in_$type"
 
+    /** The locked card of a section the patient keeps private, by its [CarePermission] name. */
+    fun caregiverOverviewPrivate(section: String) = "caregiver_overview_private_$section"
+
     fun symptomJournalItem(symptomId: String) = "symptom_journal_item_$symptomId"
 
     /** The header of a day of the journal; [date] is ISO, e.g. `2026-10-05`. */
@@ -323,6 +357,12 @@ object C {
 
     /** The chip of a symptom type on the add screen; [type] is its enum name, e.g. `FATIGUE`. */
     fun symptomAddType(type: String) = "symptom_add_type_$type"
+
+    /**
+     * The strength bar of a symptom on its detail, by
+     * [com.github.se.oncompanion.model.symptom.SymptomType] name.
+     */
+    fun symptomDetailStrengthBar(type: String) = "symptom_detail_strength_bar_$type"
 
     // Care circle
     const val care_circle_back_button = "care_circle_back_button"
@@ -597,6 +637,10 @@ object C {
 
     // A change the server rejected and was undone
     const val rejected_write_snackbar = "rejected_write_snackbar"
+
+    // Local reminder permissions
+    const val reminder_permission_notice = "reminder_permission_notice"
+    const val reminder_permission_action = "reminder_permission_action"
 
     // Shared dialog: the spinner while its action is on its way
     const val dialog_progress = "dialog_progress"

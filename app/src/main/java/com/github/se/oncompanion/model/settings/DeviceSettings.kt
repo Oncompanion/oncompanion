@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.model.settings
@@ -9,5 +10,24 @@ enum class AppearancePreference {
   DARK,
 }
 
+/** The date presentation chosen on this phone. */
+enum class DateFormatPreference {
+  FOLLOW_DEVICE,
+  TEXT_DATE,
+  DAY_MONTH_YEAR,
+  YEAR_MONTH_DAY,
+}
+
+/** The clock format chosen on this phone. */
+enum class TimeFormatPreference {
+  FOLLOW_DEVICE,
+  TWELVE_HOUR,
+  TWENTY_FOUR_HOUR,
+}
+
 /** Preferences shared by accounts on this phone, independently of patient data. */
-data class DeviceSettings(val appearance: AppearancePreference = AppearancePreference.FOLLOW_DEVICE)
+data class DeviceSettings(
+    val appearance: AppearancePreference = AppearancePreference.FOLLOW_DEVICE,
+    val dateFormat: DateFormatPreference = DateFormatPreference.FOLLOW_DEVICE,
+    val timeFormat: TimeFormatPreference = TimeFormatPreference.FOLLOW_DEVICE,
+)

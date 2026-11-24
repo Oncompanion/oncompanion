@@ -57,6 +57,7 @@ internal const val MEDICATIONS_SHOWN = 2
  * a single "Nothing planned today" card when there is neither.
  *
  * @param onTickDose ticks a dose of a medication, by its ID (see [OverviewViewModel.tickDose])
+ * @param onOpenDoses opens the sheet to correct a medication's doses, by its ID
  * @param modifier for the first card, e.g. to overlap the header's lower edge
  */
 @Composable
@@ -67,6 +68,7 @@ internal fun PatientDay(
     onOpenEvent: (String) -> Unit,
     modifier: Modifier = Modifier,
     onTickDose: (String) -> Unit = {},
+    onOpenDoses: (String) -> Unit = {},
 ) {
   val nextUp = uiState.nextUp
   val medications = uiState.todayMedications
@@ -92,14 +94,15 @@ internal fun PatientDay(
         medications,
         onOpenPlanning,
         onTickDose,
+        onOpenDoses,
         if (nextUp == null) modifier else Modifier,
     )
   }
 }
 
-/** A card of the patient's day on the stone page, raised with the shared shadow. */
+/** A card of the day on the stone page, raised with the shared shadow. */
 @Composable
-private fun DayCard(
+internal fun DayCard(
     modifier: Modifier,
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
@@ -160,7 +163,7 @@ private fun Badge(@DrawableRes icon: Int, iconSize: Dp, container: Color, conten
 
 /** The small title at the top of a card ("Next up", "Today"): the Figma's 14/18 eyebrow. */
 @Composable
-private fun Eyebrow(text: String, modifier: Modifier = Modifier) {
+internal fun Eyebrow(text: String, modifier: Modifier = Modifier) {
   Text(
       text,
       style = MaterialTheme.typography.cardEyebrow,
@@ -174,7 +177,7 @@ private fun Eyebrow(text: String, modifier: Modifier = Modifier) {
  * Tapping it opens its page; "Planning ›" opens Planning.
  */
 @Composable
-private fun NextUpCard(
+internal fun NextUpCard(
     nextUp: NextUp,
     today: LocalDate,
     onOpenPlanning: () -> Unit,
@@ -196,7 +199,11 @@ private fun NextUpCard(
       Column(Modifier.weight(1f)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
           Eyebrow(stringResource(R.string.overview_next_up), Modifier.weight(1f))
-          PlanningLink(onOpenPlanning, Modifier.testTag(C.Tag.overview_next_up_planning_link))
+          CardLink(
+              stringResource(R.string.overview_planning_link),
+              onOpenPlanning,
+              Modifier.testTag(C.Tag.overview_next_up_planning_link),
+          )
         }
         Text(
             nextUp.title,
@@ -235,12 +242,14 @@ private fun nextUpWhen(nextUp: NextUp, today: LocalDate): String {
  * title instead.
  *
  * @param onTickDose ticks the next dose of a medication, by its ID, or unticks one taken once a day
+ * @param onOpenDoses opens the sheet to correct the doses of one taken several times a day
  */
 @Composable
 internal fun MedicationsCard(
     medications: List<TodayMedication>,
     onOpenPlanning: () -> Unit,
     onTickDose: (String) -> Unit,
+    onOpenDoses: (String) -> Unit,
     modifier: Modifier,
 ) {
   DayCard(modifier.testTag(C.Tag.overview_medications)) {
@@ -263,10 +272,14 @@ internal fun MedicationsCard(
               else stringResource(R.string.overview_today_medications),
               Modifier.weight(1f),
           )
-          PlanningLink(onOpenPlanning, Modifier.testTag(C.Tag.overview_planning_link))
+          CardLink(
+              stringResource(R.string.overview_planning_link),
+              onOpenPlanning,
+              Modifier.testTag(C.Tag.overview_planning_link),
+          )
         }
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-          medications.take(MEDICATIONS_SHOWN).forEach { MedicationRow(it, onTickDose) }
+          medications.take(MEDICATIONS_SHOWN).forEach { MedicationRow(it, onTickDose, onOpenDoses) }
         }
         if (hidden > 0) MoreLink(hidden, onOpenPlanning)
       }
@@ -276,20 +289,18 @@ internal fun MedicationsCard(
 
 /**
  * "Planning ›" at the top of the Next up and medications cards, so Planning is one tap away from
- * either. It keeps the Figma's 20 dp row: Compose extends the touch target of a smaller clickable
- * to 48 dp.
+ * either, or "Full journal ›" on the caregiver's journal card. It keeps the Figma's 20 dp row:
+ * Compose extends the touch target of a smaller clickable to 48 dp.
  */
 @Composable
-private fun PlanningLink(onOpenPlanning: () -> Unit, modifier: Modifier) {
+internal fun CardLink(label: String, onClick: () -> Unit, modifier: Modifier) {
   Row(
-      modifier
-          .clip(MaterialTheme.shapes.medium)
-          .clickable(role = Role.Button, onClick = onOpenPlanning),
+      modifier.clip(MaterialTheme.shapes.medium).clickable(role = Role.Button, onClick = onClick),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(Spacing.xxs),
   ) {
     Text(
-        stringResource(R.string.overview_planning_link),
+        label,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.lakeColors.primaryText,
     )
@@ -321,7 +332,7 @@ internal fun FrequencyChip(text: String) {
  * where the day is filled in.
  */
 @Composable
-private fun NothingPlannedCard(
+internal fun NothingPlannedCard(
     dayStarted: Boolean,
     onOpenPlanning: () -> Unit,
     modifier: Modifier,

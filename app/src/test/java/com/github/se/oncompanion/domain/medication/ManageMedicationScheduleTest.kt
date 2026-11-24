@@ -4,10 +4,16 @@
 package com.github.se.oncompanion.domain.medication
 
 import com.github.se.oncompanion.model.medication.FakeMedicationRepository
+import com.github.se.oncompanion.model.medication.MedicationRepositoryProvider
 import com.github.se.oncompanion.model.medication.Prescription
 import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
+import com.github.se.oncompanion.model.notification.FakeNotificationRepository
+import com.github.se.oncompanion.model.notification.NotificationKind
+import com.github.se.oncompanion.model.notification.NotificationRepositoryProvider
 import java.io.IOException
 import java.time.LocalDate
+import java.time.LocalTime
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -40,7 +46,8 @@ class ManageMedicationScheduleTest {
       )
 
   private val repository = FakeMedicationRepository()
-  private val manageMedicationSchedule = ManageMedicationSchedule(repository)
+  private val notifications = FakeNotificationRepository()
+  private val manageMedicationSchedule = ManageMedicationSchedule(repository, notifications)
 
   @Test
   fun savesTheDraftAsAPrescriptionOfTheUser() = runTest {
@@ -582,5 +589,150 @@ class ManageMedicationScheduleTest {
 
     assertEquals(failure, result.exceptionOrNull())
     assertEquals(listOf(saved), repository.prescriptionsOf(uid))
+  }
+
+  // ---------- Notifying the patient (US-50) ----------
+
+  @Test
+  fun caregiversPrescription_notifiesThePatient_aboutThatPrescription() = runTest {
+    manageMedicationSchedule.add(uid, draft, addedBy = "caregiver", addedByName = "Sam")
+
+    val saved = repository.prescriptionsOf(uid).single()
+    val notification = notifications.notificationsOf(uid).single()
+    assertEquals(NotificationKind.PRESCRIPTION_ADDED, notification.kind)
+    assertEquals(saved.id, notification.itemId)
+    assertEquals("caregiver", notification.actorUid)
+    assertEquals("Sam", notification.actorFirstName)
+    assertFalse(notification.seen)
+    // The caregiver who added it isn't told about their own prescription
+    assertTrue(notifications.notificationsOf("caregiver").isEmpty())
+  }
+
+  @Test
+  fun patientsOwnPrescription_notifiesNobody() = runTest {
+    manageMedicationSchedule.add(uid, draft)
+
+    assertTrue(notifications.notificationsOf(uid).isEmpty())
+  }
+
+  @Test
+  fun editsAndTheReview_sendNoOtherNotification() = runTest {
+    manageMedicationSchedule.add(uid, draft, addedBy = "caregiver", addedByName = "Sam")
+    val saved = repository.prescriptionsOf(uid).single()
+    val edited = saved.toDraft().copy(prescribedBy = "Dr. House")
+
+    // The caregiver corrects it, then the patient confirms it by saving the form
+    manageMedicationSchedule.update(uid, saved.id, edited, "caregiver", "Sam")
+    manageMedicationSchedule.update(uid, saved.id, edited)
+
+    // Only the addition asked: the fake, like the server, would ignore a second one anyway
+    assertEquals(1, notifications.notifyCalls)
+  }
+
+  @Test
+  fun aNotificationThatCantBeSent_leavesThePrescriptionSaved() = runTest {
+    notifications.notifyError = IOException("disk full")
+
+    manageMedicationSchedule.add(uid, draft, addedBy = "caregiver", addedByName = "Sam")
+
+    assertEquals("Sam", repository.prescriptionsOf(uid).single().addedByName)
+  }
+
+  @Test
+  fun aCancelledSave_staysCancelled_evenWhileNotifying() = runTest {
+    // e.g. the form is closed while it saves: the notification step must not swallow it
+    val cancelled = CancellationException("form closed")
+    notifications.notifyError = cancelled
+
+    val result = runCatching {
+      manageMedicationSchedule.add(uid, draft, addedBy = "caregiver", addedByName = "Sam")
+    }
+
+    assertEquals(cancelled, result.exceptionOrNull())
+  }
+
+  @Test
+  fun byDefault_writesThroughTheAppsRepositories() = runTest {
+    val previousMedications = MedicationRepositoryProvider.repository
+    val previousNotifications = NotificationRepositoryProvider.repository
+    try {
+      MedicationRepositoryProvider.repository = repository
+      NotificationRepositoryProvider.repository = notifications
+
+      ManageMedicationSchedule().add(uid, draft, addedBy = "caregiver", addedByName = "Sam")
+
+      assertEquals(1, repository.prescriptionsOf(uid).size)
+      assertEquals(1, notifications.notificationsOf(uid).size)
+    } finally {
+      MedicationRepositoryProvider.repository = previousMedications
+      NotificationRepositoryProvider.repository = previousNotifications
+    }
+  }
+
+  @Test
+  fun aPrescriptionThatFailsToSave_notifiesNobody() = runTest {
+    repository.writeError = IOException("disk full")
+
+    runCatching {
+      manageMedicationSchedule.add(uid, draft, addedBy = "caregiver", addedByName = "Sam")
+    }
+
+    assertTrue(notifications.notificationsOf(uid).isEmpty())
+  }
+
+  // ---------- Reminders (US-32) ----------
+
+  private val nine = listOf(LocalTime.of(9, 0))
+
+  /** [draft] with the patient's reminder times on its first medication. */
+  private fun PrescriptionDraft.remindedAt(times: List<LocalTime>) =
+      copy(medications = listOf(medications[0].copy(reminderTimes = times)) + medications.drop(1))
+
+  @Test
+  fun patient_savesAndChangesTheirReminders() = runTest {
+    manageMedicationSchedule.add(uid, draft.remindedAt(nine))
+    val saved = repository.prescriptionsOf(uid).single()
+    assertEquals(nine, saved.medications[0].reminderTimes)
+
+    val evening = listOf(LocalTime.of(9, 0), LocalTime.of(18, 0))
+    manageMedicationSchedule.update(uid, saved.id, saved.toDraft().remindedAt(evening))
+    assertEquals(evening, repository.prescriptionsOf(uid).single().medications[0].reminderTimes)
+
+    // Turned off: no time left
+    manageMedicationSchedule.update(uid, saved.id, saved.toDraft().remindedAt(emptyList()))
+    assertEquals(
+        emptyList<LocalTime>(),
+        repository.prescriptionsOf(uid).single().medications[0].reminderTimes,
+    )
+  }
+
+  @Test
+  fun caregiver_cantChooseReminders_andTheirEditKeepsThePatients() = runTest {
+    assertThrows(IllegalArgumentException::class.java) {
+      runBlocking { manageMedicationSchedule.add(uid, draft.remindedAt(nine), "caregiver", "Sam") }
+    }
+    assertTrue(repository.prescriptionsOf(uid).isEmpty())
+
+    manageMedicationSchedule.add(uid, draft.remindedAt(nine))
+    val saved = repository.prescriptionsOf(uid).single()
+    // The caregiver corrects the dosage; their form doesn't hold the patient's times
+    val edit =
+        saved.toDraft().remindedAt(emptyList()).let {
+          it.copy(
+              medications =
+                  listOf(it.medications[0].copy(dosage = "2 tablets")) + it.medications.drop(1)
+          )
+        }
+    manageMedicationSchedule.update(
+        uid,
+        saved.id,
+        edit,
+        editedBy = "caregiver",
+        editedByName = "Sam",
+    )
+
+    val edited = repository.prescriptionsOf(uid).single().medications[0]
+    assertEquals("2 tablets", edited.dosage)
+    assertEquals(nine, edited.reminderTimes)
   }
 }

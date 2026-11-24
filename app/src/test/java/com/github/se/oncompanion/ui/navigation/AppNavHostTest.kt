@@ -4,7 +4,9 @@
 
 package com.github.se.oncompanion.ui.navigation
 
+import android.Manifest
 import android.app.Activity
+import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.LocalActivity
@@ -75,6 +77,7 @@ import com.github.se.oncompanion.model.planning.*
 import com.github.se.oncompanion.model.session.RejectedWrites
 import com.github.se.oncompanion.model.session.RejectedWritesProvider
 import com.github.se.oncompanion.model.speech.FakeSpeechRecognizer
+import com.github.se.oncompanion.model.speech.SpeechEvent
 import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
 import com.github.se.oncompanion.model.symptom.FakeSymptomRepository
 import com.github.se.oncompanion.model.symptom.SymptomEntry
@@ -100,6 +103,7 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -345,12 +349,10 @@ class AppNavHostTest {
     composeTestRule.onNodeWithTag(C.Tag.join_circle_continue).performScrollTo().performClick()
 
     // "Whose care?" chooses Marie by itself, the only patient, and opens her Overview
-    composeTestRule.waitUntil(timeoutMillis = 5_000) {
-      composeTestRule.onAllNodesWithTag(C.Tag.overview_screen).fetchSemanticsNodes().isNotEmpty()
-    }
+    waitForTag(C.Tag.caregiver_overview_screen)
     composeTestRule
-        .onNodeWithTag(C.Tag.overview_whose_care)
-        .assertTextContains(context.getString(R.string.overview_care_of, "Marie"))
+        .onNodeWithTag(C.Tag.caregiver_overview_day_title)
+        .assertTextContains(context.getString(R.string.caregiver_overview_day, "Marie"))
     composeTestRule.runOnIdle {
       assertEquals("patient", invites.joinedCircles("caregiver").single().patientUid)
     }
@@ -426,8 +428,8 @@ class AppNavHostTest {
 
     composeTestRule.onNodeWithTag(C.Tag.whoseCarePatient("p-paul")).performClick()
     composeTestRule
-        .onNodeWithTag(C.Tag.overview_whose_care)
-        .assertTextContains(context.getString(R.string.overview_care_of, "Paul"))
+        .onNodeWithTag(C.Tag.caregiver_overview_day_title)
+        .assertTextContains(context.getString(R.string.caregiver_overview_day, "Paul"))
   }
 
   /** Waits until a node with [tag] is on screen. */
@@ -553,9 +555,29 @@ class AppNavHostTest {
 
   @Test
   fun caregiverMode_titleSwitchesPatient_andPlanningCantAdd() {
-    val (auth, invites, circles) = followingCaregiver("p-anne" to "Anne", "p-paul" to "Paul")
+    val (auth, invites, circles) =
+        followingCaregiver(
+            "p-anne" to "Anne",
+            "p-paul" to "Paul",
+            shared = setOf(CarePermission.PLANNING),
+        )
+    // Each patient has their own next appointment, so a switch must change it with the name
+    val planning = FakePlanningRepository()
+    fun appointment(id: String, title: String) =
+        MutableStateFlow(
+            listOf(
+                PlanningItem(
+                    PlanningSource.Appointment(id),
+                    PlanningTiming.Timed(Instant.now().plus(1, ChronoUnit.HOURS)),
+                    title,
+                )
+            )
+        )
+    planning.itemsOf["p-paul"] = appointment("paul-scan", "Paul's scan")
+    planning.itemsOf["p-anne"] = appointment("anne-chemo", "Anne's chemotherapy")
     setNavHost(
         Route.WHOSE_CARE,
+        planningRepository = planning,
         careCircleRepository = circles,
         careCircleInviteRepository = invites,
         authRepository = auth,
@@ -567,8 +589,11 @@ class AppNavHostTest {
           .isNotEmpty()
     }
     composeTestRule.onNodeWithTag(C.Tag.whoseCarePatient("p-paul")).performClick()
+    composeTestRule.waitUntil(timeoutMillis = 5_000) {
+      composeTestRule.onAllNodesWithText("Paul's scan").fetchSemanticsNodes().isNotEmpty()
+    }
 
-    // "Paul's care ▾" opens the list again, to choose Anne instead
+    // The header's "Whose care?" opens the list again, to choose Anne instead
     composeTestRule.onNodeWithTag(C.Tag.overview_whose_care).performClick()
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
@@ -578,8 +603,12 @@ class AppNavHostTest {
     }
     composeTestRule.onNodeWithTag(C.Tag.whoseCarePatient("p-anne")).performClick()
     composeTestRule
-        .onNodeWithTag(C.Tag.overview_whose_care)
-        .assertTextContains(context.getString(R.string.overview_care_of, "Anne"))
+        .onNodeWithTag(C.Tag.caregiver_overview_day_title)
+        .assertTextContains(context.getString(R.string.caregiver_overview_day, "Anne"))
+    composeTestRule.waitUntil(timeoutMillis = 5_000) {
+      composeTestRule.onAllNodesWithText("Anne's chemotherapy").fetchSemanticsNodes().isNotEmpty()
+    }
+    composeTestRule.onNodeWithText("Paul's scan").assertDoesNotExist()
     composeTestRule.onNodeWithTag(C.Tag.overview_shortcuts).assertDoesNotExist()
 
     // Without the patient's permission, a caregiver can't add appointments
@@ -644,12 +673,16 @@ class AppNavHostTest {
     )
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
-          .onAllNodesWithTag(OverviewShortcut.SYMPTOMS.testTag)
+          .onAllNodesWithTag(C.Tag.caregiver_overview_full_journal)
           .fetchSemanticsNodes()
           .isNotEmpty()
     }
 
-    composeTestRule.onNodeWithTag(OverviewShortcut.SYMPTOMS.testTag).performClick()
+    // The journal card on Anne's day opens her journal
+    composeTestRule
+        .onNodeWithTag(C.Tag.caregiver_overview_full_journal)
+        .performScrollTo()
+        .performClick()
 
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
@@ -675,11 +708,15 @@ class AppNavHostTest {
     )
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
-          .onAllNodesWithTag(OverviewShortcut.SYMPTOMS.testTag)
+          .onAllNodesWithTag(C.Tag.caregiver_overview_full_journal)
           .fetchSemanticsNodes()
           .isNotEmpty()
     }
-    composeTestRule.onNodeWithTag(OverviewShortcut.SYMPTOMS.testTag).performClick()
+    // The journal card on Anne's day opens her journal
+    composeTestRule
+        .onNodeWithTag(C.Tag.caregiver_overview_full_journal)
+        .performScrollTo()
+        .performClick()
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
           .onAllNodesWithTag(C.Tag.symptom_journal_add)
@@ -864,7 +901,7 @@ class AppNavHostTest {
   }
 
   @Test
-  fun caregiverMode_planningNotShared_saysSoOnTheOverviewAndPlanning() {
+  fun caregiverMode_planningNotShared_isLockedOnTheOverview_andSaidOnPlanning() {
     val (auth, invites, circles) = followingCaregiver("p-anne" to "Anne")
     val planning = FakePlanningRepository()
     setNavHost(
@@ -880,9 +917,8 @@ class AppNavHostTest {
             "Anne",
             context.getString(R.string.permission_planning),
         )
-    composeTestRule.waitUntil(timeoutMillis = 5_000) {
-      composeTestRule.onAllNodesWithText(notShared).fetchSemanticsNodes().isNotEmpty()
-    }
+    // The caregiver's own Overview locks the planning card
+    waitForTag(C.Tag.caregiverOverviewPrivate(CarePermission.PLANNING.name))
     composeTestRule.onNodeWithTag(Tab.PLANNING.testTag).performClick()
     composeTestRule.onNodeWithTag(C.Tag.planning_screen).assertIsDisplayed()
     composeTestRule.onNodeWithText(notShared).assertIsDisplayed()
@@ -1735,6 +1771,48 @@ class AppNavHostTest {
 
     composeTestRule.onNodeWithTag(C.Tag.symptom_add_close).performClick()
     composeTestRule.onNodeWithTag(C.Tag.overview_screen).assertIsDisplayed()
+  }
+
+  /** Taps "Speak how you feel" (US-73) with the microphone allowed; returns the recognizer. */
+  private fun speakFromTheOverview(symptoms: SymptomRepository = FakeSymptomRepository()) = run {
+    shadowOf(context as Application).grantPermissions(Manifest.permission.RECORD_AUDIO)
+    setNavHost(Route.OVERVIEW, authRepository = signedInPatient(), symptomRepository = symptoms)
+    composeTestRule.onNodeWithTag(C.Tag.overview_speak).performScrollTo().performClick()
+    composeTestRule.waitForIdle()
+    SpeechRecognizerProvider.recognizer as FakeSpeechRecognizer
+  }
+
+  @Test
+  fun mic_opensTheVoiceScreenListening_andSavingReturnsToTheOverview() {
+    val symptoms = FakeSymptomRepository()
+    val speech = speakFromTheOverview(symptoms)
+
+    // Listening at once: no symptom to pick, no form first
+    composeTestRule
+        .onNodeWithTag(C.Tag.symptom_voice_headline)
+        .assertTextEquals(context.getString(R.string.symptom_voice_listening))
+    assertTrue(speech.isListening)
+
+    composeTestRule.runOnIdle { speech.send(SpeechEvent.FinalText("I feel sick")) }
+    composeTestRule.onNodeWithTag(C.Tag.symptom_voice_done).performClick()
+    // The form, filled and marked to check, saves nothing until Save
+    composeTestRule.onNodeWithTag(C.Tag.symptom_add_drafted).assertIsDisplayed()
+    assertTrue(symptoms.symptoms("patient").isEmpty())
+
+    composeTestRule.onNodeWithTag(C.Tag.symptom_add_save).performClick()
+    composeTestRule.onNodeWithTag(C.Tag.overview_screen).assertIsDisplayed()
+    assertEquals(listOf(SymptomType.NAUSEA), symptoms.symptoms("patient").single().types)
+  }
+
+  @Test
+  fun mic_closeReturnsToTheOverview_withoutSaving() {
+    val symptoms = FakeSymptomRepository()
+    speakFromTheOverview(symptoms)
+
+    composeTestRule.onNodeWithTag(C.Tag.symptom_voice_close).performClick()
+
+    composeTestRule.onNodeWithTag(C.Tag.overview_screen).assertIsDisplayed()
+    assertTrue(symptoms.symptoms("patient").isEmpty())
   }
 
   @Test

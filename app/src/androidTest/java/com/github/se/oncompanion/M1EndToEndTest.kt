@@ -21,6 +21,7 @@ import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
@@ -30,7 +31,9 @@ import androidx.compose.ui.test.performScrollToKey
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.model.settings.AppearancePreference
+import com.github.se.oncompanion.model.settings.DateFormatPreference
 import com.github.se.oncompanion.model.settings.SettingsRepositoryProvider
+import com.github.se.oncompanion.model.settings.TimeFormatPreference
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.navigation.Tab
 import com.github.se.oncompanion.utils.EmulatorGoogleSignIn
@@ -87,6 +90,8 @@ class M1EndToEndTest {
   fun setUp(): Unit = runBlocking {
     SettingsRepositoryProvider.install(compose.activity.applicationContext)
     SettingsRepositoryProvider.repository.setAppearance(AppearancePreference.FOLLOW_DEVICE)
+    SettingsRepositoryProvider.repository.setDateFormat(DateFormatPreference.FOLLOW_DEVICE)
+    SettingsRepositoryProvider.repository.setTimeFormat(TimeFormatPreference.FOLLOW_DEVICE)
     EmulatorTestData.signOut()
   }
 
@@ -94,6 +99,8 @@ class M1EndToEndTest {
   fun tearDown(): Unit = runBlocking {
     AppHostActivity.content.value = {}
     SettingsRepositoryProvider.repository.setAppearance(AppearancePreference.FOLLOW_DEVICE)
+    SettingsRepositoryProvider.repository.setDateFormat(DateFormatPreference.FOLLOW_DEVICE)
+    SettingsRepositoryProvider.repository.setTimeFormat(TimeFormatPreference.FOLLOW_DEVICE)
     EmulatorTestData.signOut()
     runCatching { EmulatorTestData.deleteRawDocument("events/$ligueEvent") }
   }
@@ -437,7 +444,37 @@ class M1EndToEndTest {
                 hasAnyDescendant(hasText(string(R.string.appearance_dark))))
     )
     captureSettings("settings-dark.png")
+    saveDateAndTimeFormatsAndReopen()
     ui.open(C.Tag.settings_back, hasTestTag(C.Tag.profile_screen))
+  }
+
+  /** Exercises both format destinations through the Activity and the real device settings store. */
+  private fun saveDateAndTimeFormatsAndReopen() {
+    val twelveHour = C.Tag.settingsTimeChoice(TimeFormatPreference.TWELVE_HOUR.name)
+    val isoDate = C.Tag.settingsDateChoice(DateFormatPreference.YEAR_MONTH_DAY.name)
+
+    ui.open(C.Tag.settings_date_time, hasTestTag(C.Tag.settings_date_time_screen))
+    ui.open(C.Tag.settings_time_format, hasTestTag(C.Tag.settings_time_format_screen))
+    ui.tag(twelveHour).reveal().performClick()
+    ui.waitFor(hasTestTag(twelveHour) and isSelected())
+    ui.open(C.Tag.settings_back, hasTestTag(C.Tag.settings_date_time_screen))
+    ui.open(C.Tag.settings_date_format, hasTestTag(C.Tag.settings_date_format_screen))
+    ui.tag(isoDate).reveal().performClick()
+    ui.waitFor(hasTestTag(isoDate) and isSelected())
+    ui.open(C.Tag.settings_back, hasTestTag(C.Tag.settings_date_time_screen))
+    ui.open(C.Tag.settings_back, hasTestTag(C.Tag.settings_screen))
+
+    ui.open(C.Tag.settings_date_time, hasTestTag(C.Tag.settings_date_time_screen))
+    ui.open(C.Tag.settings_time_format, hasTestTag(C.Tag.settings_time_format_screen))
+    ui.tag(twelveHour).reveal().assertIsSelected()
+    ui.open(C.Tag.settings_back, hasTestTag(C.Tag.settings_date_time_screen))
+    ui.open(C.Tag.settings_date_format, hasTestTag(C.Tag.settings_date_format_screen))
+    ui.tag(isoDate).reveal().assertIsSelected()
+    ui.open(C.Tag.settings_back, hasTestTag(C.Tag.settings_date_time_screen))
+    ui.tag(C.Tag.settings_format_preview)
+        .reveal()
+        .assertTextContains("2026-11-18", substring = true)
+    ui.open(C.Tag.settings_back, hasTestTag(C.Tag.settings_screen))
   }
 
   private fun captureSettings(name: String) {

@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.events
@@ -70,9 +71,7 @@ private val endTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLI
  * list or from Planning. The patient can open the organizer's website and confirm here that they
  * registered there (Figma: "US-25 / Event detail").
  *
- * @param caregiverOf the first name of the patient a caregiver follows, who reads the event and the
- *   patient's confirmation, and confirms it only when the patient lets them (US-42); null for the
- *   patient
+ * @param caregiverOf the followed patient's first name in caregiver mode, null for the patient
  */
 @Composable
 fun EventDetailScreen(
@@ -104,9 +103,7 @@ fun EventDetailScreen(
 /**
  * Stateless content of the event detail screen, so each state can be tested without a ViewModel.
  *
- * @param caregiverOf the followed patient's first name for a caregiver, which hides removing the
- *   registration, and confirming it unless [EventDetailUiState.caregiverCanConfirm]; null for the
- *   patient
+ * @param caregiverOf the followed patient's first name in caregiver mode, null for the patient
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -162,6 +159,7 @@ fun EventDetailContent(
         EventDetails(event, uiState, caregiverOf, contentModifier) {
           RegistrationActions(
               readOnly = caregiverOf != null && !uiState.caregiverCanConfirm,
+              canRemove = caregiverOf == null || uiState.caregiverCanRemove,
               caregiverOf = caregiverOf,
               link = webLinkOrNull(event.websiteUrl),
               registration = uiState.registration,
@@ -172,7 +170,7 @@ fun EventDetailContent(
           )
         }
         if (uiState.isConfirmingRemoval) {
-          RemoveDialog(onConfirm = onRemoveRegistration, onCancel = onCancelRemoval)
+          RemoveDialog(caregiverOf, onConfirm = onRemoveRegistration, onCancel = onCancelRemoval)
         }
       }
     }
@@ -297,12 +295,12 @@ private fun ConfirmedBanner(caregiverOf: String?, addedByName: String?) {
 
 /**
  * The buttons below the event: the organizer's website, if any, and confirming or removing the
- * registration, depending on [registration]. A caregiver ([caregiverOf]) confirms for the patient
- * and never removes it.
+ * registration, depending on [registration] and the viewer’s permissions.
  */
 @Composable
 private fun RegistrationActions(
     readOnly: Boolean,
+    canRemove: Boolean,
     caregiverOf: String?,
     link: String?,
     registration: RegistrationStatus,
@@ -383,7 +381,7 @@ private fun RegistrationActions(
         )
       }
       RegistrationStatus.CONFIRMED ->
-          if (caregiverOf == null) {
+          if (canRemove) {
             LakeButton(
                 text = stringResource(R.string.event_detail_remove),
                 onClick = onRequestRemoval,
@@ -423,10 +421,14 @@ private fun Note(text: String, testTag: String) {
 
 /** Asks to confirm the removal, saying it doesn't cancel anything with the organizer. */
 @Composable
-private fun RemoveDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
+private fun RemoveDialog(caregiverOf: String?, onConfirm: () -> Unit, onCancel: () -> Unit) {
   LakeDialog(
-      title = stringResource(R.string.event_detail_remove_title),
-      message = stringResource(R.string.event_detail_remove_message),
+      title =
+          if (caregiverOf == null) stringResource(R.string.event_detail_remove_title)
+          else stringResource(R.string.event_detail_remove_title_caregiver, caregiverOf),
+      message =
+          if (caregiverOf == null) stringResource(R.string.event_detail_remove_message)
+          else stringResource(R.string.event_detail_remove_message_caregiver),
       confirmLabel = stringResource(R.string.event_detail_remove_confirm),
       cancelLabel = stringResource(R.string.event_detail_remove_cancel),
       onConfirm = onConfirm,

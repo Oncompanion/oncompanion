@@ -69,7 +69,7 @@ The signed APK is on the [Releases](https://github.com/Oncompanion/Oncompanion/r
 | Backend | Firebase Authentication (Google Sign-In), Cloud Firestore with its offline cache, Cloud Functions in TypeScript with App Check |
 | On device | ML Kit text recognition, Android speech recognition |
 | Tests | JUnit, Robolectric, Compose UI tests, Kaspresso, Firebase emulators |
-| Quality | ktfmt, Android lint, JaCoCo, SonarCloud (90% coverage on new code) |
+| Quality | ktfmt, Android lint, JaCoCo, SonarCloud (≥ 95% line coverage on `main`) |
 
 ### Architecture
 
@@ -114,7 +114,7 @@ Every Thursday, [release.yml](.github/workflows/release.yml) publishes the signe
 
 ### Contributing
 
-Read [AGENTS.md](AGENTS.md) first. It covers the architecture rules, code style, tests, commits, pull requests and the Scrum board, for people and coding agents alike. Work on a branch, open a pull request with the [template](.github/PULL_REQUEST_TEMPLATE.md), and merge once it has an approving review and a green CI.
+Start with [CONTRIBUTING.md](CONTRIBUTING.md): how to go from an issue to a merged pull request. The rules behind each step, for people and coding agents alike, are in [AGENTS.md](AGENTS.md).
 
 ## Acknowledgements
 

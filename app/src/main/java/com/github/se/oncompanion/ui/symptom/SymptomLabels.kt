@@ -71,3 +71,25 @@ fun SymptomEntry.nameOf(type: SymptomType): String =
 
 /** What the entry is about: the names of its symptoms, e.g. "Fatigue, Hiccups". */
 @Composable fun SymptomEntry.title(): String = types.map { nameOf(it) }.joinToString(", ")
+
+/**
+ * The symptoms given a strength, said in words in the order they were picked: "Moderate fatigue ·
+ * mild nausea" (Figma: journal). The name of "Other" is kept as the user typed it. `null` for an
+ * entry without strengths, as one saved before them.
+ */
+@Composable
+fun SymptomEntry.strengthsInWords(): String? {
+  val phrases =
+      strengthsInOrder().map { (type, strength) ->
+        val name =
+            otherName?.takeIf { type == SymptomType.OTHER }
+                ?: stringResource(type.label).lowercase(Locale.ENGLISH)
+        val severity = stringResource(Severity.of(strength).label).lowercase(Locale.ENGLISH)
+        stringResource(R.string.symptom_strength_in_words, severity, name)
+      }
+  if (phrases.isEmpty()) return null
+  val joined = phrases.reduce { all, phrase ->
+    stringResource(R.string.symptom_journal_summary, all, phrase)
+  }
+  return joined.replaceFirstChar { it.titlecase(Locale.ENGLISH) }
+}

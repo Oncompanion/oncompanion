@@ -30,8 +30,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.R
+import com.github.se.oncompanion.domain.medication.DoseCondition
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.cardItem
@@ -41,20 +43,36 @@ import com.github.se.oncompanion.ui.theme.lakeColors
 /**
  * A medication's name, then its frequency as a chip and, when its doses can be ticked, a bar with
  * one segment per dose and the round button at the end of the row. Taken once a day, the row and
- * the button toggle the dose; several times a day, the button ticks the next one and "1 of 3" says
- * where the patient is.
+ * the button toggle the dose. Several times a day, the button ticks the next one and "1 of 3" says
+ * where the patient is; the row, and the button once all are taken, open the sheet to correct them.
+ *
+ * @param onOpenDoses opens the sheet to correct the doses, by the medication's ID
  */
 @Composable
-internal fun MedicationRow(medication: TodayMedication, onTickDose: (String) -> Unit) {
+internal fun MedicationRow(
+    medication: TodayMedication,
+    onTickDose: (String) -> Unit,
+    onOpenDoses: (String) -> Unit,
+) {
   val doses = medication.dosesPerDay
   val tick = { onTickDose(medication.medicationId) }
+  val open = { onOpenDoses(medication.medicationId) }
   val label = doseButtonLabel(medication)
   Row(
       Modifier.testTag(C.Tag.overviewMedication(medication.key))
           .then(
-              if (doses == 1)
-                  Modifier.clickable(onClickLabel = label, role = Role.Button) { tick() }
-              else Modifier
+              when (doses) {
+                null -> Modifier
+                1 -> Modifier.clickable(onClickLabel = label, role = Role.Button) { tick() }
+                else ->
+                    Modifier.clickable(
+                        onClickLabel =
+                            stringResource(R.string.overview_doses_correct, medication.name),
+                        role = Role.Button,
+                    ) {
+                      open()
+                    }
+              }
           ),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -67,7 +85,9 @@ internal fun MedicationRow(medication: TodayMedication, onTickDose: (String) -> 
       )
       DosesLine(medication)
     }
-    if (doses != null) DoseButton(medication, label, tick)
+    if (doses != null) {
+      DoseButton(medication, label, if (doses > 1 && medication.taken >= doses) open else tick)
+    }
   }
 }
 
@@ -79,8 +99,10 @@ internal fun MedicationRow(medication: TodayMedication, onTickDose: (String) -> 
 private fun DosesLine(medication: TodayMedication) {
   if (LocalDensity.current.fontScale >= LARGE_TEXT_SCALE) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-      medication.frequency?.let { FrequencyChip(it) }
-      medication.dosesPerDay?.let { DoseBar(it, medication.taken, Modifier.fillMaxWidth()) }
+      frequencyLabel(medication)?.let { FrequencyChip(it) }
+      medication.dosesPerDay?.let {
+        DoseBar(it, medication.taken, Modifier.fillMaxWidth(), SEGMENT_HEIGHT)
+      }
       DosesTaken(medication)
     }
   } else {
@@ -88,8 +110,10 @@ private fun DosesLine(medication: TodayMedication) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-      medication.frequency?.let { FrequencyChip(it) }
-      medication.dosesPerDay?.let { DoseBar(it, medication.taken, Modifier.weight(1f)) }
+      frequencyLabel(medication)?.let { FrequencyChip(it) }
+      medication.dosesPerDay?.let {
+        DoseBar(it, medication.taken, Modifier.weight(1f), SEGMENT_HEIGHT)
+      }
       DosesTaken(medication)
     }
   }
@@ -111,14 +135,17 @@ private fun DosesTaken(medication: TodayMedication) {
   )
 }
 
-/** One segment per dose of the day, the first [taken] filled; the button says it to TalkBack. */
+/**
+ * One segment per dose of the day, the first [taken] filled, each [segmentHeight] high; the button
+ * says it to TalkBack.
+ */
 @Composable
-private fun DoseBar(doses: Int, taken: Int, modifier: Modifier) {
+internal fun DoseBar(doses: Int, taken: Int, modifier: Modifier, segmentHeight: Dp) {
   Row(modifier.clearAndSetSemantics {}, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
     repeat(doses) { index ->
       Box(
           Modifier.weight(1f)
-              .height(SEGMENT_HEIGHT)
+              .height(segmentHeight)
               .background(
                   if (index < taken) MaterialTheme.colorScheme.primary
                   else MaterialTheme.lakeColors.stone.chip,
@@ -131,8 +158,7 @@ private fun DoseBar(doses: Int, taken: Int, modifier: Modifier) {
 
 /**
  * The round button at the end of a row: "+" until every dose is taken, then a filled check. Taken
- * once a day, the check unticks the dose; several times a day, it is disabled once all are taken,
- * until the sheet to correct the doses comes.
+ * once a day, the check unticks the dose; several times a day, it opens the sheet to correct them.
  */
 @Composable
 private fun DoseButton(medication: TodayMedication, label: String, onClick: () -> Unit) {
@@ -150,7 +176,7 @@ private fun DoseButton(medication: TodayMedication, label: String, onClick: () -
               if (doses == 1) Modifier.clearAndSetSemantics {}
               else Modifier.semantics { contentDescription = label }
           )
-          .clickable(enabled = !allTaken || doses == 1, role = Role.Button, onClick = onClick),
+          .clickable(role = Role.Button, onClick = onClick),
       contentAlignment = Alignment.Center,
   ) {
     Box(Modifier.size(DOSE_DISC_SIZE).then(disc), contentAlignment = Alignment.Center) {
@@ -165,6 +191,41 @@ private fun DoseButton(medication: TodayMedication, label: String, onClick: () -
     }
   }
 }
+
+/**
+ * The medication's frequency in the card's own words ("Once a day" for "1-0-0", "3 times a day if
+ * nauseous" for "1-1-1 si nausées"), or as written when it can't be reworded without losing
+ * something (see [com.github.se.oncompanion.domain.medication.DoseCount.describe]).
+ */
+@Composable
+internal fun frequencyLabel(medication: TodayMedication): String? {
+  val doses = medication.dailyDoses ?: return medication.frequency
+  val count =
+      when (val perDay = doses.perDay) {
+        null -> null
+        1 -> stringResource(R.string.overview_frequency_once)
+        2 -> stringResource(R.string.overview_frequency_twice)
+        else -> pluralStringResource(R.plurals.overview_frequency_times, perDay, perDay)
+      }
+  val condition = doses.condition?.let { stringResource(conditionText(it)) }
+  return when {
+    condition == null -> count
+    count == null -> condition.replaceFirstChar { it.uppercase() }
+    else -> stringResource(R.string.overview_frequency_with_condition, count, condition)
+  }
+}
+
+/** How the card says what a medication is taken on, after its doses a day. */
+private fun conditionText(condition: DoseCondition): Int =
+    when (condition) {
+      DoseCondition.IF_NEEDED -> R.string.overview_condition_if_needed
+      DoseCondition.IF_NAUSEOUS -> R.string.overview_condition_if_nauseous
+      DoseCondition.IF_IN_PAIN -> R.string.overview_condition_if_in_pain
+      DoseCondition.IF_FEVERISH -> R.string.overview_condition_if_feverish
+      DoseCondition.IF_ANXIOUS -> R.string.overview_condition_if_anxious
+      DoseCondition.IF_VOMITING -> R.string.overview_condition_if_vomiting
+      DoseCondition.FOR_SLEEP -> R.string.overview_condition_for_sleep
+    }
 
 /** What the dose button does and where the patient is, for TalkBack. */
 @Composable

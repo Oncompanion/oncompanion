@@ -54,6 +54,7 @@ import com.github.se.oncompanion.ui.carecircle.CareCircleMemberViewModel
 import com.github.se.oncompanion.ui.carecircle.CareCircleScreen
 import com.github.se.oncompanion.ui.carecircle.CareCircleViewModel
 import com.github.se.oncompanion.ui.carecircle.CaregiverModeViewModel
+import com.github.se.oncompanion.ui.carecircle.ChosenPatient
 import com.github.se.oncompanion.ui.carecircle.JoinCareCircleScreen
 import com.github.se.oncompanion.ui.carecircle.JoinCareCircleViewModel
 import com.github.se.oncompanion.ui.carecircle.WhoseCareScreen
@@ -68,6 +69,8 @@ import com.github.se.oncompanion.ui.onboarding.OnboardingViewModel
 import com.github.se.oncompanion.ui.onboarding.RoleScreen
 import com.github.se.oncompanion.ui.overview.OverviewScreen
 import com.github.se.oncompanion.ui.overview.OverviewViewModel
+import com.github.se.oncompanion.ui.overview.caregiver.CaregiverOverviewScreen
+import com.github.se.oncompanion.ui.overview.caregiver.CaregiverOverviewViewModel
 import com.github.se.oncompanion.ui.planning.PlanningScreen
 import com.github.se.oncompanion.ui.planning.PlanningViewModel
 import com.github.se.oncompanion.ui.prescription.MedicationDetailScreen
@@ -84,9 +87,13 @@ import com.github.se.oncompanion.ui.profile.EditProfileScreen
 import com.github.se.oncompanion.ui.profile.EditProfileViewModel
 import com.github.se.oncompanion.ui.profile.ProfileScreen
 import com.github.se.oncompanion.ui.profile.ProfileViewModel
+import com.github.se.oncompanion.ui.reminder.ReminderPermissionViewModel
 import com.github.se.oncompanion.ui.settings.AppearanceScreen
+import com.github.se.oncompanion.ui.settings.DateFormatScreen
+import com.github.se.oncompanion.ui.settings.DateTimeSettingsScreen
 import com.github.se.oncompanion.ui.settings.SettingsScreen
 import com.github.se.oncompanion.ui.settings.SettingsViewModel
+import com.github.se.oncompanion.ui.settings.TimeFormatScreen
 import com.github.se.oncompanion.ui.symptom.AddSymptomScreen
 import com.github.se.oncompanion.ui.symptom.AddSymptomViewModel
 import com.github.se.oncompanion.ui.symptom.SymptomDetailScreen
@@ -282,17 +289,7 @@ private fun SessionNavHost(
 
     navigation(startDestination = Screen.OVERVIEW, route = Route.OVERVIEW) {
       composable(Screen.OVERVIEW) {
-        OverviewScreen(
-            navigationActions,
-            // In caregiver mode, the chosen patient's day, when they share their planning
-            viewModel =
-                viewModel { OverviewViewModel(clock = clock, patientUid = chosenPatient?.uid) },
-            onOpenAppointment = appointmentOpener(navigationActions),
-            onOpenEvent = eventOpener(navigationActions),
-            caregiverOf = chosenPatient?.firstName,
-            onSwitchPatient = { navigationActions.navigateTo(Screen.WHOSE_CARE_SWITCH) },
-            bottomBar = bottomBar,
-        )
+        OverviewRoute(navigationActions, chosenPatient, clock, bottomBar)
       }
     }
 
@@ -326,6 +323,9 @@ private fun SessionNavHost(
             onOpenEvent = eventOpener(navigationActions),
             onOpenMedication = medicationOpener(navigationActions),
             caregiverOf = chosenPatient?.firstName,
+            reminderPermissions =
+                if (chosenPatient == null) viewModel { ReminderPermissionViewModel(clock = clock) }
+                else null,
             bottomBar = bottomBar,
         )
       }
@@ -470,7 +470,11 @@ private fun SessionNavHost(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
-                  }
+                  },
+                  navArgument(Screen.SYMPTOM_SPEAK) {
+                    type = NavType.BoolType
+                    defaultValue = false
+                  },
               ),
       ) { entry ->
         // A check-in tile on the Overview opens the form with its symptom picked; an unknown name
@@ -479,6 +483,8 @@ private fun SessionNavHost(
             entry.arguments?.getString(Screen.SYMPTOM_TYPE)?.let { name ->
               SymptomType.entries.firstOrNull { it.name == name }
             }
+        // "Speak how you feel" on the Overview opens it already listening (US-73)
+        val speak = entry.arguments?.getBoolean(Screen.SYMPTOM_SPEAK) == true
         // Saving returns to where the form was opened: the journal, where the new entry is at the
         // top, or the Overview
         // In caregiver mode, the symptom goes in the chosen patient's journal (US-22)
@@ -491,6 +497,7 @@ private fun SessionNavHost(
                       patientUid = chosenPatient?.uid,
                       picked = picked,
                       symptomName = { app.getString(it.label) },
+                      speakOnOpen = speak,
                   )
                 },
             onBack = navigationActions::goBack,
@@ -746,10 +753,25 @@ private fun SessionNavHost(
             viewModel { SettingsViewModel() },
             onBack = navigationActions::goBack,
             onAppearance = { navigationActions.navigateTo(Screen.APPEARANCE) },
+            onDateTime = { navigationActions.navigateTo(Screen.DATE_TIME_SETTINGS) },
         )
       }
       composable(Screen.APPEARANCE) {
         AppearanceScreen(viewModel { SettingsViewModel() }, onBack = navigationActions::goBack)
+      }
+      composable(Screen.DATE_TIME_SETTINGS) {
+        DateTimeSettingsScreen(
+            viewModel { SettingsViewModel() },
+            onBack = navigationActions::goBack,
+            onTimeFormat = { navigationActions.navigateTo(Screen.TIME_FORMAT_SETTINGS) },
+            onDateFormat = { navigationActions.navigateTo(Screen.DATE_FORMAT_SETTINGS) },
+        )
+      }
+      composable(Screen.TIME_FORMAT_SETTINGS) {
+        TimeFormatScreen(viewModel { SettingsViewModel() }, navigationActions::goBack)
+      }
+      composable(Screen.DATE_FORMAT_SETTINGS) {
+        DateFormatScreen(viewModel { SettingsViewModel() }, navigationActions::goBack)
       }
     }
     navigation(startDestination = Screen.PROFILE, route = Route.PROFILE) {
@@ -803,6 +825,44 @@ private fun onboardingViewModel(
 ): OnboardingViewModel {
   val onboardingGraph = remember(entry) { navController.getBackStackEntry(Route.ONBOARDING) }
   return viewModel(viewModelStoreOwner = onboardingGraph) { OnboardingViewModel() }
+}
+
+/**
+ * The patient's Overview, or in caregiver mode the caregiver's own, with the chosen [patient]'s
+ * day. Its ViewModel is keyed by the patient, so switching patient never shows the previous one's
+ * day.
+ */
+@Composable
+private fun OverviewRoute(
+    navigationActions: NavigationActions,
+    patient: ChosenPatient?,
+    clock: Clock,
+    bottomBar: BottomBarUiState,
+) {
+  val onOpenAppointment = appointmentOpener(navigationActions)
+  val onOpenEvent = eventOpener(navigationActions)
+  if (patient == null) {
+    OverviewScreen(
+        navigationActions,
+        viewModel = viewModel { OverviewViewModel(clock = clock) },
+        onOpenAppointment = onOpenAppointment,
+        onOpenEvent = onOpenEvent,
+        bottomBar = bottomBar,
+    )
+    return
+  }
+  CaregiverOverviewScreen(
+      viewModel =
+          viewModel(key = patient.uid) {
+            CaregiverOverviewViewModel(patientUid = patient.uid, clock = clock)
+          },
+      patientName = patient.firstName,
+      navigationActions = navigationActions,
+      onOpenAppointment = onOpenAppointment,
+      onOpenEvent = onOpenEvent,
+      onSwitchPatient = { navigationActions.navigateTo(Screen.WHOSE_CARE_SWITCH) },
+      bottomBar = bottomBar,
+  )
 }
 
 /** Shares the resumed-only guard for appointment navigation from either bottom tab. */
