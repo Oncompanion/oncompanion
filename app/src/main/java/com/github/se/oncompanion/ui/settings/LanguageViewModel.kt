@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 internal class LanguageViewModel(
     private val localeAdapter: AppLocaleAdapter = AppCompatLocaleAdapter,
 ) : ViewModel() {
-  private val selected = MutableStateFlow(AppLanguage.FOLLOW_DEVICE)
+  private val selected = MutableStateFlow(localeAdapter.current())
   val uiState = selected.asStateFlow()
 
   /** Reloads the override when a settings screen resumes. */

@@ -25,6 +25,13 @@ class LanguageScreenTest {
   @get:Rule val compose = createComposeRule()
 
   @Test
+  fun modelExposesTheSavedChoiceBeforeTheFirstResume() {
+    val model = LanguageViewModel(FakeAppLocaleAdapter())
+
+    assertEquals(AppLanguage.ENGLISH, model.uiState.value)
+  }
+
+  @Test
   fun pickerAppliesFrenchAndClearsTheOverrideWhenFollowingDevice() {
     val adapter = FakeAppLocaleAdapter()
     val model = LanguageViewModel(adapter)
