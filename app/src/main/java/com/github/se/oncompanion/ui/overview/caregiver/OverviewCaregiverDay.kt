@@ -39,8 +39,9 @@ import com.github.se.oncompanion.ui.theme.cardEyebrow
 import com.github.se.oncompanion.ui.theme.lakeColors
 
 /**
- * "Alex's day" and what Alex shares of it: Next up while they share their planning, a locked card
- * for each section they keep private, under a line saying only they can change it.
+ * "Alex's day" and what Alex shares of it: Next up while they share their planning, their newest
+ * journal entry while they share their symptoms, a locked card for each section they keep private,
+ * under a line saying only they can change it.
  */
 @Composable
 internal fun CaregiverDay(
@@ -74,10 +75,13 @@ internal fun CaregiverDay(
           }
       else -> SharedDay(uiState, patientName, actions)
     }
-    // Until the day has a card for each, the shared sections keep their tiles, as before
+    // Until the day has a card for each, the shared sections keep their tiles, as before; the
+    // journal card already opens the symptoms
     val tiles =
         OverviewShortcut.entries.filter {
-          it.section != null && uiState.sections[it.section] == SectionVisibility.SHOWN
+          it.section != null &&
+              it != OverviewShortcut.SYMPTOMS &&
+              uiState.sections[it.section] == SectionVisibility.SHOWN
         }
     if (tiles.isNotEmpty()) Shortcuts(actions.onOpenShortcut, tiles, withQuestion = false)
   }
@@ -103,6 +107,8 @@ private fun SharedDay(
       visibility == SectionVisibility.PRIVATE -> PrivateCard(section, patientName)
       // The other shared sections get their cards in the next steps of the redesign
       section == CarePermission.PLANNING -> PlanningCard(uiState, actions)
+      section == CarePermission.SYMPTOMS ->
+          JournalCard(uiState.latestEntry, uiState.now.toLocalDate(), actions.onOpenJournal)
     }
   }
 }

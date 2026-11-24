@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.ui.settings
@@ -71,16 +72,30 @@ class SettingsViewModel(
 
   /** Saves one explicit selection, leaving its confirmed predecessor visible until success. */
   fun selectAppearance(appearance: AppearancePreference) {
+    save({ copy(appearance = appearance) }) { repository.setAppearance(appearance) }
+  }
+
+  /** Saves the date format without changing the clock or appearance. */
+  fun selectDateFormat(dateFormat: DateFormatPreference) {
+    save({ copy(dateFormat = dateFormat) }) { repository.setDateFormat(dateFormat) }
+  }
+
+  /** Saves the clock format without changing the date or appearance. */
+  fun selectTimeFormat(timeFormat: TimeFormatPreference) {
+    save({ copy(timeFormat = timeFormat) }) { repository.setTimeFormat(timeFormat) }
+  }
+
+  private fun save(update: DeviceSettings.() -> DeviceSettings, write: suspend () -> Unit) {
     val current = state.value
-    if (current.settings == null || current.saving || current.settings.appearance == appearance)
-        return
+    val confirmed = current.settings ?: return
+    if (current.saving || confirmed.update() == confirmed) return
     state.value = current.copy(savePhase = SettingsSavePhase.SAVING)
     viewModelScope.launch {
       try {
-        repository.setAppearance(appearance)
+        write()
         state.value =
             state.value.copy(
-                settings = state.value.settings?.copy(appearance = appearance),
+                settings = state.value.settings?.update(),
                 savePhase = SettingsSavePhase.IDLE,
             )
       } catch (e: CancellationException) {
