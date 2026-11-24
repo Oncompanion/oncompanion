@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.oncompanion.model.appointment.*
 import com.github.se.oncompanion.model.auth.AuthUser
+import com.github.se.oncompanion.model.reminder.FakeReminderPermissionHistory
 import com.github.se.oncompanion.model.user.*
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
@@ -46,6 +47,7 @@ import org.robolectric.shadows.ShadowAlarmManager
 class ReminderPermissionScreenTest {
   @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
   private val context: Application = ApplicationProvider.getApplicationContext()
+  private val history = FakeReminderPermissionHistory()
   private val now = Instant.parse("2030-01-01T12:00:00Z")
 
   @Composable
@@ -221,7 +223,7 @@ class ReminderPermissionScreenTest {
 
   private fun show(vm: ReminderPermissionViewModel) {
     compose.activity.setContent {
-      OncompanionTheme { rememberReminderPermissionNotice(vm)?.invoke() }
+      OncompanionTheme { rememberReminderPermissionNotice(vm, history)?.invoke() }
     }
   }
 

@@ -27,26 +27,35 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.reminder.REMINDER_CHANNEL_ID
+import com.github.se.oncompanion.model.reminder.ReminderPermissionHistory
+import com.github.se.oncompanion.model.reminder.ReminderPermissionHistoryProvider
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeBanner
 import com.github.se.oncompanion.ui.theme.Spacing
 
-/** Explicit taps alone open Android-owned permission UI; saves never depend on its result. */
+/**
+ * Explicit taps alone open Android-owned permission UI; saves never depend on its result.
+ *
+ * @param history optional storage override; otherwise uses the shared device history provider
+ */
 @Composable
 fun rememberReminderPermissionNotice(
-    viewModel: ReminderPermissionViewModel
+    viewModel: ReminderPermissionViewModel,
+    history: ReminderPermissionHistory? = null,
 ): (@Composable () -> Unit)? {
   val context = LocalContext.current
+  val requestHistory =
+      history ?: remember(context) { ReminderPermissionHistoryProvider.get(context) }
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   var opening by remember { mutableStateOf(false) }
   val launcher =
       rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         opening = false
-        viewModel.refresh(reminderAccess(context))
+        viewModel.refresh(reminderAccess(context, requestHistory))
       }
-  LifecycleResumeEffect(viewModel) {
+  LifecycleResumeEffect(viewModel, requestHistory) {
     opening = false
-    viewModel.refresh(reminderAccess(context))
+    viewModel.refresh(reminderAccess(context, requestHistory))
     onPauseOrDispose {}
   }
   if (!state.eligible || state.access == ReminderAccess.READY) return null
@@ -57,18 +66,14 @@ fun rememberReminderPermissionNotice(
           if (!opening) {
             opening = true
             // Read again at the tap: permission may have changed while Planning was visible.
-            val access = reminderAccess(context)
+            val access = reminderAccess(context, requestHistory)
             if (access == ReminderAccess.OFFER) {
-              context
-                  .getSharedPreferences(HISTORY, Context.MODE_PRIVATE)
-                  .edit()
-                  .putBoolean(REQUESTED, true)
-                  .apply()
+              requestHistory.markRequested()
               launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
             } else {
               if (access != ReminderAccess.READY) openReminderSettings(context, access)
               opening = false
-              viewModel.refresh(reminderAccess(context))
+              viewModel.refresh(reminderAccess(context, requestHistory))
             }
           }
         },
@@ -101,20 +106,19 @@ fun ReminderPermissionContent(state: ReminderPermissionUiState, onEnable: () -> 
   }
 }
 
-// This stores OS request history only, not an account preference or appointment data.
-internal const val HISTORY = "reminder_permission_history"
-internal const val REQUESTED = "notifications_requested"
 internal const val CHANNEL = REMINDER_CHANNEL_ID
 
-internal fun reminderAccess(context: Context): ReminderAccess {
+internal fun reminderAccess(
+    context: Context,
+    history: ReminderPermissionHistory = ReminderPermissionHistoryProvider.get(context),
+): ReminderAccess {
   val manager = context.getSystemService(NotificationManager::class.java)
   val permissionMissing =
       Build.VERSION.SDK_INT >= 33 &&
           ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
               PackageManager.PERMISSION_GRANTED
   if (permissionMissing || !NotificationManagerCompat.from(context).areNotificationsEnabled()) {
-    val unasked =
-        !context.getSharedPreferences(HISTORY, Context.MODE_PRIVATE).getBoolean(REQUESTED, false)
+    val unasked = !history.requested
     return if (permissionMissing && unasked) ReminderAccess.OFFER else ReminderAccess.APP_BLOCKED
   }
   if (manager.getNotificationChannel(CHANNEL)?.importance == NotificationManager.IMPORTANCE_NONE)
