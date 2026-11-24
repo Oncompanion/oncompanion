@@ -476,7 +476,7 @@ private fun SessionNavHost(
             entry.arguments?.getString(Screen.SYMPTOM_TYPE)?.let { name ->
               SymptomType.entries.firstOrNull { it.name == name }
             }
-        // The Overview's mic opens it already listening (US-73)
+        // "Speak how you feel" on the Overview opens it already listening (US-73)
         val speak = entry.arguments?.getBoolean(Screen.SYMPTOM_SPEAK) == true
         // Saving returns to where the form was opened: the journal, where the new entry is at the
         // top, or the Overview
