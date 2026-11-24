@@ -89,8 +89,11 @@ import com.github.se.oncompanion.ui.profile.ProfileScreen
 import com.github.se.oncompanion.ui.profile.ProfileViewModel
 import com.github.se.oncompanion.ui.reminder.ReminderPermissionViewModel
 import com.github.se.oncompanion.ui.settings.AppearanceScreen
+import com.github.se.oncompanion.ui.settings.DateFormatScreen
+import com.github.se.oncompanion.ui.settings.DateTimeSettingsScreen
 import com.github.se.oncompanion.ui.settings.SettingsScreen
 import com.github.se.oncompanion.ui.settings.SettingsViewModel
+import com.github.se.oncompanion.ui.settings.TimeFormatScreen
 import com.github.se.oncompanion.ui.symptom.AddSymptomScreen
 import com.github.se.oncompanion.ui.symptom.AddSymptomViewModel
 import com.github.se.oncompanion.ui.symptom.SymptomDetailScreen
@@ -467,7 +470,11 @@ private fun SessionNavHost(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
-                  }
+                  },
+                  navArgument(Screen.SYMPTOM_SPEAK) {
+                    type = NavType.BoolType
+                    defaultValue = false
+                  },
               ),
       ) { entry ->
         // A check-in tile on the Overview opens the form with its symptom picked; an unknown name
@@ -476,6 +483,8 @@ private fun SessionNavHost(
             entry.arguments?.getString(Screen.SYMPTOM_TYPE)?.let { name ->
               SymptomType.entries.firstOrNull { it.name == name }
             }
+        // "Speak how you feel" on the Overview opens it already listening (US-73)
+        val speak = entry.arguments?.getBoolean(Screen.SYMPTOM_SPEAK) == true
         // Saving returns to where the form was opened: the journal, where the new entry is at the
         // top, or the Overview
         // In caregiver mode, the symptom goes in the chosen patient's journal (US-22)
@@ -488,6 +497,7 @@ private fun SessionNavHost(
                       patientUid = chosenPatient?.uid,
                       picked = picked,
                       symptomName = { app.getString(it.label) },
+                      speakOnOpen = speak,
                   )
                 },
             onBack = navigationActions::goBack,
@@ -743,10 +753,25 @@ private fun SessionNavHost(
             viewModel { SettingsViewModel() },
             onBack = navigationActions::goBack,
             onAppearance = { navigationActions.navigateTo(Screen.APPEARANCE) },
+            onDateTime = { navigationActions.navigateTo(Screen.DATE_TIME_SETTINGS) },
         )
       }
       composable(Screen.APPEARANCE) {
         AppearanceScreen(viewModel { SettingsViewModel() }, onBack = navigationActions::goBack)
+      }
+      composable(Screen.DATE_TIME_SETTINGS) {
+        DateTimeSettingsScreen(
+            viewModel { SettingsViewModel() },
+            onBack = navigationActions::goBack,
+            onTimeFormat = { navigationActions.navigateTo(Screen.TIME_FORMAT_SETTINGS) },
+            onDateFormat = { navigationActions.navigateTo(Screen.DATE_FORMAT_SETTINGS) },
+        )
+      }
+      composable(Screen.TIME_FORMAT_SETTINGS) {
+        TimeFormatScreen(viewModel { SettingsViewModel() }, navigationActions::goBack)
+      }
+      composable(Screen.DATE_FORMAT_SETTINGS) {
+        DateFormatScreen(viewModel { SettingsViewModel() }, navigationActions::goBack)
       }
     }
     navigation(startDestination = Screen.PROFILE, route = Route.PROFILE) {

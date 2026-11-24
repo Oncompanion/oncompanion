@@ -11,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -227,5 +228,83 @@ class VoiceSymptomScreenTest {
     hear(SpeechEvent.FinalText("I feel sick"))
     showScreenAgain()
     node(C.Tag.symptom_add_drafted).assertIsDisplayed()
+  }
+
+  // ----- Opened from the Overview's mic (US-73) -----
+
+  private val openedToSpeak =
+      AddSymptomViewModel(
+          auth,
+          FakeSymptomRepository(clock = clock::instant),
+          clock,
+          speechRecognizer = speech,
+          locale = Locale.ENGLISH,
+          symptomName = { app.getString(it.label) },
+          speakOnOpen = true,
+      )
+
+  /** How many times the screen asked to leave. */
+  private var leaves = 0
+
+  private fun showOpenedToSpeak() {
+    compose.setContent {
+      AddSymptomScreen(viewModel = openedToSpeak, onBack = { leaves++ }, onSaved = {})
+    }
+    compose.waitForIdle()
+  }
+
+  @Test
+  fun openedToSpeak_listensAtOnce_andCloseOrBackLeave() {
+    microphone(allowed = true)
+    showOpenedToSpeak()
+
+    node(C.Tag.symptom_voice_headline).assertTextEquals(string(R.string.symptom_voice_listening))
+    assertTrue(speech.isListening)
+    // A rotation keeps the session instead of starting another one
+    compose.activityRule.scenario.recreate()
+    compose.runOnUiThread {
+      compose.activity.setContent {
+        AddSymptomScreen(viewModel = openedToSpeak, onBack = { leaves++ }, onSaved = {})
+      }
+    }
+    compose.waitForIdle()
+    assertEquals(1, speech.languages.size)
+
+    // The close button says it leaves, and leaves; so does the system Back
+    compose.onNodeWithContentDescription(string(R.string.symptom_voice_leave)).performClick()
+    assertEquals(1, leaves)
+    compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+    compose.waitForIdle()
+    assertEquals(2, leaves)
+  }
+
+  @Test
+  fun openedToSpeak_typeInstead_opensTheEmptyForm() {
+    microphone(allowed = true)
+    showOpenedToSpeak()
+
+    node(C.Tag.symptom_voice_type_instead).performClick()
+    compose.waitForIdle()
+
+    node(C.Tag.symptom_add_speak).assertIsDisplayed()
+    assertTrue(openedToSpeak.uiState.value.types.isEmpty())
+    assertFalse(speech.isListening)
+    assertEquals(0, leaves)
+  }
+
+  @Test
+  fun openedToSpeak_withoutTheMicrophone_explainsFirst_thenOffersTheSettings() {
+    microphone(allowed = false)
+    showOpenedToSpeak()
+
+    node(C.Tag.symptom_voice_headline).assertTextEquals(string(R.string.symptom_voice_why_title))
+    node(C.Tag.symptom_voice_allow).performClick()
+    val asked = shadowOf(compose.activity).lastRequestedPermission
+    assertTrue(Manifest.permission.RECORD_AUDIO in asked.requestedPermissions)
+
+    compose.runOnIdle { openedToSpeak.onMicrophoneAnswer(granted = false) }
+    node(C.Tag.symptom_voice_open_settings).assertIsDisplayed()
+    node(C.Tag.symptom_voice_type_instead).assertIsDisplayed()
+    assertFalse(speech.isListening)
   }
 }
