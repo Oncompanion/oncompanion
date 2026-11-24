@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
@@ -49,6 +50,7 @@ import com.github.se.oncompanion.ui.common.DetailActions
 import com.github.se.oncompanion.ui.common.DetailWithActions
 import com.github.se.oncompanion.ui.common.EditedBy
 import com.github.se.oncompanion.ui.common.LakeMessageState
+import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.NotSharedMessage
 import com.github.se.oncompanion.ui.theme.Spacing
 

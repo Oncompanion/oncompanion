@@ -1,3 +1,4 @@
+// Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 // Co-authored-by: Codex <noreply@openai.com>
 
@@ -40,9 +41,12 @@ import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.NotSharedMessage
 import com.github.se.oncompanion.ui.common.isCompactHeight
+import com.github.se.oncompanion.ui.navigation.BottomBarUiState
 import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Tab
+import com.github.se.oncompanion.ui.reminder.ReminderPermissionViewModel
+import com.github.se.oncompanion.ui.reminder.rememberReminderPermissionNotice
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -52,8 +56,8 @@ import java.util.Locale
 /** Calendar and agenda events supplied by the screen or preview. */
 data class PlanningActions(
     val onDateSelected: (LocalDate) -> Unit,
-    val onPreviousWeek: () -> Unit,
-    val onNextWeek: () -> Unit,
+    val onPreviousPeriod: () -> Unit,
+    val onNextPeriod: () -> Unit,
     val onToday: () -> Unit,
     val onRetry: () -> Unit,
     val onAddAppointment: ((LocalDate) -> Unit)? = null,
@@ -65,6 +69,7 @@ data class PlanningActions(
  * The Planning tab, collecting calendar state and reusing the app's bottom navigation.
  *
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
+ * @param bottomBar what the bottom bar shows on every tab: its tabs and the Prescriptions badge
  */
 @Composable
 fun PlanningScreen(
@@ -76,7 +81,10 @@ fun PlanningScreen(
     onOpenEvent: (String) -> Unit,
     onOpenMedication: (String, String) -> Unit,
     caregiverOf: String? = null,
+    reminderPermissions: ReminderPermissionViewModel? = null,
+    bottomBar: BottomBarUiState = BottomBarUiState(),
 ) {
+  val reminderNotice = reminderPermissions?.let { rememberReminderPermissionNotice(it) }
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val openItem: (PlanningItem) -> Unit = {
     openPlanningItem(it, onOpenAppointment, onOpenEvent, onOpenMedication)
@@ -94,8 +102,8 @@ fun PlanningScreen(
       actions =
           PlanningActions(
               viewModel::selectDate,
-              viewModel::previousWeek,
-              viewModel::nextWeek,
+              viewModel::previousPeriod,
+              viewModel::nextPeriod,
               viewModel::goToToday,
               viewModel::retry,
               onAddAppointment = onAddAppointment,
@@ -103,9 +111,14 @@ fun PlanningScreen(
           ),
       modifier = modifier,
       bottomBar = {
-        BottomNavigationBar(Tab.PLANNING, { navigationActions.navigateToTab(it.route) })
+        BottomNavigationBar(
+            Tab.PLANNING,
+            { navigationActions.navigateToTab(it.route) },
+            state = bottomBar,
+        )
       },
       caregiverOf = caregiverOf,
+      reminderNotice = reminderNotice,
   )
 }
 
@@ -137,6 +150,7 @@ fun PlanningContent(
     modifier: Modifier = Modifier,
     bottomBar: @Composable () -> Unit = {},
     caregiverOf: String? = null,
+    reminderNotice: (@Composable () -> Unit)? = null,
 ) {
   val locale = LocalConfiguration.current.locales[0]
   val compact = isCompactHeight()
@@ -156,8 +170,11 @@ fun PlanningContent(
             Modifier.weight(1f),
             canOpenItem = actions.canOpenItem,
             header =
-                if (compact) {
-                  { PlanningHeader(state, today, locale, actions) }
+                if (compact || reminderNotice != null) {
+                  {
+                    if (compact) PlanningHeader(state, today, locale, actions)
+                    reminderNotice?.invoke()
+                  }
                 } else null,
             caregiverOf = caregiverOf,
         )
@@ -207,11 +224,11 @@ private fun PlanningHeader(
       )
       val previousLabel = stringResource(R.string.planning_previous_week)
       TextButton(
-          actions.onPreviousWeek,
+          actions.onPreviousPeriod,
           Modifier.testTag(C.Tag.planning_previous).semantics {
             contentDescription = previousLabel
           },
-          enabled = state.canGoToPreviousWeek,
+          enabled = state.canGoToPreviousPeriod,
       ) {
         Text("‹")
       }
@@ -224,9 +241,9 @@ private fun PlanningHeader(
       }
       val nextLabel = stringResource(R.string.planning_next_week)
       TextButton(
-          actions.onNextWeek,
+          actions.onNextPeriod,
           Modifier.testTag(C.Tag.planning_next).semantics { contentDescription = nextLabel },
-          enabled = state.canGoToNextWeek,
+          enabled = state.canGoToNextPeriod,
       ) {
         Text("›")
       }
@@ -374,12 +391,7 @@ internal fun PlanningAgenda(
     }
     if (state.isNotShared && caregiverOf != null) {
       // Keep calendar navigation available without showing the patient's unshared entries.
-      Column(
-          Modifier.fillMaxWidth()
-              .then(
-                  if (header != null) Modifier.verticalScroll(rememberScrollState()) else Modifier
-              )
-      ) {
+      Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
         header?.invoke()
         NotSharedMessage(caregiverOf, CarePermission.PLANNING)
       }

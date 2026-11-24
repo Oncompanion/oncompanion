@@ -8,41 +8,33 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.oncompanion.domain.carecircle.CareAccess
 import com.github.se.oncompanion.domain.carecircle.ResolveCareCircleAccess
-import com.github.se.oncompanion.domain.medication.DoseCount
+import com.github.se.oncompanion.domain.medication.DailyDoses
 import com.github.se.oncompanion.domain.planning.CarePlanning
 import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
-import com.github.se.oncompanion.domain.planning.endOrDefault
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.signedInUid
 import com.github.se.oncompanion.model.carecircle.CarePermission
-import com.github.se.oncompanion.model.medication.MedicationRepository
-import com.github.se.oncompanion.model.medication.MedicationRepositoryProvider
-import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
 import com.github.se.oncompanion.model.medication.TakenDosesRepository
 import com.github.se.oncompanion.model.medication.TakenDosesRepositoryProvider
 import com.github.se.oncompanion.model.planning.PlanningItem
-import com.github.se.oncompanion.model.planning.PlanningRange
 import com.github.se.oncompanion.model.planning.PlanningSource
 import com.github.se.oncompanion.model.planning.PlanningTiming
+import com.github.se.oncompanion.model.speech.SpeechRecognizer
+import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
 import com.github.se.oncompanion.model.user.UserProfileRepository
 import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import java.time.Clock
-import java.time.Duration
-import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.Period
 import java.time.ZoneId
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
@@ -129,6 +121,8 @@ data class NextUp(
  *   which its doses are saved
  * @property name its name and dosage (e.g. "Ondansetron 8 mg")
  * @property frequency the frequency recorded on the prescription, if any
+ * @property dailyDoses [frequency] as the card says it in its own words ("Once a day" for "1-0-0"),
+ *   or `null` to show it as written
  * @property dosesPerDay how many doses can be ticked today, read from [frequency]; `null` when
  *   there is nothing to tick (taken only if needed, a frequency that doesn't say a number) or
  *   today's ticks couldn't be read
@@ -139,9 +133,21 @@ data class TodayMedication(
     val medicationId: String,
     val name: String,
     val frequency: String? = null,
+    val dailyDoses: DailyDoses? = null,
     val dosesPerDay: Int? = null,
     val taken: Int = 0,
 )
+
+/**
+ * The sheet where the patient corrects how many doses of a medication taken several times a day
+ * they took today (#546). Nothing is saved until Done: a sheet closed any other way, or an app
+ * stopped with it open, leaves the saved count as it was.
+ *
+ * @property medication the medication corrected, as the card shows it now
+ * @property doses its doses a day, at least 2
+ * @property draft the count the patient set with − and +, from 0 to [doses]
+ */
+data class DosesSheet(val medication: TodayMedication, val doses: Int, val draft: Int)
 
 /**
  * What the Overview shows.
@@ -155,8 +161,8 @@ data class TodayMedication(
  * @property hasError true if it couldn't be loaded
  * @property isNotShared in caregiver mode, the patient doesn't share their planning: no entries
  * @property sharedSections in caregiver mode, the sections behind the shortcuts the patient shares
- * @property prescriptionsToConfirm for the patient, how many prescriptions a caregiver added wait
- *   for them (US-43), shown on the Prescriptions shortcut
+ * @property dosesSheet the sheet correcting a medication's doses, or `null` when it is closed
+ * @property canSpeak the phone can listen, so the check-in offers to speak a symptom (US-73)
  */
 data class OverviewUiState(
     val now: LocalDateTime,
@@ -169,7 +175,8 @@ data class OverviewUiState(
     val hasError: Boolean = false,
     val isNotShared: Boolean = false,
     val sharedSections: Set<CarePermission> = emptySet(),
-    val prescriptionsToConfirm: Int = 0,
+    val dosesSheet: DosesSheet? = null,
+    val canSpeak: Boolean = false,
 )
 
 /**
@@ -184,8 +191,9 @@ data class OverviewUiState(
  * @param zoneId the time zone the day is shown in
  * @param patientUid in caregiver mode, the patient whose day is shown; null for the user's own
  * @param resolveAccess which sections the patient shares, for the shortcuts
- * @param medicationRepository the patient's prescriptions, for how many wait for them
  * @param takenDosesRepository the doses the patient ticks on their medications (US-28)
+ * @param speechRecognizer the phone's recognizer, for whether the patient can speak a symptom;
+ *   `null` before the app installed it, so the check-in doesn't offer to speak
  */
 class OverviewViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
@@ -196,13 +204,15 @@ class OverviewViewModel(
     private val patientUid: String? = null,
     private val resolveAccess: ResolveCareCircleAccess =
         ResolveCareCircleAccess(auth = authRepository),
-    private val medicationRepository: MedicationRepository =
-        MedicationRepositoryProvider.repository,
     private val takenDosesRepository: TakenDosesRepository =
         TakenDosesRepositoryProvider.repository,
+    speechRecognizer: SpeechRecognizer? = SpeechRecognizerProvider.installed,
 ) : ViewModel() {
 
-  private val _uiState = MutableStateFlow(OverviewUiState(now = now()))
+  private val _uiState =
+      MutableStateFlow(
+          OverviewUiState(now = now(), canSpeak = speechRecognizer?.isAvailable() == true)
+      )
   val uiState: StateFlow<OverviewUiState> = _uiState.asStateFlow()
 
   private var dayObservation: Job? = null
@@ -220,9 +230,6 @@ class OverviewViewModel(
   /** Follows which sections the patient shares, in caregiver mode. */
   private var sharedObservation: Job? = null
 
-  /** Follows how many prescriptions wait for the patient, in patient mode. */
-  private var countObservation: Job? = null
-
   /**
    * The planning entries as the repository gave them; what they show depends on the time. A flow,
    * so [followToday] plans its next refresh again when they change.
@@ -232,28 +239,6 @@ class OverviewViewModel(
   init {
     loadFirstName()
     loadDay()
-  }
-
-  /**
-   * Follows how many prescriptions a caregiver added wait for the patient (US-43), from the
-   * device's cache when offline. It is only a reminder: if they can't be read, no badge shows until
-   * Retry.
-   */
-  private fun countPrescriptionsToConfirm() {
-    countObservation?.cancel()
-    val uid = authRepository.signedInUid(TAG) ?: return
-    countObservation = viewModelScope.launch {
-      try {
-        medicationRepository.observePrescriptions(uid).collect { prescriptions ->
-          val waiting = prescriptions.count { it.confirmation == PrescriptionConfirmation.PENDING }
-          _uiState.update { it.copy(prescriptionsToConfirm = waiting) }
-        }
-      } catch (e: CancellationException) {
-        throw e
-      } catch (e: Exception) {
-        Log.w(TAG, "Couldn't count the prescriptions to confirm", e)
-      }
-    }
   }
 
   /**
@@ -277,22 +262,21 @@ class OverviewViewModel(
   }
 
   /**
-   * Starts (or, after an error, restarts) observing the planning data from today to [LOOKAHEAD]
-   * later, so the next appointment is found even months ahead, as between two oncology check-ups.
-   * In caregiver mode, it also (re)starts following the shared sections; for the patient, how many
-   * prescriptions wait for them.
+   * Starts (or, after an error, restarts) observing the planning data of [overviewRange], so the
+   * next appointment is found even months ahead, as between two oncology check-ups. In caregiver
+   * mode, it also (re)starts following the shared sections; for the patient, the doses ticked
+   * today.
    */
   fun loadDay() {
     dayObservation?.cancel()
     val now = now()
     val today = now.toLocalDate()
-    if (patientUid != null) followSharedSections(patientUid)
-    else {
-      countPrescriptionsToConfirm()
-      followTakenDoses(today)
-    }
-    _uiState.update { it.copy(now = now, isLoading = true, hasError = false) }
-    val range = PlanningRange(today, today.plus(LOOKAHEAD), zoneId)
+    if (patientUid != null) followSharedSections(patientUid) else followTakenDoses(today)
+    // A draft was for the day it was opened on: at midnight it would be saved on the new day. The
+    // planning's loading state also empties today's medications, which closes it, but that's not
+    // what the sheet should rely on
+    _uiState.update { it.copy(now = now, isLoading = true, hasError = false, dosesSheet = null) }
+    val range = overviewRange(today, zoneId)
     dayObservation = viewModelScope.launch {
       observePlanning(patientUid, range)
           .catch { e ->
@@ -329,100 +313,49 @@ class OverviewViewModel(
 
   /**
    * Keeps the day right while the Overview is open: refreshes the time now, then each time what it
-   * shows changes (see [nextChangeAfter]), until the returned job is cancelled. The screen runs it
-   * while it is shown. When the entries change, the next refresh is planned again from them.
+   * shows changes (see [followDay]), until the returned job is cancelled. The screen runs it while
+   * it is shown. When the entries change, the next refresh is planned again from them.
    */
-  fun followToday(): Job = viewModelScope.launch {
-    items.collectLatest { planned ->
-      while (true) {
-        refreshNow()
-        val now = clock.instant()
-        val wait = Duration.between(now, nextChangeAfter(planned, now))
-        // Rounded up, so it never wakes just before the change; at least 1 ms, so it always
-        // suspends even if the clock moved
-        delay(((wait.toNanos() + NANOS_PER_MILLI - 1) / NANOS_PER_MILLI).coerceAtLeast(1))
-      }
-    }
-  }
-
-  /**
-   * The next moment the Overview's content changes after [now]: an entry starts (Next up moves on,
-   * an entry is happening), an entry ends (it is done), or midnight (the new day loads). Midnight
-   * is always one of them, so it is never more than a day away. In instants, so the hour repeated
-   * when the clocks go back can't give a moment already past.
-   */
-  private fun nextChangeAfter(planned: List<PlanningItem>, now: Instant): Instant =
-      (planned
-              .mapNotNull { it.timing as? PlanningTiming.Timed }
-              .flatMap { listOf(it.instant, it.endOrDefault()) } +
-              now.atZone(zoneId).toLocalDate().plusDays(1).atStartOfDay(zoneId).toInstant())
-          .filter { it.isAfter(now) }
-          .min()
+  fun followToday(): Job = viewModelScope.followDay(items, clock, zoneId, ::refreshNow)
 
   private fun now(): LocalDateTime = LocalDateTime.ofInstant(clock.instant(), zoneId)
 
   /** The next appointment and today's entries from [planned], at [now]. */
   private fun OverviewUiState.withItems(planned: List<PlanningItem>, now: LocalDateTime) =
       copy(
-          nextAppointment = nextAppointmentOf(planned, now),
-          nextUp = nextUpOf(planned, now),
-          todayMedications = medicationsOf(planned, now),
-          todayEntries = entriesOf(planned, now),
+              nextAppointment = nextAppointmentOf(planned, now),
+              nextUp = nextUpOf(planned, now, zoneId),
+              todayEntries = entriesOf(planned, now),
+          )
+          .withMedications(todayMedicationsOf(planned, now, zoneId, takenToday))
+
+  /**
+   * [medications] shown, and the sheet kept only while its medication is still there with several
+   * doses to tick (a caregiver can delete the prescription, or its frequency can change), its draft
+   * within the new count.
+   */
+  private fun OverviewUiState.withMedications(medications: List<TodayMedication>) =
+      copy(
+          todayMedications = medications,
+          dosesSheet =
+              dosesSheet?.let { sheet ->
+                sheetOf(
+                    medications.find { it.medicationId == sheet.medication.medicationId },
+                    sheet.draft,
+                )
+              },
       )
 
   /**
-   * The next event or appointment that hasn't started yet, today or on a later day, so a check-up
-   * weeks away still shows. An event is in the planning only once the patient registered for it, so
-   * a later one shows too.
+   * The sheet for [medication], with [draft] (its count saved for `null`), or `null` if it can't be
+   * corrected there: unknown, nothing to tick, or taken once a day.
    */
-  private fun nextUpOf(planned: List<PlanningItem>, now: LocalDateTime): NextUp? {
-    val next =
-        planned
-            .mapNotNull { item ->
-              item.startIn()?.takeIf { it.isAfter(now) }?.let { start -> item to start }
-            }
-            .minByOrNull { it.second }
-    return next?.let { (item, start) ->
-      when (val source = item.source) {
-        is PlanningSource.Appointment ->
-            NextUp(
-                TodayItemKind.APPOINTMENT,
-                source.appointmentId,
-                item.title,
-                start,
-                item.subtitle,
-            )
-        is PlanningSource.Event ->
-            NextUp(TodayItemKind.EVENT, source.eventId, item.title, start, item.subtitle)
-        // A medication has no time, so it's never upcoming
-        is PlanningSource.Medication -> null
-      }
-    }
+  private fun sheetOf(medication: TodayMedication?, draft: Int?): DosesSheet? {
+    if (medication == null) return null
+    val doses = medication.dosesPerDay ?: return null
+    if (doses < 2) return null
+    return DosesSheet(medication, doses, draft?.coerceAtMost(doses) ?: medication.taken)
   }
-
-  /**
-   * Today's medications, with their dosage after their name and the doses ticked. One a caregiver
-   * added stays off the Overview until the patient confirms its prescription: it isn't part of
-   * their treatment before (Planning still lists it).
-   */
-  private fun medicationsOf(planned: List<PlanningItem>, now: LocalDateTime) =
-      planned
-          .filter { it.isConfirmed && it.timing.dateIn(zoneId) == now.toLocalDate() }
-          .mapNotNull { item ->
-            val source = item.source as? PlanningSource.Medication ?: return@mapNotNull null
-            val frequency = item.frequency?.takeIf { it.isNotBlank() }
-            val doses = DoseCount.of(frequency).takeIf { takenToday != null }
-            TodayMedication(
-                key = item.key,
-                medicationId = source.medicationId,
-                name =
-                    listOfNotNull(item.title, item.dosage?.takeIf { it.isNotBlank() })
-                        .joinToString(" "),
-                frequency = frequency,
-                dosesPerDay = doses,
-                taken = doses?.let { takenToday?.get(source.medicationId)?.coerceIn(0, it) } ?: 0,
-            )
-          }
 
   /**
    * Follows the doses the patient ticked on [day], in patient mode. If they can't be read, nothing
@@ -448,7 +381,9 @@ class OverviewViewModel(
   }
 
   private fun refreshMedications() {
-    _uiState.update { it.copy(todayMedications = medicationsOf(items.value, it.now)) }
+    _uiState.update {
+      it.withMedications(todayMedicationsOf(items.value, it.now, zoneId, takenToday))
+    }
   }
 
   /**
@@ -463,6 +398,45 @@ class OverviewViewModel(
         if (doses == 1) 1 - medication.taken.coerceAtMost(1)
         else (medication.taken + 1).coerceAtMost(doses)
     if (count != medication.taken) saveTaken(medicationId, count)
+  }
+
+  /**
+   * Opens the sheet to correct the doses of [medicationId], from the count saved. Only for a
+   * medication taken several times a day whose ticks are known: one taken once a day toggles.
+   */
+  fun openDoses(medicationId: String) {
+    _uiState.update { state ->
+      val sheet = sheetOf(state.todayMedications.find { it.medicationId == medicationId }, null)
+      if (sheet == null) state else state.copy(dosesSheet = sheet)
+    }
+  }
+
+  /** One dose fewer in the sheet's draft, not below 0. */
+  fun lessDoses() = changeDraft(-1)
+
+  /** One dose more in the sheet's draft, up to the doses a day. */
+  fun moreDoses() = changeDraft(1)
+
+  private fun changeDraft(by: Int) {
+    _uiState.update { state ->
+      val sheet = state.dosesSheet ?: return@update state
+      state.copy(dosesSheet = sheet.copy(draft = (sheet.draft + by).coerceIn(0, sheet.doses)))
+    }
+  }
+
+  /**
+   * Done: closes the sheet and saves its draft, if it differs from the count saved now (another
+   * phone may have ticked since it opened).
+   */
+  fun saveDoses() {
+    val sheet = _uiState.value.dosesSheet ?: return
+    closeDoses()
+    if (sheet.draft != sheet.medication.taken) saveTaken(sheet.medication.medicationId, sheet.draft)
+  }
+
+  /** Closes the sheet without saving: swiped down, Back, or a tap outside it. */
+  fun closeDoses() {
+    _uiState.update { it.copy(dosesSheet = null) }
   }
 
   /** Saves [count] doses of [medicationId] on the day shown; the repository reports a rejection. */
@@ -489,7 +463,7 @@ class OverviewViewModel(
       planned
           .mapNotNull { item ->
             (item.source as? PlanningSource.Appointment)?.let { source ->
-              item.startIn()?.let { start ->
+              item.startIn(zoneId)?.let { start ->
                 NextAppointment(source.appointmentId, item.title, start, item.subtitle)
               }
             }
@@ -507,13 +481,15 @@ class OverviewViewModel(
     val ofToday = planned.filter { it.timing.dateIn(zoneId) == today }
     val untimed = ofToday.filter { it.timing is PlanningTiming.DateOnly }
     val timed =
-        ofToday.mapNotNull { item -> item.startIn()?.let { item to it } }.sortedBy { it.second }
+        ofToday
+            .mapNotNull { item -> item.startIn(zoneId)?.let { item to it } }
+            .sortedBy { it.second }
     val next = timed.firstOrNull { (_, start) -> start.isAfter(now) }?.first
     return untimed.map { it.toEntry(time = null, status = null) } +
         timed.map { (item, start) ->
           val status =
               when {
-                !item.endIn().isAfter(now) -> TodayItemStatus.DONE
+                !item.endIn(zoneId).isAfter(now) -> TodayItemStatus.DONE
                 !start.isAfter(now) -> TodayItemStatus.NOW
                 item == next -> TodayItemStatus.NEXT
                 else -> TodayItemStatus.LATER
@@ -521,14 +497,6 @@ class OverviewViewModel(
           item.toEntry(time = start.toLocalTime(), status = status)
         }
   }
-
-  /** When a timed entry ends, in [zoneId]. */
-  private fun PlanningItem.endIn(): LocalDateTime =
-      LocalDateTime.ofInstant((timing as PlanningTiming.Timed).endOrDefault(), zoneId)
-
-  /** When a timed entry starts, in [zoneId]; `null` for an entry without a time. */
-  private fun PlanningItem.startIn(): LocalDateTime? =
-      (timing as? PlanningTiming.Timed)?.let { LocalDateTime.ofInstant(it.instant, zoneId) }
 
   private fun PlanningItem.toEntry(time: LocalTime?, status: TodayItemStatus?) =
       TodayEntry(
@@ -576,10 +544,5 @@ class OverviewViewModel(
 
   private companion object {
     const val TAG = "OverviewViewModel"
-
-    /** How far ahead the next appointment is looked for. */
-    val LOOKAHEAD: Period = Period.ofYears(1)
-
-    private const val NANOS_PER_MILLI = 1_000_000L
   }
 }

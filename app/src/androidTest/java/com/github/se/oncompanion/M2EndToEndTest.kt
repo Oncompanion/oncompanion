@@ -29,6 +29,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.domain.auth.SignOutProvider
 import com.github.se.oncompanion.domain.auth.SignOutState
 import com.github.se.oncompanion.model.carecircle.CareCircleInvite
+import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.medication.Medication
 import com.github.se.oncompanion.model.medication.MedicationRepositoryFirestore
 import com.github.se.oncompanion.model.medication.Prescription
@@ -36,6 +37,7 @@ import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.auth.GoogleCredentialProvider
 import com.github.se.oncompanion.ui.navigation.Route
+import com.github.se.oncompanion.ui.navigation.Tab
 import com.github.se.oncompanion.utils.EmulatorGoogleSignIn
 import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.EndToEndTestDriver
@@ -195,9 +197,11 @@ class M2EndToEndTest {
     signOutThroughProfile()
 
     signIn(caregiver, caregiverTitle())
-    // Both shortcuts use the same shared-sections snapshot; Planning's spinner is independent.
+    // The shortcut and the journal card use the same shared-sections snapshot; Planning's spinner
+    // is independent. The journal is private now, so its card says so and has no "Full journal"
     ui.tag(C.Tag.overview_shortcut_prescriptions).assertIsDisplayed()
-    compose.onNodeWithTag(C.Tag.overview_shortcut_symptoms).assertDoesNotExist()
+    ui.tag(C.Tag.caregiverOverviewPrivate(CarePermission.SYMPTOMS.name)).assertIsDisplayed()
+    compose.onNodeWithTag(C.Tag.caregiver_overview_full_journal).assertDoesNotExist()
     // Recompose without recreating the activity: its SessionStores retains the session's
     // CaregiverModeViewModel and chosen patient. Inject only now: retaining an external controller
     // across sign-out would interfere with the session boundary's navigation-store cleanup.
@@ -337,7 +341,8 @@ class M2EndToEndTest {
       repository.addPrescription(patientUid, prescriptionFixture(prescriptionId, caregiverUid))
       withTimeout(10_000) { FirebaseEmulator.firestore.waitForPendingWrites().await() }
     }
-    ui.open(C.Tag.overview_shortcut_prescriptions, hasTestTag(C.Tag.prescriptions_list))
+    // The patient takes the confirmed medication today: its card opens the prescriptions
+    ui.open(C.Tag.caregiver_overview_prescriptions_link, hasTestTag(C.Tag.prescriptions_list))
     ui.open(C.Tag.prescriptionsItem(prescriptionId), hasTestTag(C.Tag.prescription_detail_content))
     ui.waitFor(
         hasTestTag(C.Tag.added_by) and
@@ -418,7 +423,8 @@ class M2EndToEndTest {
     signOutThroughProfile()
     credentials.select(patient)
     ui.open(C.Tag.google_sign_in_button, patientGreeting())
-    ui.open(C.Tag.overview_shortcut_prescriptions, hasTestTag(C.Tag.prescriptions_list))
+    // The patient's prescriptions are a tab; the caregiver's card links to them from their Overview
+    ui.open(Tab.PRESCRIPTIONS.testTag, hasTestTag(C.Tag.prescriptions_list))
     ui.open(C.Tag.prescriptionsItem(confirmedId), hasTestTag(C.Tag.prescription_detail_content))
     ui.waitFor(
             hasTestTag(C.Tag.edited_by) and
@@ -432,11 +438,12 @@ class M2EndToEndTest {
     ui.open(C.Tag.prescriptionsItem(prescriptionId), hasTestTag(C.Tag.prescription_confirm_notice))
     ui.waitFor(hasText("Dr Updated")).assertIsDisplayed()
     ui.open(C.Tag.prescription_form_close_button, hasTestTag(C.Tag.prescriptions_list))
-    ui.open(C.Tag.prescriptions_back_button, patientGreeting())
+    ui.open(Tab.OVERVIEW.testTag, patientGreeting())
     signOutThroughProfile()
     credentials.select(caregiver)
     ui.open(C.Tag.google_sign_in_button, caregiverTitle())
-    ui.open(C.Tag.overview_shortcut_prescriptions, hasTestTag(C.Tag.prescriptions_list))
+    // The patient takes the confirmed medication today: its card opens the prescriptions
+    ui.open(C.Tag.caregiver_overview_prescriptions_link, hasTestTag(C.Tag.prescriptions_list))
     ui.open(C.Tag.prescriptionsItem(prescriptionId), hasTestTag(C.Tag.prescription_detail_content))
     ui.open(C.Tag.prescription_detail_delete_button, hasTestTag(C.Tag.prescription_delete_dialog))
     ui.waitFor(
@@ -521,10 +528,13 @@ class M2EndToEndTest {
     checkNotNull(account.uid) { "The new account wasn't recorded" }
   }
 
-  /** The patient opens the journal from the check-in's "Journal ›", a caregiver from its tile. */
+  /**
+   * The patient opens the journal from the check-in's "Journal ›", a caregiver from "Full journal
+   * ›".
+   */
   private fun openSymptoms(asPatient: Boolean) =
       ui.open(
-          if (asPatient) C.Tag.overview_journal_link else C.Tag.overview_shortcut_symptoms,
+          if (asPatient) C.Tag.overview_journal_link else C.Tag.caregiver_overview_full_journal,
           hasTestTag(C.Tag.symptom_journal_add),
       )
 
@@ -746,9 +756,10 @@ class M2EndToEndTest {
 
   private fun patientGreeting() = hasTestTag(C.Tag.overview_greeting) and text(patient.firstName)
 
+  /** "Anne's day" on the caregiver's own Overview. */
   private fun caregiverTitle() =
-      hasTestTag(C.Tag.overview_whose_care) and
-          text(compose.activity.getString(R.string.overview_care_of, patient.firstName))
+      hasTestTag(C.Tag.caregiver_overview_day_title) and
+          text(compose.activity.getString(R.string.caregiver_overview_day, patient.firstName))
 
   private fun text(value: String) =
       hasText(value, substring = true) or hasAnyDescendant(hasText(value, substring = true))

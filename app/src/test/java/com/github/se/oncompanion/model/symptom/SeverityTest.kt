@@ -49,6 +49,8 @@ class SeverityTest {
 
     assertEquals(Severity.SEVERE, entry.severity)
     assertEquals(Severity.MILD, entry.copy(intensity = 1).severity)
+    // With a strength per symptom, each one has its own severity: the entry has none
+    assertNull(entry.copy(strengths = mapOf(SymptomType.PAIN to 2)).severity)
   }
 
   @Test

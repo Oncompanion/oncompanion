@@ -33,6 +33,9 @@ enum class Severity {
   }
 }
 
-/** The [Severity] of this entry's intensity, or `null` if the user didn't give one. */
+/**
+ * The [Severity] of this entry's [SymptomEntry.overallIntensity], or `null` if it has none (no
+ * intensity given, or one strength per symptom).
+ */
 val SymptomEntry.severity: Severity?
-  get() = intensity?.let(Severity::of)
+  get() = overallIntensity()?.let(Severity::of)

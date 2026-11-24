@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -11,7 +12,6 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -86,6 +86,7 @@ import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.LakeSnackbarHost
 import com.github.se.oncompanion.ui.common.LakeTextField
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
+import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.PickerTestTags
 import com.github.se.oncompanion.ui.common.SaveButton
 import com.github.se.oncompanion.ui.common.SavePhase
@@ -159,6 +160,11 @@ fun AddSymptomScreen(
     onPauseOrDispose {}
   }
 
+  // Opened from "Speak how you feel" on the Overview (US-73): starts dictating once shown
+  LaunchedEffect(viewModel) {
+    viewModel.onOpened(context.hasPermission(Manifest.permission.RECORD_AUDIO))
+  }
+
   // Tells the view model when the phone's download dialog covers the screen, and when it closes
   LifecycleResumeEffect(viewModel) {
     viewModel.onScreenShown()
@@ -184,11 +190,15 @@ fun AddSymptomScreen(
   // Dictating replaces the form until the patient is done or goes back to it
   val voice = uiState.voice
   if (voice != null) {
-    BackHandler(onBack = viewModel::cancelVoice)
+    // Opened from the Overview to speak, closing goes back there rather than to an empty form
+    val closeVoice = if (uiState.leavesOnClose) onBack else viewModel::cancelVoice
+    BackHandler(onBack = closeVoice)
     VoiceSymptomContent(
         voice = voice,
         today = uiState.now.toLocalDate(),
-        onClose = viewModel::cancelVoice,
+        onClose = closeVoice,
+        onTypeInstead = viewModel::cancelVoice,
+        leavesOnClose = uiState.leavesOnClose,
         onAllowMicrophone = { microphone.launch(Manifest.permission.RECORD_AUDIO) },
         onOpenSettings = { context.startActivity(appSettingsIntent(context)) },
         onDone = viewModel::onDone,
@@ -288,7 +298,7 @@ fun AddSymptomContent(
             )
           }
       uiState.hasLoadError ->
-          CenteredMessage(Modifier.padding(innerPadding)) {
+          MessageArea(Modifier.padding(innerPadding)) {
             LakeMessageState(
                 title = stringResource(R.string.symptom_edit_error_title),
                 message = stringResource(R.string.symptom_edit_error_hint),
@@ -299,7 +309,7 @@ fun AddSymptomContent(
             )
           }
       uiState.isNotFound ->
-          CenteredMessage(Modifier.padding(innerPadding)) {
+          MessageArea(Modifier.padding(innerPadding)) {
             LakeMessageState(
                 title = stringResource(R.string.symptom_detail_not_found_title),
                 message = stringResource(R.string.symptom_detail_not_found_hint),
@@ -323,22 +333,6 @@ fun AddSymptomContent(
               onSave = onSave,
               modifier = Modifier.padding(innerPadding),
           )
-    }
-  }
-}
-
-/**
- * Centers a message in the space under the top bar, and lets it scroll when it is taller than that
- * space (a phone held sideways under the lake band), so its button can still be reached.
- */
-@Composable
-private fun CenteredMessage(modifier: Modifier, content: @Composable () -> Unit) {
-  BoxWithConstraints(modifier.fillMaxSize()) {
-    Box(
-        Modifier.verticalScroll(rememberScrollState()).fillMaxWidth().heightIn(min = maxHeight),
-        contentAlignment = Alignment.Center,
-    ) {
-      content()
     }
   }
 }

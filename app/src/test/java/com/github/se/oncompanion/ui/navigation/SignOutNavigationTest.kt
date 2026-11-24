@@ -206,43 +206,45 @@ class SignOutNavigationTest {
     compose.onNodeWithTag(C.Tag.sign_in_screen).assertIsDisplayed()
   }
 
+  /** A ViewModel kept by the back stack entry of [screen], as the tab's own would be. */
+  private fun cachedIn(screen: String): CachedTabViewModel =
+      ViewModelProvider(
+          nav.getBackStackEntry(screen),
+          object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T = CachedTabViewModel() as T
+          },
+      )[CachedTabViewModel::class.java]
+
   @Test
   fun signOutDestroysSavedTabViewModelsAndAnotherSessionCannotRestoreThem() {
     content()
     lateinit var cached: CachedTabViewModel
+    lateinit var cachedPrescriptions: CachedTabViewModel
     compose.runOnIdle { actions.navigateToTab(Route.PLANNING) }
     compose.runOnIdle {
-      cached =
-          ViewModelProvider(
-              nav.getBackStackEntry(Screen.PLANNING),
-              object : ViewModelProvider.Factory {
-                @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                    CachedTabViewModel() as T
-              },
-          )[CachedTabViewModel::class.java]
+      cached = cachedIn(Screen.PLANNING)
+      actions.navigateToTab(Route.PRESCRIPTIONS)
+    }
+    compose.runOnIdle {
+      cachedPrescriptions = cachedIn(Screen.PRESCRIPTIONS)
       actions.navigateToTab(Route.EVENTS)
     }
     compose.runOnIdle { actions.navigateToTab(Route.OVERVIEW) }
-    compose.runOnIdle { assertFalse(cached.cleared) }
+    compose.runOnIdle { assertFalse(cached.cleared || cachedPrescriptions.cleared) }
     signOut()
     compose.runOnIdle {
       assertTrue("Saved Planning ViewModel still retains the old session", cached.cleared)
+      assertTrue(
+          "Saved Prescriptions ViewModel still retains the old session",
+          cachedPrescriptions.cleared,
+      )
       runBlocking { auth.signInWithGoogle("two") }
       actions.navigateAndClearBackStack(Route.OVERVIEW)
       actions.navigateToTab(Route.PLANNING)
     }
     compose.runOnIdle {
-      val entry = nav.getBackStackEntry(Screen.PLANNING)
-      val fresh =
-          ViewModelProvider(
-              entry,
-              object : ViewModelProvider.Factory {
-                @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                    CachedTabViewModel() as T
-              },
-          )[CachedTabViewModel::class.java]
+      val fresh = cachedIn(Screen.PLANNING)
       assertNotSame(cached, fresh)
       assertFalse(fresh.cleared)
     }
