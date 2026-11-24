@@ -201,4 +201,22 @@ class MedicationSecurityRulesTest {
     denied(prescriptions().document("presc-1").get(Source.SERVER))
     denied(prescriptions().document("new").set(validPrescription()))
   }
+
+  // ---- reminders (US-32) ----
+
+  @Test
+  fun reminders_areAMapOfAtMost20Medications_onAConfirmedPrescription(): Unit = runBlocking {
+    val doc = prescriptions().document("presc-reminders")
+    val twenty = (1..20).associate { "med-$it" to listOf("09:00") }
+    allowed(doc.set(prescriptionWith("reminders", mapOf("med-1" to listOf("09:00", "18:00")))))
+    allowed(doc.update("reminders", twenty))
+    allowed(doc.update("reminders", FieldValue.delete()))
+
+    denied(doc.update("reminders", twenty + ("med-21" to listOf("09:00"))))
+    denied(doc.update("reminders", listOf("09:00")))
+    denied(doc.update("reminders", "09:00"))
+    // Not on one waiting for the patient or rejected (only a caregiver's can be, see
+    // CaregiverPrescriptionSecurityRulesTest); the patient's own is always confirmed
+    denied(doc.update(mapOf("confirmation" to "PENDING", "reminders" to twenty)))
+  }
 }

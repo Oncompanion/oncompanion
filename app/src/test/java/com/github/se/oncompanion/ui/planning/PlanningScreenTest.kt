@@ -5,15 +5,20 @@ package com.github.se.oncompanion.ui.planning
 
 import android.content.Context
 import android.provider.Settings
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningSource
@@ -80,7 +85,6 @@ class PlanningScreenTest {
   ) =
       PlanningUiState(
           date,
-          LocalDate.of(2026, 9, 28),
           untimedItems = items.filter { it.timing is PlanningTiming.DateOnly },
           scheduledItems = items.filter { it.timing is PlanningTiming.Timed },
           isLoading = loading,
@@ -200,7 +204,7 @@ class PlanningScreenTest {
   @Test
   fun upperBoundaryDisablesNextWeekAndUnsupportedDays() {
     val last = java.time.LocalDate.of(9999, 12, 31)
-    render(PlanningUiState(last, last.minusDays(4), isLoading = false))
+    render(PlanningUiState(last, isLoading = false))
     compose.onNodeWithTag(C.Tag.planning_next).assertIsNotEnabled()
     compose
         .onNodeWithTag(C.Tag.planningDay("+10000-01-01"))
@@ -212,7 +216,7 @@ class PlanningScreenTest {
   @Test
   fun lowerBoundaryDisablesPreviousWeek() {
     val first = java.time.LocalDate.of(1, 1, 1)
-    render(PlanningUiState(first, first, isLoading = false))
+    render(PlanningUiState(first, isLoading = false))
     compose.onNodeWithTag(C.Tag.planning_previous).assertIsNotEnabled()
   }
 
@@ -390,16 +394,25 @@ class PlanningScreenTest {
 
   // ----- Caregiver mode (US-20) -----
 
-  private fun renderCaregiver(state: PlanningUiState) {
+  private fun renderCaregiver(
+      state: PlanningUiState,
+      fontScale: Float = 1f,
+      bottomBar: @Composable () -> Unit = {},
+  ) {
     compose.setContent {
-      OncompanionTheme {
-        PlanningContent(
-            state,
-            date,
-            zone,
-            PlanningActions({}, {}, {}, {}, {}),
-            caregiverOf = "Anne",
-        )
+      CompositionLocalProvider(
+          LocalDensity provides Density(LocalDensity.current.density, fontScale)
+      ) {
+        OncompanionTheme {
+          PlanningContent(
+              state,
+              date,
+              zone,
+              PlanningActions({}, {}, {}, {}, {}),
+              bottomBar = bottomBar,
+              caregiverOf = "Anne",
+          )
+        }
       }
     }
   }
@@ -428,6 +441,32 @@ class PlanningScreenTest {
     renderCaregiver(state().copy(isNotShared = true))
 
     compose.onNodeWithTag(C.Tag.not_shared).performScrollTo().assertIsFullyVisible()
+  }
+
+  @Test
+  @Config(qualifiers = "w320dp-h500dp-port-xhdpi")
+  fun caregiver_planningNotShared_scrollsBelowPinnedCalendarAtLargeFont() {
+    renderCaregiver(
+        state().copy(isNotShared = true),
+        fontScale = 2f,
+        bottomBar = { Spacer(Modifier.height(200.dp)) },
+    )
+
+    val calendar = compose.onNodeWithTag(C.Tag.planning_week)
+    val message = compose.onNodeWithTag(C.Tag.not_shared).fetchSemanticsNode()
+    assertTrue(
+        "Message should start clipped below the calendar: ${message.boundsInRoot} vs ${message.size}",
+        message.boundsInRoot.height < message.size.height,
+    )
+    val calendarTop = calendar.fetchSemanticsNode().positionInRoot.y
+
+    // The whole message is taller than the agenda, so scroll its last text into view.
+    compose
+        .onNodeWithText("Only they can choose what you see.")
+        .performScrollTo()
+        .assertIsFullyVisible()
+    calendar.assertIsFullyVisible()
+    assertEquals(calendarTop, calendar.fetchSemanticsNode().positionInRoot.y)
   }
 
   // ----- A caregiver adding appointments (US-41) -----

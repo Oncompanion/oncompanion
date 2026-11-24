@@ -15,8 +15,8 @@ data class ReadScan(val prescription: ScannedPrescription, val photo: File)
  * only pass text routes to each other. Shared by the prescriptions screens.
  *
  * It owns the photo from then on, until the form is saved or closed, so a later version can keep it
- * on the phone instead of deleting it. It is deleted when the user leaves the prescriptions screens
- * too, so it never stays behind.
+ * on the phone instead of deleting it. It is also deleted when the prescriptions graph ends (Back
+ * from the list, or signing out), so it never stays behind.
  */
 class ScanHandoffViewModel(private val photoStore: ScanPhotoStore) : ViewModel() {
 
