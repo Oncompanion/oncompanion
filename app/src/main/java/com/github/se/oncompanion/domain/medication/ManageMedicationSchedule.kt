@@ -43,7 +43,8 @@ class ManageMedicationSchedule(
    *
    * @throws IllegalArgumentException if the draft is not [PrescriptionDraft.isValid], if one of its
    *   medications already has an ID (it comes from a saved prescription, which must be changed, not
-   *   added a second time), or if only one of [addedBy] and [addedByName] is given
+   *   added a second time), if only one of [addedBy] and [addedByName] is given, or if a caregiver
+   *   gives reminder times: only the patient chooses them, once they confirmed it (US-32)
    */
   suspend fun add(
       uid: String,
@@ -55,6 +56,9 @@ class ManageMedicationSchedule(
       Signature(it, requireNotNull(addedByName) { "A caregiver signs with both" })
     }
     require(signature != null || addedByName == null) { "A caregiver signs with both" }
+    require(signature == null || draft.medications.all { it.reminderTimes.isEmpty() }) {
+      "Only the patient chooses reminders"
+    }
     // Adding a draft made from a saved prescription would leave two prescriptions sharing the
     // same medication IDs, the old one next to the new one
     require(draft.medications.all { it.id == null }) {

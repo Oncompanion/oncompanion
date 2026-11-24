@@ -137,6 +137,7 @@ object C {
     const val overview_check_in = "overview_check_in"
     const val overview_check_in_more = "overview_check_in_more"
     const val overview_journal_link = "overview_journal_link"
+    const val overview_speak = "overview_speak"
 
     // Caregiver Overview
     const val caregiver_overview_screen = "caregiver_overview_screen"
@@ -145,6 +146,8 @@ object C {
     const val caregiver_overview_loading = "caregiver_overview_loading"
     const val caregiver_overview_error = "caregiver_overview_error"
     const val caregiver_overview_retry = "caregiver_overview_retry"
+    const val caregiver_overview_journal = "caregiver_overview_journal"
+    const val caregiver_overview_full_journal = "caregiver_overview_full_journal"
 
     const val bottom_navigation_bar = "bottom_navigation_bar"
     const val bottom_navigation_tab_overview = "bottom_navigation_tab_overview"
@@ -233,6 +236,7 @@ object C {
     const val symptom_edit_not_found = "symptom_edit_not_found"
     const val symptom_detail_edit = "symptom_detail_edit"
     const val symptom_detail_symptoms = "symptom_detail_symptoms"
+
     const val symptom_add_speak = "symptom_add_speak"
     const val symptom_add_drafted = "symptom_add_drafted"
     const val symptom_voice_screen = "symptom_voice_screen"
@@ -340,6 +344,12 @@ object C {
 
     /** The chip of a symptom type on the add screen; [type] is its enum name, e.g. `FATIGUE`. */
     fun symptomAddType(type: String) = "symptom_add_type_$type"
+
+    /**
+     * The strength bar of a symptom on its detail, by
+     * [com.github.se.oncompanion.model.symptom.SymptomType] name.
+     */
+    fun symptomDetailStrengthBar(type: String) = "symptom_detail_strength_bar_$type"
 
     // Care circle
     const val care_circle_back_button = "care_circle_back_button"
