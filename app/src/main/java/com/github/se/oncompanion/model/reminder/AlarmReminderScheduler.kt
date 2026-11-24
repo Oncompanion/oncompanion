@@ -70,7 +70,7 @@ class AlarmReminderScheduler(context: Context) : ReminderScheduler {
       }
 
   internal companion object {
-    const val CHANNEL = "care_reminders"
+    const val CHANNEL = REMINDER_CHANNEL_ID
     const val TITLE = "reminder_title"
     const val TEXT = "reminder_text"
     const val VERSION = "reminder_version"

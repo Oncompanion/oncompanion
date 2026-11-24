@@ -265,12 +265,33 @@ and delivery also pass through `SessionAccess.immediate`. Appointment display te
 the system-owned PendingIntent, never this version store or logs. No network access is needed.
 The receiver ignores another account's alarm and fails closed during cleanup.
 
-This foundation is not yet called by appointment saves. Permission explanations/requests remain
-in the next #452 slice. Appointment reconciliation, saved reminder choices (#489), notification
-tap navigation, sign-out cancellation, restoring alarms after sign-in/device restart and clearing
-already displayed notifications on sign-out remain integration work under #453/#454. Until that
-work is tested, this PR does not activate reminders or claim complete account lifecycle support.
-Exact-alarm access is separate from Android notification permission; there is no inexact fallback.
+Permission UI (#452, stacked on #638) lives on Planning. `ReminderPermissionViewModel` observes
+all appointments of the signed-in patient, including caregiver additions, independently of the
+selected day. Only future appointments with a reminder other than None qualify. Account changes,
+missing/caregiver profiles and read failures hide the invitation; resume retries failed reads.
+The last eligible appointment expiring also hides it without user interaction.
+
+The view rechecks Android app/channel notification access and exact-alarm access on resume.
+`LakeBanner` supplies the approved quiet invitation and blocked notices inside the scrolling
+agenda. Only an explicit Enable tap requests Android 13+ notification permission. After one
+request, future taps open Android settings, avoiding repeated refusals or prompts on saves/edits.
+`ReminderPermissionHistory` separates OS request history from the screen. Its shared provider
+resolves the SharedPreferences adapter once using only the application context and preserves test
+fakes. The existing `reminder_permission_history/notifications_requested` key is retained, so an
+upgrade cannot cause another prompt. The local flag survives sign-out and records an OS request
+only, not an account preference or health data;
+Android notification access itself is device/app-wide. Channel blocking opens that channel's
+settings; exact-alarm access opens Alarms & reminders separately. Notification preference controls
+remain under #134. Layouts reuse Planning, without its unrelated Figma restyle.
+
+This foundation still does not schedule from appointment saves. Appointment reconciliation,
+saved reminder choices (#489), notification-tap navigation, sign-out cancellation, restoring
+alarms after sign-in/device restart and clearing displayed notifications on sign-out remain
+integration work under #453/#454. Granting permissions does not claim delivery. Figma frame #451/04 is planned for #453: its
+"Appointment reminders enabled" confirmation belongs after successful scheduling, not permission
+grants alone. The invitation uses timing-neutral wording, following #489's saved appointment
+choice. Exact-alarm
+access is separate from notification permission; there is no inexact fallback.
 
 ## Replacement messages on short windows
 
