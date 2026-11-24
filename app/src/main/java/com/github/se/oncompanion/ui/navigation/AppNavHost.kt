@@ -464,7 +464,11 @@ private fun SessionNavHost(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
-                  }
+                  },
+                  navArgument(Screen.SYMPTOM_SPEAK) {
+                    type = NavType.BoolType
+                    defaultValue = false
+                  },
               ),
       ) { entry ->
         // A check-in tile on the Overview opens the form with its symptom picked; an unknown name
@@ -473,6 +477,8 @@ private fun SessionNavHost(
             entry.arguments?.getString(Screen.SYMPTOM_TYPE)?.let { name ->
               SymptomType.entries.firstOrNull { it.name == name }
             }
+        // "Speak how you feel" on the Overview opens it already listening (US-73)
+        val speak = entry.arguments?.getBoolean(Screen.SYMPTOM_SPEAK) == true
         // Saving returns to where the form was opened: the journal, where the new entry is at the
         // top, or the Overview
         // In caregiver mode, the symptom goes in the chosen patient's journal (US-22)
@@ -485,6 +491,7 @@ private fun SessionNavHost(
                       patientUid = chosenPatient?.uid,
                       picked = picked,
                       symptomName = { app.getString(it.label) },
+                      speakOnOpen = speak,
                   )
                 },
             onBack = navigationActions::goBack,
