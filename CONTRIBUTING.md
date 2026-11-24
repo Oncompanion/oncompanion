@@ -28,7 +28,7 @@ oncompanion is used by people in cancer therapy. It is an organizational tool, *
    ./gradlew connectedCheck
    ```
 
-7. **Merge the latest `main`, then open a pull request** with the [template](.github/PULL_REQUEST_TEMPLATE.md) and `Closes #<issue>`, and move the issue to In review. Keep it small: about 400 lines of production code. A UI change shows screenshots, and a new screen, use case or repository updates its diagram in `docs/`. See [Pull requests](AGENTS.md#pull-requests).
+7. **Merge the latest `main`, then open a pull request** with the [template](.github/PULL_REQUEST_TEMPLATE.md) and `Closes #<issue>`, and move the issue to In review. If the task takes several pull requests, the earlier ones say `Part of #<issue>` and the issue stays In Development until the last one. Keep it small: about 400 lines of production code. A UI change shows screenshots, and a new screen, use case or repository updates its diagram in `docs/`. See [Pull requests](AGENTS.md#pull-requests).
 8. **Merge** once it has one approving review and a green CI, tests and SonarCloud included. Move the issue to Done in S<n> and fill in its Actual Time.
 
 If `strings.xml`, `C.kt`, `AppNavHost.kt` or `firestore.rules` conflict, keep both sides ([Avoiding merge conflicts](AGENTS.md#avoiding-merge-conflicts)).
