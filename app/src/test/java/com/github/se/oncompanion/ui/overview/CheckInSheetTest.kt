@@ -333,7 +333,7 @@ class CheckInSheetTest {
     assertTrue(overview.navigationActions.openedRoutes.isEmpty())
     // The check-in now says what was saved, instead of its tiles
     composeTestRule
-        .onNodeWithText("Nausea 4/10 · Fatigue 6/10")
+        .onNodeWithText("Nausea\u00A04/10 · Fatigue\u00A06/10")
         .performScrollTo()
         .assertIsDisplayed()
     node(C.Tag.overview_check_in).assertDoesNotExist()

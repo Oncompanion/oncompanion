@@ -246,21 +246,22 @@ class CaregiverOverviewScreenTest {
     compose.setContent { CaregiverOverviewContent(state, "Alex", CaregiverOverviewActions()) }
     val cases =
         listOf(
-            latest() to listOf("Yesterday at 18:10", "Nausea 7/10 · Fatigue 6/10"),
+            latest() to listOf("Yesterday at 18:10", "Nausea\u00A07/10 · Fatigue\u00A06/10"),
             latest(morning.withHour(8).withMinute(30)) to listOf("Today at 08:30"),
             latest(morning.minusDays(17).withHour(18).withMinute(10)) to
                 listOf("Wed 16 Sep at 18:10"),
             latest(morning.minusYears(1)) to listOf("Fri 3 Oct 2025 at 09:00"),
             // Saved before a strength per symptom: the entry's one intensity, once
             latest(symptoms = listOf(NAUSEA to null, FATIGUE to null), overall = 6) to
-                listOf("Nausea, Fatigue · 6/10"),
+                listOf("Nausea, Fatigue\u00A0·\u00A06/10"),
             latest(symptoms = listOf(NAUSEA to null, FATIGUE to null)) to listOf("Nausea, Fatigue"),
             // A strength for some symptoms only: the others by their name alone
             latest(symptoms = listOf(NAUSEA to null, FATIGUE to 4)) to
-                listOf("Nausea · Fatigue 4/10"),
+                listOf("Nausea · Fatigue\u00A04/10"),
             // "Other" by the name it was given, or "Other" in older entries
-            latest(symptoms = listOf(OTHER to 4), otherName = "Hiccups") to listOf("Hiccups 4/10"),
-            latest(symptoms = listOf(OTHER to 4)) to listOf("Other 4/10"),
+            latest(symptoms = listOf(OTHER to 4), otherName = "Hiccups") to
+                listOf("Hiccups\u00A04/10"),
+            latest(symptoms = listOf(OTHER to 4)) to listOf("Other\u00A04/10"),
         )
     for ((entry, texts) in cases) {
       state = shared.copy(latestEntry = entry)
@@ -280,14 +281,14 @@ class CaregiverOverviewScreenTest {
           CaregiverOverviewActions(onOpenJournal = { opened++ }),
       )
     }
-    assertTextInside("Nausea 7/10 · Fatigue 6/10", C.Tag.caregiver_overview_journal)
+    assertTextInside("Nausea\u00A07/10 · Fatigue\u00A06/10", C.Tag.caregiver_overview_journal)
 
     state = shared
     compose.waitForIdle()
 
     assertTextInside("Journal", C.Tag.caregiver_overview_journal)
     assertTextInside("No entries yet", C.Tag.caregiver_overview_journal)
-    compose.onNodeWithText("Nausea 7/10 · Fatigue 6/10").assertDoesNotExist()
+    compose.onNodeWithText("Nausea\u00A07/10 · Fatigue\u00A06/10").assertDoesNotExist()
     compose.onNodeWithTag(C.Tag.caregiver_overview_full_journal).performScrollTo().performClick()
     assertEquals(1, opened)
   }
@@ -626,7 +627,7 @@ class CaregiverOverviewScreenTest {
     compose.runOnUiThread(show)
     assertTextInside(yoga.title, C.Tag.overview_next_up)
     assertTextInside("1 of 3", C.Tag.overview_medications)
-    assertTextInside("Nausea 7/10", C.Tag.caregiver_overview_journal)
+    assertTextInside("Nausea\u00A07/10", C.Tag.caregiver_overview_journal)
     compose.onNodeWithText("Good morning, Sam").assertIsDisplayed()
     // A caregiver's bottom bar has no Prescriptions tab: they open the shared list from here
     compose.onNodeWithTag(C.Tag.bottom_navigation_tab_overview).assertIsDisplayed()
@@ -637,7 +638,7 @@ class CaregiverOverviewScreenTest {
     compose.runOnUiThread(show)
     assertTextInside(yoga.title, C.Tag.overview_next_up)
     assertTextInside("1 of 3", C.Tag.overview_medications)
-    assertTextInside("Nausea 7/10", C.Tag.caregiver_overview_journal)
+    assertTextInside("Nausea\u00A07/10", C.Tag.caregiver_overview_journal)
 
     // The patient stops sharing their planning, then their symptoms, while the Overview is open
     patient.shares(PRESCRIPTIONS, SYMPTOMS)
@@ -654,6 +655,6 @@ class CaregiverOverviewScreenTest {
         .onNodeWithTag(C.Tag.caregiverOverviewPrivate(SYMPTOMS.name))
         .performScrollTo()
         .assertIsDisplayed()
-    compose.onNodeWithText("Nausea 7/10").assertDoesNotExist()
+    compose.onNodeWithText("Nausea\u00A07/10").assertDoesNotExist()
   }
 }

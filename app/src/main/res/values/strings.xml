@@ -173,9 +173,9 @@
     <string name="overview_saved_log_another">Log another symptom or note</string>
     <string name="overview_saved_undo_failed">Couldn\'t undo it. Check your connection and try again.</string>
     <!-- A symptom and its strength out of 10, e.g. "Nausea 7/10" -->
-    <string name="overview_entry_strength">%1$s %2$d/10</string>
+    <string name="overview_entry_strength">%1$s\u00A0%2$d/10</string>
     <!-- The symptoms of an entry and its one intensity, e.g. "Nausea, Fatigue · 6/10" -->
-    <string name="overview_entry_overall">%1$s · %2$d/10</string>
+    <string name="overview_entry_overall">%1$s\u00A0·\u00A0%2$d/10</string>
 
     <!-- Caregiver Overview: the caregiver's own home, with the day of the patient they follow -->
     <string name="caregiver_overview_day">%1$s\'s day</string>

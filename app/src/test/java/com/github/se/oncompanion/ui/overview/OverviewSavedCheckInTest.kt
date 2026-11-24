@@ -5,6 +5,7 @@ package com.github.se.oncompanion.ui.overview
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -13,6 +14,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.navigation.NavHostController
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -102,7 +105,7 @@ class OverviewSavedCheckInTest {
     node(C.Tag.overview_saved).performScrollTo().assertIsDisplayed()
     composeTestRule.onNodeWithText(context.getString(R.string.overview_saved_title)).assertExists()
     composeTestRule.onNodeWithText("09:30").assertExists()
-    composeTestRule.onNodeWithText("Nausea 7/10 · Fatigue 6/10").assertExists()
+    composeTestRule.onNodeWithText("Nausea\u00A07/10 · Fatigue\u00A06/10").assertExists()
     node(C.Tag.overview_check_in).assertDoesNotExist()
 
     // Nothing saved today: the tiles
@@ -141,7 +144,7 @@ class OverviewSavedCheckInTest {
 
   private fun summaryBounds() =
       composeTestRule
-          .onNodeWithText("Nausea 7/10 · Fatigue 6/10", useUnmergedTree = true)
+          .onNodeWithText("Nausea\u00A07/10 · Fatigue\u00A06/10", useUnmergedTree = true)
           .getUnclippedBoundsInRoot()
 
   @Test
@@ -156,6 +159,14 @@ class OverviewSavedCheckInTest {
     assertTrue("$undo after $summary", undo.left >= summary.right)
     assertTrue("$undo beside $summary", undo.top < summary.bottom)
     assertEquals(undo.top, edit.top)
+    // Undo and Edit leave the summary room for a whole symptom per line: "Nausea 7/10 ·"
+    val layouts = mutableListOf<TextLayoutResult>()
+    composeTestRule
+        .onNodeWithText("Nausea\u00A07/10 · Fatigue\u00A06/10", useUnmergedTree = true)
+        .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+    val layout = layouts.single()
+    val firstLine = layout.layoutInput.text.text.substring(0, layout.getLineEnd(0))
+    assertTrue(firstLine, layout.lineCount <= 2 && firstLine.trimEnd().endsWith("·"))
   }
 
   @Test
@@ -284,7 +295,7 @@ class OverviewSavedCheckInTest {
     composeTestRule.runOnUiThread(overview.show)
 
     node(C.Tag.overview_saved).performScrollTo().assertIsDisplayed()
-    composeTestRule.onNodeWithText("Nausea 7/10 · Fatigue 6/10").assertExists()
+    composeTestRule.onNodeWithText("Nausea\u00A07/10 · Fatigue\u00A06/10").assertExists()
   }
 
   private companion object {
