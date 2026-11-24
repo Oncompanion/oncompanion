@@ -52,6 +52,9 @@ class AlarmReminderScheduler(context: Context) : ReminderScheduler {
     }
   }
 
+  override fun wasDelivered(key: ReminderKey): Boolean =
+      deliveries.wasDelivered(key.uri().toString())
+
   override fun cancel(key: ReminderKey) =
       synchronized(ReminderDeliveries.lock) {
         // Invalidate first: an already queued broadcast must not display after cancellation.

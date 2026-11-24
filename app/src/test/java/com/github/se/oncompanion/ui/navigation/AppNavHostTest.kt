@@ -168,6 +168,8 @@ class AppNavHostTest {
       credentialProvider: GoogleCredentialProvider = FakeGoogleCredentialProvider(),
       restoration: StateRestorationTester? = null,
       clock: Clock = Clock.systemDefaultZone(),
+      reminder: String? = null,
+      onReminderHandled: () -> Boolean = { true },
   ) {
     PlanningRepositoryProvider.repository = planningRepository
     // The Overview and Planning read the user's role: a test that sets no profiles gets a patient,
@@ -191,6 +193,8 @@ class AppNavHostTest {
             startRoute = startRoute ?: Route.AUTH,
             credentialProvider = credentialProvider,
             clock = clock,
+            reminderAppointment = reminder,
+            onReminderHandled = onReminderHandled,
         )
       }
       return
@@ -206,6 +210,8 @@ class AppNavHostTest {
             navController = navController,
             credentialProvider = credentialProvider,
             clock = clock,
+            reminderAppointment = reminder,
+            onReminderHandled = onReminderHandled,
         )
       } else {
         AppNavHost(
@@ -213,8 +219,65 @@ class AppNavHostTest {
             startRoute = startRoute,
             credentialProvider = credentialProvider,
             clock = clock,
+            reminderAppointment = reminder,
+            onReminderHandled = onReminderHandled,
         )
       }
+    }
+  }
+
+  @Test
+  fun reminderTap_opensMissingAppointmentDetailOnce_andBackReturnsToOverview() {
+    val auth = FakeAuthRepository { AuthUser("patient") }
+    runBlocking { auth.signInWithGoogle("token") }
+    var consumed = 0
+    setNavHost(
+        Route.OVERVIEW,
+        authRepository = auth,
+        reminder = "deleted-visit",
+        onReminderHandled = {
+          if (consumed > 0) false
+          else {
+            consumed++
+            true
+          }
+        },
+    )
+    composeTestRule.waitForIdle()
+    composeTestRule.runOnIdle {
+      assertEquals(Screen.APPOINTMENT_DETAIL, navController.currentDestination?.route)
+      assertEquals(
+          "deleted-visit",
+          navController.currentBackStackEntry?.arguments?.getString(Screen.APPOINTMENT_ID),
+      )
+      assertEquals(1, consumed)
+      NavigationActions(navController).goBack()
+    }
+    composeTestRule.waitForIdle()
+    composeTestRule.runOnIdle {
+      assertEquals(Screen.OVERVIEW, navController.currentDestination?.route)
+      assertEquals(1, consumed)
+    }
+  }
+
+  @Test
+  fun reminderTap_waitsOnSignIn_andDoesNotConsumeWhileBlocked() {
+    var consumed = 0
+    setNavHost(
+        Route.AUTH,
+        reminder = "visit",
+        onReminderHandled = {
+          if (consumed > 0) false
+          else {
+            consumed++
+            true
+          }
+        },
+    )
+    composeTestRule.waitForIdle()
+    composeTestRule.runOnIdle {
+      assertEquals(Screen.SIGN_IN, navController.currentDestination?.route)
+      assertEquals(0, consumed)
     }
   }
 

@@ -42,6 +42,7 @@ import com.github.se.oncompanion.ui.theme.Spacing
 fun rememberReminderPermissionNotice(
     viewModel: ReminderPermissionViewModel,
     history: ReminderPermissionHistory? = null,
+    onAccessChanged: () -> Unit = {},
 ): (@Composable () -> Unit)? {
   val context = LocalContext.current
   val requestHistory =
@@ -52,6 +53,7 @@ fun rememberReminderPermissionNotice(
       rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         opening = false
         viewModel.refresh(reminderAccess(context, requestHistory))
+        onAccessChanged()
       }
   LifecycleResumeEffect(viewModel, requestHistory) {
     opening = false
@@ -74,6 +76,7 @@ fun rememberReminderPermissionNotice(
               if (access != ReminderAccess.READY) openReminderSettings(context, access)
               opening = false
               viewModel.refresh(reminderAccess(context, requestHistory))
+              onAccessChanged()
             }
           }
         },

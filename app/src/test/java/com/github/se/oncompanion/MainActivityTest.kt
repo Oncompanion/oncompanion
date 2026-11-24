@@ -26,6 +26,7 @@ import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.assertSameColor
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
+import com.github.se.oncompanion.ui.reminder.AppointmentRemindersViewModel
 import com.github.se.oncompanion.ui.theme.AppAppearanceViewModel
 import com.github.se.oncompanion.ui.theme.SurfaceDark
 import com.github.se.oncompanion.ui.theme.SurfaceLight
@@ -33,6 +34,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -69,6 +71,43 @@ class MainActivityTest {
       }
 
   @get:Rule(order = 1) val composeTestRule = createAndroidComposeRule<MainActivity>()
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  fun reminderRequest_keepsItsActivityOwnerAcrossRotation_withoutBypassingSignIn() {
+    val model =
+        ViewModelProvider(composeTestRule.activity)[AppointmentRemindersViewModel::class.java]
+    composeTestRule.runOnIdle { model.open("patient", "visit") }
+    composeTestRule.activityRule.scenario.recreate()
+    composeTestRule.waitForIdle()
+    composeTestRule.runOnIdle {
+      assertSame(
+          model,
+          ViewModelProvider(composeTestRule.activity)[AppointmentRemindersViewModel::class.java],
+      )
+      assertEquals(null, model.uiState.value.appointmentId)
+    }
+    composeTestRule.onNodeWithTag(C.Tag.sign_in_screen).assertIsDisplayed()
+  }
+
+  @Test
+  fun reminderInstallation_preservesAnExplicitCoordinator() {
+    val provider = com.github.se.oncompanion.domain.reminder.AppointmentRemindersProvider
+    val original = provider.coordinator
+    try {
+      val replacement =
+          com.github.se.oncompanion.domain.reminder.ReconcileAppointmentReminders(
+              com.github.se.oncompanion.model.reminder.AppointmentReminderText { item, _ ->
+                com.github.se.oncompanion.model.reminder.ReminderText(item.title, "Fictional date")
+              }
+          )
+      provider.coordinator = replacement
+      provider.install(composeTestRule.activity.applicationContext)
+      assertSame(replacement, provider.coordinator)
+    } finally {
+      provider.coordinator = original
+    }
+  }
 
   @Test
   @Config(qualifiers = "notnight")

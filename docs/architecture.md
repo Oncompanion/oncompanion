@@ -15,7 +15,7 @@ Every diagram names its four layers and gives each one colour: screens and ViewM
 1. **A write works offline.** A screen writes through its repository to Firestore's cache on the phone, so the change shows at once, and the cache *syncs when online*. If the server's rules refuse a write, Firestore undoes it on the phone and the repository reports it to `RejectedWrites`; the app-wide snackbar *shows refused writes* to the user (see "Rejected writes" under Offline mode).
 2. **A caregiver only sees what is shared.** A screen showing a section of a patient's data reads it through `ObserveCareSection` (Planning and the Overview through `ObserveCarePlanning`), which asks `ResolveSectionAccess`; that uses `ResolveCareCircleAccess` and the care circle to check *is the section shared?*, then reads the data by the patient's uid. `firestore.rules` check the same on the server.
 
-The overview also shows the large planned area (reminders); each feature diagram draws the planned parts of its feature, and the reminders epic has its own diagram.
+The overview also shows appointment reminder delivery (medication/event reminders remain planned); each feature diagram draws the planned parts of its feature, and the reminders epic has its own diagram.
 
 To edit a diagram, open its `.excalidraw` file on [excalidraw.com](https://excalidraw.com) (Menu → Open), make your changes, then save it back to the same file and export it with *Export image → SVG* (keep "Embed scene" off) to overwrite its `.svg`. Coding agents edit the `.excalidraw` JSON directly instead (see [AGENTS.md](../AGENTS.md)) and regenerate the `.svg` files with `npm ci && npm run export` in `scripts/diagrams` (Node 20 or later), which gives the same result as excalidraw.com. Commit both files in the same PR as the code change, and give a planned box its layer's colour once it is built.
 
@@ -258,7 +258,7 @@ alarm instead of silently delivering an inexact replacement. The non-exported `R
 checks current authentication and `SessionAccess.immediate` before showing private notification
 content, including the persisted cleanup journal when an alarm starts the process without an
 Activity. A checked synchronous preferences commit stores only the current random delivery version
-per account/feature/item key. Alarm payloads carry that version; cancellation/replacement invalidates
+or a consumed marker per account/feature/item key. Alarm payloads carry that version; cancellation/replacement invalidates
 it before touching Android, and the receiver checks and consumes it under the same process-wide
 lock as cancellation and posting. Queued obsolete or duplicate deliveries cannot show. Scheduling
 and delivery also pass through `SessionAccess.immediate`. Appointment display text remains only in
@@ -348,15 +348,15 @@ to the originating screen/day. Only creation sends the saved-day result to Plann
 shared `DetailWithActions` and `DetailActions`: supported actions stay visible in normal windows
 and scroll after the content in compact windows. Edit mode reuses the form's keyboard handling.
 
-### Appointment reminder reconciliation (#453, inactive foundation)
+### Appointment reminder integration (#453)
 
-`domain/reminder/ReconcileAppointmentReminders` combines the signed-in patient's profile and appointment snapshots with `ReminderScheduler` and `AppointmentReminderPlans`. Nothing starts until `observe()` is collected. This slice adds no app/lifecycle collector or provider installation, so it does not activate end-to-end delivery. Account changes cancel the old observation; each scheduling batch rechecks the current uid inside `SessionAccess.immediate`.
+`domain/reminder/ReconcileAppointmentReminders` combines the signed-in patient's profile and appointment snapshots with `ReminderScheduler` and `AppointmentReminderPlans`. `MainActivity` installs the adapters and owns `AppointmentRemindersViewModel`, which collects the coordinator across rotation and refreshes it on resume. Account changes cancel the old observation; each scheduling batch rechecks the current uid inside `SessionAccess.immediate`.
 
 The saved #489 choice determines the offset: None, 15 minutes, one hour (including legacy defaults), three hours or one day. Offsets are elapsed durations; display text uses the phone's locale and zone. Past appointments get no alarm, and an elapsed reminder time for a future appointment schedules immediately. Caregiver changes arrive through the same patient repository. Notes/attribution changes do not reschedule. Before due time, title/location changes replace content; once due, unchanged timing never triggers another immediate alarm. Appointment-time or reminder-choice changes constitute a new timing. None/deletion cancels only that appointment. Read failures never stand for an empty/deleted list.
 
 `AppointmentReminderPlansPreferences` stores accepted scheduling receipts per account/item: the original due instant and SHA-256 timing/content identifiers, without title, location, notes or credentials. Reads and checked synchronous commits join the session fence; malformed receipts fail closed instead of replaying. Its provider preserves injected fakes. Receipts survive normal collector/process recreation; blocked schedules are not recorded as accepted and can be retried by recollection.
 
-Receipts acknowledge **scheduling**, not notification display. Preferences and AlarmManager are not atomic: process death between scheduling and receipt commit, device-reboot recovery and permission revocation of an already accepted alarm need delivery/lifecycle reconciliation under #454. The activation PR must wire permission-resume retries and notification-tap navigation. Sign-out cancellation and sign-in restoration remain #454; #638's persisted cleanup/account/version checks still protect the receiver. No Firebase rules, remote resources, forms or UI change.
+Receipts acknowledge **scheduling**, not notification display. Preferences, AlarmManager and notification posting are not atomic: process death between a device-service action and its receipt/consumed-marker commit has no exactly-once guarantee. Device-reboot recovery and complete account cleanup remain #454. On resume, accepted but unconsumed plans are replaced by the same key, repairing alarms removed when exact-alarm access was revoked. A consumed marker prevents replay after normal reopening; permission-blocked delivery is not consumed. Sign-out cancellation and device-reboot restoration remain #454; the persisted cleanup/account/version checks still protect the receiver. The Activity-owned ViewModel registers pending tap memory with SignOut; cleanup clears it and pauses scheduling. Notification content intents carry only the owner/item URI. Cold and warm taps wait for sign-in and a patient profile, discard another account's request, and recheck the live account/session gate before one-shot navigation. The existing detail screen handles missing/deleted appointments. Back returns to the prior app destination. No Firebase rules, remote resources or forms change.
 
 ### Appointment reminder choices
 

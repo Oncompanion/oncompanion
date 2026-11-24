@@ -82,9 +82,12 @@ fun PlanningScreen(
     onOpenMedication: (String, String) -> Unit,
     caregiverOf: String? = null,
     reminderPermissions: ReminderPermissionViewModel? = null,
+    onReminderAccessChanged: () -> Unit = {},
     bottomBar: BottomBarUiState = BottomBarUiState(),
 ) {
-  val reminderNotice = reminderPermissions?.let { rememberReminderPermissionNotice(it) }
+  val reminderNotice = reminderPermissions?.let {
+    rememberReminderPermissionNotice(it, onAccessChanged = onReminderAccessChanged)
+  }
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val openItem: (PlanningItem) -> Unit = {
     openPlanningItem(it, onOpenAppointment, onOpenEvent, onOpenMedication)

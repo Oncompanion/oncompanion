@@ -32,9 +32,9 @@ enum class AppointmentReminderSync {
 
 /**
  * Reconciles the signed-in patient's appointment snapshots with device alarms. Nothing starts until
- * [observe] is collected; this slice deliberately installs no application/lifecycle collector.
- * Receipts suppress repeated immediate scheduling across normal process recreation, not a device
- * reboot or an atomic transaction between preferences and AlarmManager (recovery remains #454).
+ * [observe] is collected by the Activity-owned integration. Receipts suppress repeated immediate
+ * scheduling across normal process recreation, not a device reboot or an atomic transaction between
+ * preferences and AlarmManager (recovery remains #454).
  */
 class ReconcileAppointmentReminders(
     private val text: AppointmentReminderText,
@@ -49,25 +49,34 @@ class ReconcileAppointmentReminders(
   /**
    * Follows this patient's cached appointments, including caregiver edits; failures are not
    * deletion. Recollection retries blocked/failed work. Account changes stop the previous
-   * observation; alarm cancellation/restoration, boot/permission wiring and tap navigation follow
-   * separately.
+   * observation. Recheck undelivered receipts on resume to repair alarms removed by Android;
+   * consumed deliveries never replay solely because settings or the app were reopened.
    */
   @OptIn(ExperimentalCoroutinesApi::class)
-  fun observe(): Flow<AppointmentReminderSync> =
+  fun observe(repairUndelivered: Boolean = false): Flow<AppointmentReminderSync> =
       auth
           .observeCurrentUser()
           .flatMapLatest { user ->
-            if (user == null) flowOf(AppointmentReminderSync.IDLE) else observePatient(user.uid)
+            if (user == null) flowOf(AppointmentReminderSync.IDLE)
+            else observePatient(user.uid, repairUndelivered)
           }
           .failuresAsState()
 
   @OptIn(ExperimentalCoroutinesApi::class)
-  private fun observePatient(owner: String): Flow<AppointmentReminderSync> =
+  private fun observePatient(
+      owner: String,
+      repairUndelivered: Boolean,
+  ): Flow<AppointmentReminderSync> =
       profiles
           .observeProfile(owner)
           .flatMapLatest { profile ->
             if (profile?.role != Role.PATIENT) flowOf(AppointmentReminderSync.IDLE)
-            else appointments.observeAppointments(owner).map { reconcile(owner, it) }
+            else {
+              var first = repairUndelivered
+              appointments.observeAppointments(owner).map {
+                reconcile(owner, it, first).also { first = false }
+              }
+            }
           }
           .failuresAsState()
 
@@ -78,41 +87,42 @@ class ReconcileAppointmentReminders(
         emit(AppointmentReminderSync.FAILED)
       }
 
-  private fun reconcile(owner: String, entries: List<Appointment>): AppointmentReminderSync =
-      SessionAccess.immediate {
-        // A late snapshot cannot schedule for an account whose auth callback has not arrived yet.
-        if (auth.currentUser?.uid != owner) return@immediate AppointmentReminderSync.IDLE
-        val now = clock.instant()
-        val saved = plans.read(owner).toMutableMap()
-        val eligible = eligibleAppointments(entries, now)
-        for (id in saved.keys.toList() - eligible.keys) {
-          scheduler.cancel(key(owner, id))
-          saved.remove(id)
-          plans.write(owner, saved)
-        }
-        var blocked = false
-        for ((id, candidate) in eligible) {
-          val appointment = candidate.appointment
-          val due = candidate.due
-          val timing = hash(listOf(appointment.scheduledAt.toString(), appointment.reminder.name))
-          val content = text.format(appointment, zoneId)
-          val revision = hash(listOf(content.title, content.text))
-          val next = AppointmentReminderPlan(due, timing, revision)
-          if (!needsUpdate(saved[id], next, now)) continue
-          val result =
-              scheduler.schedule(
-                  Reminder(key(owner, id), maxOf(due, now), content.title, content.text)
-              )
-          if (result == ReminderScheduleResult.SCHEDULED) saved[id] = next
-          else {
-            saved.remove(id)
-            blocked = true
-          }
-          // Only an accepted plan suppresses a retry; blocked permissions never count as delivery.
-          plans.write(owner, saved)
-        }
-        if (blocked) AppointmentReminderSync.BLOCKED else AppointmentReminderSync.SYNCHRONIZED
+  private fun reconcile(
+      owner: String,
+      entries: List<Appointment>,
+      repairUndelivered: Boolean,
+  ): AppointmentReminderSync = SessionAccess.immediate {
+    // A late snapshot cannot schedule for an account whose auth callback has not arrived yet.
+    if (auth.currentUser?.uid != owner) return@immediate AppointmentReminderSync.IDLE
+    val now = clock.instant()
+    val saved = plans.read(owner).toMutableMap()
+    val eligible = eligibleAppointments(entries, now)
+    for (id in saved.keys.toList() - eligible.keys) {
+      scheduler.cancel(key(owner, id))
+      saved.remove(id)
+      plans.write(owner, saved)
+    }
+    var blocked = false
+    for ((id, candidate) in eligible) {
+      val appointment = candidate.appointment
+      val due = candidate.due
+      val timing = hash(listOf(appointment.scheduledAt.toString(), appointment.reminder.name))
+      val content = text.format(appointment, zoneId)
+      val revision = hash(listOf(content.title, content.text))
+      val next = AppointmentReminderPlan(due, timing, revision)
+      if (!needsUpdate(saved[id], next, now, repairUndelivered, key(owner, id))) continue
+      val result =
+          scheduler.schedule(Reminder(key(owner, id), maxOf(due, now), content.title, content.text))
+      if (result == ReminderScheduleResult.SCHEDULED) saved[id] = next
+      else {
+        saved.remove(id)
+        blocked = true
       }
+      // Only an accepted plan suppresses a retry; blocked permissions never count as delivery.
+      plans.write(owner, saved)
+    }
+    if (blocked) AppointmentReminderSync.BLOCKED else AppointmentReminderSync.SYNCHRONIZED
+  }
 
   private data class Candidate(val appointment: Appointment, val due: Instant)
 
@@ -136,8 +146,12 @@ class ReconcileAppointmentReminders(
       previous: AppointmentReminderPlan?,
       next: AppointmentReminderPlan,
       now: Instant,
+      repair: Boolean,
+      key: ReminderKey,
   ): Boolean {
     if (previous == null || previous.timing != next.timing) return true
+    // A receipt is not proof Android retained an alarm after exact-alarm access was revoked.
+    if (repair && !scheduler.wasDelivered(key)) return true
     return previous.content != next.content && previous.due > now
   }
 

@@ -4,9 +4,12 @@
 
 package com.github.se.oncompanion
 
+import android.Manifest
+import android.app.NotificationManager
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.os.Build
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -30,6 +33,14 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToKey
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
+import com.github.se.oncompanion.domain.reminder.AppointmentReminderSync
+import com.github.se.oncompanion.domain.reminder.ReconcileAppointmentReminders
+import com.github.se.oncompanion.model.appointment.*
+import com.github.se.oncompanion.model.reminder.*
 import com.github.se.oncompanion.model.settings.AppearancePreference
 import com.github.se.oncompanion.model.settings.DateFormatPreference
 import com.github.se.oncompanion.model.settings.SettingsRepositoryProvider
@@ -41,9 +52,11 @@ import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.EndToEndTestDriver
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import java.io.File
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertTrue
@@ -132,6 +145,85 @@ class M1EndToEndTest {
             (hasText(string(R.string.appearance_dark), substring = true) or
                 hasAnyDescendant(hasText(string(R.string.appearance_dark))))
     )
+  }
+
+  /** A cached appointment reaches Android's real notification service and its tap opens details. */
+  @Test
+  fun appointmentReminder_deliversAndOpensItsAppointment() {
+    ui.startApp(signIn)
+    signInAndOnboard(firstName = "Sam")
+    val context = compose.activity.applicationContext
+    val instrumentation = InstrumentationRegistry.getInstrumentation()
+    val device = UiDevice.getInstance(instrumentation)
+    if (Build.VERSION.SDK_INT >= 33) {
+      instrumentation.uiAutomation.grantRuntimePermission(
+          context.packageName,
+          Manifest.permission.POST_NOTIFICATIONS,
+      )
+    }
+    if (Build.VERSION.SDK_INT >= 31) {
+      instrumentation.uiAutomation
+          .executeShellCommand("appops set ${context.packageName} SCHEDULE_EXACT_ALARM allow")
+          .use { java.io.FileInputStream(it.fileDescriptor).readBytes() }
+    }
+    ReminderSchedulerProvider.install(context)
+    AppointmentReminderPlansProvider.install(context)
+    val scheduler = ReminderSchedulerProvider.scheduler
+    val owner = checkNotNull(FirebaseEmulator.auth.currentUser).uid
+    val id = runBlocking {
+      AppointmentRepositoryProvider.repository.addAppointment(
+          owner,
+          Appointment(
+              "",
+              "Fictional reminder visit",
+              Instant.now().plusSeconds(120),
+              AppointmentType.OTHER,
+          ),
+      )
+    }
+    val manager = context.getSystemService(NotificationManager::class.java)
+    val key = ReminderKey(owner, "appointment", id)
+    val monitor = instrumentation.addMonitor(MainActivity::class.java.name, null, false)
+    var opened: android.app.Activity? = null
+    try {
+      runBlocking {
+        val result =
+            kotlinx.coroutines.withTimeout(15_000) {
+              ReconcileAppointmentReminders(AndroidAppointmentReminderText(context))
+                  .observe()
+                  .first { it != AppointmentReminderSync.IDLE }
+            }
+        org.junit.Assert.assertEquals(AppointmentReminderSync.SYNCHRONIZED, result)
+      }
+      compose.waitUntil(timeoutMillis = 15_000) {
+        manager.activeNotifications.any {
+          it.notification.extras.getString(android.app.Notification.EXTRA_TITLE) ==
+              "Fictional reminder visit"
+        }
+      }
+      val posted =
+          manager.activeNotifications.first {
+            it.notification.extras.getString(android.app.Notification.EXTRA_TITLE) ==
+                "Fictional reminder visit"
+          }
+      posted.notification.contentIntent.send()
+      opened = instrumentation.waitForMonitorWithTimeout(monitor, 10_000)
+      assertTrue("Notification tap opens MainActivity", opened != null)
+      compose.waitForIdle()
+      val shown =
+          device.wait(
+              Until.hasObject(By.text(context.getString(R.string.appointment_detail))),
+              10_000,
+          ) && device.hasObject(By.textContains("Fictional reminder visit"))
+      val hierarchy = java.io.ByteArrayOutputStream()
+      if (!shown) device.dumpWindowHierarchy(hierarchy)
+      assertTrue("Appointment details are shown: $hierarchy", shown)
+      device.executeShellCommand("screencap -p /sdcard/Download/oncompanion-reminder-detail.png")
+    } finally {
+      scheduler.cancel(key)
+      opened?.let { activity -> instrumentation.runOnMainSync { activity.finish() } }
+      instrumentation.removeMonitor(monitor)
+    }
   }
 
   @Test

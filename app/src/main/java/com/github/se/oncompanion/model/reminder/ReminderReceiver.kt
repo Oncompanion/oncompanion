@@ -5,11 +5,14 @@ package com.github.se.oncompanion.model.reminder
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.net.toUri
+import com.github.se.oncompanion.MainActivity
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.session.PreferencesCleanupJournal
@@ -39,9 +42,8 @@ class ReminderReceiver : BroadcastReceiver() {
           if (AuthRepositoryProvider.repository.currentUser?.uid != parts[0]) return@immediate
           val notifications = ReminderNotifications(context)
           notifications.createChannel()
-          // Consume before posting so duplicate queued broadcasts cannot repeat a delivery.
-          deliveries.invalidate(uri.toString())
-          notifications.show(uri.toString(), title, text)
+          // Consume only after an accepted post; permission loss must remain retryable.
+          if (notifications.show(uri.toString(), title, text)) deliveries.delivered(uri.toString())
         }
       }
     } catch (_: IllegalStateException) {
@@ -78,8 +80,8 @@ internal class ReminderNotifications(private val context: Context) {
 
   // enabled checks both app permission and channel access immediately before notify.
   @SuppressLint("MissingPermission")
-  fun show(tag: String, title: String, text: String) {
-    if (!enabled()) return
+  fun show(tag: String, title: String, text: String): Boolean {
+    if (!enabled()) return false
     val notification =
         NotificationCompat.Builder(context, AlarmReminderScheduler.CHANNEL)
             .setSmallIcon(R.drawable.ic_reminder)
@@ -88,7 +90,21 @@ internal class ReminderNotifications(private val context: Context) {
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setAutoCancel(true)
+            .setContentIntent(
+                PendingIntent.getActivity(
+                    context,
+                    0,
+                    Intent(context, MainActivity::class.java)
+                        .setAction(Intent.ACTION_VIEW)
+                        .setData(tag.toUri())
+                        .addFlags(
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        ),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+            )
             .build()
     manager.notify(tag, 0, notification)
+    return true
   }
 }

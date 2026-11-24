@@ -23,10 +23,12 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
@@ -123,6 +125,9 @@ fun AppNavHost(
     startRoute: String = Route.AUTH,
     credentialProvider: GoogleCredentialProvider = rememberGoogleCredentialProvider(),
     clock: Clock = Clock.systemDefaultZone(),
+    reminderAppointment: String? = null,
+    onReminderHandled: () -> Boolean = { true },
+    onReminderAccessChanged: () -> Unit = {},
 ) {
   SessionBoundary(credentialProvider) { afterCleanup, savedState, accountChanged ->
     val route =
@@ -141,6 +146,9 @@ fun AppNavHost(
             credentialProvider,
             savedState,
             clock,
+            reminderAppointment,
+            onReminderHandled,
+            onReminderAccessChanged,
         )
         RejectedWriteSnackbar(Modifier.align(Alignment.BottomCenter))
       }
@@ -155,6 +163,9 @@ private fun SessionNavHost(
     credentialProvider: GoogleCredentialProvider,
     savedState: androidx.lifecycle.SavedStateHandle,
     clock: Clock,
+    reminderAppointment: String?,
+    onReminderHandled: () -> Boolean,
+    onReminderAccessChanged: () -> Unit,
 ) {
   val navigationActions = remember(navController) { NavigationActions(navController) }
   // Caregiver mode: the patient chosen in "Whose care?" (null for a patient), for every screen
@@ -179,6 +190,20 @@ private fun SessionNavHost(
   val signOut = {
     caregiverMode.leave()
     navigationActions.navigateAndClearBackStack(Route.AUTH)
+  }
+
+  val currentEntry by navController.currentBackStackEntryAsState()
+  LaunchedEffect(reminderAppointment, currentEntry) {
+    // Wait until sign-in/onboarding/account resolution has installed the patient's graph.
+    val destination = currentEntry?.destination
+    val blocked =
+        destination?.hierarchy?.any {
+          it.route in setOf(Route.AUTH, Route.ONBOARDING, Route.ACCOUNT_CHECK)
+        } ?: true
+    if (!blocked && reminderAppointment != null) {
+      if (onReminderHandled())
+          navigationActions.navigateTo(Screen.appointmentDetail(reminderAppointment))
+    }
   }
 
   NavHost(navController = navController, startDestination = startRoute) {
@@ -327,6 +352,7 @@ private fun SessionNavHost(
                 if (chosenPatient == null) viewModel { ReminderPermissionViewModel(clock = clock) }
                 else null,
             bottomBar = bottomBar,
+            onReminderAccessChanged = onReminderAccessChanged,
         )
       }
       composable(
