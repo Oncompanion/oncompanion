@@ -10,9 +10,10 @@ import java.time.LocalTime
  * frequency says, at times the patient can change. They only help to remember: they never say when
  * to take the medication, and the prescription stays as recorded.
  *
- * When the frequency says no count ([DoseCount] answers none: missing, only if needed, unclear),
- * one reminder a day is suggested, and the patient adds or removes times, up to
- * [Medication.MAX_REMINDER_TIMES].
+ * When the frequency says no count ([DoseCount] answers none), the patient adds or removes times,
+ * up to [Medication.MAX_REMINDER_TIMES]. A missing frequency suggests one reminder a day; one the
+ * app can't read (only if needed, once a week, unclear) suggests none: the patient chooses the
+ * times.
  */
 object ReminderTimes {
 
@@ -27,13 +28,17 @@ object ReminderTimes {
   /** Where a time the patient adds goes, in this order, skipping those already taken. */
   private val ADDED = listOf(MORNING, MIDDAY, EVENING, LocalTime.of(21, 0))
 
-  /** The times suggested when the patient turns reminders on for a medication taken [frequency]. */
+  /**
+   * The times suggested when the patient turns reminders on for a medication taken [frequency]:
+   * none when the app can't read it, so the patient chooses the first one.
+   */
   fun suggested(frequency: String): List<LocalTime> =
       when (countOf(frequency)) {
         2 -> listOf(MORNING, EVENING)
         3 -> listOf(MORNING, MIDDAY, EVENING)
         4 -> FOUR_A_DAY
-        else -> listOf(MORNING)
+        1 -> listOf(MORNING)
+        else -> if (frequency.isBlank()) listOf(MORNING) else emptyList()
       }
 
   /**

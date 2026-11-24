@@ -2470,6 +2470,18 @@ class PrescriptionFormViewModelTest {
   }
 
   @Test
+  fun aFrequencyTheAppCantRead_suggestsNoTime_thePatientChoosesTheFirst() = runTest {
+    val viewModel = viewModelWith("Methotrexate")
+    viewModel.onFrequencyChange("Once a week")
+
+    viewModel.onRemindChange(true)
+    assertEquals(emptyList<LocalTime>(), viewModel.medication.reminderTimes)
+
+    viewModel.onReminderTimeChange(0, LocalTime.of(20, 30, 10))
+    assertEquals(listOf(LocalTime.of(20, 30)), viewModel.medication.reminderTimes)
+  }
+
+  @Test
   fun withoutAFrequency_thePatientAddsAndRemovesTimes_upToFour_keepingOne() = runTest {
     val viewModel = viewModelWith("Ondansetron")
     viewModel.onRemindChange(true)

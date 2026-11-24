@@ -524,18 +524,22 @@ class PrescriptionFormViewModel(
 
   /**
    * Turns the open medication's reminders on, at the times suggested by its frequency, or off
-   * (US-32). Nothing is scheduled before the prescription is saved.
+   * (US-32). A frequency the app can't read suggests none: the patient chooses the first time
+   * ([onReminderTimeChange]). Nothing is scheduled before the prescription is saved.
    */
   fun onRemindChange(on: Boolean) {
     editReminders { if (on) ReminderTimes.suggested(it.frequency) else emptyList() }
   }
 
-  /** Moves the open medication's reminder at [index] to [time], to the minute. */
+  /**
+   * Moves the open medication's reminder at [index] to [time], to the minute. With reminders off,
+   * [time] is the first one the patient chose, for a frequency that suggests none.
+   */
   fun onReminderTimeChange(index: Int, time: LocalTime) {
+    val minute = time.truncatedTo(ChronoUnit.MINUTES)
     editReminders { medication ->
-      medication.reminderTimes.mapIndexed { i, old ->
-        if (i == index) time.truncatedTo(ChronoUnit.MINUTES) else old
-      }
+      if (medication.reminderTimes.isEmpty()) listOf(minute)
+      else medication.reminderTimes.mapIndexed { i, old -> if (i == index) minute else old }
     }
   }
 
