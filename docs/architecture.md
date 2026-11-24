@@ -240,9 +240,37 @@ remain separate work.
 
 ![Ligue events and directory](architecture-ligue.svg)
 
-### Reminders (planned)
+### Reminders (device foundation, #452)
 
-![Reminders (planned)](architecture-reminders.svg)
+![Reminders](architecture-reminders.svg)
+
+`model/reminder/ReminderScheduler` is the replaceable device-service contract. Its
+`AlarmReminderScheduler` implementation uses one-shot `RTC_WAKEUP` exact alarms that may run
+while idle. `ReminderSchedulerProvider.install` retains only the application context and preserves
+an injected fake; installing it starts no alarms and requests no permission. No new dependency.
+A `ReminderKey` includes owner, feature and item ID in an encoded URI, rather than a hash, so
+repeated scheduling replaces one alarm and different accounts/features cannot collide.
+Cancellation removes both the alarm and its displayed notification.
+
+The shared channel is created idempotently, preserving user settings. Scheduling returns
+`NOTIFICATIONS_BLOCKED` or `EXACT_ALARMS_BLOCKED` when access is missing, cancelling any obsolete
+alarm instead of silently delivering an inexact replacement. The non-exported `ReminderReceiver`
+checks current authentication and `SessionAccess.immediate` before showing private notification
+content, including the persisted cleanup journal when an alarm starts the process without an
+Activity. A checked synchronous preferences commit stores only the current random delivery version
+per account/feature/item key. Alarm payloads carry that version; cancellation/replacement invalidates
+it before touching Android, and the receiver checks and consumes it under the same process-wide
+lock as cancellation and posting. Queued obsolete or duplicate deliveries cannot show. Scheduling
+and delivery also pass through `SessionAccess.immediate`. Appointment display text remains only in
+the system-owned PendingIntent, never this version store or logs. No network access is needed.
+The receiver ignores another account's alarm and fails closed during cleanup.
+
+This foundation is not yet called by appointment saves. Permission explanations/requests remain
+in the next #452 slice. Appointment reconciliation, saved reminder choices (#489), notification
+tap navigation, sign-out cancellation, restoring alarms after sign-in/device restart and clearing
+already displayed notifications on sign-out remain integration work under #453/#454. Until that
+work is tested, this PR does not activate reminders or claim complete account lifecycle support.
+Exact-alarm access is separate from Android notification permission; there is no inexact fallback.
 
 ## Replacement messages on short windows
 
