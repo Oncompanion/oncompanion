@@ -3,6 +3,7 @@
 package com.github.se.oncompanion.model.reminder
 
 import android.content.Context
+import androidx.core.content.edit
 import java.util.UUID
 
 /**
@@ -15,14 +16,19 @@ internal class ReminderDeliveries(context: Context) {
   /** Persists a fresh version before handing the alarm to Android, surviving process death. */
   fun replace(tag: String): String =
       UUID.randomUUID().toString().also {
-        check(preferences.edit().putString(tag, it).commit()) {
-          "Could not persist reminder version"
+        preferences.edit {
+          putString(tag, it)
+          // KTX returns Unit: check commit before its final no-op apply.
+          check(commit()) { "Could not persist reminder version" }
         }
       }
 
   /** Invalidates queued deliveries before cancelling or replacing an alarm. */
   fun invalidate(tag: String) {
-    check(preferences.edit().remove(tag).commit()) { "Could not invalidate reminder version" }
+    preferences.edit {
+      remove(tag)
+      check(commit()) { "Could not invalidate reminder version" }
+    }
   }
 
   /** Whether this is the delivery most recently scheduled for this key. */
