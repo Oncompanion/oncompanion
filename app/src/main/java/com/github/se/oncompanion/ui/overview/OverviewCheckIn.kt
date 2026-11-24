@@ -263,7 +263,9 @@ private fun SymptomTile(
         Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(24.dp))
         Text(label, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
       }
-      if (isPicked != null) PickedMark(picked, Modifier.align(Alignment.TopEnd))
+      if (isPicked != null) {
+        PickedMark(picked, Modifier.align(Alignment.TopEnd).testTag(C.Tag.overview_tile_mark))
+      }
     }
   }
   val shape = MaterialTheme.shapes.large

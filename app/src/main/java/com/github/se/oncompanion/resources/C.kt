@@ -138,6 +138,8 @@ object C {
     const val overview_check_in_more = "overview_check_in_more"
     const val overview_journal_link = "overview_journal_link"
     const val overview_speak = "overview_speak"
+    // The check or empty ring of a tile in the check-in's sheet
+    const val overview_tile_mark = "overview_tile_mark"
 
     // Caregiver Overview
     const val caregiver_overview_screen = "caregiver_overview_screen"
