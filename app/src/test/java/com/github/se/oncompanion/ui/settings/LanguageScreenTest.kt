@@ -69,6 +69,15 @@ class LanguageScreenTest {
   }
 
   @Test
+  @Config(qualifiers = "fr-rCH")
+  fun followingAFrenchDeviceStillShowsTheLocalizedPreview() {
+    compose.setContent { OncompanionTheme { LanguageContent(AppLanguage.FOLLOW_DEVICE, {}) {} } }
+
+    compose.onNodeWithTag(C.Tag.language_device).assertIsSelected()
+    compose.onNodeWithText("mercredi 18 novembre, 14:30").performScrollTo().assertIsDisplayed()
+  }
+
+  @Test
   @Config(qualifiers = LANDSCAPE_PHONE)
   fun landscapeAt200PercentKeepsChoicesAndBackReachable() {
     compose.setContent {

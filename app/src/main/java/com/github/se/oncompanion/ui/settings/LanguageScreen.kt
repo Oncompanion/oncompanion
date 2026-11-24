@@ -3,24 +3,22 @@
 package com.github.se.oncompanion.ui.settings
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.theme.Spacing
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /** Routes the selected option to Android's app locale storage. */
 @Composable
@@ -80,12 +78,16 @@ internal fun LanguageContent(
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    if (LocalConfiguration.current.locales[0]?.language == "fr") FrenchLanguagePreview()
+    val locale = LocalConfiguration.current.locales[0]
+    if (locale?.language == Locale.FRENCH.language) FrenchLanguagePreview(locale)
   }
 }
 
 @Composable
-private fun FrenchLanguagePreview() {
+private fun FrenchLanguagePreview(locale: Locale) {
+  val sampleDate = LocalDateTime.of(2026, 11, 18, 14, 30)
+  val dateLabel = sampleDate.format(DateTimeFormatter.ofPattern("EEEE d MMMM, HH:mm", locale))
+
   Text(stringResource(R.string.language_preview), style = MaterialTheme.typography.titleMedium)
   Surface(
       shape = MaterialTheme.shapes.large,
@@ -98,7 +100,7 @@ private fun FrenchLanguagePreview() {
           style = MaterialTheme.typography.titleMedium,
       )
       Text(
-          stringResource(R.string.language_preview_date),
+          dateLabel,
           style = MaterialTheme.typography.bodyMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
@@ -115,36 +117,3 @@ internal fun languageLabel(language: AppLanguage): String =
           AppLanguage.FRENCH -> R.string.language_french
         }
     )
-
-/** Retains the same radio selection layout in the Appearance and Language settings. */
-@Composable
-internal fun SettingsChoiceRow(
-    label: String,
-    hint: String?,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier,
-    enabled: Boolean = true,
-    checkModifier: Modifier = Modifier,
-) {
-  Row(
-      modifier
-          .fillMaxWidth()
-          .selectable(selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
-          .padding(Spacing.lg),
-      horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Column(Modifier.weight(1f)) {
-      Text(label, style = MaterialTheme.typography.titleMedium)
-      if (hint != null) {
-        Text(
-            hint,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-      }
-    }
-    if (selected) Icon(Icons.Default.Check, contentDescription = null, modifier = checkModifier)
-  }
-}
