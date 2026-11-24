@@ -90,7 +90,22 @@ internal fun MedicationReminders(
       return@Column
     }
     val times = medication.reminderTimes
-    RemindMe(times, actions.onRemindChange)
+    // A frequency the app can't read suggests no time: Remind me asks the patient for the first
+    var choosingFirst by rememberSaveable { mutableStateOf(false) }
+    RemindMe(times) { on ->
+      if (on && ReminderTimes.suggested(medication.frequency).isEmpty()) choosingFirst = true
+      else actions.onRemindChange(on)
+    }
+    if (choosingFirst) {
+      ReminderTimePicker(
+          time = ReminderTimes.added(emptyList()),
+          onConfirm = {
+            actions.onTimeChange(0, it)
+            choosingFirst = false
+          },
+          onDismiss = { choosingFirst = false },
+      )
+    }
     if (times.isEmpty()) return@Column
 
     val canRemove = ReminderTimes.canRemove(times, medication.frequency)
@@ -193,25 +208,39 @@ private fun ReminderTimeField(
     }
   }
   if (pickerOpen) {
-    TimePickerDialog(
+    ReminderTimePicker(
         time = time,
         onConfirm = {
           actions.onTimeChange(index, it)
           pickerOpen = false
         },
         onDismiss = { pickerOpen = false },
-        confirmLabel = stringResource(R.string.medication_reminders_picker_confirm),
-        cancelLabel = stringResource(R.string.medication_reminders_picker_cancel),
-        // As the form shows times (HH:mm), whatever the phone's setting
-        is24Hour = true,
-        testTags =
-            PickerTestTags(
-                picker = C.Tag.medication_reminders_picker,
-                confirm = C.Tag.medication_reminders_picker_confirm,
-                cancel = C.Tag.medication_reminders_picker_cancel,
-            ),
     )
   }
+}
+
+/** The time picker of a reminder, starting at [time]. */
+@Composable
+private fun ReminderTimePicker(
+    time: LocalTime,
+    onConfirm: (LocalTime) -> Unit,
+    onDismiss: () -> Unit,
+) {
+  TimePickerDialog(
+      time = time,
+      onConfirm = onConfirm,
+      onDismiss = onDismiss,
+      confirmLabel = stringResource(R.string.medication_reminders_picker_confirm),
+      cancelLabel = stringResource(R.string.medication_reminders_picker_cancel),
+      // As the form shows times (HH:mm), whatever the phone's setting
+      is24Hour = true,
+      testTags =
+          PickerTestTags(
+              picker = C.Tag.medication_reminders_picker,
+              confirm = C.Tag.medication_reminders_picker_confirm,
+              cancel = C.Tag.medication_reminders_picker_cancel,
+          ),
+  )
 }
 
 /** A short line under the reminders, with the info icon. */

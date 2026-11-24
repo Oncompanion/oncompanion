@@ -227,9 +227,11 @@ class PrescriptionFormScreenTest {
                       editOpenMedication { medication ->
                         medication.copy(
                             reminderTimes =
-                                medication.reminderTimes.mapIndexed { i, old ->
-                                  if (i == index) time else old
-                                }
+                                if (medication.reminderTimes.isEmpty()) listOf(time)
+                                else
+                                    medication.reminderTimes.mapIndexed { i, old ->
+                                      if (i == index) time else old
+                                    }
                         )
                       }
                     },
@@ -1861,6 +1863,25 @@ class PrescriptionFormScreenTest {
         .onNodeWithText(context.getString(R.string.medication_reminders_repeated, "09:00"))
         .performScrollTo()
         .assertIsDisplayed()
+  }
+
+  @Test
+  fun aFrequencyTheAppCantRead_asksForTheFirstTime() {
+    setContent(reminded(emptyList(), frequency = "Once a week"))
+
+    // Cancelled: reminders stay off
+    node(C.Tag.medication_reminders_switch).performScrollTo().performClick()
+    node(C.Tag.medication_reminders_picker_cancel).performClick()
+    node(C.Tag.medication_reminders_picker).assertDoesNotExist()
+    node(C.Tag.medication_reminders_switch).assertIsOff()
+    assertEquals(emptyList<String>(), events)
+
+    // Chosen: it is the first reminder, and nothing was suggested before
+    node(C.Tag.medication_reminders_switch).performClick()
+    node(C.Tag.medication_reminders_picker_confirm).performClick()
+    assertEquals(listOf("time=0,09:00"), events)
+    node(C.Tag.medication_reminders_switch).assertIsOn()
+    reminderTime(0).assertTextContains("09:00")
   }
 
   @Test
