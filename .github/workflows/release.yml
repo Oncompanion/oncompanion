@@ -92,7 +92,6 @@ jobs:
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
-          chmod +x ./gradlew
           ./gradlew assembleRelease
 
       # Read the version Gradle stamped into the APK, so the tag always matches it
