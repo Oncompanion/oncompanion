@@ -158,7 +158,7 @@ private fun CheckInHeader(onOpenJournal: () -> Unit) {
 
 /** "Journal ›", a 48 dp target opening the symptom journal. */
 @Composable
-private fun JournalLink(onOpenJournal: () -> Unit) {
+internal fun JournalLink(onOpenJournal: () -> Unit) {
   Row(
       Modifier.heightIn(min = 48.dp)
           .clip(MaterialTheme.shapes.medium)

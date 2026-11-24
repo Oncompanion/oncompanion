@@ -148,6 +148,11 @@ object C {
     const val overview_check_in_sheet_error = "overview_check_in_sheet_error"
     const val overview_check_in_sheet_save = "overview_check_in_sheet_save"
     const val overview_check_in_sheet_saving = "overview_check_in_sheet_saving"
+    const val overview_saved = "overview_saved"
+    const val overview_saved_entry = "overview_saved_entry"
+    const val overview_saved_undo = "overview_saved_undo"
+    const val overview_saved_edit = "overview_saved_edit"
+    const val overview_saved_log_another = "overview_saved_log_another"
 
     // Caregiver Overview
     const val caregiver_overview_screen = "caregiver_overview_screen"

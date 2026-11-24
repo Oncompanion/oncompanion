@@ -165,6 +165,13 @@
     <string name="overview_check_in_sheet_note">Add a note (optional)</string>
     <string name="overview_check_in_sheet_speak">Speak how you feel instead</string>
     <string name="overview_check_in_sheet_save">Save to my journal</string>
+    <!-- The check-in once the patient saved a symptom today (Figma M3: Check-in · After saving) -->
+    <string name="overview_saved_title">Saved to your journal</string>
+    <string name="overview_saved_subtitle">Your notes today</string>
+    <string name="overview_saved_undo">Undo</string>
+    <string name="overview_saved_edit">Edit</string>
+    <string name="overview_saved_log_another">Log another symptom or note</string>
+    <string name="overview_saved_undo_failed">Couldn\'t undo it. Check your connection and try again.</string>
     <!-- A symptom and its strength out of 10, e.g. "Nausea 7/10" -->
     <string name="overview_entry_strength">%1$s %2$d/10</string>
     <!-- The symptoms of an entry and its one intensity, e.g. "Nausea, Fatigue · 6/10" -->
