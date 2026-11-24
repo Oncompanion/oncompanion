@@ -25,6 +25,8 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -1168,6 +1170,34 @@ class OverviewScreenTest {
     checkInTileTags.forEach {
       composeTestRule.onNodeWithTag(it).performScrollTo().assertIsFullyVisible()
     }
+  }
+
+  // The check-in's sheet (#544) shows every symptom, as tiles that say whether they are picked
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  // The sheet's width on a 390 dp phone, inside its 16 dp margins
+  @Config(qualifiers = "w358dp-h874dp")
+  fun sheetTiles_areThreePerRow_wrappingLossOfAppetite_andSayWhichArePicked() {
+    val tapped = mutableListOf<SymptomType?>()
+    val picked = listOf(SymptomType.NAUSEA, SymptomType.OTHER)
+    composeTestRule.setContent {
+      OncompanionTheme {
+        SymptomTiles(SymptomType.entries, { tapped += it }, picked, tagOf = { "tile_${it?.name}" })
+      }
+    }
+
+    val tiles = SymptomType.entries.map { composeTestRule.onNodeWithTag("tile_${it.name}") }
+    val tops = tiles.map { it.fetchSemanticsNode().positionInRoot.y }
+    // "Loss of appetite" wraps between its words instead of leaving two tiles per row
+    val rows = tops.chunked(3)
+    rows.forEach { assertEquals(listOf(it[0], it[0], it[0]), it) }
+    assertTrue(rows.map { it[0] }.zipWithNext().all { (above, below) -> above < below })
+    // Checked or not, read as a checkbox so it doesn't rely on colour alone
+    SymptomType.entries.zip(tiles).forEach { (type, tile) ->
+      if (type in picked) tile.assertIsOn() else tile.assertIsOff()
+    }
+    tiles[SymptomType.FEVER.ordinal].performClick()
+    composeTestRule.runOnIdle { assertEquals(listOf(SymptomType.FEVER), tapped) }
   }
 
   // ----- Speaking from the check-in (US-73) -----

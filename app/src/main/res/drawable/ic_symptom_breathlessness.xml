@@ -1,0 +1,14 @@
+<!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
+<!-- "Icon/symptom-breathlessness" from the Figma (outlined, 24 dp): tinted by the Icon that shows it -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M3 9H14C14.5933 9 15.1734 8.82405 15.6667 8.49441C16.1601 8.16476 16.5446 7.69623 16.7716 7.14805C16.9987 6.59987 17.0581 5.99667 16.9424 5.41473C16.8266 4.83279 16.5409 4.29824 16.1213 3.87868C15.7018 3.45912 15.1672 3.1734 14.5853 3.05764C14.0033 2.94189 13.4001 3.0013 12.8519 3.22836C12.3038 3.45542 11.8352 3.83994 11.5056 4.33329C11.1759 4.82664 11 5.40666 11 6 M3 14H18C18.5933 14 19.1734 14.1759 19.6667 14.5056C20.1601 14.8352 20.5446 15.3038 20.7716 15.8519C20.9987 16.4001 21.0581 17.0033 20.9424 17.5853C20.8266 18.1672 20.5409 18.7018 20.1213 19.1213C19.7018 19.5409 19.1672 19.8266 18.5853 19.9424C18.0033 20.0581 17.4001 19.9987 16.8519 19.7716C16.3038 19.5446 15.8352 19.1601 15.5056 18.6667C15.1759 18.1734 15 17.5933 15 17 M3 19H9"
+        android:strokeWidth="2"
+        android:strokeColor="@android:color/black"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
