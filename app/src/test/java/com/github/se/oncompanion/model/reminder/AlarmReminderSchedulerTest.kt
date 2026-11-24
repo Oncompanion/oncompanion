@@ -14,6 +14,7 @@ import com.github.se.oncompanion.model.auth.AuthUser
 import com.github.se.oncompanion.model.session.PreferencesCleanupJournal
 import com.github.se.oncompanion.model.session.SessionAccess
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
+import com.github.se.oncompanion.utils.FailedCommitContext
 import java.time.Instant
 import org.junit.After
 import org.junit.Assert.*
@@ -226,6 +227,19 @@ class AlarmReminderSchedulerTest {
     SessionAccess.block()
     ReminderReceiver().onReceive(context, intent)
     assertTrue(notifications.activeNotifications.isEmpty())
+  }
+
+  @Test
+  fun failedVersionCommitsThrowWithoutAnAsynchronousFallback() {
+    for (invalidate in listOf(false, true)) {
+      val failed = FailedCommitContext(context)
+      val deliveries = ReminderDeliveries(failed)
+      assertThrows(IllegalStateException::class.java) {
+        if (invalidate) deliveries.invalidate("fictional-key")
+        else deliveries.replace("fictional-key")
+      }
+      assertFalse(failed.applied)
+    }
   }
 
   @Test
