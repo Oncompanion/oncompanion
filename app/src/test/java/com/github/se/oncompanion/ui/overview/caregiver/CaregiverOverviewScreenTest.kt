@@ -48,6 +48,7 @@ import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.assertSameColor
 import com.github.se.oncompanion.ui.colorAt
 import com.github.se.oncompanion.ui.navigation.NavigationActions
+import com.github.se.oncompanion.ui.overview.LatestEntry
 import com.github.se.oncompanion.ui.overview.NextUp
 import com.github.se.oncompanion.ui.overview.OverviewShortcut
 import com.github.se.oncompanion.ui.overview.TodayItemKind
