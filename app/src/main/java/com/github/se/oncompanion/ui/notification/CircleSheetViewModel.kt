@@ -15,6 +15,7 @@ import com.github.se.oncompanion.model.carecircle.CareCircleRepositoryProvider
 import com.github.se.oncompanion.model.medication.MedicationRepository
 import com.github.se.oncompanion.model.medication.MedicationRepositoryProvider
 import com.github.se.oncompanion.model.medication.Prescription
+import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
 import com.github.se.oncompanion.model.notification.CircleNotification
 import com.github.se.oncompanion.model.notification.NotificationRepository
 import com.github.se.oncompanion.model.notification.NotificationRepositoryProvider
@@ -40,8 +41,10 @@ import kotlinx.coroutines.launch
  * One notification of the "Your circle" sheet, with what it is about as it is now.
  *
  * @property time when it arrived, in the phone's time zone
- * @property prescription the prescription it is about, read live; `null` once it is gone (deleted
- *   or rejected), so the card never offers to open it
+ * @property prescription the prescription it is about, read live: its [Prescription.confirmation]
+ *   says whether it waits for the patient, was confirmed or was rejected (a rejected one is read
+ *   from where it was moved, with its medications). `null` once it is gone: deleted, or rejected
+ *   and then deleted by the caregiver who added it
  */
 data class CircleCard(
     val notification: CircleNotification,
@@ -161,25 +164,35 @@ class CircleSheetViewModel(
           notificationRepository.observeRecent(uid),
           careCircleRepository.observeMembers(uid),
           inviteRepository.observePendingInvites(uid),
-          medicationRepository.observePrescriptions(uid),
+          prescriptionsOf(uid),
           today,
       ) { notifications, members, invites, prescriptions, today ->
         toUiState(notifications, members, invites, prescriptions, today)
+      }
+
+  /**
+   * The prescriptions of [uid] by ID, the rejected ones included: a rejected prescription leaves
+   * the prescriptions for a collection of its own, where it keeps its medications, marked
+   * [PrescriptionConfirmation.REJECTED]. Both are read in step, so a card never shows one being
+   * rejected as gone.
+   */
+  private fun prescriptionsOf(uid: String): Flow<Map<String, Prescription>> =
+      medicationRepository.observePrescriptionsWithRejected(uid).map { all ->
+        all.associateBy { it.id }
       }
 
   private fun toUiState(
       notifications: List<CircleNotification>,
       members: List<CareCircleMember>,
       invites: List<CareCircleInvite>,
-      prescriptions: List<Prescription>,
+      prescriptions: Map<String, Prescription>,
       today: LocalDate,
   ): CircleSheetUiState {
-    // An expired invitation can't be used any more: that person isn't coming
+    // An expired invitation can't be used anymore: that person isn't coming
     val invited = invites.filterNot { it.isExpired(clock.instant()) }
     if (members.isEmpty() && invited.isEmpty() && notifications.isEmpty()) {
       return CircleSheetUiState.NobodyYet
     }
-    val byId = prescriptions.filterNot { it.isRejected }.associateBy { it.id }
     val days =
         notifications
             .groupBy { it.createdAt.atZone(clock.zone).toLocalDate() }
@@ -187,7 +200,11 @@ class CircleSheetViewModel(
               CircleDay(
                   date,
                   sameDay.map {
-                    CircleCard(it, it.createdAt.atZone(clock.zone).toLocalTime(), byId[it.itemId])
+                    CircleCard(
+                        it,
+                        it.createdAt.atZone(clock.zone).toLocalTime(),
+                        prescriptions[it.itemId],
+                    )
                   },
               )
             }

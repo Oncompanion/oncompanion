@@ -189,11 +189,33 @@ class CircleSheetViewModelTest {
         vm.circleState.days[0].cards[0].prescription?.confirmation,
     )
 
-    // Deleted: the notification stays, without a prescription to open
+    // Deleted: the notification stays, with nothing to open
     medications.deletePrescription(uid, "p1")
     runCurrent()
     assertNull(vm.circleState.days[0].cards[0].prescription)
   }
+
+  @Test
+  fun aPrescriptionThePatientRejects_showsAsRejected_untilTheCaregiverDeletesIt() =
+      runViewModelTest {
+        val waiting = prescription("p1")
+        medications.seed(uid, waiting)
+        notifications.deliver(uid, added("p1", at(today, 8, 5)))
+        val vm = viewModel()
+        runCurrent()
+
+        medications.rejectPrescription(uid, waiting)
+        runCurrent()
+        val card = vm.circleState.days[0].cards[0]
+        assertEquals(PrescriptionConfirmation.REJECTED, card.prescription?.confirmation)
+        // Still with what it held, so the patient knows which one it was
+        assertEquals(listOf("Ondansetron"), card.prescription?.medications?.map { it.name })
+
+        // Marc saw the rejection and deleted it: now it is gone
+        medications.deleteRejectedPrescription(uid, "p1")
+        runCurrent()
+        assertNull(vm.circleState.days[0].cards[0].prescription)
+      }
 
   @Test
   fun invitations_stillValid_areListedAsInvited_expiredOnesAreNot() = runViewModelTest {
