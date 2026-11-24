@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.ui.settings
@@ -53,37 +54,17 @@ fun AppearanceContent(
       ) {
         Column(Modifier.selectableGroup()) {
           AppearancePreference.entries.forEach { preference ->
-            val selected = state.settings.appearance == preference
-            Row(
-                Modifier.fillMaxWidth()
-                    .selectable(
-                        selected,
-                        enabled = !state.saving,
-                        role = Role.RadioButton,
-                        onClick = { onAppearance(preference) },
-                    )
-                    .testTag(appearanceTag(preference))
-                    .padding(Spacing.lg),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-              Column(Modifier.weight(1f)) {
-                Text(appearanceLabel(preference), style = MaterialTheme.typography.titleMedium)
+            SettingsChoiceRow(
+                appearanceLabel(preference),
                 if (preference == AppearancePreference.FOLLOW_DEVICE)
-                    Text(
-                        stringResource(R.string.appearance_device_hint),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-              }
-              if (selected) {
-                Icon(
-                    Icons.Default.Check,
-                    contentDescription = null,
-                    modifier = Modifier.testTag(C.Tag.appearance_selected),
-                )
-              }
-            }
+                    stringResource(R.string.appearance_device_hint)
+                else null,
+                state.settings.appearance == preference,
+                !state.saving,
+                { onAppearance(preference) },
+                Modifier.testTag(appearanceTag(preference)),
+                selectedTag = C.Tag.appearance_selected,
+            )
           }
         }
       }
@@ -91,6 +72,45 @@ fun AppearanceContent(
           stringResource(R.string.appearance_persistence),
           style = MaterialTheme.typography.bodyMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
+  }
+}
+
+/** Shared accessible single-choice row with optional supporting text. */
+@Composable
+internal fun SettingsChoiceRow(
+    label: String,
+    hint: String?,
+    selected: Boolean,
+    enabled: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+    selectedTag: String? = null,
+) {
+  Row(
+      modifier
+          .fillMaxWidth()
+          .selectable(selected, enabled = enabled, role = Role.RadioButton, onClick = onSelect)
+          .padding(Spacing.lg),
+      horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+      verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Column(Modifier.weight(1f)) {
+      Text(label, style = MaterialTheme.typography.titleMedium)
+      if (hint != null) {
+        Text(
+            hint,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
+    }
+    if (selected) {
+      Icon(
+          Icons.Default.Check,
+          contentDescription = null,
+          modifier = if (selectedTag != null) Modifier.testTag(selectedTag) else Modifier,
       )
     }
   }

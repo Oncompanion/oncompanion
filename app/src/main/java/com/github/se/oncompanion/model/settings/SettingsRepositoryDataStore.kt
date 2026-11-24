@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.model.settings
@@ -19,14 +20,30 @@ class SettingsRepositoryDataStore(storage: Lazy<DataStore<Preferences>>) : Setti
         val appearance =
             AppearancePreference.entries.firstOrNull { it.name == preferences[APPEARANCE] }
                 ?: AppearancePreference.FOLLOW_DEVICE
-        DeviceSettings(appearance)
+        val dateFormat =
+            DateFormatPreference.entries.firstOrNull { it.name == preferences[DATE_FORMAT] }
+                ?: DateFormatPreference.FOLLOW_DEVICE
+        val timeFormat =
+            TimeFormatPreference.entries.firstOrNull { it.name == preferences[TIME_FORMAT] }
+                ?: TimeFormatPreference.FOLLOW_DEVICE
+        DeviceSettings(appearance, dateFormat, timeFormat)
       }
 
   override suspend fun setAppearance(appearance: AppearancePreference) {
     store.edit { it[APPEARANCE] = appearance.name }
   }
 
+  override suspend fun setDateFormat(dateFormat: DateFormatPreference) {
+    store.edit { it[DATE_FORMAT] = dateFormat.name }
+  }
+
+  override suspend fun setTimeFormat(timeFormat: TimeFormatPreference) {
+    store.edit { it[TIME_FORMAT] = timeFormat.name }
+  }
+
   private companion object {
+    val DATE_FORMAT = stringPreferencesKey("date_format")
+    val TIME_FORMAT = stringPreferencesKey("time_format")
     val APPEARANCE = stringPreferencesKey("appearance")
   }
 }

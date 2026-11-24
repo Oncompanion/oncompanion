@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.ui.settings
@@ -31,10 +32,10 @@ class SettingsRotationTest {
     compose.activityRule.scenario.recreate()
     compose.activity.setContent { OncompanionTheme { AppearanceScreen(model, {}) } }
     compose.onNodeWithTag(C.Tag.appearance_dark).assertIsSelected()
-    compose.activity.setContent { OncompanionTheme { SettingsScreen(model, {}, {}) } }
+    compose.activity.setContent { OncompanionTheme { SettingsScreen(model, {}, {}, {}) } }
     compose.onNodeWithText("Dark").assertIsDisplayed()
     compose.activityRule.scenario.recreate()
-    compose.activity.setContent { OncompanionTheme { SettingsScreen(model, {}, {}) } }
+    compose.activity.setContent { OncompanionTheme { SettingsScreen(model, {}, {}, {}) } }
     compose.onNodeWithText("Dark").assertIsDisplayed()
   }
 }

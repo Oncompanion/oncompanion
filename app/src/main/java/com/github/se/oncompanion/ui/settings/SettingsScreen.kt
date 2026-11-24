@@ -1,7 +1,9 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,6 +19,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.oncompanion.R
+import com.github.se.oncompanion.model.settings.DateFormatPreference
+import com.github.se.oncompanion.model.settings.TimeFormatPreference
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
 import com.github.se.oncompanion.ui.theme.Spacing
@@ -27,10 +31,11 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
     onAppearance: () -> Unit,
+    onDateTime: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
-  SettingsContent(state, onBack, onAppearance, viewModel::retry, modifier)
+  SettingsContent(state, onBack, onAppearance, viewModel::retry, onDateTime, modifier)
 }
 
 /** Displays only implemented categories and their persisted values. */
@@ -40,6 +45,7 @@ fun SettingsContent(
     onBack: () -> Unit,
     onAppearance: () -> Unit,
     onRetry: () -> Unit,
+    onDateTime: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   SettingsLayout(
@@ -55,27 +61,32 @@ fun SettingsContent(
           color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
       Surface(
-          onClick = onAppearance,
           shape = MaterialTheme.shapes.large,
           color = MaterialTheme.colorScheme.surfaceContainerLowest,
-          modifier = Modifier.fillMaxWidth().testTag(C.Tag.settings_appearance),
       ) {
-        Row(
-            Modifier.padding(Spacing.lg),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-          Column(Modifier.weight(1f)) {
-            Text(
-                stringResource(R.string.settings_appearance),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                appearanceLabel(settings.appearance),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-          }
-          Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+        Column {
+          SettingsLinkRow(
+              stringResource(R.string.settings_appearance),
+              appearanceLabel(settings.appearance),
+              onAppearance,
+              Modifier.testTag(C.Tag.settings_appearance),
+          )
+          SettingsLinkRow(
+              stringResource(R.string.settings_date_time),
+              if (
+                  settings.timeFormat == TimeFormatPreference.FOLLOW_DEVICE &&
+                      settings.dateFormat == DateFormatPreference.FOLLOW_DEVICE
+              )
+                  stringResource(R.string.appearance_device)
+              else
+                  stringResource(
+                      R.string.settings_format_summary,
+                      timeFormatLabel(settings.timeFormat),
+                      dateFormatLabel(settings.dateFormat),
+                  ),
+              onDateTime,
+              Modifier.testTag(C.Tag.settings_date_time),
+          )
         }
       }
       Text(
@@ -84,6 +95,31 @@ fun SettingsContent(
           color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
     }
+  }
+}
+
+/** Opens a preference and shows its currently confirmed value. */
+@Composable
+internal fun SettingsLinkRow(
+    title: String,
+    value: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  Row(
+      modifier.fillMaxWidth().clickable(onClick = onClick).padding(Spacing.lg),
+      horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+      verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Column(Modifier.weight(1f)) {
+      Text(title, style = MaterialTheme.typography.titleMedium)
+      Text(
+          value,
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
+    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
   }
 }
 
