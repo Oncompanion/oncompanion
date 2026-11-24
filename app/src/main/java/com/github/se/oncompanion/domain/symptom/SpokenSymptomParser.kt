@@ -53,28 +53,78 @@ internal fun spokenWords(text: String): List<String> {
       .filter { it.isNotEmpty() }
 }
 
-/** How many words of [phrase] match [words] from [start], or 0 if it doesn't match there. */
-private fun matchAt(words: List<String>, start: Int, phrase: Phrase): Int {
-  if (start + phrase.size > words.size) return 0
-  val matches =
-      phrase.indices.all { k ->
-        val word = phrase[k]
-        val said = words[start + k]
-        if (word.endsWith('*')) said.startsWith(word.dropLast(1)) else said == word
-      }
-  return if (matches) phrase.size else 0
+/** Whether [said] is the phrase word [word]: equal, or starting with it if it ends with `*`. */
+private fun isWord(word: String, said: String?): Boolean =
+    said != null && if (word.endsWith('*')) said.startsWith(word.dropLast(1)) else said == word
+
+/**
+ * How many words of [phrase] match [words] from [start], or 0 if it doesn't match there. Any of
+ * [fillers] may come between two words of the phrase ("feel a bit sick" for "feel sick").
+ */
+private fun matchAt(
+    words: List<String>,
+    start: Int,
+    phrase: Phrase,
+    fillers: List<Phrase> = emptyList(),
+): Int {
+  var at = start
+  for ((k, word) in phrase.withIndex()) {
+    // The phrase's own word first, so a filler that is also part of the phrase stays in it
+    if (k > 0 && !isWord(word, words.getOrNull(at))) at += fillersAt(words, at, fillers)
+    if (!isWord(word, words.getOrNull(at))) return 0
+    at++
+  }
+  return at - start
+}
+
+/** How many words of [fillers] follow each other in [words] from [start]. */
+private fun fillersAt(words: List<String>, start: Int, fillers: List<Phrase>): Int {
+  var at = start
+  while (true) {
+    val length = anyAt(words, at, fillers)
+    if (length == 0) return at - start
+    at += length
+  }
 }
 
 /** The longest of [phrases] that matches [words] at [start], with its length. */
-private fun <T> longestAt(words: List<String>, start: Int, phrases: List<Pair<Phrase, T>>) =
+private fun <T> longestAt(
+    words: List<String>,
+    start: Int,
+    phrases: List<Pair<Phrase, T>>,
+    fillers: List<Phrase> = emptyList(),
+) =
     phrases
-        .map { (phrase, value) -> matchAt(words, start, phrase) to value }
+        .map { (phrase, value) -> matchAt(words, start, phrase, fillers) to value }
         .filter { it.first > 0 }
         .maxByOrNull { it.first }
 
 /** How many words of any of [phrases] match at [start], or 0. */
-private fun anyAt(words: List<String>, start: Int, phrases: List<Phrase>): Int =
-    phrases.maxOfOrNull { matchAt(words, start, it) } ?: 0
+private fun anyAt(
+    words: List<String>,
+    start: Int,
+    phrases: List<Phrase>,
+    fillers: List<Phrase> = emptyList(),
+): Int = phrases.maxOfOrNull { matchAt(words, start, it, fillers) } ?: 0
+
+/**
+ * The symptom said at [start] and how many words it takes, or `null`. A symptom that starts inside
+ * it and ends after it wins: in "j'ai mal dormi", "mal dormi" is what was said, not "ai mal".
+ */
+private fun symptomAt(
+    words: List<String>,
+    start: Int,
+    vocabulary: SpokenVocabulary,
+): Pair<Int, SymptomType>? {
+  val found = longestAt(words, start, vocabulary.symptoms, vocabulary.fillers) ?: return null
+  val end = start + found.first
+  val overtaken =
+      (start + 1 until end).any { later ->
+        val other = longestAt(words, later, vocabulary.symptoms, vocabulary.fillers)
+        other != null && later + other.first > end
+      }
+  return found.takeUnless { overtaken }
+}
 
 /** A negation reaches a symptom said at most this many words after it ("no nausea or headache"). */
 private const val NEGATION_REACH = 3
@@ -90,8 +140,8 @@ private fun symptomsSaid(words: List<String>, vocabulary: SpokenVocabulary): Lis
   var negation = Int.MIN_VALUE / 2
   var i = 0
   while (i < words.size) {
-    val ignored = anyAt(words, i, vocabulary.ignored)
-    val symptom = longestAt(words, i, vocabulary.symptoms)
+    val ignored = anyAt(words, i, vocabulary.ignored, vocabulary.fillers)
+    val symptom = symptomAt(words, i, vocabulary)
     when {
       words[i] in vocabulary.clauseBreaks -> negation = Int.MIN_VALUE / 2
       ignored > 0 -> {

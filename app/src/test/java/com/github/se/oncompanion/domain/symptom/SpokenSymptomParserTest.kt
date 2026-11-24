@@ -183,6 +183,92 @@ class SpokenSymptomParserTest {
   }
 
   @Test
+  fun english_recognizesCommonWaysOfSayingASymptom() {
+    check(
+        Locale.ENGLISH,
+        listOf(
+            // The chip's own name
+            Case("I have sleep problems", listOf(SLEEP_PROBLEMS)),
+            Case("I can't fall asleep", listOf(SLEEP_PROBLEMS)),
+            Case("I woke up several times", listOf(SLEEP_PROBLEMS)),
+            Case("I struggle to breathe", listOf(BREATHLESSNESS)),
+            Case("I'm struggling to breathe", listOf(BREATHLESSNESS)),
+            // The recognizer can drop the final e of "breathe"
+            Case("I can't breath", listOf(BREATHLESSNESS)),
+            Case("breathing problems", listOf(BREATHLESSNESS)),
+            Case("I feel achy", listOf(PAIN)),
+            Case("I have a toothache", listOf(PAIN)),
+            Case("earache", listOf(PAIN)),
+            Case("cramps in my legs", listOf(PAIN)),
+            Case("my head is pounding", listOf(HEADACHE)),
+            Case("puking all morning", listOf(NAUSEA)),
+            Case("zero energy", listOf(FATIGUE)),
+            Case("my appetite is gone", listOf(APPETITE_LOSS)),
+            // A word between the words of a phrase
+            Case("I feel a bit sick", listOf(NAUSEA)),
+            Case("I feel really sick", listOf(NAUSEA)),
+            Case("I'm not very hungry", listOf(APPETITE_LOSS)),
+            Case("I've lost all my appetite", listOf(APPETITE_LOSS)),
+            Case("my head really hurts", listOf(HEADACHE)),
+            Case("I can't really sleep", listOf(SLEEP_PROBLEMS)),
+            // Not a symptom, or not this one
+            Case("I didn't sleep badly"),
+            Case("I didn't sleep too badly"),
+            Case("I slept well"),
+            Case("I feel sleepy"),
+            Case("bad breath"),
+            Case("I can breathe fine"),
+        ),
+    )
+  }
+
+  @Test
+  fun french_recognizesCommonWaysOfSayingASymptom() {
+    check(
+        Locale.FRENCH,
+        listOf(
+            // The chip's name, as in English
+            Case("j'ai des troubles du sommeil", listOf(SLEEP_PROBLEMS)),
+            Case("j'ai des problèmes de sommeil", listOf(SLEEP_PROBLEMS)),
+            Case("je n'arrive pas à m'endormir", listOf(SLEEP_PROBLEMS)),
+            Case("j'ai du mal à m'endormir", listOf(SLEEP_PROBLEMS)),
+            Case("réveillée plusieurs fois", listOf(SLEEP_PROBLEMS)),
+            Case("j'ai pas assez dormi", listOf(SLEEP_PROBLEMS)),
+            Case("j'étouffe", listOf(BREATHLESSNESS)),
+            Case("j'ai des difficultés à respirer", listOf(BREATHLESSNESS)),
+            Case("je suis à bout de souffle", listOf(BREATHLESSNESS)),
+            Case("je n'ai aucune énergie", listOf(FATIGUE)),
+            Case("je suis sans énergie", listOf(FATIGUE)),
+            Case("j'ai des crampes", listOf(PAIN)),
+            Case("j'ai des courbatures", listOf(PAIN)),
+            Case("j'ai des haut-le-cœur", listOf(NAUSEA)),
+            Case("j'ai perdu l'appétit", listOf(APPETITE_LOSS)),
+            Case("j'ai plus envie de manger", listOf(APPETITE_LOSS)),
+            Case("aucune envie de manger", listOf(APPETITE_LOSS)),
+            // "j'ai mal" is pain, unless it starts a longer phrase
+            Case("j'ai mal", listOf(PAIN)),
+            Case("j'ai mal, 6 sur 10", listOf(PAIN), 6),
+            Case("j'ai très mal depuis hier", listOf(PAIN), null, yesterday),
+            Case("j'ai encore mal", listOf(PAIN)),
+            Case("j'ai mal à la tête", listOf(HEADACHE)),
+            Case("j'ai mal au cœur", listOf(NAUSEA)),
+            Case("j'ai mal partout", listOf(PAIN)),
+            Case("je n'ai plus mal"),
+            // A word between the words of a phrase
+            Case("je suis complètement crevée", listOf(FATIGUE)),
+            Case("je suis un peu crevée", listOf(FATIGUE)),
+            Case("j'ai pas très faim", listOf(APPETITE_LOSS)),
+            Case("ça fait vraiment mal", listOf(PAIN)),
+            // Not a symptom, or not this one
+            Case("j'ai plus faim que d'habitude"),
+            Case("j'ai sommeil"),
+            Case("il fait étouffant"),
+            Case("j'ai lessivé le sol"),
+        ),
+    )
+  }
+
+  @Test
   fun anotherLanguage_isParsedAsEnglish() {
     check(Locale.GERMAN, listOf(Case("tired 4 out of 10", listOf(FATIGUE), 4)))
   }

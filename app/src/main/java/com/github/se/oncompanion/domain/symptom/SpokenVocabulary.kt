@@ -25,6 +25,8 @@ internal typealias Phrase = List<String>
  *   "plus" alone also means "more"
  * @property clauseBreaks words that end what a negation applies to ("but", "mais")
  * @property ignored phrases that look like a negation or a symptom but are neither
+ * @property fillers words that may come between the words of a symptom or ignored phrase ("feel a
+ *   bit sick", "pas très faim") without changing what it says
  * @property numbers numbers said as words; digits are always understood
  * @property outOf what joins an intensity and its scale ("7 out of 10")
  * @property articles words that mean "one" before a duration ("an hour ago")
@@ -44,6 +46,7 @@ internal class SpokenVocabulary(
     val negationsAfterNe: Set<String> = emptySet(),
     val clauseBreaks: Set<String>,
     ignored: List<String>,
+    fillers: List<String>,
     val numbers: Map<String, Int>,
     outOf: List<String>,
     val articles: Set<String>,
@@ -62,6 +65,7 @@ internal class SpokenVocabulary(
     phrases.map { spokenWords(it) to type }
   }
   val ignored: List<Phrase> = phrases(ignored)
+  val fillers: List<Phrase> = phrases(fillers)
   val outOf: List<Phrase> = phrases(outOf)
   val agoBefore: List<Phrase> = phrases(agoBefore)
   val agoAfter: List<Phrase> = phrases(agoAfter)
@@ -99,6 +103,10 @@ internal class SpokenVocabulary(
                             "felt drained",
                             "no energy",
                             "low energy",
+                            "zero energy",
+                            "out of energy",
+                            "run down",
+                            "knackered",
                         ),
                     NAUSEA to
                         listOf(
@@ -114,6 +122,8 @@ internal class SpokenVocabulary(
                             "vomit*",
                             "retch*",
                             "dry heav*",
+                            "puke*",
+                            "puking",
                         ),
                     PAIN to
                         listOf(
@@ -123,9 +133,15 @@ internal class SpokenVocabulary(
                             "hurt*",
                             "ache*",
                             "aching",
+                            "achy",
                             "sore*",
                             "backache*",
                             "stomachache*",
+                            "toothache*",
+                            "earache*",
+                            "bellyache*",
+                            "cramp*",
+                            "throbbing",
                         ),
                     FEVER to listOf("fever*", "a temperature", "high temperature"),
                     // The recognizer sometimes writes "head ache" in two words
@@ -136,11 +152,23 @@ internal class SpokenVocabulary(
                             "migraine*",
                             "head hurts",
                             "my head hurts",
+                            "head is pounding",
+                            "pounding head*",
+                            "head is killing me",
+                            "head's killing me",
+                            "head is splitting",
+                            "splitting head*",
                         ),
                     APPETITE_LOSS to
                         listOf(
                             "no appetite",
                             "lost my appetite",
+                            "lost appetite",
+                            "appetite is gone",
+                            "appetite has gone",
+                            "appetite's gone",
+                            "appetite is low",
+                            "appetite is poor",
                             "loss of appetite",
                             "not hungry",
                             "poor appetite",
@@ -163,7 +191,26 @@ internal class SpokenVocabulary(
                             "keep waking up",
                             "kept waking up",
                             "tossing and turning",
-                            "insomnia",
+                            "insomni*",
+                            "sleep problem*",
+                            "sleeping problem*",
+                            "problem* sleeping",
+                            "sleep issue*",
+                            "sleep trouble*",
+                            "difficulty sleeping",
+                            "hard to sleep",
+                            "struggl* to sleep",
+                            "can't fall asleep",
+                            "couldn't fall asleep",
+                            "trouble falling asleep",
+                            "can't get to sleep",
+                            "couldn't get to sleep",
+                            "woke up several times",
+                            "woke up many times",
+                            "woke up a lot",
+                            "restless night",
+                            "sleepless",
+                            "up all night",
                         ),
                     BREATHLESSNESS to
                         listOf(
@@ -171,11 +218,21 @@ internal class SpokenVocabulary(
                             "shortness of breath",
                             "out of breath",
                             "breathless*",
-                            "can't breathe",
-                            "hard to breathe",
+                            // The recognizer sometimes writes "breath" for "breathe"
+                            "can't breath*",
+                            "hard to breath*",
+                            "difficult to breath*",
+                            "struggl* to breath*",
                             "trouble breathing",
                             "difficulty breathing",
+                            "problem* breathing",
+                            "hard time breathing",
+                            "breathing problem*",
+                            "breathing difficult*",
                             "can't catch my breath",
+                            "couldn't catch my breath",
+                            "can't get my breath",
+                            "winded",
                         ),
                 ),
             // "t" is what is left of "n't" ("don't" → "don t")
@@ -213,6 +270,25 @@ internal class SpokenVocabulary(
                     // "can't stop throwing up" negates nothing
                     "can't stop",
                     "couldn't stop",
+                    // A good night, said with a negation
+                    "didn't sleep badly",
+                ),
+            fillers =
+                listOf(
+                    "really",
+                    "very",
+                    "so",
+                    "quite",
+                    "too",
+                    "pretty",
+                    "extremely",
+                    "totally",
+                    "completely",
+                    "even",
+                    "all",
+                    "a bit",
+                    "a little",
+                    "kind of",
                 ),
             numbers =
                 mapOf(
@@ -270,13 +346,30 @@ internal class SpokenVocabulary(
                             "sens à plat",
                             "pas d'énergie",
                             "n'ai plus d'énergie",
+                            "aucune énergie",
+                            "sans énergie",
+                            "suis naze",
+                            "sens naze",
+                            "suis lessivé*",
+                            "sens lessivé*",
                         ),
                     NAUSEA to
-                        listOf("nausé*", "envie de vomir", "vomi*", "mal au cœur", "barbouill*"),
-                    // "mal" alone isn't pain: "je me sens mal", "pas mal"
+                        listOf(
+                            "nausé*",
+                            "envie de vomir",
+                            "vomi*",
+                            "mal au cœur",
+                            "barbouill*",
+                            "haut-le-cœur",
+                            "tout rendu",
+                            "envie de gerber",
+                        ),
+                    // "mal" alone isn't pain: "je me sens mal", "pas mal". "j'ai mal" is, unless
+                    // it starts a longer phrase ("j'ai mal dormi")
                     PAIN to
                         listOf(
                             "douleur*",
+                            "ai mal",
                             "mal au",
                             "mal aux",
                             "mal à la",
@@ -288,6 +381,9 @@ internal class SpokenVocabulary(
                             "mal de gorge",
                             "maux de ventre",
                             "douloureu*",
+                            "crampe*",
+                            "courbatu*",
+                            "élancement*",
                         ),
                     FEVER to listOf("fièvre*", "de la température"),
                     HEADACHE to
@@ -312,6 +408,12 @@ internal class SpokenVocabulary(
                             "perte d'appétit",
                             "manque d'appétit",
                             "pas envie de manger",
+                            "plus envie de manger",
+                            "aucune envie de manger",
+                            "perdu l'appétit",
+                            "peu d'appétit",
+                            "appétit coupé",
+                            "coupé l'appétit",
                         ),
                     SLEEP_PROBLEMS to
                         listOf(
@@ -327,6 +429,17 @@ internal class SpokenVocabulary(
                             "nuit blanche",
                             "dors mal",
                             "pas fermé l'œil",
+                            "trouble* du sommeil",
+                            "problème* de sommeil",
+                            "problème* du sommeil",
+                            "mal à m'endormir",
+                            "pas à m'endormir",
+                            "pas pu m'endormir",
+                            "réveillé* plusieurs fois",
+                            "réveillé* toute la nuit",
+                            "me réveille la nuit",
+                            "sommeil agité",
+                            "nuit agitée",
                         ),
                     BREATHLESSNESS to
                         listOf(
@@ -337,6 +450,18 @@ internal class SpokenVocabulary(
                             "respire mal",
                             "manque d'air",
                             "peine à respirer",
+                            // Not "étouff*": "il fait étouffant" is the weather
+                            "j'étouffe",
+                            "sens étouffé*",
+                            "suffoqu*",
+                            "difficulté* à respirer",
+                            "difficulté* respiratoire*",
+                            "difficile de respirer",
+                            "dur de respirer",
+                            "respire difficilement",
+                            "respirer difficilement",
+                            "bout de souffle",
+                            "souffle coupé",
                         ),
                 ),
             negations = setOf("pas", "sans", "aucun", "aucune", "jamais", "ni", "rien"),
@@ -360,6 +485,21 @@ internal class SpokenVocabulary(
                     "sen* mal à l'",
                     "un peu dormi",
                     "fait mal au cœur",
+                    // Hungrier than usual
+                    "plus faim que",
+                ),
+            fillers =
+                listOf(
+                    "très",
+                    "vraiment",
+                    "trop",
+                    "complètement",
+                    "tellement",
+                    "super",
+                    "si",
+                    "assez",
+                    "encore",
+                    "un peu",
                 ),
             numbers =
                 mapOf(
