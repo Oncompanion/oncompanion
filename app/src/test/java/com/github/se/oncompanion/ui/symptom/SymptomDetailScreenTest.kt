@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -33,6 +34,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavHostController
@@ -150,6 +152,18 @@ class SymptomDetailScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.symptom_detail_error).assertDoesNotExist()
     composeTestRule.onNodeWithTag(C.Tag.symptom_detail_not_found).assertDoesNotExist()
     assertTextInside(context.getString(R.string.symptom_detail_title), C.Tag.symptom_detail_screen)
+  }
+
+  @Test
+  @Config(qualifiers = SMALL_LANDSCAPE_PHONE, fontScale = 2f)
+  fun error_at200PercentInShortLandscape_canScrollToRetry() {
+    var retries = 0
+    setContent(loaded.copy(hasError = true), onRetry = { retries++ })
+
+    val retry = composeTestRule.onNodeWithTag(C.Tag.symptom_detail_retry)
+    retry.performScrollTo().assertIsFullyVisible()
+    retry.performClick()
+    assertEquals(1, retries)
   }
 
   @Test
@@ -288,7 +302,37 @@ class SymptomDetailScreenTest {
   }
 
   @Test
-  fun otherEntry_showsTheNotesSayingWhichSymptom() {
+  fun otherEntry_showsItsName_notOther() {
+    setContent(
+        loaded.copy(entry = fatigue.copy(types = listOf(SymptomType.OTHER), otherName = "Hiccups"))
+    )
+
+    assertTextInside("Hiccups", C.Tag.symptom_detail_screen)
+    composeTestRule.onNodeWithText("Other", substring = true).assertDoesNotExist()
+  }
+
+  @Test
+  @Config(qualifiers = "w360dp-h740dp", fontScale = 1.3f)
+  // Real text measuring, so the name is as wide as on a phone
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  fun aLongName_staysOnOneLine_inItsChip() {
+    val name = "Tingling and burning in both of my hands"
+    setContent(
+        loaded.copy(entry = fatigue.copy(types = listOf(SymptomType.OTHER), otherName = name))
+    )
+
+    val layouts = mutableListOf<TextLayoutResult>()
+    composeTestRule
+        .onNode(hasText(name) and hasAnyAncestor(hasTestTag(C.Tag.symptom_detail_symptoms)))
+        .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+    val layout = layouts.single()
+    assertEquals(1, layout.lineCount)
+    // Cut with "…" rather than wrapped: the name doesn't fit at this size
+    assertTrue(layout.hasVisualOverflow)
+  }
+
+  @Test
+  fun otherEntry_fromBeforeItCouldBeNamed_staysOther_withItsNotes() {
     setContent(
         loaded.copy(entry = fatigue.copy(types = listOf(SymptomType.OTHER), notes = "Hiccups"))
     )

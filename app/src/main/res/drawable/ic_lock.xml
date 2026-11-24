@@ -1,0 +1,18 @@
+<!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
+<!-- An outlined lock (2 dp stroke, like the Figma's icons), on the card of a section the patient keeps private: tinted by the Icon that shows it -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M6,11H18A1,1 0,0 1,19 12V20A1,1 0,0 1,18 21H6A1,1 0,0 1,5 20V12A1,1 0,0 1,6 11Z"
+        android:strokeWidth="2"
+        android:strokeColor="@android:color/black"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M8,11V7A4,4 0,0 1,16 7V11"
+        android:strokeWidth="2"
+        android:strokeColor="@android:color/black"
+        android:strokeLineCap="round" />
+</vector>

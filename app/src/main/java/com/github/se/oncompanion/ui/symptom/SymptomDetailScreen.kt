@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -49,6 +50,7 @@ import com.github.se.oncompanion.ui.common.EditedBy
 import com.github.se.oncompanion.ui.common.LakeFilterChip
 import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
+import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.NotSharedMessage
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Screen
@@ -143,23 +145,25 @@ fun SymptomDetailContent(
                 Modifier.align(Alignment.Center).testTag(C.Tag.symptom_detail_loading)
             )
         uiState.hasError ->
-            LakeMessageState(
-                title = stringResource(R.string.symptom_detail_error_title),
-                message = stringResource(R.string.symptom_error_hint),
-                actionLabel = stringResource(R.string.symptom_retry),
-                onAction = onRetry,
-                actionTestTag = C.Tag.symptom_detail_retry,
-                modifier = Modifier.align(Alignment.Center).testTag(C.Tag.symptom_detail_error),
-            )
+            MessageArea(Modifier.testTag(C.Tag.symptom_detail_error)) {
+              LakeMessageState(
+                  title = stringResource(R.string.symptom_detail_error_title),
+                  message = stringResource(R.string.symptom_error_hint),
+                  actionLabel = stringResource(R.string.symptom_retry),
+                  onAction = onRetry,
+                  actionTestTag = C.Tag.symptom_detail_retry,
+              )
+            }
         // The patient a caregiver follows doesn't share their symptoms (anymore)
         uiState.isNotShared && caregiverOf != null ->
-            NotSharedMessage(caregiverOf, CarePermission.SYMPTOMS, Modifier.align(Alignment.Center))
+            MessageArea { NotSharedMessage(caregiverOf, CarePermission.SYMPTOMS) }
         entry == null ->
-            LakeMessageState(
-                title = stringResource(R.string.symptom_detail_not_found_title),
-                message = stringResource(R.string.symptom_detail_not_found_hint),
-                modifier = Modifier.align(Alignment.Center).testTag(C.Tag.symptom_detail_not_found),
-            )
+            MessageArea(Modifier.testTag(C.Tag.symptom_detail_not_found)) {
+              LakeMessageState(
+                  title = stringResource(R.string.symptom_detail_not_found_title),
+                  message = stringResource(R.string.symptom_detail_not_found_hint),
+              )
+            }
         // Edit and Delete at the bottom, away from the back button, as in the Figma mockup
         else ->
             DetailWithActions(
@@ -271,8 +275,14 @@ private fun SymptomsSection(entry: SymptomEntry) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
+      // A long name of "Other" is cut rather than wrapped; the edit form shows it whole
       entry.types.forEach { type ->
-        LakeFilterChip(selected = true, onClick = null, label = stringResource(type.label))
+        LakeFilterChip(
+            selected = true,
+            onClick = null,
+            label = entry.nameOf(type),
+            singleLine = true,
+        )
       }
     }
   }

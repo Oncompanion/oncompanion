@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -11,7 +12,6 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -63,6 +64,8 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -83,6 +86,7 @@ import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.LakeSnackbarHost
 import com.github.se.oncompanion.ui.common.LakeTextField
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
+import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.PickerTestTags
 import com.github.se.oncompanion.ui.common.SaveButton
 import com.github.se.oncompanion.ui.common.SavePhase
@@ -156,6 +160,12 @@ fun AddSymptomScreen(
     onPauseOrDispose {}
   }
 
+  // Tells the view model when the phone's download dialog covers the screen, and when it closes
+  LifecycleResumeEffect(viewModel) {
+    viewModel.onScreenShown()
+    onPauseOrDispose { viewModel.onScreenHidden() }
+  }
+
   // Leaves the screen once the symptom is saved
   val currentOnSaved by rememberUpdatedState(onSaved)
   LaunchedEffect(uiState.save) { if (uiState.save == SavePhase.SAVED) currentOnSaved() }
@@ -184,6 +194,8 @@ fun AddSymptomScreen(
         onOpenSettings = { context.startActivity(appSettingsIntent(context)) },
         onDone = viewModel::onDone,
         onStartOver = viewModel::restartListening,
+        onDownloadForOffline = viewModel::onDownloadForOffline,
+        onNotNow = viewModel::onNotNow,
         modifier = modifier,
     )
     return
@@ -199,6 +211,7 @@ fun AddSymptomScreen(
       onDateChange = viewModel::onDateChange,
       onTimeChange = viewModel::onTimeChange,
       onNotesChange = viewModel::onNotesChange,
+      onOtherNameChange = viewModel::onOtherNameChange,
       onSave = viewModel::save,
       onErrorShown = viewModel::clearError,
       onRetry = viewModel::load,
@@ -233,6 +246,7 @@ fun AddSymptomContent(
     onSpeak: () -> Unit = {},
     onRetry: () -> Unit = {},
     caregiverOf: String? = null,
+    onOtherNameChange: (String) -> Unit = {},
 ) {
   // Not while saving or once saved: the screen then leaves by itself, and going back as well would
   // also leave the journal
@@ -275,7 +289,7 @@ fun AddSymptomContent(
             )
           }
       uiState.hasLoadError ->
-          CenteredMessage(Modifier.padding(innerPadding)) {
+          MessageArea(Modifier.padding(innerPadding)) {
             LakeMessageState(
                 title = stringResource(R.string.symptom_edit_error_title),
                 message = stringResource(R.string.symptom_edit_error_hint),
@@ -286,7 +300,7 @@ fun AddSymptomContent(
             )
           }
       uiState.isNotFound ->
-          CenteredMessage(Modifier.padding(innerPadding)) {
+          MessageArea(Modifier.padding(innerPadding)) {
             LakeMessageState(
                 title = stringResource(R.string.symptom_detail_not_found_title),
                 message = stringResource(R.string.symptom_detail_not_found_hint),
@@ -302,6 +316,7 @@ fun AddSymptomContent(
               onDateChange = onDateChange,
               onTimeChange = onTimeChange,
               onNotesChange = onNotesChange,
+              onOtherNameChange = onOtherNameChange,
               onSpeak = onSpeak,
               scrollsEverything = scrollsEverything,
               caregiverOf = caregiverOf,
@@ -309,22 +324,6 @@ fun AddSymptomContent(
               onSave = onSave,
               modifier = Modifier.padding(innerPadding),
           )
-    }
-  }
-}
-
-/**
- * Centers a message in the space under the top bar, and lets it scroll when it is taller than that
- * space (a phone held sideways under the lake band), so its button can still be reached.
- */
-@Composable
-private fun CenteredMessage(modifier: Modifier, content: @Composable () -> Unit) {
-  BoxWithConstraints(modifier.fillMaxSize()) {
-    Box(
-        Modifier.verticalScroll(rememberScrollState()).fillMaxWidth().heightIn(min = maxHeight),
-        contentAlignment = Alignment.Center,
-    ) {
-      content()
     }
   }
 }
@@ -419,6 +418,7 @@ private fun SymptomFields(
     onDateChange: (LocalDate) -> Unit,
     onTimeChange: (LocalTime) -> Unit,
     onNotesChange: (String) -> Unit,
+    onOtherNameChange: (String) -> Unit,
     onSpeak: () -> Unit,
     scrollsEverything: Boolean,
     caregiverOf: String?,
@@ -442,7 +442,11 @@ private fun SymptomFields(
             modifier = Modifier.testTag(C.Tag.symptom_add_drafted),
         )
       }
-      FormGroup(R.string.symptom_add_types) { TypeChips(uiState.types, onToggleType) }
+      FormGroup(R.string.symptom_add_types) {
+        TypeChips(uiState.types, onToggleType)
+        // Under the chips, as soon as "Other" is picked: it can't be saved without a name
+        if (uiState.isOtherPicked) OtherNameField(uiState, onOtherNameChange)
+      }
       FormGroup(R.string.symptom_add_intensity) {
         IntensitySlider(uiState.intensity, onIntensityChange, onClearIntensity)
       }
@@ -706,21 +710,41 @@ private fun WhenField(
   }
 }
 
-/** Free text; with "Other" it asks which symptom it was, and is required. */
+/**
+ * "Which symptom?", the name of the "Other" symptom, required to save it (Figma: "Check-in · Other,
+ * not named yet"). A name of the list says to pick that symptom instead.
+ */
+@Composable
+private fun OtherNameField(uiState: AddSymptomUiState, onOtherNameChange: (String) -> Unit) {
+  val listedAs = uiState.otherNameListedAs
+  LakeTextField(
+      value = uiState.otherName,
+      onValueChange = onOtherNameChange,
+      placeholder = { Text(stringResource(R.string.symptom_add_other_name_placeholder)) },
+      supportingText =
+          listedAs?.let {
+            {
+              Text(stringResource(R.string.symptom_add_other_name_listed, stringResource(it.label)))
+            }
+          },
+      isError = listedAs != null,
+      singleLine = true,
+      keyboardOptions =
+          KeyboardOptions(
+              capitalization = KeyboardCapitalization.Sentences,
+              imeAction = ImeAction.Done,
+          ),
+      modifier = Modifier.fillMaxWidth().testTag(C.Tag.symptom_add_other_name),
+  )
+}
+
+/** Free text. */
 @Composable
 private fun NotesField(uiState: AddSymptomUiState, onNotesChange: (String) -> Unit) {
   LakeTextField(
       value = uiState.notes,
       onValueChange = onNotesChange,
       label = { Text(stringResource(R.string.symptom_add_notes)) },
-      placeholder =
-          if (uiState.notesRequired) {
-            { Text(stringResource(R.string.symptom_add_notes_other_placeholder)) }
-          } else null,
-      supportingText =
-          if (uiState.notesRequired) {
-            { Text(stringResource(R.string.symptom_add_notes_required)) }
-          } else null,
       maxLines = 6,
       modifier = Modifier.fillMaxWidth().testTag(C.Tag.symptom_add_notes),
   )

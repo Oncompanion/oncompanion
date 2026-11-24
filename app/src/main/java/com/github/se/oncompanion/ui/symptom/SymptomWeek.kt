@@ -17,6 +17,14 @@ import java.time.temporal.TemporalAdjusters
 data class WeekDay(val date: LocalDate, val intensity: Int?, val hasEntries: Boolean)
 
 /**
+ * A symptom the "This week" card can name: [type], or for "Other" the name the user gave it, so
+ * each named "Other" counts as its own symptom.
+ *
+ * @property otherName the name of an "Other" symptom, as first written this week; `null` otherwise
+ */
+data class WeekSymptom(val type: SymptomType, val otherName: String? = null)
+
+/**
  * The calendar week of the journal's "This week" card (Figma: "Symptoms – History").
  *
  * @property days Monday to Sunday; the days after today are empty
@@ -28,7 +36,7 @@ data class WeekDay(val date: LocalDate, val intensity: Int?, val hasEntries: Boo
 data class WeekSummary(
     val days: List<WeekDay>,
     val entryCount: Int,
-    val mostOften: SymptomType?,
+    val mostOften: WeekSymptom?,
 )
 
 /**
@@ -52,9 +60,28 @@ fun weekSummaryOf(days: List<JournalDay>, today: LocalDate): WeekSummary? {
             hasEntries = dayEntries.isNotEmpty(),
         )
       }
-  val counts = entries.flatMap { it.entry.types }.groupingBy { it }.eachCount()
+  val logged = entries.flatMap { (entry) ->
+    entry.types.map { type ->
+      WeekSymptom(type, entry.otherName.takeIf { type == SymptomType.OTHER })
+    }
+  }
+  // The same name however it was typed: "Hiccups" and " hiccups" are one symptom
+  val counts = logged.groupingBy { it.copy(otherName = it.otherName?.let(::sameName)) }.eachCount()
   // Only a symptom logged more often than every other one is named
   val highest = counts.values.max()
-  val mostOften = counts.filterValues { it == highest }.keys.singleOrNull()
+  val mostOften =
+      counts
+          .filterValues { it == highest }
+          .keys
+          .singleOrNull()
+          ?.let { key ->
+            logged.first { it.copy(otherName = it.otherName?.let(::sameName)) == key }
+          }
   return WeekSummary(weekDays, entries.size, mostOften)
 }
+
+/** [name] without case or extra spaces, to compare two names of a symptom. */
+internal fun sameName(name: String): String =
+    name.trim().lowercase().split(SPACES).joinToString(" ")
+
+private val SPACES = Regex("""\s+""")

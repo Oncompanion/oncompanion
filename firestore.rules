@@ -83,9 +83,13 @@ service cloud.firestore {
     // checks them before saving (Medication.isValid) and skips the ones it can't read.
     // A caregiver's prescription (US-43) also says who added it and whether the patient confirmed
     // it; the patient's own is always confirmed. Keep in sync with PrescriptionConfirmation.
+    // The reminder times the patient chose (US-32) are a map from a medication's ID to its times,
+    // only on a confirmed prescription; their entries are checked by the app, like the medications
+    // (Medication.isValidReminderTimes).
     function isValidPrescription(data) {
       return data.keys().hasOnly(['prescribedBy', 'prescribedOn', 'createdAt', 'medications',
-                                  'addedBy', 'addedByName', 'confirmation', 'editedBy', 'editedByName'])
+                                  'addedBy', 'addedByName', 'confirmation', 'editedBy', 'editedByName',
+                                  'reminders'])
           && data.keys().hasAll(['prescribedOn', 'createdAt', 'medications'])
           && confirmationOf(data) in ['CONFIRMED', 'PENDING', 'REJECTED']
           && (data.get('addedBy', null) != null || confirmationOf(data) == 'CONFIRMED')
@@ -101,7 +105,11 @@ service cloud.firestore {
           && data.createdAt is timestamp
           && data.medications is list
           && data.medications.size() >= 1
-          && data.medications.size() <= 20;
+          && data.medications.size() <= 20
+          && (!('reminders' in data)
+              || (data.reminders is map
+                  && data.reminders.size() <= 20
+                  && confirmationOf(data) == 'CONFIRMED'));
     }
 
     // Saved before US-43 without the field: the patient's own, so confirmed
@@ -137,10 +145,10 @@ service cloud.firestore {
     }
 
     // Keep the limits in sync with SymptomEntry (MIN_INTENSITY, MAX_INTENSITY, MAX_NOTES_LENGTH,
-    // MAX_CLOCK_DRIFT).
+    // MAX_OTHER_NAME_LENGTH, MAX_CLOCK_DRIFT).
     function isValidSymptom(data) {
       return data.keys().hasOnly(['types', 'intensity', 'strengths', 'occurredAt', 'notes',
-                                  'createdAt', 'addedBy', 'addedByName', 'editedBy',
+                                  'otherName', 'createdAt', 'addedBy', 'addedByName', 'editedBy',
                                   'editedByName'])
           && data.keys().hasAll(['types', 'occurredAt', 'createdAt'])
           // One or more symptoms, each at most once. This list and the strengths' keys below are
@@ -171,8 +179,14 @@ service cloud.firestore {
           // request.time is then even later.
           && data.occurredAt <= request.time + duration.value(5, 'm')
           && optionalString(data, 'notes', 1000)
-          // With "Other", the notes say which symptom it was
+          // The name of the "Other" symptom (#545), never blank. Allowed without "Other": an older
+          // app version removing it from an entry keeps the name (the app then ignores it).
+          && optionalString(data, 'otherName', 40)
+          && (data.get('otherName', null) == null || data.otherName.trim().size() > 0)
+          // With "Other", its name says which symptom it was, or the notes do in entries from
+          // older app versions, which don't know the name
           && (!('OTHER' in data.types)
+              || data.get('otherName', null) != null
               || (data.get('notes', null) is string && data.notes.trim().size() > 0))
           && data.createdAt is timestamp;
     }
@@ -338,10 +352,13 @@ service cloud.firestore {
                       && isValidPrescription(request.resource.data)
                       && keepsAttribution(request.resource.data, resource.data)
                       && isValidEditor(uid, request.resource.data, resource.data)
-                      // A caregiver can correct the record, but only the patient confirms it.
+                      // A caregiver can correct the record, but only the patient confirms it and
+                      // chooses its reminders.
                       && (isOwner(uid)
                           ? decidesConfirmation(request.resource.data, resource.data)
-                          : confirmationOf(request.resource.data) == confirmationOf(resource.data))
+                          : (confirmationOf(request.resource.data) == confirmationOf(resource.data)
+                              && request.resource.data.get('reminders', null)
+                                  == resource.data.get('reminders', null)))
                       && request.resource.data.createdAt == resource.data.createdAt;
       }
 
@@ -428,7 +445,8 @@ service cloud.firestore {
       // /users/{uid}/eventRegistrations/{eventId}: the user's own statement that they registered
       // with the organizer of /events/{eventId}. It is keyed by the event, so confirming twice
       // writes the same document instead of a duplicate. Members the owner shares Events with
-      // can read it; only the owner removes it. A member the owner lets confirm events (US-42)
+      // can read it. A member with Events edit/delete permission can remove it (US-46).
+      // A member the owner lets confirm events (US-42)
       // can save one that doesn't exist yet, signed with their identity, never replace one.
       // Saving needs an existing event that hasn't started yet, by the server's clock: a
       // confirmation made offline that only syncs once the event has started is rejected.
@@ -443,7 +461,7 @@ service cloud.firestore {
               && isUpcomingEvent();
         }
         allow read: if canRead(uid, 'EVENTS');
-        allow delete: if isOwner(uid);
+        allow delete: if canEditIn(uid, 'EVENTS');
         allow create: if canAddTo(uid, 'EVENTS')
                       && isValidRegistration(request.resource.data)
                       && isValidAttribution(uid, request.resource.data);

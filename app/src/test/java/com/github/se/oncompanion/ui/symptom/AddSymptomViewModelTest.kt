@@ -6,7 +6,9 @@ import androidx.lifecycle.ViewModelStore
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.AuthUser
 import com.github.se.oncompanion.model.session.RejectedWrites
+import com.github.se.oncompanion.model.speech.DeclinedDownloads
 import com.github.se.oncompanion.model.speech.FakeSpeechRecognizer
+import com.github.se.oncompanion.model.speech.OfflineSpeech
 import com.github.se.oncompanion.model.speech.SpeechError
 import com.github.se.oncompanion.model.speech.SpeechEvent
 import com.github.se.oncompanion.model.speech.SpeechLanguage
@@ -37,6 +39,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -52,6 +55,20 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddSymptomViewModelTest {
+
+  /** The symptoms' names as the form shows them (`strings.xml`). */
+  private fun listedName(type: SymptomType): String =
+      when (type) {
+        SymptomType.FATIGUE -> "Fatigue"
+        SymptomType.NAUSEA -> "Nausea"
+        SymptomType.PAIN -> "Pain"
+        SymptomType.FEVER -> "Fever"
+        SymptomType.HEADACHE -> "Headache"
+        SymptomType.APPETITE_LOSS -> "Loss of appetite"
+        SymptomType.SLEEP_PROBLEMS -> "Sleep problems"
+        SymptomType.BREATHLESSNESS -> "Breathlessness"
+        SymptomType.OTHER -> "Other"
+      }
 
   private val dispatcher = StandardTestDispatcher()
   private val uid = "patient-1"
@@ -96,7 +113,18 @@ class AddSymptomViewModelTest {
   }
 
   private fun viewModel(locale: Locale = Locale.ENGLISH) =
-      AddSymptomViewModel(auth, repository, clock, speechRecognizer = speech, locale = locale)
+      AddSymptomViewModel(
+          auth,
+          repository,
+          clock,
+          speechRecognizer = speech,
+          locale = locale,
+          symptomName = ::listedName,
+          declinedDownloads = declined,
+      )
+
+  /** The downloads declined since the app started, shared by every form of a test. */
+  private val declined = DeclinedDownloads()
 
   private val AddSymptomViewModel.state
     get() = uiState.value
@@ -143,6 +171,7 @@ class AddSymptomViewModelTest {
             clock,
             speechRecognizer = speech,
             picked = SymptomType.FEVER,
+            symptomName = ::listedName,
         )
     assertEquals(listOf(SymptomType.FEVER), viewModel.state.types)
     assertTrue(viewModel.state.canSave)
@@ -205,38 +234,117 @@ class AddSymptomViewModelTest {
   // ----- Notes -----
 
   @Test
-  fun other_requiresNotes_beforeSaving() {
+  fun other_needsItsName_beforeSaving_notesDontSayIt() {
     val viewModel = viewModel()
 
     viewModel.toggleType(SymptomType.OTHER)
-    assertTrue(viewModel.state.notesRequired)
-    assertTrue(viewModel.state.isMissingNotes)
-    assertFalse(viewModel.state.canSave)
-
-    viewModel.onNotesChange("   ")
+    assertTrue(viewModel.state.isOtherPicked)
+    assertTrue(viewModel.state.isMissingOtherName)
     assertFalse(viewModel.state.canSave)
 
     viewModel.onNotesChange("Hiccups")
-    assertFalse(viewModel.state.isMissingNotes)
+    viewModel.onOtherNameChange("   ")
+    assertFalse(viewModel.state.canSave)
+
+    viewModel.onOtherNameChange("Hiccups")
+    assertFalse(viewModel.state.isMissingOtherName)
     assertTrue(viewModel.state.canSave)
   }
 
   @Test
-  fun notesWithoutOther_areOptional() {
+  fun withoutOther_noNameIsAsked_andNotesAreOptional() {
     val viewModel = viewModel()
     viewModel.toggleType(SymptomType.PAIN)
 
-    assertFalse(viewModel.state.notesRequired)
-    assertFalse(viewModel.state.isMissingNotes)
+    assertFalse(viewModel.state.isOtherPicked)
+    assertFalse(viewModel.state.isMissingOtherName)
+    assertTrue(viewModel.state.canSave)
   }
+
+  @Test
+  fun theName_isCutAt40Characters_andSavedWithoutTheSpacesAround() =
+      runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.toggleType(SymptomType.OTHER)
+
+        viewModel.onOtherNameChange("h".repeat(41))
+        assertEquals("h".repeat(40), viewModel.state.otherName)
+        // The spaces before it don't use up the 40 characters
+        val name = "Burning feeling in both hands and feet"
+        viewModel.onOtherNameChange("     $name")
+        assertEquals(name, viewModel.state.otherName)
+        viewModel.onOtherNameChange(" ".repeat(40) + "a")
+        assertEquals("a", viewModel.state.otherName)
+
+        viewModel.onOtherNameChange("  Hiccups ")
+        viewModel.save()
+        advanceUntilIdle()
+        assertEquals("Hiccups", savedEntry().otherName)
+      }
+
+  @Test
+  fun aNameTyped_thenOtherUnpicked_isNotSaved() =
+      runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.toggleType(SymptomType.OTHER)
+        viewModel.onOtherNameChange("Hiccups")
+        viewModel.toggleType(SymptomType.PAIN)
+        viewModel.toggleType(SymptomType.OTHER)
+
+        viewModel.save()
+        advanceUntilIdle()
+        assertEquals(listOf(SymptomType.PAIN), savedEntry().types)
+        assertNull(savedEntry().otherName)
+      }
 
   @Test
   fun notesLongerThanAnEntryCanStore_areCut() {
     val viewModel = viewModel()
 
     viewModel.onNotesChange("a".repeat(SymptomEntry.MAX_NOTES_LENGTH + 10))
-
     assertEquals(SymptomEntry.MAX_NOTES_LENGTH, viewModel.state.notes.length)
+
+    // The spaces before them don't use up the limit
+    viewModel.onNotesChange("   " + "b".repeat(SymptomEntry.MAX_NOTES_LENGTH))
+    assertEquals("b".repeat(SymptomEntry.MAX_NOTES_LENGTH), viewModel.state.notes)
+  }
+
+  @Test
+  fun other_namedAfterASymptomOfTheList_cantBeSaved_however_itsTyped() {
+    listOf(
+            "Nausea" to SymptomType.NAUSEA,
+            " nausea " to SymptomType.NAUSEA,
+            "LOSS  of appetite" to SymptomType.APPETITE_LOSS,
+            "Fatigue" to SymptomType.FATIGUE,
+            "Other" to null,
+            "Nauseous" to null,
+            "Hiccups" to null,
+        )
+        .forEach { (name, listed) ->
+          val viewModel = viewModel()
+          // Nausea is picked as well: one entry must never name it twice
+          viewModel.toggleType(SymptomType.NAUSEA)
+          viewModel.toggleType(SymptomType.OTHER)
+          viewModel.onOtherNameChange(name)
+
+          assertEquals(name, listed, viewModel.state.otherNameListedAs)
+          assertEquals(name, listed != null, viewModel.state.isOtherNameListed)
+          assertEquals(name, listed == null, viewModel.state.canSave)
+        }
+  }
+
+  @Test
+  fun aListedName_isntInTheWay_onceOtherIsUnpicked() {
+    val viewModel = viewModel()
+    viewModel.toggleType(SymptomType.OTHER)
+    viewModel.onOtherNameChange("Fever")
+    assertFalse(viewModel.state.canSave)
+
+    viewModel.toggleType(SymptomType.FEVER)
+    viewModel.toggleType(SymptomType.OTHER)
+
+    assertFalse(viewModel.state.isOtherNameListed)
+    assertTrue(viewModel.state.canSave)
   }
 
   // ----- When -----
@@ -522,7 +630,7 @@ class AddSymptomViewModelTest {
           SpeechRecognizerProvider.recognizer = speech
 
           // Only the clock is passed: the repositories come from the providers
-          val viewModel = AddSymptomViewModel(clock = clock)
+          val viewModel = AddSymptomViewModel(clock = clock, symptomName = ::listedName)
           viewModel.toggleType(SymptomType.NAUSEA)
           viewModel.save()
           advanceUntilIdle()
@@ -557,6 +665,7 @@ class AddSymptomViewModelTest {
         clock,
         symptomId = entry.id,
         speechRecognizer = speech,
+        symptomName = ::listedName,
     )
   }
 
@@ -594,6 +703,7 @@ class AddSymptomViewModelTest {
                 symptomId = logged.id,
                 speechRecognizer = speech,
                 picked = SymptomType.PAIN,
+                symptomName = ::listedName,
             )
         advanceUntilIdle()
 
@@ -611,6 +721,7 @@ class AddSymptomViewModelTest {
                 clock,
                 symptomId = "missing",
                 speechRecognizer = speech,
+                symptomName = ::listedName,
             )
         advanceUntilIdle()
 
@@ -791,43 +902,83 @@ class AddSymptomViewModelTest {
       }
 
   @Test
-  fun editing_tickingOther_withNotesAlreadyFilled_canBeSaved() =
+  fun editing_tickingOther_asksItsName_evenWithNotes_andSavesBoth() =
       runTest(dispatcher) {
         val viewModel = editing()
         advanceUntilIdle()
 
         viewModel.toggleType(SymptomType.OTHER)
-        assertFalse(viewModel.state.isMissingNotes)
-        assertTrue(viewModel.state.canSave)
+        assertTrue(viewModel.state.isMissingOtherName)
+        assertFalse(viewModel.state.canSave)
+        viewModel.onOtherNameChange("Hiccups")
         viewModel.save()
         advanceUntilIdle()
 
         assertEquals(listOf(SymptomType.FATIGUE, SymptomType.OTHER), savedEntry().types)
+        assertEquals("Hiccups", savedEntry().otherName)
         assertEquals("After lunch", savedEntry().notes)
       }
 
   @Test
-  fun editing_tickingOther_withoutNotes_cantBeSaved() =
+  fun editing_anOtherFromBefore_asksItsName_keepingItsNotes() =
       runTest(dispatcher) {
-        val viewModel = editing(logged.copy(notes = null))
+        // Saved before "Other" could be named: the notes said which symptom it was
+        val viewModel = editing(logged.copy(types = listOf(SymptomType.OTHER), notes = "Hiccups"))
         advanceUntilIdle()
 
-        viewModel.toggleType(SymptomType.OTHER)
+        assertEquals("", viewModel.state.otherName)
+        assertTrue(viewModel.state.isMissingOtherName)
+        assertFalse(viewModel.state.canSave)
+        assertEquals("Hiccups", viewModel.state.notes)
+      }
 
-        assertTrue(viewModel.state.isMissingNotes)
+  @Test
+  fun editing_anEntryWhoseOtherNamesASymptomOfTheList_saysSo() =
+      runTest(dispatcher) {
+        val viewModel = editing(logged.copy(types = listOf(SymptomType.OTHER), otherName = "Pain"))
+        advanceUntilIdle()
+
+        assertEquals(SymptomType.PAIN, viewModel.state.otherNameListedAs)
+        viewModel.onOtherNameChange("Cramps")
+        assertNull(viewModel.state.otherNameListedAs)
+        assertTrue(viewModel.state.canSave)
+      }
+
+  @Test
+  fun editing_onlyTheName_isAChange_andClearingItCantBeSaved() =
+      runTest(dispatcher) {
+        val viewModel =
+            editing(logged.copy(types = listOf(SymptomType.OTHER), otherName = "Hiccups"))
+        advanceUntilIdle()
+        assertEquals("Hiccups", viewModel.state.otherName)
+        assertFalse("nothing changed yet", viewModel.state.canSave)
+
+        viewModel.onOtherNameChange("Hiccups ")
+        assertFalse("the same name once trimmed", viewModel.state.canSave)
+        viewModel.onOtherNameChange("Cramps")
+        assertTrue(viewModel.state.canSave)
+        viewModel.onOtherNameChange(" ")
         assertFalse(viewModel.state.canSave)
       }
 
   @Test
-  fun editing_clearingTheNotesOfOther_cantBeSaved() =
+  fun editing_removingOther_savesNoName() =
       runTest(dispatcher) {
-        val viewModel = editing(logged.copy(types = listOf(SymptomType.OTHER), notes = "Hiccups"))
+        val viewModel =
+            editing(
+                logged.copy(
+                    types = listOf(SymptomType.FATIGUE, SymptomType.OTHER),
+                    otherName = "Hiccups",
+                )
+            )
         advanceUntilIdle()
 
-        viewModel.onNotesChange(" ")
+        viewModel.toggleType(SymptomType.OTHER)
+        viewModel.save()
+        advanceUntilIdle()
 
-        assertTrue(viewModel.state.isMissingNotes)
-        assertFalse(viewModel.state.canSave)
+        assertEquals(listOf(SymptomType.FATIGUE), savedEntry().types)
+        assertNull(savedEntry().otherName)
       }
 
   @Test
@@ -913,6 +1064,7 @@ class AddSymptomViewModelTest {
           patientUid = "patient",
           profileRepository = profiles,
           speechRecognizer = speech,
+          symptomName = ::listedName,
       )
 
   @Test
@@ -1368,6 +1520,324 @@ class AddSymptomViewModelTest {
         assertEquals(listOf(SymptomType.SLEEP_PROBLEMS), viewModel.state.types)
       }
 
+  // ----- Voice without a connection (US-45) -----
+
+  @Test
+  fun beforeListening_theDownloadIsOfferedOnlyWhenThePhoneCanDownloadTheLanguage() =
+      runTest(dispatcher) {
+        // What the phone says about English offline → what Speak shows, and whether it listens
+        // with the on-device recognizer (null: it doesn't listen yet)
+        val cases =
+            listOf(
+                Triple(
+                    OfflineSpeech.DOWNLOADABLE,
+                    VoiceUiState.OfferingOffline(SpeechLanguage.ENGLISH),
+                    null,
+                ),
+                Triple(
+                    OfflineSpeech.DOWNLOADING,
+                    VoiceUiState.Listening(
+                        connection = ConnectionNote.Downloading(SpeechLanguage.ENGLISH)
+                    ),
+                    false,
+                ),
+                Triple(OfflineSpeech.READY, VoiceUiState.Listening(), true),
+                Triple(
+                    OfflineSpeech.ONLINE_ONLY,
+                    VoiceUiState.Listening(connection = ConnectionNote.OnlineOnly),
+                    false,
+                ),
+                Triple(OfflineSpeech.UNKNOWN, VoiceUiState.Listening(), false),
+            )
+        for ((support, expected, onDevice) in cases) {
+          speech.offline = support
+          val viewModel = listening()
+
+          assertEquals("$support", expected, viewModel.state.voice)
+          assertEquals("$support", onDevice != null, speech.isListening)
+          if (onDevice != null) assertEquals("$support", onDevice, speech.onDevice.last())
+          viewModel.cancelVoice()
+          advanceUntilIdle()
+        }
+        assertEquals(emptyList<SpeechLanguage>(), speech.downloads)
+      }
+
+  @Test
+  fun acceptingTheOffer_downloadsTheLanguage_andListensSayingItIsDownloading() =
+      runTest(dispatcher) {
+        speech.offline = OfflineSpeech.DOWNLOADABLE
+        val viewModel = listening(viewModel(Locale.FRANCE))
+        assertEquals(VoiceUiState.OfferingOffline(SpeechLanguage.FRENCH), viewModel.state.voice)
+
+        viewModel.onDownloadForOffline()
+        // The phone is asked again before listening: it now says it downloads
+        assertEquals(VoiceUiState.Preparing, viewModel.state.voice)
+        speech.offline = OfflineSpeech.DOWNLOADING
+        advanceUntilIdle()
+
+        assertEquals(listOf(SpeechLanguage.FRENCH), speech.downloads)
+        assertTrue(speech.isListening)
+        // The note stays while words come in and after starting over
+        hear(SpeechEvent.PartialText("j'ai mal"))
+        val downloading = ConnectionNote.Downloading(SpeechLanguage.FRENCH)
+        assertEquals(downloading, (viewModel.state.voice as VoiceUiState.Listening).connection)
+        viewModel.restartListening()
+        advanceUntilIdle()
+        assertEquals(VoiceUiState.Listening(connection = downloading), viewModel.state.voice)
+        // Not on the phone yet: it listens with the default recognizer, which may go online
+        assertEquals(listOf(false, false), speech.onDevice)
+      }
+
+  @Test
+  fun howVoiceListens_followsWhatThePhoneSaysEachTimeSpeakIsTapped() =
+      runTest(dispatcher) {
+        speech.offline = OfflineSpeech.DOWNLOADABLE
+        val viewModel = listening()
+        viewModel.onDownloadForOffline()
+        speech.offline = OfflineSpeech.DOWNLOADING
+        advanceUntilIdle()
+        val downloading = ConnectionNote.Downloading(SpeechLanguage.ENGLISH)
+        // The phone's answer on each later Speak → the note shown while listening, and whether it
+        // listens on the phone; no answer (a stuck phone, null here) or "can't tell" keeps what was
+        // known
+        val cases =
+            listOf(
+                Triple(OfflineSpeech.UNKNOWN, downloading, false),
+                Triple(null, downloading, false),
+                Triple(OfflineSpeech.READY, null, true),
+                Triple(null, null, true),
+                Triple(OfflineSpeech.DOWNLOADING, downloading, false),
+                Triple(OfflineSpeech.ONLINE_ONLY, ConnectionNote.OnlineOnly, false),
+                Triple(OfflineSpeech.DOWNLOADABLE, null, false),
+            )
+        for ((answer, note, onDevice) in cases) {
+          viewModel.cancelVoice()
+          speech.offlineHangs = answer == null
+          answer?.let { speech.offline = it }
+          viewModel.onSpeak(hasMicrophone = true)
+          advanceUntilIdle()
+          // A phone that could download offers it again; declining listens without the note
+          if (viewModel.state.voice is VoiceUiState.OfferingOffline) viewModel.onNotNow()
+          advanceUntilIdle()
+
+          assertEquals(
+              "$answer",
+              note,
+              (viewModel.state.voice as VoiceUiState.Listening).connection,
+          )
+          assertEquals("$answer", onDevice, speech.onDevice.last())
+        }
+      }
+
+  @Test
+  fun whileThePhoneIsAsked_theScreenShowsAtOnce_andDoneWaits() =
+      runTest(dispatcher) {
+        speech.offlineHangs = true
+        val viewModel = viewModel()
+
+        viewModel.onSpeak(hasMicrophone = true)
+        assertEquals(VoiceUiState.Preparing, viewModel.state.voice)
+        viewModel.onDone()
+
+        assertEquals(0, speech.stops)
+        assertEquals(VoiceUiState.Preparing, viewModel.state.voice)
+        assertFalse(speech.isListening)
+      }
+
+  @Test
+  fun savingWhileThePhoneIsAsked_goesBackToTheForm_withoutListening() =
+      runTest(dispatcher) {
+        speech.offlineHangs = true
+        val viewModel = viewModel()
+        viewModel.toggleType(SymptomType.PAIN)
+        viewModel.onSpeak(hasMicrophone = true)
+
+        viewModel.save()
+        advanceUntilIdle()
+
+        assertEquals(SavePhase.SAVED, viewModel.state.save)
+        assertNull(viewModel.state.voice)
+        assertEquals(emptyList<SpeechLanguage>(), speech.languages)
+      }
+
+  @Test
+  fun notNow_listensWithoutDownloading() =
+      runTest(dispatcher) {
+        speech.offline = OfflineSpeech.DOWNLOADABLE
+        val viewModel = listening()
+
+        viewModel.onNotNow()
+        advanceUntilIdle()
+
+        assertEquals(VoiceUiState.Listening(), viewModel.state.voice)
+        assertTrue(speech.isListening)
+        assertEquals(emptyList<SpeechLanguage>(), speech.downloads)
+      }
+
+  @Test
+  fun thePhonesOwnDialog_isWaitedFor_andTheNoteShowsOnlyIfThePatientConfirmed() =
+      runTest(dispatcher) {
+        // The phone's answer once its dialog closed → the note while listening, and whether it
+        // listens on the phone; still downloadable means the patient cancelled in the dialog
+        val cases =
+            listOf(
+                Triple(
+                    OfflineSpeech.DOWNLOADING,
+                    ConnectionNote.Downloading(SpeechLanguage.ENGLISH),
+                    false,
+                ),
+                Triple(OfflineSpeech.READY, null, true),
+                Triple(OfflineSpeech.DOWNLOADABLE, null, false),
+            )
+        for ((answer, note, onDevice) in cases) {
+          speech.offline = OfflineSpeech.DOWNLOADABLE
+          val viewModel = listening()
+          viewModel.onDownloadForOffline()
+          viewModel.onScreenHidden()
+          advanceTimeBy(60_000)
+          assertEquals("$answer", VoiceUiState.Preparing, viewModel.state.voice)
+          assertFalse("$answer", speech.isListening)
+
+          speech.offline = answer
+          viewModel.onScreenShown()
+          advanceUntilIdle()
+
+          assertEquals("$answer", VoiceUiState.Listening(connection = note), viewModel.state.voice)
+          assertEquals("$answer", onDevice, speech.onDevice.last())
+          viewModel.cancelVoice()
+          advanceUntilIdle()
+        }
+        assertEquals(List(3) { SpeechLanguage.ENGLISH }, speech.downloads)
+      }
+
+  @Test
+  fun aPhoneSlowToShowItsDialog_isWaitedFor_beforeAskingItAgain() =
+      runTest(dispatcher) {
+        speech.offline = OfflineSpeech.DOWNLOADABLE
+        val viewModel = listening()
+        viewModel.onDownloadForOffline()
+
+        // The dialog only comes up after 2.5 s: the app hasn't asked the phone or listened yet
+        advanceTimeBy(2_500)
+        assertFalse(speech.isListening)
+        viewModel.onScreenHidden()
+        advanceTimeBy(60_000)
+        assertEquals(VoiceUiState.Preparing, viewModel.state.voice)
+        assertFalse(speech.isListening)
+
+        // The patient confirmed: the phone now says it downloads
+        speech.offline = OfflineSpeech.DOWNLOADING
+        viewModel.onScreenShown()
+        advanceUntilIdle()
+        assertEquals(
+            VoiceUiState.Listening(connection = ConnectionNote.Downloading(SpeechLanguage.ENGLISH)),
+            viewModel.state.voice,
+        )
+      }
+
+  @Test
+  fun aCancelledDialog_isNotOfferedAgain_butAPhoneWithoutDialogIs() =
+      runTest(dispatcher) {
+        speech.offline = OfflineSpeech.DOWNLOADABLE
+        // English: the patient cancels the phone's dialog, still downloadable once it closed
+        val cancelled = listening()
+        cancelled.onDownloadForOffline()
+        cancelled.onScreenHidden()
+        advanceTimeBy(60_000)
+        cancelled.onScreenShown()
+        advanceUntilIdle()
+        // French: the phone shows no dialog, and hasn't taken the request when asked again
+        val noDialog = listening(viewModel(Locale.FRENCH))
+        noDialog.onDownloadForOffline()
+        advanceUntilIdle()
+
+        // Next symptom: a no, like Not now, for English only
+        assertEquals(VoiceUiState.Listening(), listening().state.voice)
+        assertEquals(
+            VoiceUiState.OfferingOffline(SpeechLanguage.FRENCH),
+            listening(viewModel(Locale.FRENCH)).state.voice,
+        )
+      }
+
+  @Test
+  fun leavingWhileThePhonesDialogIsOpen_neverListens() =
+      runTest(dispatcher) {
+        speech.offline = OfflineSpeech.DOWNLOADABLE
+        val viewModel = listening()
+        viewModel.onDownloadForOffline()
+        viewModel.onScreenHidden()
+        advanceTimeBy(60_000)
+
+        viewModel.cancelVoice()
+        viewModel.onScreenShown()
+        advanceUntilIdle()
+
+        assertNull(viewModel.state.voice)
+        assertEquals(emptyList<SpeechLanguage>(), speech.languages)
+      }
+
+  @Test
+  fun notNow_isNotOfferedAgainInTheNextForms_onlyForThatLanguage() =
+      runTest(dispatcher) {
+        speech.offline = OfflineSpeech.DOWNLOADABLE
+        listening().onNotNow()
+        advanceUntilIdle()
+
+        // The next symptom, in the same language: listens at once, without the offer
+        val next = listening()
+        assertEquals(VoiceUiState.Listening(), next.state.voice)
+        assertEquals(emptyList<SpeechLanguage>(), speech.downloads)
+
+        // On a phone switched to French, French is still offered
+        val french = listening(viewModel(Locale.FRENCH))
+        assertEquals(VoiceUiState.OfferingOffline(SpeechLanguage.FRENCH), french.state.voice)
+      }
+
+  @Test
+  fun theOfferButtons_doNothingOnceTheOfferIsGone() =
+      runTest(dispatcher) {
+        val viewModel = listening()
+        hear(SpeechEvent.PartialText("I feel sick"))
+
+        viewModel.onDownloadForOffline()
+        viewModel.onNotNow()
+        advanceUntilIdle()
+
+        assertEquals("I feel sick", (viewModel.state.voice as VoiceUiState.Listening).text)
+        assertEquals(emptyList<SpeechLanguage>(), speech.downloads)
+        assertEquals(1, speech.languages.size)
+      }
+
+  @Test
+  fun aPhoneSlowToAnswer_isNotWaitedFor_andASecondTapDoesNotAskAgain() =
+      runTest(dispatcher) {
+        speech.offlineHangs = true
+        val viewModel = viewModel()
+
+        viewModel.onSpeak(hasMicrophone = true)
+        viewModel.onSpeak(hasMicrophone = true)
+        advanceTimeBy(1_900)
+        assertFalse(speech.isListening)
+        advanceUntilIdle()
+
+        assertEquals(VoiceUiState.Listening(), viewModel.state.voice)
+        assertEquals(1, speech.languages.size)
+      }
+
+  @Test
+  fun goingBackWhileThePhoneIsAsked_neverStartsListening() =
+      runTest(dispatcher) {
+        speech.offlineHangs = true
+        val viewModel = viewModel()
+        viewModel.onSpeak(hasMicrophone = true)
+
+        viewModel.cancelVoice()
+        advanceUntilIdle()
+
+        assertNull(viewModel.state.voice)
+        assertFalse(speech.isListening)
+      }
+
   @Test
   fun dictating_isIgnoredWhileSaving() =
       runTest(dispatcher) {
@@ -1420,6 +1890,7 @@ class AddSymptomViewModelTest {
               seed(UserProfile(uid, Role.CAREGIVER, firstName = "Sam"))
             },
         speechRecognizer = speech,
+        symptomName = ::listedName,
     )
   }
 

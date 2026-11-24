@@ -6,6 +6,7 @@ import com.github.se.oncompanion.model.medication.Medication
 import com.github.se.oncompanion.model.medication.Prescription
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -254,6 +255,9 @@ class PrescriptionDraftTest {
 
   // ---------- From a saved prescription ----------
 
+  /** The patient's reminders: kept by the draft, so correcting a prescription doesn't drop them. */
+  private val reminders = listOf(LocalTime.of(9, 0), LocalTime.of(18, 0))
+
   private val saved =
       Prescription(
           id = "presc-1",
@@ -269,6 +273,7 @@ class PrescriptionDraftTest {
                       frequency = "Twice a day",
                       startDate = date.plusDays(1),
                       durationDays = 5,
+                      reminderTimes = reminders,
                   ),
                   Medication(
                       id = "med-2",
@@ -295,6 +300,7 @@ class PrescriptionDraftTest {
                         frequency = "Twice a day",
                         startDate = date.plusDays(1),
                         durationDays = 5,
+                        reminderTimes = reminders,
                     ),
                     MedicationDraft(id = "med-2", name = "Dexamethasone", startDate = date),
                 ),

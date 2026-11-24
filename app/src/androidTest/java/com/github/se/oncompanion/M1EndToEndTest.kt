@@ -32,6 +32,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.model.settings.AppearancePreference
 import com.github.se.oncompanion.model.settings.SettingsRepositoryProvider
 import com.github.se.oncompanion.resources.C
+import com.github.se.oncompanion.ui.navigation.Tab
 import com.github.se.oncompanion.utils.EmulatorGoogleSignIn
 import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.EndToEndTestDriver
@@ -285,12 +286,9 @@ class M1EndToEndTest {
     )
   }
 
-  /** From the Overview: a prescription entered manually appears in the prescriptions list. */
+  /** From the Prescriptions tab: a prescription entered manually appears in its list. */
   private fun addPrescription(doctor: String, medication: String) {
-    ui.open(
-        C.Tag.overview_shortcut_prescriptions,
-        hasTestTag(C.Tag.prescriptions_enter_manually_button),
-    )
+    ui.open(Tab.PRESCRIPTIONS.testTag, hasTestTag(C.Tag.prescriptions_enter_manually_button))
     ui.open(
             C.Tag.prescriptions_enter_manually_button,
             hasTestTag(C.Tag.prescription_form_prescribed_by_field),
@@ -304,7 +302,7 @@ class M1EndToEndTest {
         C.Tag.prescription_form_save_button,
         hasTestTag(C.Tag.prescriptions_list) and hasAnyDescendant(hasText(medication)),
     )
-    ui.open(C.Tag.prescriptions_back_button, hasTestTag(C.Tag.overview_greeting))
+    ui.open(Tab.OVERVIEW.testTag, hasTestTag(C.Tag.overview_greeting))
   }
 
   /** From the Planning tab: an appointment added for tomorrow appears on that day. */

@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.carecircle
@@ -50,6 +51,7 @@ import com.github.se.oncompanion.model.carecircle.Relationship
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeMessageState
+import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Screen
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
@@ -333,7 +335,7 @@ private fun EmptyState(onAddMember: () -> Unit, modifier: Modifier) {
 
 @Composable
 private fun ErrorState(onRetry: () -> Unit, modifier: Modifier) {
-  Box(modifier.testTag(C.Tag.care_circle_error), contentAlignment = Alignment.Center) {
+  MessageArea(modifier.testTag(C.Tag.care_circle_error)) {
     LakeMessageState(
         title = stringResource(R.string.care_circle_error),
         actionLabel = stringResource(R.string.care_circle_retry),

@@ -150,6 +150,8 @@ class SymptomRepositoryFirestore(
           FIELD_INTENSITY to entry.intensity,
           FIELD_OCCURRED_AT to Timestamp(entry.occurredAt),
           FIELD_NOTES to entry.notes,
+          // Written even without "Other": an edit that removes it clears the name
+          FIELD_OTHER_NAME to entry.otherName.takeIf { SymptomType.OTHER in entry.types },
       )
 
   private fun collection(uid: String) =
@@ -167,6 +169,7 @@ class SymptomRepositoryFirestore(
           strengths = strengthsIn(doc, types),
           occurredAt = doc.getTimestamp(FIELD_OCCURRED_AT)!!.toInstant(),
           notes = doc.getString(FIELD_NOTES),
+          otherName = otherNameIn(doc, types),
           // Pending server timestamps read as null until the write reaches the server
           createdAt = doc.getTimestamp(FIELD_CREATED_AT)?.toInstant(),
           addedBy = doc.getString(FIELD_ADDED_BY),
@@ -179,6 +182,15 @@ class SymptomRepositoryFirestore(
       null
     }
   }
+
+  /**
+   * The name of the "Other" symptom saved in [doc], or `null`: entries saved before it existed have
+   * none, and an older app version can remove "Other" from an entry and leave its name behind.
+   */
+  private fun otherNameIn(doc: DocumentSnapshot, types: List<SymptomType>): String? =
+      (doc.get(FIELD_OTHER_NAME) as? String)?.takeIf {
+        SymptomType.OTHER in types && it.isNotBlank()
+      }
 
   /**
    * The strengths saved in [doc], for the entry's [types] only. [NO_STRENGTH] is a strength removed
@@ -211,6 +223,7 @@ class SymptomRepositoryFirestore(
     const val NO_STRENGTH = 0
     const val FIELD_OCCURRED_AT = "occurredAt"
     const val FIELD_NOTES = "notes"
+    const val FIELD_OTHER_NAME = "otherName"
     const val FIELD_CREATED_AT = "createdAt"
     const val FIELD_ADDED_BY = "addedBy"
     const val FIELD_ADDED_BY_NAME = "addedByName"
