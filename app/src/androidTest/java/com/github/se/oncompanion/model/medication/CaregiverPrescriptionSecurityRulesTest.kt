@@ -445,4 +445,30 @@ class CaregiverPrescriptionSecurityRulesTest {
     denied(reject(doc, asRejected + ("editedByName" to "Dave")))
     allowed(reject(doc, asRejected))
   }
+
+  // ---- Reminders: only the patient chooses them (US-32) ----
+
+  @Test
+  fun onlyThePatientChoosesReminders_aCaregiversEditKeepsThem(): Unit = runBlocking {
+    allowCarolToEdit()
+    val nine = mapOf("m1" to listOf("09:00"))
+    // Carol can't add a prescription with reminders, even for it to wait for alice
+    denied(prescriptions(aliceUid).document().set(carolsPrescription("reminders" to nine)))
+    val waiting = prescriptions(aliceUid).document()
+    allowed(waiting.set(carolsPrescription()))
+
+    // Alice confirms carol's and chooses its reminders in the same save; her own has some too
+    EmulatorTestData.signIn("presc-alice")
+    allowed(waiting.update(mapOf("confirmation" to "CONFIRMED", "reminders" to nine)))
+    val alices = prescriptions(aliceUid).document()
+    allowed(alices.set(prescription("reminders" to nine)))
+    EmulatorTestData.signIn("presc-carol")
+
+    for (doc in listOf(waiting, alices)) {
+      // Carol corrects the record without touching the reminders, but can't change or remove them
+      allowed(doc.update(carolsEdit()))
+      denied(doc.update(carolsEdit("reminders" to mapOf("m1" to listOf("20:00")))))
+      denied(doc.update(carolsEdit("reminders" to null)))
+    }
+  }
 }
