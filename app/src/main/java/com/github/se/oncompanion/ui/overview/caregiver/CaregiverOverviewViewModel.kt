@@ -11,13 +11,12 @@ import com.github.se.oncompanion.domain.carecircle.CaregiverName
 import com.github.se.oncompanion.domain.carecircle.ObserveCareSection
 import com.github.se.oncompanion.domain.carecircle.ResolveCareCircleAccess
 import com.github.se.oncompanion.domain.planning.CarePlanning
-import com.github.se.oncompanion.domain.planning.MedicationPlanningSource
 import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
+import com.github.se.oncompanion.domain.planning.PlanningRepositoryProvider
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.signedInUid
 import com.github.se.oncompanion.model.carecircle.CarePermission
-import com.github.se.oncompanion.model.medication.MedicationRepositoryProvider
 import com.github.se.oncompanion.model.medication.TakenDosesRepository
 import com.github.se.oncompanion.model.medication.TakenDosesRepositoryProvider
 import com.github.se.oncompanion.model.planning.PlanningItem
@@ -139,8 +138,7 @@ class CaregiverOverviewViewModel(
     private val observePlanning: ObserveCarePlanning = ObserveCarePlanning(),
     private val symptomRepository: SymptomRepository = SymptomRepositoryProvider.repository,
     private val observeSection: ObserveCareSection = ObserveCareSection(),
-    private val medications: PlanningRepository =
-        MedicationPlanningSource(MedicationRepositoryProvider.repository),
+    private val medications: PlanningRepository = PlanningRepositoryProvider.medications,
     private val takenDoses: TakenDosesRepository = TakenDosesRepositoryProvider.repository,
     private val resolveAccess: ResolveCareCircleAccess =
         ResolveCareCircleAccess(auth = authRepository),
