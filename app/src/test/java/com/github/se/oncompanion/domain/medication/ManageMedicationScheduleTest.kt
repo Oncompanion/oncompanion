@@ -624,7 +624,8 @@ class ManageMedicationScheduleTest {
     manageMedicationSchedule.update(uid, saved.id, edited, "caregiver", "Sam")
     manageMedicationSchedule.update(uid, saved.id, edited)
 
-    assertEquals(1, notifications.notificationsOf(uid).size)
+    // Only the addition asked: the fake, like the server, would ignore a second one anyway
+    assertEquals(1, notifications.notifyCalls)
   }
 
   @Test

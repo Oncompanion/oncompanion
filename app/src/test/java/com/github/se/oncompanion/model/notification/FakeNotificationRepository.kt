@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.update
  *
  * Test hooks: [deliver] stores a notification exactly as given (e.g. old or already seen),
  * replacing one with the same ID; [notifyError], when set, is thrown by [notify], which then stores
- * nothing.
+ * nothing; [notifyCalls] counts the calls to [notify], including those it ignores.
  *
  * @param clock the current time: the 7-day window and the time a notification is sent
  */
@@ -33,6 +33,10 @@ class FakeNotificationRepository(private val clock: () -> Instant = Instant::now
   /** When set, [notify] throws it, as a write failing on the device would. */
   var notifyError: Exception? = null
 
+  /** How many times [notify] was called, whether it stored a notification or not. */
+  var notifyCalls = 0
+    private set
+
   /** Stores [notification] for [uid] as given. */
   fun deliver(uid: String, notification: CircleNotification) {
     store.update { it + (uid to (it[uid].orEmpty() + (notification.id to notification))) }
@@ -43,6 +47,7 @@ class FakeNotificationRepository(private val clock: () -> Instant = Instant::now
       store.value[uid].orEmpty().values.sortedByDescending { it.createdAt }
 
   override suspend fun notify(recipientUid: String, notification: CircleNotification) {
+    notifyCalls++
     notifyError?.let { throw it }
     require(notification.isValid()) { "Invalid notification" }
     if (store.value[recipientUid]?.containsKey(notification.id) == true) return
