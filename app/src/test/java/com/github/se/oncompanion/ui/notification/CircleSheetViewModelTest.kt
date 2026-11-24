@@ -171,6 +171,18 @@ class CircleSheetViewModelTest {
   }
 
   @Test
+  fun aNotificationJustAfterMidnight_isUnderThatDay_inThePhonesTimeZone() = runViewModelTest {
+    // 00:30 in Zurich is still the day before in UTC
+    notifications.deliver(uid, added("p1", at(today, 0, 30)))
+    val vm = viewModel()
+    runCurrent()
+
+    val day = vm.circleState.days.single()
+    assertEquals(today, day.date)
+    assertEquals(LocalTime.of(0, 30), day.cards.single().time)
+  }
+
+  @Test
   fun eachCard_showsItsPrescriptionAsItIsNow_orNoneOnceItIsGone() = runViewModelTest {
     medications.seed(uid, prescription("p1"))
     notifications.deliver(uid, added("p1", at(today, 8, 5)))
@@ -281,8 +293,12 @@ class CircleSheetViewModelTest {
 
     medications.readError = null
     vm.retry()
+    // Loading again until the reads answer, not the old error
+    assertEquals(CircleSheetUiState.Loading, vm.uiState.value)
     runCurrent()
     assertEquals(listOf("Marc", "Sophie"), vm.circleState.joined)
+    // The first observation stopped: only one follows the account and writes the state
+    assertEquals(1, auth.userObservers)
   }
 
   @Test
