@@ -207,9 +207,7 @@ open class NavigationActions(private val navController: NavHostController) {
    */
   open fun navigateAndClearBackStack(route: String) {
     // Saved tab stacks also own ViewModels; never carry them across authentication flows.
-    listOf(Route.OVERVIEW, Route.PLANNING, Route.EVENTS).forEach { tab ->
-      navController.clearBackStack(tab)
-    }
+    Tab.entries.forEach { tab -> navController.clearBackStack(tab.route) }
     navController.navigate(route) {
       popUpTo(navController.graph.id) { inclusive = true }
       launchSingleTop = true
@@ -217,9 +215,9 @@ open class NavigationActions(private val navController: NavHostController) {
   }
 
   /**
-   * Switches to the bottom-bar tab [route] (Overview, Planning or Events). Tabs never stack: only
-   * Overview stays below the current tab, so Back from Planning or Events returns to Overview, and
-   * re-selecting the current tab does nothing. Each tab keeps its state when you switch away.
+   * Switches to the bottom-bar tab [route] (a [Tab]'s). Tabs never stack: only Overview stays below
+   * the current tab, so Back from another tab returns to Overview, and re-selecting the current tab
+   * does nothing. Each tab keeps its state when you switch away.
    */
   open fun navigateToTab(route: String) {
     navController.navigate(route) {

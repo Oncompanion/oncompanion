@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -11,7 +12,6 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -86,6 +86,7 @@ import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.LakeSnackbarHost
 import com.github.se.oncompanion.ui.common.LakeTextField
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
+import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.PickerTestTags
 import com.github.se.oncompanion.ui.common.SaveButton
 import com.github.se.oncompanion.ui.common.SavePhase
@@ -162,6 +163,12 @@ fun AddSymptomScreen(
   // Opened from the Overview's mic: starts dictating once the screen is shown (US-73)
   LaunchedEffect(viewModel) {
     viewModel.onOpened(context.hasPermission(Manifest.permission.RECORD_AUDIO))
+  }
+
+  // Tells the view model when the phone's download dialog covers the screen, and when it closes
+  LifecycleResumeEffect(viewModel) {
+    viewModel.onScreenShown()
+    onPauseOrDispose { viewModel.onScreenHidden() }
   }
 
   // Leaves the screen once the symptom is saved
@@ -291,7 +298,7 @@ fun AddSymptomContent(
             )
           }
       uiState.hasLoadError ->
-          CenteredMessage(Modifier.padding(innerPadding)) {
+          MessageArea(Modifier.padding(innerPadding)) {
             LakeMessageState(
                 title = stringResource(R.string.symptom_edit_error_title),
                 message = stringResource(R.string.symptom_edit_error_hint),
@@ -302,7 +309,7 @@ fun AddSymptomContent(
             )
           }
       uiState.isNotFound ->
-          CenteredMessage(Modifier.padding(innerPadding)) {
+          MessageArea(Modifier.padding(innerPadding)) {
             LakeMessageState(
                 title = stringResource(R.string.symptom_detail_not_found_title),
                 message = stringResource(R.string.symptom_detail_not_found_hint),
@@ -326,22 +333,6 @@ fun AddSymptomContent(
               onSave = onSave,
               modifier = Modifier.padding(innerPadding),
           )
-    }
-  }
-}
-
-/**
- * Centers a message in the space under the top bar, and lets it scroll when it is taller than that
- * space (a phone held sideways under the lake band), so its button can still be reached.
- */
-@Composable
-private fun CenteredMessage(modifier: Modifier, content: @Composable () -> Unit) {
-  BoxWithConstraints(modifier.fillMaxSize()) {
-    Box(
-        Modifier.verticalScroll(rememberScrollState()).fillMaxWidth().heightIn(min = maxHeight),
-        contentAlignment = Alignment.Center,
-    ) {
-      content()
     }
   }
 }

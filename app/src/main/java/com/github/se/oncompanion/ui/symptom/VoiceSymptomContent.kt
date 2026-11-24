@@ -8,12 +8,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,6 +55,10 @@ import java.time.LocalDate
 
 /** The Figma lake's proportions (390 × 270). */
 private const val LAKE_RATIO = 390f / 270f
+
+/** The window edges the right half touches when the phone is held sideways. */
+private val RIGHT_HALF_SIDES =
+    WindowInsetsSides.Top + WindowInsetsSides.End + WindowInsetsSides.Bottom
 
 /**
  * "Speak your symptoms" (US-44, Figma: Voice logging): the patient dictates the symptom, sees what
@@ -104,11 +113,12 @@ fun VoiceSymptomContent(
           VoiceLake(sun, level, Modifier.fillMaxSize().testTag(C.Tag.symptom_voice_lake))
           VoiceTopBar(onClose, leavesOnClose)
         }
+        // Clear of the status bar, the navigation bar and a camera cutout on this side
         Column(
             Modifier.weight(1f)
                 .fillMaxHeight()
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(RIGHT_HALF_SIDES))
                 .verticalScroll(rememberScrollState())
-                .navigationBarsPadding()
                 .padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
@@ -282,16 +292,8 @@ private fun SpeechError.kind(): FailureKind =
 @Composable
 private fun VoiceMessage(voice: VoiceUiState, today: LocalDate) {
   val message = voice.message()
-  // While the phone downloads the language, a note says voice still needs a connection
-  val downloading = (voice as? VoiceUiState.Listening)?.downloading
-  if (downloading != null) {
-    LakeBanner(
-        message =
-            stringResource(R.string.symptom_voice_downloading, stringResource(downloading.label)),
-        tone = LakeBannerTone.Waiting,
-        modifier = Modifier.testTag(C.Tag.symptom_voice_downloading),
-    )
-  }
+  // While listening, a note says when voice may not work without a connection
+  (voice as? VoiceUiState.Listening)?.connection?.let { ConnectionBanner(it) }
   val headline =
       when {
         message != null -> stringResource(message.title)
@@ -329,6 +331,22 @@ private fun VoiceMessage(voice: VoiceUiState, today: LocalDate) {
       PickedUp(draft, today)
     }
   }
+}
+
+/** Why voice may not work without a connection right now, while listening. */
+@Composable
+private fun ConnectionBanner(note: ConnectionNote) {
+  val (message, tag) =
+      when (note) {
+        is ConnectionNote.Downloading ->
+            stringResource(
+                R.string.symptom_voice_downloading,
+                stringResource(note.language.label),
+            ) to C.Tag.symptom_voice_downloading
+        ConnectionNote.OnlineOnly ->
+            stringResource(R.string.symptom_voice_online_only) to C.Tag.symptom_voice_online_only
+      }
+  LakeBanner(message = message, tone = LakeBannerTone.Waiting, modifier = Modifier.testTag(tag))
 }
 
 @Composable

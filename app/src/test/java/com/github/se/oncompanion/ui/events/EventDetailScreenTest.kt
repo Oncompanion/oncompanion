@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.events
@@ -18,11 +19,13 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.R
+import com.github.se.oncompanion.domain.carecircle.FollowedPatient
 import com.github.se.oncompanion.model.auth.AuthUser
 import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.event.Event
@@ -30,6 +33,7 @@ import com.github.se.oncompanion.model.event.FakeEventRegistrationRepository
 import com.github.se.oncompanion.model.event.FakeEventRepository
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
+import com.github.se.oncompanion.ui.SMALL_LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.carecircle.label
@@ -532,6 +536,72 @@ class EventDetailScreenTest {
         .onNode(hasText(context.getString(R.string.event_detail_registration_confirmed_supporting)))
         .assertDoesNotExist()
     composeTestRule.onNodeWithTag(C.Tag.event_detail_remove).assertDoesNotExist()
+  }
+
+  @Test
+  fun caregiverWithRemovalPermission_confirmsRemovalForTheNamedPatient() {
+    val permissions = setOf(CarePermission.EVENTS)
+    val patient =
+        FollowedPatient(
+            CarePermission.EVENTS,
+            canAdd = permissions,
+            canEditAndDelete = permissions,
+        )
+    val registrations = FakeEventRegistrationRepository()
+    registrations.confirm("patient", "yoga")
+    val zone = ZoneId.of("Europe/Zurich")
+    val clock = Clock.fixed(yoga.startDateTime.minusDays(1).atZone(zone).toInstant(), zone)
+    val viewModel =
+        EventDetailViewModel(
+            "yoga",
+            FakeEventRepository(listOf(yoga)),
+            registrations,
+            patient.auth,
+            clock,
+            patientUid = "patient",
+            resolveSection = patient.sectionAccess,
+            careCircleRepository = patient.circle,
+            profileRepository = patient.profiles,
+        )
+    composeTestRule.setContent {
+      EventDetailScreen(eventId = "yoga", onBack = {}, viewModel = viewModel, caregiverOf = "Anne")
+    }
+
+    composeTestRule.onNodeWithTag(C.Tag.event_detail_remove).performClick()
+    composeTestRule
+        .onNodeWithText(context.getString(R.string.event_detail_remove_title_caregiver, "Anne"))
+        .assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText(context.getString(R.string.event_detail_remove_message_caregiver))
+        .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(C.Tag.event_detail_remove_cancel).performClick()
+    composeTestRule.runOnIdle {
+      assertEquals(setOf("yoga"), registrations.registeredEventIds("patient"))
+    }
+
+    composeTestRule.onNodeWithTag(C.Tag.event_detail_remove).performClick()
+    composeTestRule.onNodeWithTag(C.Tag.event_detail_remove_confirm).performClick()
+    composeTestRule.onNodeWithTag(C.Tag.event_detail_registration_confirmed).assertDoesNotExist()
+    composeTestRule.runOnIdle {
+      assertTrue(registrations.registeredEventIds("patient").isEmpty())
+      // Firestore emits the restored confirmation if it rejects a queued removal.
+      registrations.confirm("patient", "yoga")
+    }
+    composeTestRule.onNodeWithTag(C.Tag.event_detail_registration_confirmed).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(C.Tag.event_detail_remove).assertIsEnabled()
+  }
+
+  @Test
+  @Config(qualifiers = SMALL_LANDSCAPE_PHONE, fontScale = 2f)
+  fun caregiverRemovalDialog_actionsAreVisibleWithLargeTextInLandscape() {
+    setContent(
+        loaded(RegistrationStatus.CONFIRMED)
+            .copy(caregiverCanRemove = true, isConfirmingRemoval = true),
+        caregiverOf = "Anne",
+    )
+
+    composeTestRule.onNodeWithTag(C.Tag.event_detail_remove_confirm).assertIsFullyVisible()
+    composeTestRule.onNodeWithTag(C.Tag.event_detail_remove_cancel).assertIsFullyVisible()
   }
 
   @Test

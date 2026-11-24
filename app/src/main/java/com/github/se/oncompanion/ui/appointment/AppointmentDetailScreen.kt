@@ -37,6 +37,7 @@ import com.github.se.oncompanion.ui.common.DetailWithActions
 import com.github.se.oncompanion.ui.common.EditedBy
 import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
+import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.NotSharedMessage
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -142,7 +143,7 @@ fun AppointmentDetailContent(
                   DetailFeedback(R.string.appointment_unavailable, onRetry)
               // The patient a caregiver follows doesn't share their planning (anymore)
               AppointmentDetailUiState.NotShared ->
-                  NotSharedMessage(caregiverOf.orEmpty(), CarePermission.PLANNING)
+                  MessageArea { NotSharedMessage(caregiverOf.orEmpty(), CarePermission.PLANNING) }
               else -> DetailFeedback(R.string.appointment_detail_failed, onRetry)
             }
           }

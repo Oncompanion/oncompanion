@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.prescription
@@ -55,33 +56,37 @@ import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.AddedBy
 import com.github.se.oncompanion.ui.common.LakeMessageState
+import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.NotSharedMessage
 import com.github.se.oncompanion.ui.theme.Spacing
 
 /**
  * The prescriptions list (US-11 "See my saved prescriptions", Figma: "US-11 / Prescription list"):
  * the user's prescriptions, most recently prescribed first, each with the names of its medications,
- * who prescribed it and its date. It is the entry point of the Prescriptions section from the
- * Overview.
+ * who prescribed it and its date. It is the patient's Prescriptions tab; a caregiver opens it from
+ * the Overview.
  *
+ * @param onBack returns to the previous screen; `null` on the patient's tab, which has no back
+ *   arrow
  * @param onAdd opens the prescription form
  * @param onScan starts scanning a prescription
  * @param onOpen opens the detail of the prescription with the given ID
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
  * @param onReview opens the review of a prescription a caregiver added, for the patient to confirm
  *   or reject it (US-43)
- * @param onDismiss closes the state of a prescription the caregiver added, once decided (US-43)
+ * @param bottomBar the bottom navigation bar on the patient's tab, empty otherwise
  */
 @Composable
 fun PrescriptionsScreen(
     viewModel: PrescriptionsViewModel,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onAdd: () -> Unit,
     onScan: () -> Unit,
     onOpen: (String) -> Unit,
     modifier: Modifier = Modifier,
     caregiverOf: String? = null,
     onReview: (String) -> Unit = onOpen,
+    bottomBar: @Composable () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   // Keeps "This month" right while the list is on screen: refreshes when it comes back, then at
@@ -101,12 +106,15 @@ fun PrescriptionsScreen(
       caregiverOf = caregiverOf,
       onReview = onReview,
       onDismiss = viewModel::dismiss,
+      bottomBar = bottomBar,
   )
 }
 
 /**
  * Stateless content of the prescriptions list, so each state can be tested without a ViewModel.
  *
+ * @param onBack returns to the previous screen; `null` on the patient's tab, which has no back
+ *   arrow
  * @param onAdd opens the prescription form
  * @param onScan starts scanning a prescription
  * @param onRetry reloads the prescriptions after an error
@@ -114,12 +122,13 @@ fun PrescriptionsScreen(
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
  * @param onReview opens the review of a prescription a caregiver added, for the patient (US-43)
  * @param onDismiss closes the state of a prescription the caregiver added, once decided (US-43)
+ * @param bottomBar the bottom navigation bar on the patient's tab, empty by default
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrescriptionsContent(
     uiState: PrescriptionsUiState,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onAdd: () -> Unit,
     onScan: () -> Unit,
     onRetry: () -> Unit,
@@ -128,6 +137,7 @@ fun PrescriptionsContent(
     caregiverOf: String? = null,
     onReview: (String) -> Unit = onOpen,
     onDismiss: (String) -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
 ) {
   Scaffold(
       modifier = modifier.testTag(C.Tag.prescriptions_screen),
@@ -140,18 +150,21 @@ fun PrescriptionsContent(
               )
             },
             navigationIcon = {
-              IconButton(
-                  onClick = onBack,
-                  modifier = Modifier.testTag(C.Tag.prescriptions_back_button),
-              ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_arrow_back),
-                    contentDescription = stringResource(R.string.prescriptions_back),
-                )
+              if (onBack != null) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.testTag(C.Tag.prescriptions_back_button),
+                ) {
+                  Icon(
+                      painter = painterResource(R.drawable.ic_arrow_back),
+                      contentDescription = stringResource(R.string.prescriptions_back),
+                  )
+                }
               }
             },
         )
       },
+      bottomBar = bottomBar,
       // In every state: saving a prescription works whatever the list could load. Only the patient
       // adds their prescriptions
       floatingActionButton = { if (uiState.canAdd) AddButtons(onAdd = onAdd, onScan = onScan) },

@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
@@ -21,6 +22,7 @@ import com.github.se.oncompanion.ui.common.AddedBy
 import com.github.se.oncompanion.ui.common.DetailWithActions
 import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeMessageState
+import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.NotSharedMessage
 import com.github.se.oncompanion.ui.theme.Spacing
 
@@ -94,30 +96,31 @@ fun MedicationDetailContent(
               Modifier.padding(padding).padding(Spacing.lg).testTag(C.Tag.medication_detail_loading)
           )
       MedicationDetailUiState.NotShared ->
-          Box(Modifier.padding(padding)) {
+          MessageArea(Modifier.padding(padding)) {
             NotSharedMessage(caregiverOf.orEmpty(), CarePermission.PRESCRIPTIONS)
           }
       else ->
-          LakeMessageState(
-              title =
-                  stringResource(
-                      if (state == MedicationDetailUiState.Error) R.string.medication_detail_error
-                      else R.string.medication_detail_unavailable
-                  ),
-              message =
-                  stringResource(
-                      if (state == MedicationDetailUiState.Error)
-                          R.string.medication_detail_error_hint
-                      else R.string.medication_detail_unavailable_hint
-                  ),
-              modifier = Modifier.padding(padding).testTag(C.Tag.medication_detail_feedback),
-              actionLabel =
-                  if (state == MedicationDetailUiState.Error)
-                      stringResource(R.string.prescription_detail_retry)
-                  else null,
-              onAction = onRetry,
-              actionTestTag = C.Tag.medication_detail_retry,
-          )
+          MessageArea(Modifier.padding(padding).testTag(C.Tag.medication_detail_feedback)) {
+            LakeMessageState(
+                title =
+                    stringResource(
+                        if (state == MedicationDetailUiState.Error) R.string.medication_detail_error
+                        else R.string.medication_detail_unavailable
+                    ),
+                message =
+                    stringResource(
+                        if (state == MedicationDetailUiState.Error)
+                            R.string.medication_detail_error_hint
+                        else R.string.medication_detail_unavailable_hint
+                    ),
+                actionLabel =
+                    if (state == MedicationDetailUiState.Error)
+                        stringResource(R.string.prescription_detail_retry)
+                    else null,
+                onAction = onRetry,
+                actionTestTag = C.Tag.medication_detail_retry,
+            )
+          }
     }
   }
 }

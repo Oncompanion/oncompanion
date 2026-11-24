@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -102,6 +103,7 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -347,12 +349,10 @@ class AppNavHostTest {
     composeTestRule.onNodeWithTag(C.Tag.join_circle_continue).performScrollTo().performClick()
 
     // "Whose care?" chooses Marie by itself, the only patient, and opens her Overview
-    composeTestRule.waitUntil(timeoutMillis = 5_000) {
-      composeTestRule.onAllNodesWithTag(C.Tag.overview_screen).fetchSemanticsNodes().isNotEmpty()
-    }
+    waitForTag(C.Tag.caregiver_overview_screen)
     composeTestRule
-        .onNodeWithTag(C.Tag.overview_whose_care)
-        .assertTextContains(context.getString(R.string.overview_care_of, "Marie"))
+        .onNodeWithTag(C.Tag.caregiver_overview_day_title)
+        .assertTextContains(context.getString(R.string.caregiver_overview_day, "Marie"))
     composeTestRule.runOnIdle {
       assertEquals("patient", invites.joinedCircles("caregiver").single().patientUid)
     }
@@ -428,8 +428,8 @@ class AppNavHostTest {
 
     composeTestRule.onNodeWithTag(C.Tag.whoseCarePatient("p-paul")).performClick()
     composeTestRule
-        .onNodeWithTag(C.Tag.overview_whose_care)
-        .assertTextContains(context.getString(R.string.overview_care_of, "Paul"))
+        .onNodeWithTag(C.Tag.caregiver_overview_day_title)
+        .assertTextContains(context.getString(R.string.caregiver_overview_day, "Paul"))
   }
 
   /** Waits until a node with [tag] is on screen. */
@@ -555,9 +555,29 @@ class AppNavHostTest {
 
   @Test
   fun caregiverMode_titleSwitchesPatient_andPlanningCantAdd() {
-    val (auth, invites, circles) = followingCaregiver("p-anne" to "Anne", "p-paul" to "Paul")
+    val (auth, invites, circles) =
+        followingCaregiver(
+            "p-anne" to "Anne",
+            "p-paul" to "Paul",
+            shared = setOf(CarePermission.PLANNING),
+        )
+    // Each patient has their own next appointment, so a switch must change it with the name
+    val planning = FakePlanningRepository()
+    fun appointment(id: String, title: String) =
+        MutableStateFlow(
+            listOf(
+                PlanningItem(
+                    PlanningSource.Appointment(id),
+                    PlanningTiming.Timed(Instant.now().plus(1, ChronoUnit.HOURS)),
+                    title,
+                )
+            )
+        )
+    planning.itemsOf["p-paul"] = appointment("paul-scan", "Paul's scan")
+    planning.itemsOf["p-anne"] = appointment("anne-chemo", "Anne's chemotherapy")
     setNavHost(
         Route.WHOSE_CARE,
+        planningRepository = planning,
         careCircleRepository = circles,
         careCircleInviteRepository = invites,
         authRepository = auth,
@@ -569,8 +589,11 @@ class AppNavHostTest {
           .isNotEmpty()
     }
     composeTestRule.onNodeWithTag(C.Tag.whoseCarePatient("p-paul")).performClick()
+    composeTestRule.waitUntil(timeoutMillis = 5_000) {
+      composeTestRule.onAllNodesWithText("Paul's scan").fetchSemanticsNodes().isNotEmpty()
+    }
 
-    // "Paul's care ▾" opens the list again, to choose Anne instead
+    // The header's "Whose care?" opens the list again, to choose Anne instead
     composeTestRule.onNodeWithTag(C.Tag.overview_whose_care).performClick()
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
@@ -580,8 +603,12 @@ class AppNavHostTest {
     }
     composeTestRule.onNodeWithTag(C.Tag.whoseCarePatient("p-anne")).performClick()
     composeTestRule
-        .onNodeWithTag(C.Tag.overview_whose_care)
-        .assertTextContains(context.getString(R.string.overview_care_of, "Anne"))
+        .onNodeWithTag(C.Tag.caregiver_overview_day_title)
+        .assertTextContains(context.getString(R.string.caregiver_overview_day, "Anne"))
+    composeTestRule.waitUntil(timeoutMillis = 5_000) {
+      composeTestRule.onAllNodesWithText("Anne's chemotherapy").fetchSemanticsNodes().isNotEmpty()
+    }
+    composeTestRule.onNodeWithText("Paul's scan").assertDoesNotExist()
     composeTestRule.onNodeWithTag(C.Tag.overview_shortcuts).assertDoesNotExist()
 
     // Without the patient's permission, a caregiver can't add appointments
@@ -774,11 +801,17 @@ class AppNavHostTest {
           .fetchSemanticsNodes()
           .isNotEmpty()
     }
+    // A caregiver's bar has no Prescriptions tab: the patient's list opens from its tile
+    composeTestRule.onNodeWithTag(Tab.OVERVIEW.testTag).assertIsSelected()
+    composeTestRule.onNodeWithTag(Tab.PRESCRIPTIONS.testTag).assertDoesNotExist()
     composeTestRule
         .onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag)
         .performScrollTo()
         .performClick()
     waitForTag(C.Tag.prescriptions_enter_manually_button)
+    // Opened from the Overview, not a tab: a back arrow, and no bottom bar
+    composeTestRule.onNodeWithTag(C.Tag.prescriptions_back_button).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(C.Tag.bottom_navigation_bar).assertDoesNotExist()
 
     composeTestRule.onNodeWithTag(C.Tag.prescriptions_enter_manually_button).performClick()
     // The form says whose prescriptions it goes to
@@ -860,7 +893,7 @@ class AppNavHostTest {
   }
 
   @Test
-  fun caregiverMode_planningNotShared_saysSoOnTheOverviewAndPlanning() {
+  fun caregiverMode_planningNotShared_isLockedOnTheOverview_andSaidOnPlanning() {
     val (auth, invites, circles) = followingCaregiver("p-anne" to "Anne")
     val planning = FakePlanningRepository()
     setNavHost(
@@ -876,9 +909,8 @@ class AppNavHostTest {
             "Anne",
             context.getString(R.string.permission_planning),
         )
-    composeTestRule.waitUntil(timeoutMillis = 5_000) {
-      composeTestRule.onAllNodesWithText(notShared).fetchSemanticsNodes().isNotEmpty()
-    }
+    // The caregiver's own Overview locks the planning card
+    waitForTag(C.Tag.caregiverOverviewPrivate(CarePermission.PLANNING.name))
     composeTestRule.onNodeWithTag(Tab.PLANNING.testTag).performClick()
     composeTestRule.onNodeWithTag(C.Tag.planning_screen).assertIsDisplayed()
     composeTestRule.onNodeWithText(notShared).assertIsDisplayed()
@@ -1137,7 +1169,8 @@ class AppNavHostTest {
   fun overviewShortcuts_openTheirSection_andBackReturnsToOverview() {
     setNavHost(Route.OVERVIEW)
 
-    OverviewShortcut.entries.forEach { shortcut ->
+    // The patient's Prescriptions is a tab of the bottom bar, not a tile
+    (OverviewShortcut.entries - OverviewShortcut.PRESCRIPTIONS).forEach { shortcut ->
       val section = featureDestinations.single { it.route == shortcut.route }
 
       // The patient opens the journal from the check-in's "Journal ›"
@@ -1527,27 +1560,64 @@ class AppNavHostTest {
         .forEach { composeTestRule.onNodeWithTag(it.testTag).assertIsNotSelected() }
   }
 
+  /** Each tab with its screen, in the bar's order. */
+  private val tabScreens =
+      listOf(
+          Tab.OVERVIEW to C.Tag.overview_screen,
+          Tab.PLANNING to C.Tag.planning_screen,
+          Tab.PRESCRIPTIONS to C.Tag.prescriptions_screen,
+          Tab.EVENTS to C.Tag.events_screen,
+      )
+
   @Test
-  fun bottomBar_switchesBetweenTheThreeTabs_andHighlightsTheCurrentOne() {
+  fun bottomBar_switchesBetweenTheFourTabs_andHighlightsTheCurrentOne() {
     setNavHost(Route.OVERVIEW)
     assertOnTab(Tab.OVERVIEW, C.Tag.overview_screen)
 
-    composeTestRule.onNodeWithTag(Tab.PLANNING.testTag).performClick()
-    assertOnTab(Tab.PLANNING, C.Tag.planning_screen)
-
-    composeTestRule.onNodeWithTag(Tab.EVENTS.testTag).performClick()
-    assertOnTab(Tab.EVENTS, C.Tag.events_screen)
-
-    composeTestRule.onNodeWithTag(Tab.OVERVIEW.testTag).performClick()
-    assertOnTab(Tab.OVERVIEW, C.Tag.overview_screen)
+    for ((tab, screenTag) in tabScreens.drop(1) + tabScreens.first()) {
+      composeTestRule.onNodeWithTag(tab.testTag).performClick()
+      assertOnTab(tab, screenTag)
+    }
   }
 
   @Test
-  fun bottomBar_backFromPlanningOrEvents_returnsToOverview() {
+  fun bottomBar_badgesPrescriptionsWithThoseToConfirm_onEveryTab() {
+    val medications = FakeMedicationRepository().apply { seed("owner", samsPrescription()) }
+    val auth = FakeAuthRepository(onSignIn = { AuthUser(uid = "owner") })
+    runBlocking { auth.signInWithGoogle("token") }
+    setNavHost(Route.OVERVIEW, authRepository = auth, medicationRepository = medications)
+
+    for ((tab, screenTag) in tabScreens) {
+      composeTestRule.onNodeWithTag(tab.testTag).performClick()
+      composeTestRule.onNodeWithTag(screenTag).assertIsDisplayed()
+      composeTestRule
+          .onNodeWithTag(C.Tag.bottom_navigation_prescriptions_badge, useUnmergedTree = true)
+          .assertIsDisplayed()
+          .assertContentDescriptionEquals("1 prescription to confirm")
+    }
+  }
+
+  @Test
+  fun bottomBar_fromEachTabToAnother_keepsOnlyOverviewBelow() {
     setNavHost(Route.OVERVIEW)
 
-    listOf(Tab.PLANNING to C.Tag.planning_screen, Tab.EVENTS to C.Tag.events_screen).forEach {
-        (tab, screenTag) ->
+    // Each tab's own bar switches tabs: Back from the next one still returns to Overview
+    for ((from, _) in tabScreens.drop(1)) {
+      for ((to, screenTag) in tabScreens.drop(1).filter { it.first != from }) {
+        composeTestRule.onNodeWithTag(from.testTag).performClick()
+        composeTestRule.onNodeWithTag(to.testTag).performClick()
+        composeTestRule.onNodeWithTag(screenTag).assertIsDisplayed()
+        Espresso.pressBack()
+        assertOnTab(Tab.OVERVIEW, C.Tag.overview_screen)
+      }
+    }
+  }
+
+  @Test
+  fun bottomBar_backFromAnotherTab_returnsToOverview() {
+    setNavHost(Route.OVERVIEW)
+
+    tabScreens.drop(1).forEach { (tab, screenTag) ->
       composeTestRule.onNodeWithTag(tab.testTag).performClick()
       composeTestRule.onNodeWithTag(screenTag).assertIsDisplayed()
 
@@ -1695,15 +1765,14 @@ class AppNavHostTest {
     composeTestRule.onNodeWithTag(C.Tag.overview_screen).assertIsDisplayed()
   }
 
-  /** Taps the check-in's mic (US-73) with the microphone allowed; returns the phone's recognizer. */
-  private fun speakFromTheOverview(symptoms: SymptomRepository = FakeSymptomRepository()) =
-      run {
-        shadowOf(context as Application).grantPermissions(Manifest.permission.RECORD_AUDIO)
-        setNavHost(Route.OVERVIEW, authRepository = signedInPatient(), symptomRepository = symptoms)
-        composeTestRule.onNodeWithTag(C.Tag.overview_speak).performScrollTo().performClick()
-        composeTestRule.waitForIdle()
-        SpeechRecognizerProvider.recognizer as FakeSpeechRecognizer
-      }
+  /** Taps "Speak how you feel" (US-73) with the microphone allowed; returns the recognizer. */
+  private fun speakFromTheOverview(symptoms: SymptomRepository = FakeSymptomRepository()) = run {
+    shadowOf(context as Application).grantPermissions(Manifest.permission.RECORD_AUDIO)
+    setNavHost(Route.OVERVIEW, authRepository = signedInPatient(), symptomRepository = symptoms)
+    composeTestRule.onNodeWithTag(C.Tag.overview_speak).performScrollTo().performClick()
+    composeTestRule.waitForIdle()
+    SpeechRecognizerProvider.recognizer as FakeSpeechRecognizer
+  }
 
   @Test
   fun mic_opensTheVoiceScreenListening_andSavingReturnsToTheOverview() {
@@ -1978,28 +2047,27 @@ class AppNavHostTest {
     }
   }
 
-  /** Opens the prescriptions list from its Overview shortcut, as the user does. */
+  /** Opens the prescriptions list from its tab in the bottom bar, as the patient does. */
   private fun openPrescriptionsFromOverview(medicationRepository: MedicationRepository) {
     val auth = FakeAuthRepository(onSignIn = { AuthUser(uid = "owner") })
     runBlocking { auth.signInWithGoogle("token") }
     setNavHost(Route.OVERVIEW, authRepository = auth, medicationRepository = medicationRepository)
-    composeTestRule
-        .onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag)
-        .performScrollTo()
-        .performClick()
+    composeTestRule.onNodeWithTag(Tab.PRESCRIPTIONS.testTag).performClick()
     composeTestRule.onNodeWithTag(C.Tag.prescriptions_screen).assertIsDisplayed()
   }
 
   @Test
-  fun prescriptionsShortcut_opensTheList_andBackArrowReturnsToOverview() {
+  fun prescriptionsTab_opensTheList_withoutBackArrow_andBackReturnsToOverview() {
     openPrescriptionsFromOverview(FakeMedicationRepository())
 
     composeTestRule.onNodeWithTag(C.Tag.prescriptions_empty).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(C.Tag.prescriptions_back_button).assertDoesNotExist()
+    assertOnTab(Tab.PRESCRIPTIONS, C.Tag.prescriptions_screen)
     composeTestRule.runOnIdle {
       assertEquals(Screen.PRESCRIPTIONS, NavigationActions(navController).currentRoute())
     }
 
-    composeTestRule.onNodeWithTag(C.Tag.prescriptions_back_button).performClick()
+    Espresso.pressBack()
     assertOnTab(Tab.OVERVIEW, C.Tag.overview_screen)
   }
 
@@ -2320,7 +2388,7 @@ class AppNavHostTest {
     }
 
     // Back from the list returns to Overview, not to the form
-    composeTestRule.onNodeWithTag(C.Tag.prescriptions_back_button).performClick()
+    Espresso.pressBack()
     assertOnTab(Tab.OVERVIEW, C.Tag.overview_screen)
   }
 

@@ -127,17 +127,32 @@ object C {
     const val overview_medications = "overview_medications"
     const val overview_planning_link = "overview_planning_link"
     const val overview_more_medications = "overview_more_medications"
+    // The sheet to correct a medication's doses (#546)
+    const val overview_doses_sheet = "overview_doses_sheet"
+    const val overview_doses_count = "overview_doses_count"
+    const val overview_doses_less = "overview_doses_less"
+    const val overview_doses_more = "overview_doses_more"
+    const val overview_doses_done = "overview_doses_done"
     const val overview_nothing_planned = "overview_nothing_planned"
     const val overview_check_in = "overview_check_in"
     const val overview_check_in_more = "overview_check_in_more"
     const val overview_journal_link = "overview_journal_link"
-    const val overview_prescriptions_badge = "overview_prescriptions_badge"
     const val overview_speak = "overview_speak"
+
+    // Caregiver Overview
+    const val caregiver_overview_screen = "caregiver_overview_screen"
+    const val caregiver_overview_day_title = "caregiver_overview_day_title"
+    const val caregiver_overview_shared_only = "caregiver_overview_shared_only"
+    const val caregiver_overview_loading = "caregiver_overview_loading"
+    const val caregiver_overview_error = "caregiver_overview_error"
+    const val caregiver_overview_retry = "caregiver_overview_retry"
 
     const val bottom_navigation_bar = "bottom_navigation_bar"
     const val bottom_navigation_tab_overview = "bottom_navigation_tab_overview"
     const val bottom_navigation_tab_planning = "bottom_navigation_tab_planning"
     const val bottom_navigation_tab_events = "bottom_navigation_tab_events"
+    const val bottom_navigation_tab_prescriptions = "bottom_navigation_tab_prescriptions"
+    const val bottom_navigation_prescriptions_badge = "bottom_navigation_prescriptions_badge"
     const val planning_screen = "planning_screen"
     const val events_screen = "events_screen"
     const val events_title = "events_title"
@@ -236,6 +251,7 @@ object C {
     const val symptom_voice_download = "symptom_voice_download"
     const val symptom_voice_not_now = "symptom_voice_not_now"
     const val symptom_voice_downloading = "symptom_voice_downloading"
+    const val symptom_voice_online_only = "symptom_voice_online_only"
     const val prescriptions_screen = "prescriptions_screen"
     const val care_circle_screen = "care_circle_screen"
     // Settings
@@ -304,8 +320,13 @@ object C {
 
     fun overviewMedication(key: String) = "overview_medication_$key"
 
+    fun overviewDoseButton(key: String) = "overview_dose_button_$key"
+
     /** A check-in tile on the Overview, by its symptom type's name. */
     fun overviewCheckIn(type: String) = "overview_check_in_$type"
+
+    /** The locked card of a section the patient keeps private, by its [CarePermission] name. */
+    fun caregiverOverviewPrivate(section: String) = "caregiver_overview_private_$section"
 
     fun symptomJournalItem(symptomId: String) = "symptom_journal_item_$symptomId"
 
@@ -542,6 +563,10 @@ object C {
         "prescription_detail_medication_$medicationId"
 
     const val prescription_form_not_allowed = "prescription_form_not_allowed"
+    const val prescription_form_prescription_card = "prescription_form_prescription_card"
+    const val prescription_form_medications_heading = "prescription_form_medications_heading"
+    const val prescription_form_medication_card = "prescription_form_medication_card"
+    const val prescription_form_save_bar = "prescription_form_save_bar"
 
     // Medication detail (US-35)
     const val medication_detail_screen = "medication_detail_screen"
