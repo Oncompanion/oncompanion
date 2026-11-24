@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
+import com.github.se.oncompanion.model.session.PreferencesCleanupJournal
 import com.github.se.oncompanion.model.session.SessionAccess
 
 /** Delivers only this account's reminders; permission loss and incomplete sign-out fail closed. */
@@ -23,12 +24,25 @@ class ReminderReceiver : BroadcastReceiver() {
     if (parts.size != 3) return
     val title = intent.getStringExtra(AlarmReminderScheduler.TITLE) ?: return
     val text = intent.getStringExtra(AlarmReminderScheduler.TEXT) ?: return
+    val version = intent.getStringExtra(AlarmReminderScheduler.VERSION) ?: return
     try {
       SessionAccess.immediate {
-        if (AuthRepositoryProvider.repository.currentUser?.uid != parts[0]) return@immediate
-        val notifications = ReminderNotifications(context)
-        notifications.createChannel()
-        notifications.show(uri.toString(), title, text)
+        synchronized(ReminderDeliveries.lock) {
+          // Alarms can cold-start the process without MainActivity restoring the cleanup gate.
+          val journal =
+              PreferencesCleanupJournal(
+                  context.getSharedPreferences("session_cleanup", Context.MODE_PRIVATE)
+              )
+          if (journal.pending) return@immediate
+          val deliveries = ReminderDeliveries(context)
+          if (!deliveries.isCurrent(uri.toString(), version)) return@immediate
+          if (AuthRepositoryProvider.repository.currentUser?.uid != parts[0]) return@immediate
+          val notifications = ReminderNotifications(context)
+          notifications.createChannel()
+          // Consume before posting so duplicate queued broadcasts cannot repeat a delivery.
+          deliveries.invalidate(uri.toString())
+          notifications.show(uri.toString(), title, text)
+        }
       }
     } catch (_: IllegalStateException) {
       // Session cleanup or unavailable authentication must not reveal appointment content.

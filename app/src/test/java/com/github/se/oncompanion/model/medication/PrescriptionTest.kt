@@ -5,6 +5,7 @@ package com.github.se.oncompanion.model.medication
 
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -85,6 +86,33 @@ class PrescriptionTest {
     assertTrue(valid.isConfirmed)
     assertFalse(valid.copy(confirmation = PrescriptionConfirmation.PENDING).isConfirmed)
     assertFalse(valid.copy(confirmation = PrescriptionConfirmation.REJECTED).isConfirmed)
+  }
+
+  @Test
+  fun reminders_onlyOnAPrescriptionThePatientConfirmed() {
+    val reminded =
+        valid.copy(
+            addedBy = "caregiver",
+            addedByName = "Sam",
+            medications = listOf(medication("med-1").copy(reminderTimes = listOf(LocalTime.NOON))),
+        )
+    for ((confirmation, expected) in
+        listOf(
+            PrescriptionConfirmation.CONFIRMED to true,
+            PrescriptionConfirmation.PENDING to false,
+            PrescriptionConfirmation.REJECTED to false,
+        )) {
+      assertEquals("$confirmation", expected, reminded.copy(confirmation = confirmation).isValid())
+    }
+    // Waiting for the patient without reminders is fine
+    assertTrue(
+        reminded
+            .copy(
+                confirmation = PrescriptionConfirmation.PENDING,
+                medications = listOf(medication("med-1")),
+            )
+            .isValid()
+    )
   }
 
   @Test

@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -41,6 +42,7 @@ import com.github.se.oncompanion.model.symptom.SymptomEntry
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
+import com.github.se.oncompanion.ui.SMALL_LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.navigation.NavigationActions
@@ -162,6 +164,18 @@ class SymptomJournalScreenTest {
   }
 
   @Test
+  @Config(qualifiers = SMALL_LANDSCAPE_PHONE, fontScale = 2f)
+  fun error_at200PercentInShortLandscape_canScrollToRetry() {
+    var retries = 0
+    setContent(loaded.copy(hasError = true), onRetry = { retries++ })
+
+    val retry = composeTestRule.onNodeWithTag(C.Tag.symptom_journal_retry)
+    retry.performScrollTo().assertIsFullyVisible()
+    retry.performClick()
+    assertEquals(1, retries)
+  }
+
+  @Test
   fun error_showsRetry_whichCallsBack() {
     var retries = 0
     setContent(loaded.copy(hasError = true), onRetry = { retries++ })
@@ -228,6 +242,60 @@ class SymptomJournalScreenTest {
     setSingleEntry(fatigue.copy(notes = "After the walk"))
 
     assertTextInside("Severe · After the walk", C.Tag.symptomJournalItem("fatigue"))
+  }
+
+  @Test
+  fun eachStrength_isSaidInWords_inTheOrderPicked_beforeTheNotes() {
+    val two = listOf(SymptomType.FATIGUE, SymptomType.NAUSEA)
+    val cases =
+        listOf(
+            fatigue.copy(
+                id = "both",
+                types = two,
+                intensity = null,
+                strengths = mapOf(SymptomType.NAUSEA to 2, SymptomType.FATIGUE to 5),
+                notes = "Tired all afternoon",
+            ) to "Moderate fatigue · mild nausea · Tired all afternoon",
+            // A symptom without a strength is only in the title
+            fatigue.copy(
+                id = "one",
+                types = two,
+                intensity = null,
+                strengths = mapOf(SymptomType.NAUSEA to 8),
+                notes = null,
+            ) to "Severe nausea",
+            // "Other" keeps its name as typed
+            fatigue.copy(
+                id = "other",
+                types = listOf(SymptomType.OTHER),
+                otherName = "Hiccups",
+                intensity = null,
+                strengths = mapOf(SymptomType.OTHER to 1),
+                notes = null,
+            ) to "Mild Hiccups",
+            // An intensity an older app version left beside the strengths isn't said
+            fatigue.copy(
+                id = "leftover",
+                types = listOf(SymptomType.PAIN),
+                intensity = 9,
+                strengths = mapOf(SymptomType.PAIN to 4),
+                notes = null,
+            ) to "Moderate pain",
+        )
+    setContent(
+        loaded.copy(days = listOf(day(today, *cases.map { it.first to "14:30" }.toTypedArray())))
+    )
+
+    for ((entry, summary) in cases) {
+      assertTextInside(summary, C.Tag.symptomJournalItem(entry.id))
+    }
+    composeTestRule
+        .onNode(
+            hasText("Severe", substring = true) and
+                hasAnyAncestor(hasTestTag(C.Tag.symptomJournalItem("leftover"))),
+            useUnmergedTree = true,
+        )
+        .assertDoesNotExist()
   }
 
   @Test

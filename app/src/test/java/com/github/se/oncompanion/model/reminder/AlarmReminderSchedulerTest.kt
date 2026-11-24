@@ -11,6 +11,7 @@ import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.AuthUser
+import com.github.se.oncompanion.model.session.PreferencesCleanupJournal
 import com.github.se.oncompanion.model.session.SessionAccess
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import java.time.Instant
@@ -113,6 +114,62 @@ class AlarmReminderSchedulerTest {
   }
 
   @Test
+  fun queuedDeliveryAfterCancellationOrReplacementNeverShowsOldContent() {
+    for (replacement in listOf(false, true)) {
+      scheduler.schedule(reminder)
+      // Copy the delivery already handed to Android, independent of the cancelled PendingIntent.
+      val queued = Intent(shadowOf(shadowOf(alarms).scheduledAlarms.single().operation).savedIntent)
+      val freshScheduler = AlarmReminderScheduler(context)
+      if (replacement) freshScheduler.schedule(reminder.copy(title = "Updated appointment"))
+      else freshScheduler.cancel(key)
+
+      ReminderReceiver().onReceive(context, queued)
+      assertTrue(
+          "obsolete delivery after replacement=$replacement",
+          notifications.activeNotifications.isEmpty(),
+      )
+      if (replacement) {
+        val current =
+            Intent(shadowOf(shadowOf(alarms).scheduledAlarms.single().operation).savedIntent)
+        ReminderReceiver().onReceive(context, current)
+        assertEquals(
+            "Updated appointment",
+            notifications.activeNotifications
+                .single()
+                .notification
+                .extras
+                .getString(Notification.EXTRA_TITLE),
+        )
+        // A duplicate queued delivery must not post again after the current one was consumed.
+        notifications.cancelAll()
+        ReminderReceiver().onReceive(context, current)
+        assertTrue(notifications.activeNotifications.isEmpty())
+      }
+      freshScheduler.cancel(key)
+    }
+  }
+
+  @Test
+  fun persistedCleanupBlocksColdDeliveryWithoutActivityEvenIfFirebaseRemembersAccount() {
+    scheduler.schedule(reminder)
+    val queued = Intent(shadowOf(shadowOf(alarms).scheduledAlarms.single().operation).savedIntent)
+    val journal = PreferencesCleanupJournal(context.getSharedPreferences("session_cleanup", 0))
+    try {
+      journal.setPending(true)
+      // A fresh process starts with an open in-memory gate; no Activity restores the disk flag.
+      SessionAccess.reopen()
+      assertEquals("patient", AuthRepositoryProvider.repository.currentUser?.uid)
+      ReminderReceiver().onReceive(context, queued)
+      assertTrue(notifications.activeNotifications.isEmpty())
+      journal.setPending(false)
+      ReminderReceiver().onReceive(context, queued)
+      assertEquals(1, notifications.activeNotifications.size)
+    } finally {
+      journal.setPending(false)
+    }
+  }
+
+  @Test
   fun channelIsCreatedOnceAndKeepsUsersImportance() {
     scheduler.schedule(reminder)
     val channel = notifications.getNotificationChannel(AlarmReminderScheduler.CHANNEL)
@@ -173,10 +230,8 @@ class AlarmReminderSchedulerTest {
 
   @Test
   fun malformedBroadcastsAreIgnored() {
-    val valid =
-        key.intent(context)
-            .putExtra(AlarmReminderScheduler.TITLE, "Title")
-            .putExtra(AlarmReminderScheduler.TEXT, "Text")
+    scheduler.schedule(reminder)
+    val valid = Intent(shadowOf(shadowOf(alarms).scheduledAlarms.single().operation).savedIntent)
     val intents =
         listOf(
             Intent(),
@@ -186,6 +241,9 @@ class AlarmReminderSchedulerTest {
                     android.net.Uri.parse("oncompanion-reminder://other/patient/appointment/visit")
                 ),
             Intent(valid).setData(android.net.Uri.parse("oncompanion-reminder://local/patient")),
+            Intent(valid).apply { removeExtra(AlarmReminderScheduler.TITLE) },
+            Intent(valid).apply { removeExtra(AlarmReminderScheduler.TEXT) },
+            Intent(valid).apply { removeExtra(AlarmReminderScheduler.VERSION) },
             key.intent(context),
             key.intent(context).putExtra(AlarmReminderScheduler.TITLE, "Title"),
         )

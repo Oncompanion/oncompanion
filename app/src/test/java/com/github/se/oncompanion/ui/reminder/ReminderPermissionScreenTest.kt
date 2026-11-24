@@ -148,7 +148,10 @@ class ReminderPermissionScreenTest {
         com.github.se.oncompanion.ui.planning.PlanningContent(
             com.github.se.oncompanion.ui.planning.PlanningUiState(
                 day,
-                day.minusDays(1),
+                com.github.se.oncompanion.ui.planning.PlanningPeriod.of(
+                    com.github.se.oncompanion.ui.planning.PlanningView.LIST,
+                    day,
+                ),
                 isLoading = false,
                 scheduledItems =
                     listOf(

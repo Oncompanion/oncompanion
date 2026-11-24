@@ -466,30 +466,52 @@ class AndroidSpeechRecognizerTest {
   }
 
   @Test
-  fun theDownloadRecognizer_isReleasedAtThePhonesNextAnswer() = runTest {
+  fun theDownloadRecognizer_isReleasedOnceThePhoneSurelyHasTheRequest() = runTest {
     ShadowSpeechRecognizer.setIsOnDeviceRecognitionAvailable(true)
     val recognizer = AndroidSpeechRecognizer(context, UnconfinedTestDispatcher(testScheduler))
-    // Every answer the phone can give after a download, the patient's cancelled dialog included
-    // (the language is still only downloadable)
-    val answers: List<Pair<String, ShadowSpeechRecognizer.() -> Unit>> =
+    val stillDownloadable: ShadowSpeechRecognizer.() -> Unit = {
+      triggerSupportResult(support(downloadable = listOf("en-US")))
+    }
+    // The phone's first answer after a download → whether it shows the phone took the request.
+    // Still downloadable may come before the phone took it (no dialog yet), or after the patient
+    // cancelled the phone's dialog: the recognizer then waits for the next answer.
+    val answers: List<Triple<String, ShadowSpeechRecognizer.() -> Unit, Boolean>> =
         listOf(
-            "cancelled" to { triggerSupportResult(support(downloadable = listOf("en-US"))) },
-            "online only" to { triggerSupportResult(support(installed = listOf("en-GB"))) },
-            "downloading" to { triggerSupportResult(support(pending = listOf("en-US"))) },
-            "ready" to { triggerSupportResult(support(installed = listOf("en-US"))) },
-            "error" to { triggerSupportError(AndroidRecognizer.ERROR_SERVER) },
+            Triple(
+                "downloading",
+                { triggerSupportResult(support(pending = listOf("en-US"))) },
+                true,
+            ),
+            Triple("ready", { triggerSupportResult(support(installed = listOf("en-US"))) }, true),
+            Triple("still downloadable", stillDownloadable, false),
+            Triple(
+                "online only",
+                { triggerSupportResult(support(installed = listOf("en-GB"))) },
+                false,
+            ),
+            Triple("error", { triggerSupportError(AndroidRecognizer.ERROR_SERVER) }, false),
         )
-    for ((name, answer) in answers) {
+    for ((name, first, released) in answers) {
       recognizer.downloadForOffline(SpeechLanguage.ENGLISH)
       val downloader = android
-      val support = askOffline(recognizer = recognizer)
-      assertFalse("$name: released before the answer", downloader.isDestroyed)
-      android.answer()
-      runCurrent()
-      support.await()
+      answer(recognizer, first)
+      assertEquals("$name: released after the first answer", released, downloader.isDestroyed)
 
+      // The next dictation: the phone had all the time it needed
+      answer(recognizer, stillDownloadable)
       assertTrue("$name: still bound to the phone's speech service", downloader.isDestroyed)
     }
+  }
+
+  /** Asks [recognizer] whether English works offline, and the phone gives [answer]. */
+  private suspend fun TestScope.answer(
+      recognizer: AndroidSpeechRecognizer,
+      answer: ShadowSpeechRecognizer.() -> Unit,
+  ) {
+    val support = askOffline(recognizer = recognizer)
+    android.answer()
+    runCurrent()
+    support.await()
   }
 
   @Test

@@ -1,9 +1,11 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.model.event
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.model.carecircle.CareCircleRepositoryFirestore
+import com.github.se.oncompanion.model.session.RejectedWrites
 import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.allowed
@@ -28,8 +30,8 @@ import org.junit.runner.RunWith
 /**
  * Tests that firestore.rules let a caregiver confirm the patient's registration for an event only
  * when the patient shares Events and lets them confirm (US-42): signed with their own uid, for an
- * upcoming event, never over an existing confirmation, and never removed by them. alice is the
- * patient, carol her caregiver, dave a stranger.
+ * upcoming event, never over an existing confirmation, and removable with the Events removal
+ * permission (US-46). Alice is the patient, carol her caregiver, dave a stranger.
  */
 @RunWith(AndroidJUnit4::class)
 class CaregiverEventRegistrationSecurityRulesTest {
@@ -76,7 +78,11 @@ class CaregiverEventRegistrationSecurityRulesTest {
   }
 
   /** Alice changes what carol sees and may add to (from another device, bypassing the rules). */
-  private suspend fun shareWithCarol(see: List<String>, add: List<String>) {
+  private suspend fun shareWithCarol(
+      see: List<String>,
+      add: List<String>,
+      remove: List<String> = emptyList(),
+  ) {
     fun list(names: List<String>) =
         names.joinToString(", ", "[", "]") { """{"stringValue": "$it"}""" }
     EmulatorTestData.replaceRawDocument(
@@ -86,6 +92,7 @@ class CaregiverEventRegistrationSecurityRulesTest {
             "relationship": {"stringValue": "SISTER"},
             "permissions": {"arrayValue": {"values": ${list(see)}}},
             "canAdd": {"arrayValue": {"values": ${list(add)}}},
+            "canEditAndDelete": {"arrayValue": {"values": ${list(remove)}}},
             "inviteCode": {"stringValue": "ABCDEFGHJK"}}""",
     )
   }
@@ -187,6 +194,61 @@ class CaregiverEventRegistrationSecurityRulesTest {
     allowed(registrations().document(upcomingId).set(carolsConfirmation()))
     denied(registrations().document(upcomingId).set(carolsConfirmation()))
     denied(registrations().document(upcomingId).delete())
+  }
+
+  @Test
+  fun caregiverWithRemovalPermission_canRemoveThePatientsConfirmation(): Unit = runBlocking {
+    EmulatorTestData.signIn("registration-alice")
+    allowed(registrations().document(upcomingId).set(confirmation()))
+    shareWithCarol(listOf("EVENTS"), listOf("EVENTS"), listOf("EVENTS"))
+
+    EmulatorTestData.signIn("registration-carol")
+    val registration = registrations().document(upcomingId)
+    denied(registration.set(carolsConfirmation()))
+    allowed(registration.delete())
+    assertEquals(false, allowed(registration.get(Source.SERVER)).exists())
+  }
+
+  @Test
+  fun removedCaregiverAndStranger_cannotRemoveThePatientsConfirmation(): Unit = runBlocking {
+    allowed(registrations().document(upcomingId).set(carolsConfirmation()))
+    shareWithCarol(listOf("EVENTS"), listOf("EVENTS"), listOf("EVENTS"))
+    EmulatorTestData.deleteRawDocument(
+        "users/$aliceUid/${CareCircleRepositoryFirestore.COLLECTION}/$carolUid"
+    )
+    denied(registrations().document(upcomingId).delete())
+
+    EmulatorTestData.signIn("registration-dave")
+    denied(registrations().document(upcomingId).delete())
+  }
+
+  @Test
+  fun caregiverRemovalWhileOffline_isRestoredIfPermissionIsRevokedBeforeSync(): Unit = runBlocking {
+    val registration = registrations().document(upcomingId)
+    allowed(registration.set(carolsConfirmation()))
+    shareWithCarol(listOf("EVENTS"), listOf("EVENTS"), listOf("EVENTS"))
+    allowed(registration.get(Source.SERVER))
+
+    val rejectedWrites = RejectedWrites()
+    val repository = EventRegistrationRepositoryFirestore(db, rejectedWrites)
+    db.disableNetwork().await()
+    try {
+      repository.remove(aliceUid, upcomingId)
+      withTimeout(10_000) {
+        repository.observeRegistration(aliceUid, upcomingId).first { it == null }
+      }
+      shareWithCarol(listOf("EVENTS"), listOf("EVENTS"))
+    } finally {
+      db.enableNetwork().await()
+    }
+
+    withTimeout(10_000) { rejectedWrites.unseen.first { it == 1 } }
+    assertEquals(
+        EventRegistration(carolUid, "Carol"),
+        withTimeout(10_000) {
+          repository.observeRegistration(aliceUid, upcomingId).first { it != null }
+        },
+    )
   }
 
   @Test

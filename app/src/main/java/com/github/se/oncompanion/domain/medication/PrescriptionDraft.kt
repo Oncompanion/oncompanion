@@ -5,6 +5,7 @@ package com.github.se.oncompanion.domain.medication
 import com.github.se.oncompanion.model.medication.Medication
 import com.github.se.oncompanion.model.medication.Prescription
 import java.time.LocalDate
+import java.time.LocalTime
 
 /**
  * A prescription as the user types or confirms it in the prescription form, before it is saved.
@@ -52,6 +53,7 @@ data class PrescriptionDraft(
  * @property frequency optional, empty when not filled in
  * @property startDate first day of intake
  * @property durationDays number of days of intake; `null` if there is no end
+ * @property reminderTimes the times the patient chose to be reminded at; empty for no reminder
  */
 data class MedicationDraft(
     val id: String? = null,
@@ -60,6 +62,7 @@ data class MedicationDraft(
     val frequency: String = "",
     val startDate: LocalDate,
     val durationDays: Int? = null,
+    val reminderTimes: List<LocalTime> = emptyList(),
 ) {
   /**
    * Whether the medication can be saved: the medication it makes must be valid. The rules live only
@@ -81,6 +84,7 @@ data class MedicationDraft(
           frequency = frequency.trim().ifEmpty { null },
           startDate = startDate,
           durationDays = durationDays,
+          reminderTimes = reminderTimes,
       )
 }
 
@@ -102,6 +106,7 @@ fun Prescription.toDraft(): PrescriptionDraft =
                   frequency = it.frequency.orEmpty(),
                   startDate = it.startDate,
                   durationDays = it.durationDays,
+                  reminderTimes = it.reminderTimes,
               )
             },
     )
