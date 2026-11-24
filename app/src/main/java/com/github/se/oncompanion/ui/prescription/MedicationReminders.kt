@@ -65,7 +65,8 @@ data class ReminderActions(
 /**
  * The reminders of the open medication (US-32, Figma M3 "Reminders · in the form"): Remind me, then
  * one time per dose, each opening a time picker. Only the patient chooses them: a caregiver sees
- * that the patient will, after checking the prescription ([caregiverOf]).
+ * the patient's times, or that the patient will choose them after checking the prescription
+ * ([caregiverOf]).
  *
  * @param caregiverOf the patient's first name when a caregiver fills in the form; `null` for the
  *   patient
@@ -85,11 +86,20 @@ internal fun MedicationReminders(
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+    val times = medication.reminderTimes
+    // A caregiver sees the patient's reminders, if any, but never changes them
     if (caregiverOf != null) {
-      ReminderNote(stringResource(R.string.medication_reminders_by_patient, caregiverOf))
+      ReminderNote(
+          if (times.isEmpty()) stringResource(R.string.medication_reminders_by_patient, caregiverOf)
+          else
+              stringResource(
+                  R.string.medication_reminders_of_patient,
+                  caregiverOf,
+                  times.joinToString(" · ") { it.format(reminderTimeFormatter) },
+              )
+      )
       return@Column
     }
-    val times = medication.reminderTimes
     // A frequency the app can't read suggests no time: Remind me asks the patient for the first
     var choosingFirst by rememberSaveable { mutableStateOf(false) }
     RemindMe(times) { on ->

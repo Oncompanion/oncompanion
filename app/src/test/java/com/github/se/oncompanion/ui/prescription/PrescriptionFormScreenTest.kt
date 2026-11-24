@@ -1937,6 +1937,18 @@ class PrescriptionFormScreenTest {
   fun reminderPicker_smallLandscape_isFullyVisible() = reminderPicker_isFullyVisible()
 
   @Test
+  fun aCaregiver_seesThePatientsReminders_withoutChangingThem() {
+    setContent(reminded(hours(9, 18)), caregiverOf = "Anne")
+
+    composeTestRule
+        .onNodeWithText("Anne's reminders: 09:00 · 18:00. Only Anne can change them.")
+        .performScrollTo()
+        .assertIsDisplayed()
+    node(C.Tag.medication_reminders_switch).assertDoesNotExist()
+    node(C.Tag.medicationReminderTime(0)).assertDoesNotExist()
+  }
+
+  @Test
   fun phoneRotated_keepsTheReminders() {
     val auth = FakeAuthRepository(onSignIn = { AuthUser(uid = "patient-1") })
     runBlocking { auth.signInWithGoogle("token") }

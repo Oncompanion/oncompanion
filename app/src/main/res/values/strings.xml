@@ -873,4 +873,6 @@
     <string name="medication_reminders_picker_confirm">OK</string>
     <string name="medication_reminders_picker_cancel">Cancel</string>
     <string name="medication_reminders_summary">Reminders %1$s</string>
+    <!-- What a caregiver sees of the patient's reminders: "Anne's reminders: 09:00 · 18:00…" -->
+    <string name="medication_reminders_of_patient">%1$s\'s reminders: %2$s. Only %1$s can change them.</string>
 </resources>
