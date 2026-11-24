@@ -182,4 +182,42 @@ class SymptomEntryTest {
     assertNull(valid.addedBy)
     assertNull(valid.editedBy)
   }
+
+  @Test
+  fun strengthsInOrder_followTheOrderTheSymptomsWerePicked_onlyThoseGivenOne() {
+    val entry =
+        valid.copy(
+            types = listOf(SymptomType.NAUSEA, SymptomType.FATIGUE, SymptomType.PAIN),
+            strengths = mapOf(SymptomType.FATIGUE to 5, SymptomType.NAUSEA to 3),
+        )
+
+    assertEquals(
+        listOf(SymptomType.NAUSEA to 3, SymptomType.FATIGUE to 5),
+        entry.strengthsInOrder(),
+    )
+    assertTrue(valid.copy(intensity = 7).strengthsInOrder().isEmpty())
+  }
+
+  @Test
+  fun strongest_isTheStrongestSymptom_elseTheOldIntensity_whichStrengthsHide() {
+    val none = emptyMap<SymptomType, Int>()
+    // (intensity, strengths) to (overall intensity, strongest)
+    val cases =
+        listOf(
+            Triple(null, none, null to null),
+            Triple(7, none, 7 to 7),
+            Triple(null, mapOf(SymptomType.FATIGUE to 5, SymptomType.NAUSEA to 3), null to 5),
+            // An intensity an older app version left beside the strengths: they say it
+            Triple(9, mapOf(SymptomType.FATIGUE to 2), null to 2),
+        )
+    for ((intensity, strengths, expected) in cases) {
+      val entry =
+          valid.copy(
+              types = listOf(SymptomType.FATIGUE, SymptomType.NAUSEA),
+              intensity = intensity,
+              strengths = strengths,
+          )
+      assertEquals("$intensity $strengths", expected, entry.overallIntensity() to entry.strongest())
+    }
+  }
 }
