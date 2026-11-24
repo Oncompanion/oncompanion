@@ -95,6 +95,42 @@
         <item quantity="one">%1$d more</item>
         <item quantity="other">%1$d more</item>
     </plurals>
+    <!-- Doses ticked on the Overview (US-28): "1 of 3", then "All taken" -->
+    <string name="overview_doses_taken">%1$d of %2$d</string>
+    <string name="overview_doses_all_taken">All taken</string>
+    <!-- The round dose button, for TalkBack: "Tick a dose of Ondansetron 8 mg, 1 of 3 taken" -->
+    <plurals name="overview_dose_tick">
+        <item quantity="one">Tick a dose of %1$s, %2$d of %3$d taken</item>
+        <item quantity="other">Tick a dose of %1$s, %2$d of %3$d taken</item>
+    </plurals>
+    <string name="overview_dose_tick_once">Tick %1$s as taken</string>
+    <string name="overview_dose_untick">%1$s taken today, untick it</string>
+    <string name="overview_doses_all_taken_of">All doses of %1$s taken today, correct them</string>
+    <!-- A frequency in the Overview's own words (#546): "Once a day", "3 times a day if nauseous" -->
+    <string name="overview_frequency_once">Once a day</string>
+    <string name="overview_frequency_twice">Twice a day</string>
+    <plurals name="overview_frequency_times">
+        <item quantity="one">%1$d time a day</item>
+        <item quantity="other">%1$d times a day</item>
+    </plurals>
+    <string name="overview_frequency_with_condition">%1$s %2$s</string>
+    <string name="overview_condition_if_needed">if needed</string>
+    <string name="overview_condition_if_nauseous">if nauseous</string>
+    <string name="overview_condition_if_in_pain">if in pain</string>
+    <string name="overview_condition_if_feverish">if feverish</string>
+    <string name="overview_condition_if_anxious">if anxious</string>
+    <string name="overview_condition_if_vomiting">if vomiting</string>
+    <string name="overview_condition_for_sleep">for sleep</string>
+    <string name="overview_doses_correct">Correct the doses of %1$s</string>
+    <!-- The sheet to correct a medication's doses (#546): its frequency, then today -->
+    <string name="overview_doses_sheet_subtitle">%1$s · today</string>
+    <plurals name="overview_doses_sheet_count">
+        <item quantity="one">%1$d of %2$d taken</item>
+        <item quantity="other">%1$d of %2$d taken</item>
+    </plurals>
+    <string name="overview_dose_less">One dose fewer of %1$s</string>
+    <string name="overview_dose_more">One more dose of %1$s</string>
+    <string name="overview_doses_done">Done</string>
     <string name="overview_planning_link">Planning</string>
     <string name="overview_next">Next</string>
     <string name="overview_now">Now</string>
@@ -110,11 +146,13 @@
     <string name="overview_care_of">%1$s\'s care</string>
     <string name="overview_switch_patient">Choose whose care to follow</string>
     <string name="overview_error_hint_caregiver">Please try again.</string>
-    <!-- US-43: on the Prescriptions shortcut, read by screen readers, e.g. "1 prescription to confirm" -->
-    <plurals name="overview_prescriptions_to_confirm">
-        <item quantity="one">%1$d prescription to confirm</item>
-        <item quantity="other">%1$d prescriptions to confirm</item>
-    </plurals>
+
+    <!-- Caregiver Overview: the caregiver's own home, with the day of the patient they follow -->
+    <string name="caregiver_overview_day">%1$s\'s day</string>
+    <string name="caregiver_overview_shared_only">You see what %1$s chose to share. Only %1$s can change it.</string>
+    <!-- On the locked card of a section the patient doesn't share, under its name -->
+    <string name="caregiver_overview_private">%1$s keeps this private</string>
+    <string name="caregiver_overview_error_title">Couldn\'t load %1$s\'s day</string>
 
     <!-- Symptoms -->
     <string name="symptom_type_fatigue">Fatigue</string>
@@ -152,7 +190,7 @@
     <string name="symptom_add_close">Close</string>
     <string name="symptom_add_types">What are you feeling?</string>
     <string name="symptom_add_intensity">How bad do you feel overall? (optional)</string>
-    <!-- The intensity and its severity in words, e.g. "6/10 · Moderate" -->
+    <!-- The intensity and its severity in words, e.g. "6/10 · Moderate", also a symptom's strength on its detail -->
     <string name="symptom_add_intensity_value">%1$d/10 · %2$s</string>
     <string name="symptom_add_intensity_not_set">Not set</string>
     <string name="symptom_add_intensity_clear">Clear</string>
@@ -251,6 +289,10 @@
     <string name="symptom_voice_language_english">English</string>
     <string name="symptom_voice_language_french">French</string>
     <string name="symptom_voice_preparing">Getting ready…</string>
+    <string name="symptom_voice_online_only">Your phone needs a connection to understand you. Without one, type your symptom instead.</string>
+    <!-- A symptom's strength in the journal, e.g. "mild" "nausea" -->
+    <string name="symptom_strength_in_words">%1$s %2$s</string>
+    <string name="symptom_strength_description">Intensity %1$d out of 10, %2$s</string>
 
     <!-- Sign-in -->
     <string name="sign_in_welcome">Welcome to oncompanion</string>
@@ -282,8 +324,13 @@
     <string name="onboarding_error_not_signed_in">You\'re no longer signed in. Please sign in again.</string>
     <string name="onboarding_error_save_failed">Couldn\'t save your information. Please try again.</string>
 
-    <!-- Bottom navigation bar (Planning and Events use their screen titles) -->
+    <!-- Bottom navigation bar (Planning, Prescriptions and Events use their screen titles) -->
     <string name="tab_overview">Overview</string>
+    <!-- US-43: the Prescriptions tab's badge, read by screen readers, e.g. "1 prescription to confirm" -->
+    <plurals name="tab_prescriptions_to_confirm">
+        <item quantity="one">%1$d prescription to confirm</item>
+        <item quantity="other">%1$d prescriptions to confirm</item>
+    </plurals>
 
     <!-- Events -->
     <string name="events_screen_title">Upcoming events</string>
@@ -314,6 +361,8 @@
     <string name="event_detail_remove_message">This doesn\'t cancel your registration with the organizer.</string>
     <string name="event_detail_remove_cancel">Cancel</string>
     <string name="event_detail_remove_confirm">Remove</string>
+    <string name="event_detail_remove_title_caregiver">Remove %1$s\'s registration confirmation?</string>
+    <string name="event_detail_remove_message_caregiver">This only removes the confirmation in the app. The registration with the organizer stays in place.</string>
     <string name="event_detail_registration_error">Couldn\'t load or save your registration.</string>
     <string name="event_detail_website_error">Couldn\'t open the event website.</string>
     <string name="event_detail_website_error_can_confirm">Couldn\'t open the event website. You can still tap \"I\'m registered\".</string>
@@ -659,6 +708,10 @@
     <string name="prescription_delete_message_for">It will be removed from %1$s\'s prescriptions with all its medications. You can\'t undo this.</string>
     <string name="prescription_form_not_allowed_title">This prescription can\'t be edited</string>
     <string name="prescription_form_not_allowed_hint">You don\'t currently have permission to edit this patient\'s prescriptions.</string>
+    <!-- #549: the eyebrow of the card holding the doctor and the date, shown in capitals -->
+    <string name="prescription_form_prescription_section">Prescription</string>
+    <!-- #549: above the medications, with their number, e.g. "Medications (2)" -->
+    <string name="prescription_form_medications_heading">Medications (%1$d)</string>
 
     <!-- Prescription scan (US-10) -->
     <string name="prescription_scan_title">Scan prescription</string>

@@ -8,6 +8,7 @@ import com.github.se.oncompanion.model.medication.Prescription
 import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
 import java.io.IOException
 import java.time.LocalDate
+import java.time.LocalTime
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -582,5 +583,61 @@ class ManageMedicationScheduleTest {
 
     assertEquals(failure, result.exceptionOrNull())
     assertEquals(listOf(saved), repository.prescriptionsOf(uid))
+  }
+
+  // ---------- Reminders (US-32) ----------
+
+  private val nine = listOf(LocalTime.of(9, 0))
+
+  /** [draft] with the patient's reminder times on its first medication. */
+  private fun PrescriptionDraft.remindedAt(times: List<LocalTime>) =
+      copy(medications = listOf(medications[0].copy(reminderTimes = times)) + medications.drop(1))
+
+  @Test
+  fun patient_savesAndChangesTheirReminders() = runTest {
+    manageMedicationSchedule.add(uid, draft.remindedAt(nine))
+    val saved = repository.prescriptionsOf(uid).single()
+    assertEquals(nine, saved.medications[0].reminderTimes)
+
+    val evening = listOf(LocalTime.of(9, 0), LocalTime.of(18, 0))
+    manageMedicationSchedule.update(uid, saved.id, saved.toDraft().remindedAt(evening))
+    assertEquals(evening, repository.prescriptionsOf(uid).single().medications[0].reminderTimes)
+
+    // Turned off: no time left
+    manageMedicationSchedule.update(uid, saved.id, saved.toDraft().remindedAt(emptyList()))
+    assertEquals(
+        emptyList<LocalTime>(),
+        repository.prescriptionsOf(uid).single().medications[0].reminderTimes,
+    )
+  }
+
+  @Test
+  fun caregiver_cantChooseReminders_andTheirEditKeepsThePatients() = runTest {
+    assertThrows(IllegalArgumentException::class.java) {
+      runBlocking { manageMedicationSchedule.add(uid, draft.remindedAt(nine), "caregiver", "Sam") }
+    }
+    assertTrue(repository.prescriptionsOf(uid).isEmpty())
+
+    manageMedicationSchedule.add(uid, draft.remindedAt(nine))
+    val saved = repository.prescriptionsOf(uid).single()
+    // The caregiver corrects the dosage; their form doesn't hold the patient's times
+    val edit =
+        saved.toDraft().remindedAt(emptyList()).let {
+          it.copy(
+              medications =
+                  listOf(it.medications[0].copy(dosage = "2 tablets")) + it.medications.drop(1)
+          )
+        }
+    manageMedicationSchedule.update(
+        uid,
+        saved.id,
+        edit,
+        editedBy = "caregiver",
+        editedByName = "Sam",
+    )
+
+    val edited = repository.prescriptionsOf(uid).single().medications[0]
+    assertEquals("2 tablets", edited.dosage)
+    assertEquals(nine, edited.reminderTimes)
   }
 }

@@ -1,7 +1,10 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.common
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -18,6 +21,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.resources.C
@@ -141,6 +145,40 @@ class LakeMessageStateTest {
     setContent(actionLabel = "Retry")
 
     composeTestRule.onNodeWithTag(ACTION).assertIsFullyVisible()
+  }
+
+  @Test
+  @Config(qualifiers = "w360dp-h640dp")
+  fun replacementArea_centersAMessageThatFits() {
+    composeTestRule.setContent {
+      OncompanionTheme {
+        MessageArea(Modifier.height(320.dp).testTag("area")) {
+          LakeMessageState(title = TITLE, modifier = Modifier.testTag(STATE))
+        }
+      }
+    }
+
+    val area = composeTestRule.onNodeWithTag("area").getUnclippedBoundsInRoot()
+    val message = composeTestRule.onNodeWithTag(STATE).getUnclippedBoundsInRoot()
+    assertEquals(
+        ((area.top + area.bottom) / 2f).value,
+        ((message.top + message.bottom) / 2f).value,
+        0.5f,
+    )
+  }
+
+  @Test
+  @Config(qualifiers = SMALL_LANDSCAPE_PHONE, fontScale = 2f)
+  fun replacementArea_scrollsToTheMessageWithoutAnAction() {
+    composeTestRule.setContent {
+      OncompanionTheme {
+        Box(Modifier.height(120.dp)) {
+          MessageArea { LakeMessageState(title = TITLE, message = LINE) }
+        }
+      }
+    }
+
+    composeTestRule.onNodeWithText(LINE).performScrollTo().assertIsFullyVisible()
   }
 
   private companion object {

@@ -18,52 +18,93 @@ import com.github.se.oncompanion.model.medication.scan.comparable
  */
 object DoseCount {
 
-  /** The number of doses a day [frequency] says, or `null` if it doesn't say one plainly. */
-  fun of(frequency: String?): Int? {
-    if (frequency.isNullOrBlank()) return null
-    val text = comparable(frequency).replace(DASHES, "-")
-    if (saysNoDailyCount(text)) return null
-    // Every wording that says a count must agree; "daily" alone only counts when none other does
-    val counts = readers.mapNotNull { read -> read(text) }.distinct()
-    val count = if (counts.isEmpty()) onceADay(text) else counts.singleOrNull()
-    // More than can be recorded, one an hour, is a misreading
-    return count?.takeIf { it in 1..MAX_TAKEN_PER_DAY }
+  /**
+   * The number of doses a day [frequency] says, or `null` if it doesn't say one plainly, or says
+   * they're taken only on a condition: there is then nothing to tick each day.
+   */
+  fun of(frequency: String?): Int? =
+      frequency?.let(::prepared)?.let(::read)?.takeIf { it.condition == null }?.perDay
+
+  /**
+   * [frequency] as the Overview can say it: its doses a day and the condition they're taken on, or
+   * `null` to show it as written. That is when it says neither, says a condition the app doesn't
+   * know ("en cas de toux"), a maximum, a range, or less often than daily, or says anything else
+   * ("with food", "1 cp", "ou vomissements"): rewording those could lose what the prescription
+   * says.
+   */
+  fun describe(frequency: String?): DailyDoses? {
+    val text = frequency?.let(::prepared) ?: return null
+    return read(text)?.takeIf { saysNothingElse(text) }
+  }
+
+  /** [frequency] as the readers compare it: without accents or case, with plain dashes. */
+  private fun prepared(frequency: String): String = comparable(frequency).replace(DASHES, "-")
+
+  /** The doses a day and the condition [text] says, whatever else it also says. */
+  private fun read(text: String): DailyDoses? {
+    if (text.isBlank() || saysNoDailyCount(text)) return null
+    val conditions = CONDITIONS.filterValues { words -> words.any { it.containsMatchIn(text) } }
+    // Two conditions ("if nauseous and if fever"): saying one would hide the other
+    if (conditions.size > 1) return null
+    val condition = conditions.keys.singleOrNull()
+    if (condition == null && OTHER_CONDITION.containsMatchIn(text)) return null
+    // Every count said must agree, also two in the same format ("3 times a day, 2 times a day");
+    // "daily" alone only counts when none other does
+    val counts = readers.flatMap { read -> read(text) }.distinct()
+    // Two counts that disagree: rewording would hide both
+    if (counts.size > 1) return null
+    val count =
+        (counts.singleOrNull() ?: onceADay(text))
+            // More than can be recorded, one an hour, is a misreading
+            ?.takeIf { it in 1..MAX_TAKEN_PER_DAY }
+    return if (count == null && condition == null) null else DailyDoses(count, condition)
   }
 
   /**
-   * [text] says the doses are taken only if needed, up to a maximum, as a range or less often than
-   * daily: whatever number it also says isn't a count of doses to take each day.
+   * Once the wordings [read] understood are taken out of [text], only words like "and" or "le" are
+   * left: rewording it then loses nothing.
+   */
+  private fun saysNothingElse(text: String): Boolean {
+    val rest = UNDERSTOOD.fold(text) { left, words -> words.replace(left, " ") }
+    return WORDS.findAll(rest).all { it.value in FILLER }
+  }
+
+  /**
+   * [text] says the doses are taken up to a maximum, as a range or less often than daily: whatever
+   * number it also says isn't a count of doses to take each day.
    */
   private fun saysNoDailyCount(text: String): Boolean {
     // Without the Swiss scheme, so "1-0-1" isn't read as a range
     val withoutScheme = SCHEME.replace(text, " ")
-    return listOf(IF_NEEDED, UP_TO, LESS_THAN_DAILY).any { words ->
-      words.any { it.containsMatchIn(text) }
-    } || RANGE.any { it.containsMatchIn(withoutScheme) }
+    return listOf(UP_TO, LESS_THAN_DAILY).any { words -> words.any { it.containsMatchIn(text) } } ||
+        RANGE.any { it.containsMatchIn(withoutScheme) }
   }
 
-  /** "1-0-1", "1-1-1-1": one dose at each time of the day whose number isn't 0. */
-  private fun schemeCount(text: String): Int? =
-      SCHEME.find(text)
-          ?.groupValues
-          ?.drop(1)
-          ?.count { it.isNotEmpty() && it != "0" }
-          ?.takeIf { it > 0 }
+  /** "1-0-1", "1-1-1-1": one dose at each time of the day whose number isn't 0, for each scheme. */
+  private fun schemeCounts(text: String): List<Int> =
+      SCHEME.findAll(text)
+          .map { scheme -> scheme.groupValues.drop(1).count { it.isNotEmpty() && it != "0" } }
+          .filter { it > 0 }
+          .toList()
 
-  /** "3x/jour", "2 fois par jour", "3 times a day", "2x taglich", "2/j", "x 2/j". */
-  private fun timesADay(text: String): Int? = TIMES_A_DAY.firstNotNullOfOrNull {
-    it.find(text)?.groupValues?.get(1)?.toIntOrNull()
-  }
+  /** "3x/jour", "2 fois par jour", "3 times a day", "2x taglich", "2/j", "x 2/j": each one said. */
+  private fun timesADay(text: String): List<Int> = numbersIn(text, TIMES_A_DAY)
+
+  /** The number each of [wordings] says in [text], every time it says one. */
+  private fun numbersIn(text: String, wordings: List<Regex>): List<Int> =
+      wordings.flatMap { words ->
+        words.findAll(text).mapNotNull { it.groupValues[1].toIntOrNull() }
+      }
 
   /** "twice a day", "deux fois par jour", "zweimal taglich", and "bid", "tid", "qid", "qd". */
-  private fun wordCount(text: String): Int? =
-      WORD_COUNTS.entries.firstOrNull { (words, _) -> words.containsMatchIn(text) }?.value
+  private fun wordCounts(text: String): List<Int> =
+      WORD_COUNTS.filterKeys { it.containsMatchIn(text) }.values.toList()
 
   /** "q8h", "toutes les 8 heures", "every 12 hours", "alle 8 Stunden": only if it divides a day. */
-  private fun everyFewHours(text: String): Int? =
-      EVERY_FEW_HOURS.firstNotNullOfOrNull { it.find(text)?.groupValues?.get(1)?.toIntOrNull() }
-          ?.takeIf { it in 1..HOURS_IN_A_DAY && HOURS_IN_A_DAY % it == 0 }
-          ?.let { HOURS_IN_A_DAY / it }
+  private fun everyFewHours(text: String): List<Int> =
+      numbersIn(text, EVERY_FEW_HOURS)
+          .filter { it in 1..HOURS_IN_A_DAY && HOURS_IN_A_DAY % it == 0 }
+          .map { HOURS_IN_A_DAY / it }
 
   /**
    * "matin et soir", "morning, noon and evening", "abends": one dose at each time named. "Le soir
@@ -87,22 +128,59 @@ object DoseCount {
         DAILY.any { it.containsMatchIn(text) } && !NUMBER_BEFORE_DAILY.containsMatchIn(text)
       }
 
-  private val readers: List<(String) -> Int?> =
-      listOf(::schemeCount, ::timesADay, ::wordCount, ::everyFewHours, ::namedTimes)
+  private val readers: List<(String) -> List<Int>> =
+      listOf(
+          ::schemeCounts,
+          ::timesADay,
+          ::wordCounts,
+          ::everyFewHours,
+          { listOfNotNull(namedTimes(it)) },
+      )
 
   private const val HOURS_IN_A_DAY = 24
 
-  private val IF_NEEDED =
-      listOf(
-          // "Reserve" alone is the German for it, "en réserve" the French
-          Regex("""\b(?:si besoin|au besoin|selon (?:le )?besoin|reserve|si necessaire)\b"""),
-          Regex("""\ben cas de\b"""),
-          Regex("""\b(?:if|as|when) (?:needed|required|necessary)\b|\bp\.?r\.?n\b"""),
-          Regex("""\b(?:for|if) (?:pain|nausea|nauseous|fever|anxiety|vomiting|sleep)\b"""),
-          Regex("""\b(?:bei|nach) (?:bedarf|schmerzen|ubelkeit|fieber|erbrechen|angst)\b"""),
-          Regex("""\bfalls notig\b"""),
-          Regex("""\bsi (?:nausees?|douleurs?|fievre|anxiete)\b"""),
+  /** The conditions a medication is taken on, the symptoms before plain "if needed". */
+  private val CONDITIONS =
+      linkedMapOf(
+          DoseCondition.IF_NAUSEOUS to
+              listOf(
+                  Regex("""\b(?:si|en cas de) nausees?\b|\b(?:bei|nach) ubelkeit\b"""),
+                  Regex("""\b(?:for|if) (?:nausea|nauseous)\b"""),
+              ),
+          DoseCondition.IF_IN_PAIN to
+              listOf(
+                  Regex("""\b(?:si|en cas de) douleurs?\b|\b(?:bei|nach) schmerzen\b"""),
+                  Regex("""\b(?:for|if) pain\b"""),
+              ),
+          DoseCondition.IF_FEVERISH to
+              listOf(
+                  Regex("""\b(?:si|en cas de) fievre\b|\b(?:for|if) fever\b"""),
+                  Regex("""\b(?:bei|nach) fieber\b"""),
+              ),
+          DoseCondition.IF_ANXIOUS to
+              listOf(
+                  Regex("""\b(?:si|en cas de) anxiete\b|\b(?:for|if) anxiety\b"""),
+                  Regex("""\b(?:bei|nach) angst\b"""),
+              ),
+          DoseCondition.IF_VOMITING to
+              listOf(
+                  Regex("""\b(?:si|en cas de) vomissements?\b|\b(?:bei|nach) erbrechen\b"""),
+                  Regex("""\b(?:for|if) vomiting\b"""),
+              ),
+          DoseCondition.FOR_SLEEP to listOf(Regex("""\b(?:for|if) sleep\b""")),
+          DoseCondition.IF_NEEDED to
+              listOf(
+                  // "Reserve" alone is the German for it, "en réserve" the French
+                  Regex(
+                      """\b(?:si besoin|au besoin|selon (?:le )?besoin|reserve|si necessaire)\b"""
+                  ),
+                  Regex("""\b(?:bei|nach) bedarf\b|\bfalls notig\b"""),
+                  Regex("""\b(?:if|as|when) (?:needed|required|necessary)\b|\bp\.?r\.?n\b"""),
+              ),
       )
+
+  /** A condition none of [CONDITIONS] says: "en cas de toux". */
+  private val OTHER_CONDITION = Regex("""\ben cas de\b""")
 
   /**
    * A maximum, not a schedule: "max 3x/j", "up to 4 times a day", "höchstens 2x täglich", "pas plus
@@ -115,13 +193,13 @@ object DoseCount {
       )
 
   /**
-   * A range: "1 à 2 fois par jour", "3-4 times a day", "1 or 2", "2 oder 3", "deux à trois fois",
-   * "two to three times". Looked for once the Swiss scheme is taken out, so "1-0-1" isn't read as
-   * one.
+   * A range: "1 à 2 fois par jour", "3-4 times a day", "2x-3x/j", "1 or 2", "2 oder 3", "deux à
+   * trois fois", "two to three times". Looked for once the Swiss scheme is taken out, so "1-0-1"
+   * isn't read as one.
    */
   private val RANGE =
       listOf(
-          Regex("""(?<!\d)\d{1,2}\s*(?:-|a|to|or|ou|bis|oder|od\.?)\s*\d{1,2}(?!\d)"""),
+          Regex("""(?<!\d)\d{1,2}\s*x?\s*(?:-|a|to|or|ou|bis|oder|od\.?)\s*\d{1,2}(?!\d)"""),
           // In words, one pattern per language
           Regex("""\b(?:une?|deux|trois|quatre) (?:a|ou) (?:deux|trois|quatre|cinq|six)\b"""),
           Regex("""\b(?:one|two|three|four) (?:to|or) (?:two|three|four|five|six)\b"""),
@@ -195,6 +273,23 @@ object DoseCount {
       Regex("""\b(?:[02-9]|\d{2,})\s*(?:daily|taglich|quotidien(?:ne)?)\b""")
 
   private val AT_BEDTIME_IN_THE_EVENING = Regex("""\bsoir\s+(?:au|avant le)\s+coucher\b""")
+
+  /** Every wording [read] understands, the Swiss scheme first so its digits aren't left alone. */
+  private val UNDERSTOOD: List<Regex> by lazy {
+    listOf(SCHEME, AT_BEDTIME_IN_THE_EVENING) +
+        TIMES_A_DAY +
+        WORD_COUNTS.keys +
+        EVERY_FEW_HOURS +
+        TIMES_OF_DAY +
+        DAILY +
+        CONDITIONS.values.flatten()
+  }
+
+  /** Words that only join the ones understood: "matin et soir", "le soir au coucher". */
+  private val FILLER =
+      setOf("and", "et", "und", "le", "la", "les", "l", "au", "a", "the", "in", "im", "am", "zur")
+
+  private val WORDS = Regex("""[\p{L}\d]+""")
 
   /**
    * Once a day without a number of times. "2 par jour" isn't read: it can mean two tablets at once.

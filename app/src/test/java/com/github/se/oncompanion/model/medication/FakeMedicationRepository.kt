@@ -124,9 +124,17 @@ class FakeMedicationRepository(
     require(prescription.isValid()) { "Invalid prescription: $prescription" }
     val existing = store.value[uid]?.get(prescription.id) ?: return
     server.saving(store.value)
+    // Like Firestore: a caregiver's edit leaves the patient's reminders as they are
+    val medications =
+        if (prescription.editedBy == null) prescription.medications
+        else {
+          val kept = existing.medications.associate { it.id to it.reminderTimes }
+          prescription.medications.map { it.copy(reminderTimes = kept[it.id].orEmpty()) }
+        }
     put(
         uid,
         prescription.copy(
+            medications = medications,
             createdAt = existing.createdAt,
             addedBy = existing.addedBy,
             addedByName = existing.addedByName,

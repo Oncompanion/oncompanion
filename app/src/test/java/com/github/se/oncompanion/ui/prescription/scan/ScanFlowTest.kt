@@ -30,7 +30,7 @@ import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.navigation.AppNavHost
 import com.github.se.oncompanion.ui.navigation.Route
-import com.github.se.oncompanion.ui.overview.OverviewShortcut
+import com.github.se.oncompanion.ui.navigation.Tab
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -88,11 +88,14 @@ class ScanFlowTest {
 
   private fun reason(tag: String) = compose.onNodeWithTag(tag, useUnmergedTree = true)
 
-  /** From the Overview to the scan, a photo of a prescription ML Kit reads as [text], then Use. */
+  /**
+   * From the Prescriptions tab to the scan, a photo of a prescription ML Kit reads as [text], then
+   * Use.
+   */
   private fun scan(text: RecognizedText) {
     recognizer.result = text
     compose.setContent { AppNavHost(startRoute = Route.OVERVIEW) }
-    compose.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).performScrollTo().performClick()
+    compose.onNodeWithTag(Tab.PRESCRIPTIONS.testTag).performClick()
     compose.onNodeWithTag(C.Tag.prescriptions_scan_button).performClick()
     // The tip to hold the phone upright shows first, as on a first scan
     waitFor(hasTestTag(C.Tag.prescription_scan_tip_got_it))
