@@ -132,7 +132,9 @@ internal fun WhenPickers(
                     cancel = C.Tag.symptom_add_picker_cancel,
                 ),
         )
-    WhenPicker.NONE -> {}
+    WhenPicker.NONE -> {
+      // No picker is open: nothing to show
+    }
   }
 }
 
