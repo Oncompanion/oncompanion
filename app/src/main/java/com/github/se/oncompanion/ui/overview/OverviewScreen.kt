@@ -172,6 +172,7 @@ fun OverviewScreen(
       onOpenEvent = onOpenEvent,
       onLogSymptom = { navigationActions.navigateTo(Screen.symptomAdd(it)) },
       onTickDose = viewModel::tickDose,
+      onOpenDoses = viewModel::openDoses,
       onRetry = viewModel::loadDay,
       modifier = modifier,
       caregiverOf = caregiverOf,
@@ -184,6 +185,15 @@ fun OverviewScreen(
         )
       },
   )
+  uiState.dosesSheet?.let { sheet ->
+    OverviewDosesSheet(
+        sheet,
+        onLess = viewModel::lessDoses,
+        onMore = viewModel::moreDoses,
+        onDone = viewModel::saveDoses,
+        onClose = viewModel::closeDoses,
+    )
+  }
 }
 
 /**
@@ -197,6 +207,7 @@ fun OverviewScreen(
  * @param onOpenAppointment opens the recorded appointment directly
  * @param onOpenEvent opens the event shown in the patient's "Next up"
  * @param onTickDose ticks a dose of one of the patient's medications, by its ID
+ * @param onOpenDoses opens the sheet to correct the doses of one, by its ID
  * @param onLogSymptom opens the symptom form from the patient's check-in, with that symptom picked
  *   or empty for `null`
  * @param onRetry reloads the day after an error
@@ -215,6 +226,7 @@ fun OverviewContent(
     onOpenEvent: (String) -> Unit = {},
     onLogSymptom: (SymptomType?) -> Unit = {},
     onTickDose: (String) -> Unit = {},
+    onOpenDoses: (String) -> Unit = {},
     caregiverOf: String? = null,
     onSwitchPatient: () -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
@@ -273,6 +285,7 @@ fun OverviewContent(
                     onOpenEvent,
                     modifier = if (overlaps) Modifier.overlapLayout() else Modifier,
                     onTickDose = onTickDose,
+                    onOpenDoses = onOpenDoses,
                 )
             else -> {
               NextAppointmentCard(
@@ -402,7 +415,7 @@ private fun CareTitle(
 
 /** "Good morning, Alex" and today's date, on the header. */
 @Composable
-private fun Greeting(firstName: String?, now: LocalDateTime, titleStyle: TextStyle) {
+internal fun Greeting(firstName: String?, now: LocalDateTime, titleStyle: TextStyle) {
   val name = firstName?.takeIf { it.isNotBlank() }
   val greeting =
       when (now.hour) {
@@ -470,7 +483,7 @@ private val tilePadding = 8.dp
  * one per row when a label wouldn't fit in a third of the width (small screen or large font).
  */
 @Composable
-private fun Shortcuts(
+internal fun Shortcuts(
     onShortcutClick: (OverviewShortcut) -> Unit,
     tiles: List<OverviewShortcut>,
     withQuestion: Boolean = true,
