@@ -140,7 +140,7 @@
     <string name="symptom_intensity_description">Intensity %1$d out of 10</string>
     <!-- A symptom's strength in the journal, e.g. "mild" "nausea" -->
     <string name="symptom_strength_in_words">%1$s %2$s</string>
-    <!-- A symptom's strength on its detail, e.g. "5/10 · Moderate" -->
+    <!-- A symptom's strength in words, on its detail and over the slider, e.g. "5/10 · Moderate" -->
     <string name="symptom_strength_value">%1$d/10 · %2$s</string>
     <string name="symptom_strength_description">Intensity %1$d out of 10, %2$s</string>
     <string name="symptom_retry">Retry</string>
@@ -162,9 +162,17 @@
     <string name="symptom_add_title">Log symptoms</string>
     <string name="symptom_add_close">Close</string>
     <string name="symptom_add_types">What are you feeling?</string>
-    <string name="symptom_add_intensity">How bad do you feel overall? (optional)</string>
-    <!-- The intensity and its severity in words, e.g. "6/10 · Moderate" -->
-    <string name="symptom_add_intensity_value">%1$d/10 · %2$s</string>
+    <!-- The question over the slider, e.g. "How strong is your fatigue? (optional)" -->
+    <string name="symptom_add_strength_question">How strong is your %1$s? (optional)</string>
+    <!-- The single intensity of an entry logged before each symptom had its own -->
+    <string name="symptom_add_overall_from_before">Overall: %1$d/10 (from before)</string>
+    <!-- A picked symptom and its strength, e.g. "Nausea · 4/10" -->
+    <string name="symptom_strength_chip">%1$s · %2$d/10</string>
+    <!-- What TalkBack reads for a chip, e.g. "Nausea, intensity 4 out of 10"; a plural only for lint -->
+    <plurals name="symptom_strength_chip_description">
+        <item quantity="one">%1$s, intensity %2$d out of 10</item>
+        <item quantity="other">%1$s, intensity %2$d out of 10</item>
+    </plurals>
     <string name="symptom_add_intensity_not_set">Not set</string>
     <string name="symptom_add_intensity_clear">Clear</string>
     <string name="symptom_add_when">When did you feel it?</string>
@@ -263,6 +271,8 @@
     <string name="symptom_voice_language_french">French</string>
     <string name="symptom_voice_preparing">Getting ready…</string>
     <string name="symptom_voice_online_only">Your phone needs a connection to understand you. Without one, type your symptom instead.</string>
+    <!-- The question over the slider for "Other" before it is named -->
+    <string name="symptom_add_strength_question_other">How strong is it? (optional)</string>
 
     <!-- Sign-in -->
     <string name="sign_in_welcome">Welcome to oncompanion</string>

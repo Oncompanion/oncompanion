@@ -8,12 +8,19 @@ import android.os.Looper
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -119,7 +126,31 @@ class VoiceSymptomScreenTest {
     // Back on the form, filled and marked to check
     node(C.Tag.symptom_add_drafted).assertIsDisplayed()
     assertEquals(listOf(SymptomType.NAUSEA), viewModel.uiState.value.types)
-    assertEquals(7, viewModel.uiState.value.intensity)
+    // The one symptom said gets the strength said
+    assertEquals(mapOf(SymptomType.NAUSEA to 7), viewModel.uiState.value.strengths)
+    node(C.Tag.symptom_add_intensity_value).assertTextEquals("7/10 · Severe")
+  }
+
+  @Test
+  fun rotating_keepsTheStrengths_andTheSymptomTheSliderSets() {
+    showScreen()
+    node(C.Tag.symptomAddType(SymptomType.NAUSEA.name)).performScrollTo().performClick()
+    node(C.Tag.symptomAddType(SymptomType.PAIN.name)).performScrollTo().performClick()
+    node(C.Tag.symptom_add_intensity).performScrollTo().performSemanticsAction(
+        SemanticsActions.SetProgress
+    ) {
+      it(6f)
+    }
+    node(C.Tag.symptomAddStrengthChip(SymptomType.NAUSEA.name)).performScrollTo().performClick()
+
+    showScreenAgain()
+
+    node(C.Tag.symptomAddStrengthChip(SymptomType.PAIN.name))
+        .performScrollTo()
+        .assert(hasText("Pain · 6/10"))
+        .assertIsNotSelected()
+    node(C.Tag.symptomAddStrengthChip(SymptomType.NAUSEA.name)).assertIsSelected()
+    compose.onNodeWithText("How strong is your nausea? (optional)").assertExists()
   }
 
   @Test

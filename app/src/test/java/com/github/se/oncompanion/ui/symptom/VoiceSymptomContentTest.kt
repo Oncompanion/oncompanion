@@ -218,15 +218,23 @@ class VoiceSymptomContentTest {
 
     compose.onNodeWithText(string(R.string.symptom_voice_transcript, said)).assertIsDisplayed()
     node(C.Tag.symptom_voice_picked_up).assertIsDisplayed()
-    // The symptoms, the intensity, and when, as the form will show them
+    // The symptoms and when, as the form will show them: a strength said for two symptoms isn't
+    // given to either, so it isn't shown
     val picked =
         listOf(
             string(SymptomType.FATIGUE.label),
             string(SymptomType.NAUSEA.label),
-            string(R.string.symptom_voice_intensity, 5),
             "Yesterday · 09:00",
         )
     for (label in picked) compose.onNodeWithText(label).assertIsDisplayed()
+    compose.onNodeWithText(string(R.string.symptom_voice_intensity, 5)).assertDoesNotExist()
+  }
+
+  @Test
+  fun theStrengthOfTheOneSymptomSaid_isShown() {
+    show(VoiceUiState.Listening(said, draft.copy(types = listOf(SymptomType.FATIGUE))))
+
+    compose.onNodeWithText(string(R.string.symptom_voice_intensity, 5)).assertIsDisplayed()
   }
 
   @Test

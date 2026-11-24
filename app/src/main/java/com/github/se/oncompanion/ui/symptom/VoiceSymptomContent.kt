@@ -380,7 +380,8 @@ private fun Transcript(text: String) {
 private fun PickedUp(draft: SymptomDraft, today: LocalDate) {
   val labels = buildList {
     draft.types.forEach { add(stringResource(it.label)) }
-    draft.intensity?.let { add(stringResource(R.string.symptom_voice_intensity, it)) }
+    // Only a strength the form will fill in
+    draft.saidStrength?.let { add(stringResource(R.string.symptom_voice_intensity, it.second)) }
     if (draft.date != null || draft.time != null) {
       val day = dayLabel(draft.date ?: today, today)
       add(draft.time?.let { "$day · ${it.format(symptomTimeFormatter)}" } ?: day)

@@ -7,8 +7,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -16,16 +14,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -35,8 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -51,28 +43,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.setProgress
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.oncompanion.R
-import com.github.se.oncompanion.model.symptom.Severity
-import com.github.se.oncompanion.model.symptom.SymptomEntry
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.ClickableReadOnlyField
@@ -96,26 +78,8 @@ import com.github.se.oncompanion.ui.common.isCompactHeight
 import com.github.se.oncompanion.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.LocalTime
-import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-// The smallest touch target, for the row of the intensity value and Clear
-private val TOUCH_TARGET = 48.dp
-
-private const val MIN_INTENSITY = SymptomEntry.MIN_INTENSITY
-private const val MAX_INTENSITY = SymptomEntry.MAX_INTENSITY
-
-/**
- * How far the Material slider draws its first and last stops from its edges (half its track
- * height), to line the taps up with the stops. Checked against the rendered slider.
- */
-private val SliderStopInset = 8.dp
-
-/**
- * The gap around the handle, Material's "active handle leading space" (private in SliderDefaults).
- */
-private val THUMB_TRACK_GAP = 6.dp
 
 /** Which picker of the "When" field is open. */
 private enum class WhenPicker {
@@ -205,8 +169,9 @@ fun AddSymptomScreen(
       onBack = onBack,
       onSpeak = { viewModel.onSpeak(context.hasPermission(Manifest.permission.RECORD_AUDIO)) },
       onToggleType = viewModel::toggleType,
-      onIntensityChange = viewModel::onIntensityChange,
-      onClearIntensity = viewModel::clearIntensity,
+      onSelectStrengthOf = viewModel::selectStrengthOf,
+      onStrengthChange = viewModel::onStrengthChange,
+      onClearStrength = viewModel::clearStrength,
       onDateChange = viewModel::onDateChange,
       onTimeChange = viewModel::onTimeChange,
       onNotesChange = viewModel::onNotesChange,
@@ -234,8 +199,9 @@ fun AddSymptomContent(
     uiState: AddSymptomUiState,
     onBack: () -> Unit,
     onToggleType: (SymptomType) -> Unit,
-    onIntensityChange: (Int) -> Unit,
-    onClearIntensity: () -> Unit,
+    onSelectStrengthOf: (SymptomType) -> Unit,
+    onStrengthChange: (Int) -> Unit,
+    onClearStrength: () -> Unit,
     onDateChange: (LocalDate) -> Unit,
     onTimeChange: (LocalTime) -> Unit,
     onNotesChange: (String) -> Unit,
@@ -310,8 +276,9 @@ fun AddSymptomContent(
           SymptomFields(
               uiState = uiState,
               onToggleType = onToggleType,
-              onIntensityChange = onIntensityChange,
-              onClearIntensity = onClearIntensity,
+              onSelectStrengthOf = onSelectStrengthOf,
+              onStrengthChange = onStrengthChange,
+              onClearStrength = onClearStrength,
               onDateChange = onDateChange,
               onTimeChange = onTimeChange,
               onNotesChange = onNotesChange,
@@ -428,8 +395,9 @@ private fun FormSaveButton(uiState: AddSymptomUiState, onSave: () -> Unit) {
 private fun SymptomFields(
     uiState: AddSymptomUiState,
     onToggleType: (SymptomType) -> Unit,
-    onIntensityChange: (Int) -> Unit,
-    onClearIntensity: () -> Unit,
+    onSelectStrengthOf: (SymptomType) -> Unit,
+    onStrengthChange: (Int) -> Unit,
+    onClearStrength: () -> Unit,
     onDateChange: (LocalDate) -> Unit,
     onTimeChange: (LocalTime) -> Unit,
     onNotesChange: (String) -> Unit,
@@ -462,9 +430,17 @@ private fun SymptomFields(
         // Under the chips, as soon as "Other" is picked: it can't be saved without a name
         if (uiState.isOtherPicked) OtherNameField(uiState, onOtherNameChange)
       }
-      FormGroup(R.string.symptom_add_intensity) {
-        IntensitySlider(uiState.intensity, onIntensityChange, onClearIntensity)
-      }
+      // How strong each picked symptom was, once one is picked
+      SymptomStrengths(
+          types = uiState.types,
+          strengths = uiState.strengths,
+          strengthOf = uiState.strengthOf,
+          otherName = uiState.savedOtherName,
+          onSelect = onSelectStrengthOf,
+          onStrengthChange = onStrengthChange,
+          onClear = onClearStrength,
+          overall = uiState.intensity,
+      )
       FormGroup(R.string.symptom_add_when) { WhenField(uiState, onDateChange, onTimeChange) }
       FormGroup(R.string.symptom_add_notes_title) { NotesField(uiState, onNotesChange) }
     }
@@ -503,141 +479,6 @@ private fun TypeChips(picked: List<SymptomType>, onToggleType: (SymptomType) -> 
       )
     }
   }
-}
-
-/**
- * The optional intensity: "Not set" until the user moves the slider, then the value and its
- * severity in words with Clear to go back to "Not set". It only restates what the user picks.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun IntensitySlider(
-    intensity: Int?,
-    onIntensityChange: (Int) -> Unit,
-    onClear: () -> Unit,
-) {
-  val valueText =
-      if (intensity == null) stringResource(R.string.symptom_add_intensity_not_set)
-      else
-          stringResource(
-              R.string.symptom_add_intensity_value,
-              intensity,
-              stringResource(Severity.of(intensity).label),
-          )
-
-  // The value in words, and Clear once there is one
-  Row(
-      modifier = Modifier.fillMaxWidth().heightIn(min = TOUCH_TARGET),
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Text(
-        text = valueText,
-        style = MaterialTheme.typography.titleLarge,
-        color =
-            if (intensity == null) MaterialTheme.colorScheme.onSurfaceVariant
-            else MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.weight(1f).testTag(C.Tag.symptom_add_intensity_value),
-    )
-    if (intensity != null) {
-      LakeButton(
-          text = stringResource(R.string.symptom_add_intensity_clear),
-          onClick = onClear,
-          style = LakeButtonStyle.Text,
-          modifier = Modifier.testTag(C.Tag.symptom_add_intensity_clear),
-      )
-    }
-  }
-
-  // The track is light teal where it isn't picked; "Not set" shows all of it so, without a handle
-  // or the gap around it
-  val inactive = MaterialTheme.colorScheme.primaryContainer
-  val colors =
-      if (intensity == null)
-          SliderDefaults.colors(
-              thumbColor = Color.Transparent,
-              activeTrackColor = inactive,
-              inactiveTrackColor = inactive,
-          )
-      else SliderDefaults.colors(inactiveTrackColor = inactive)
-  // While "Not set" the slider sits on 1 and ignores a touch there, as nothing changes for it: a
-  // touch closest to 1 sets it here. The touch isn't taken away, so the slider still follows a
-  // drag,
-  // and it handles every other touch itself
-  val currentIntensity by rememberUpdatedState(intensity)
-  val currentOnIntensityChange by rememberUpdatedState(onIntensityChange)
-  Box(
-      Modifier.pointerInput(Unit) {
-            awaitEachGesture {
-              val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-              val touched = intensityAt(down.position.x, size.width, SliderStopInset.toPx())
-              if (currentIntensity == null && touched == MIN_INTENSITY) {
-                currentOnIntensityChange(MIN_INTENSITY)
-              }
-            }
-          }
-          .testTag(C.Tag.symptom_add_intensity_track)
-  ) {
-    Slider(
-        value = (intensity ?: MIN_INTENSITY).toFloat(),
-        onValueChange = { onIntensityChange(it.roundToInt()) },
-        valueRange = MIN_INTENSITY.toFloat()..MAX_INTENSITY.toFloat(),
-        steps = MAX_INTENSITY - MIN_INTENSITY - 1,
-        colors = colors,
-        // No dots on the track: the value above says what is picked
-        track = { state ->
-          SliderDefaults.Track(
-              sliderState = state,
-              colors = colors,
-              drawStopIndicator = null,
-              drawTick = { _, _ -> },
-              thumbTrackGapSize = if (intensity == null) 0.dp else THUMB_TRACK_GAP,
-          )
-        },
-        modifier =
-            Modifier.fillMaxWidth()
-                .semantics {
-                  stateDescription = valueText
-                  // Screen readers can set 1 too, which the slider would ignore while "Not set"
-                  if (intensity == null) {
-                    setProgress { target ->
-                      onIntensityChange(target.roundToInt().coerceIn(MIN_INTENSITY, MAX_INTENSITY))
-                      true
-                    }
-                  }
-                }
-                .testTag(C.Tag.symptom_add_intensity),
-    )
-  }
-
-  // The words at the start, middle and end of the track, each in its own third so they never
-  // overlap (a word too long for it wraps); the slider already says the value
-  Row(Modifier.fillMaxWidth().clearAndSetSemantics {}) {
-    ScaleLabel(Severity.MILD, Alignment.Start, TextAlign.Start)
-    ScaleLabel(Severity.MODERATE, Alignment.CenterHorizontally, TextAlign.Center)
-    ScaleLabel(Severity.SEVERE, Alignment.End, TextAlign.End)
-  }
-}
-
-/** A word of the scale under the slider, put at [alignment] in its third of the width. */
-@Composable
-private fun RowScope.ScaleLabel(
-    severity: Severity,
-    alignment: Alignment.Horizontal,
-    textAlign: TextAlign,
-) {
-  Text(
-      text = stringResource(severity.label),
-      style = MaterialTheme.typography.bodySmall,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-      textAlign = textAlign,
-      modifier = Modifier.weight(1f).wrapContentWidth(alignment),
-  )
-}
-
-/** The intensity of the stop closest to [x] on a slider [width] wide. */
-private fun intensityAt(x: Float, width: Int, inset: Float): Int {
-  val fraction = ((x - inset) / (width - 2 * inset)).coerceIn(0f, 1f)
-  return (MIN_INTENSITY + fraction * (MAX_INTENSITY - MIN_INTENSITY)).roundToInt()
 }
 
 /**
