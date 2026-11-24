@@ -31,6 +31,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 @RunWith(AndroidJUnit4::class)
 class VoiceSymptomContentTest {
@@ -228,6 +229,50 @@ class VoiceSymptomContentTest {
 
     node(C.Tag.symptom_voice_headline).assertTextEquals(string(R.string.symptom_voice_finishing))
     node(C.Tag.symptom_voice_done).assertIsNotEnabled()
+  }
+
+  /** Several sentences, longer than the screen: the chips end up below it unless it follows. */
+  private val longSaid =
+      List(12) { "I'm very tired since this morning and my head hurts a bit." }.joinToString(" ")
+
+  /** While the patient speaks, the screen follows the words to the chips, then lets them reread. */
+  private fun assertFollowsTheWords() {
+    show(VoiceUiState.Listening())
+    voice = VoiceUiState.Listening(longSaid, draft.copy(notes = longSaid))
+    compose.waitForIdle()
+    node(C.Tag.symptom_voice_picked_up).assertIsFullyVisible()
+    node(C.Tag.symptom_voice_done).assertIsFullyVisible()
+    // Scrolled up to reread, it stays there while the patient's voice changes without new words
+    node(C.Tag.symptom_voice_headline).performScrollTo()
+    voice = VoiceUiState.Listening(longSaid, draft.copy(notes = longSaid), level = 0.7f)
+    compose.waitForIdle()
+    node(C.Tag.symptom_voice_headline).assertIsFullyVisible()
+    voice = VoiceUiState.Listening("$longSaid Nauseous too.", draft)
+    compose.waitForIdle()
+    node(C.Tag.symptom_voice_picked_up).assertIsFullyVisible()
+  }
+
+  // Native graphics wrap the words into lines, as on a phone; the default keeps them on one line
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  fun aLongDictation_keepsThePickedUpChipsInView() = assertFollowsTheWords()
+
+  @Test
+  @Config(qualifiers = LANDSCAPE_PHONE)
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  fun landscape_aLongDictation_keepsThePickedUpChipsInView() = assertFollowsTheWords()
+
+  /** A message-only state opens on its headline, even when large text doesn't fit sideways. */
+  @Test
+  @Config(qualifiers = SMALL_LANDSCAPE_PHONE, fontScale = 2f)
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  fun smallLandscape_largeText_aMessage_opensOnItsHeadline() {
+    show(VoiceUiState.Listening())
+    for (case in cases.filter { it.text != null }) {
+      voice = case.state
+      compose.waitForIdle()
+      node(C.Tag.symptom_voice_headline).assertIsFullyVisible()
+    }
   }
 
   /** Held sideways, the main action and the way out can be reached and are fully visible. */

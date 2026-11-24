@@ -2,6 +2,7 @@
 
 package com.github.se.oncompanion.ui.symptom
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,6 +47,8 @@ import com.github.se.oncompanion.ui.common.isCompactHeight
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.lakeColors
 import java.time.LocalDate
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filter
 
 /** The Figma lake's proportions (390 × 270). */
 private const val LAKE_RATIO = 390f / 270f
@@ -73,6 +78,7 @@ fun VoiceSymptomContent(
 ) {
   val sun = voice.sun()
   val level = (voice as? VoiceUiState.Listening)?.level ?: 0f
+  val scroll = rememberFollowingScroll(voice)
   Surface(modifier.fillMaxSize().testTag(C.Tag.symptom_voice_screen)) {
     // Held sideways, the lake takes the left half and the words and buttons the right
     if (isCompactHeight()) {
@@ -84,7 +90,7 @@ fun VoiceSymptomContent(
         Column(
             Modifier.weight(1f)
                 .fillMaxHeight()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
                 .navigationBarsPadding()
                 .padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
@@ -105,7 +111,7 @@ fun VoiceSymptomContent(
         }
         Column(
             Modifier.weight(1f)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
                 .padding(horizontal = Spacing.lg, vertical = Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
@@ -127,6 +133,35 @@ fun VoiceSymptomContent(
     }
   }
 }
+
+/**
+ * The scroll of the words, which follows them while the patient speaks (#568): each time what was
+ * said or picked up changes, it scrolls to the end, so the last words and the chips stay in view.
+ * Scrolled up to reread, it stays there until new words arrive or the layout changes (rotation, the
+ * buttons once listening ends). A state with only a message keeps its headline in view.
+ */
+@Composable
+private fun rememberFollowingScroll(voice: VoiceUiState): ScrollState {
+  val scroll = rememberScrollState()
+  val (text, draft) = voice.said()
+  LaunchedEffect(text, draft) {
+    if (text.isEmpty()) return@LaunchedEffect
+    // The end moves once the new words are laid out, so follow it until they change again; it is
+    // Int.MAX_VALUE until the column is first measured
+    snapshotFlow { scroll.maxValue }
+        .filter { it != Int.MAX_VALUE }
+        .collectLatest { scroll.animateScrollTo(it) }
+  }
+  return scroll
+}
+
+/** What the patient said so far and the draft it gives; nothing in a state with a message. */
+private fun VoiceUiState.said(): Pair<String, SymptomDraft> =
+    when (this) {
+      is VoiceUiState.Listening -> text to draft
+      is VoiceUiState.Heard -> transcript to draft
+      else -> "" to SymptomDraft()
+    }
 
 /** Where the sun is for each state: it is the microphone, so it shows only what can listen. */
 private fun VoiceUiState.sun(): VoiceSun =
@@ -237,12 +272,7 @@ private fun VoiceMessage(voice: VoiceUiState, today: LocalDate) {
       modifier =
           Modifier.fillMaxWidth().semantics { heading() }.testTag(C.Tag.symptom_voice_headline),
   )
-  val (text, draft) =
-      when (voice) {
-        is VoiceUiState.Listening -> voice.text to voice.draft
-        is VoiceUiState.Heard -> voice.transcript to voice.draft
-        else -> "" to SymptomDraft()
-      }
+  val (text, draft) = voice.said()
   when {
     message != null -> CenteredText(stringResource(message.text))
     // No words yet: what to say
