@@ -41,9 +41,40 @@ class SettingsScreenTest {
     assertEquals(1, formatPages)
     assertEquals(1, backs)
     assertEquals(1, appearances)
-    listOf("Language", "Notifications", "Text size").forEach {
-      compose.onNodeWithText(it).assertDoesNotExist()
+    listOf("Notifications", "Text size").forEach { compose.onNodeWithText(it).assertDoesNotExist() }
+  }
+
+  @Test
+  fun appearanceScopeIsDirectlyBelowAppearance() {
+    compose.setContent {
+      OncompanionTheme { SettingsContent(SettingsUiState(DeviceSettings()), {}, {}, {}, {}) }
     }
+    val appearance = compose.onNodeWithTag(C.Tag.settings_appearance).fetchSemanticsNode()
+    val scope = compose.onNodeWithText("Appearance is saved on this phone.").fetchSemanticsNode()
+    val dateTime = compose.onNodeWithTag(C.Tag.settings_date_time).fetchSemanticsNode()
+    assertTrue(appearance.boundsInRoot.bottom <= scope.boundsInRoot.top)
+    assertTrue(scope.boundsInRoot.bottom <= dateTime.boundsInRoot.top)
+  }
+
+  @Test
+  fun languageRowShowsTheFrenchChoice() {
+    compose.setContent {
+      OncompanionTheme {
+        SettingsContent(
+            SettingsUiState(DeviceSettings()),
+            {},
+            {},
+            {},
+            onDateTime = {},
+            language = AppLanguage.FRENCH,
+        )
+      }
+    }
+
+    compose
+        .onNode(hasText("Français") and hasTestTag(C.Tag.settings_language))
+        .performScrollTo()
+        .assertIsDisplayed()
   }
 
   @Test

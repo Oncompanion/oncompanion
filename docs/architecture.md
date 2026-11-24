@@ -717,6 +717,16 @@ Both destinations use theme colors, shapes, typography and spacing, and scroll a
 sizes and in landscape. Rotation tests recreate the Activity and restore content with the same
 ViewModel; startup tests also exercise the root Activity recreation.
 
+### App language (#559)
+
+Settings opens the Language picker. Both screens refresh their LanguageViewModel on resume.
+The ViewModel reads and writes the override through the AppCompat locale adapter.
+AppCompat persists the locale on older Android versions
+and delegates to Android's app locale service where available. Follow device clears the
+override. The Activity and Compose read Android's localized resources, and the authenticated
+navigation stack is restored during a language change. The Account diagram shows the locale
+handoff. The French resource rollout across the rest of the app is tracked in #560.
+
 ### Date and time formats (#557)
 
 Settings opens Date and time, with an appointment preview and separate Time format and Date format
