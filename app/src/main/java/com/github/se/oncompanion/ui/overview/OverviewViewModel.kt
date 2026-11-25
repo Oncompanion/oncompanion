@@ -245,7 +245,10 @@ class OverviewViewModel(
   /** The patient's journal as last read; empty until it is, or if it can't be. */
   private var journal: List<SymptomEntry> = emptyList()
 
-  /** The entries the patient undid, hidden at once, before the journal confirms they are gone. */
+  /**
+   * The entries the patient undid, hidden at once, until the journal confirms they are gone (then
+   * forgotten, so one the server puts back shows again).
+   */
   private val undone = mutableSetOf<String>()
 
   /** Follows which sections the patient shares, in caregiver mode. */
@@ -502,6 +505,10 @@ class OverviewViewModel(
             }
             .collect { entries ->
               journal = entries
+              // An undone entry stays hidden only until the journal drops it: if the server
+              // rejects the deletion later, Firestore puts it back and it shows again
+              val ids = entries.mapTo(HashSet()) { it.id }
+              undone.retainAll(ids)
               refreshSaved()
             }
       }

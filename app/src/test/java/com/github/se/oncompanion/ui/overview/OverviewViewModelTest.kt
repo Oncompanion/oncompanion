@@ -1610,4 +1610,25 @@ class OverviewViewModelTest {
     assertTrue(vm.uiState.value.undoFailed)
     assertEquals(listOf("last"), symptoms.symptoms("patient").map { it.id })
   }
+
+  @Test
+  fun undoSaved_rejectedByTheServerLater_showsTheEntryAgain() {
+    val symptoms =
+        FakeSymptomRepository().apply {
+          seed("patient", entry("earlier", now.withHour(7)), entry("last", now.withHour(8)))
+          serverRejectsWrites = true
+        }
+    val vm = journalViewModel(symptoms)
+    ShadowLooper.idleMainLooper()
+
+    // Deleted on the device: the previous entry shows
+    vm.undoSaved("last")
+    ShadowLooper.idleMainLooper()
+    assertEquals("earlier", vm.savedId())
+
+    // The server rejects it after the delete returned: Firestore puts it back, and so does the card
+    symptoms.rejectPendingWrites()
+    ShadowLooper.idleMainLooper()
+    assertEquals("last", vm.savedId())
+  }
 }
