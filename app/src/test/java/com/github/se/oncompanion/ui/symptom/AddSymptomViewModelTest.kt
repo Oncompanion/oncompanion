@@ -284,8 +284,19 @@ class AddSymptomViewModelTest {
   }
 
   @Test
-  fun unpickingAnotherSymptom_keepsTheSliderOnTheSelectedOne() {
+  fun unpicking_movesTheSliderOnlyIfItWasOnThatSymptom() {
     val viewModel = viewModel()
+    viewModel.toggleType(SymptomType.FATIGUE)
+    viewModel.toggleType(SymptomType.NAUSEA)
+    viewModel.toggleType(SymptomType.PAIN)
+    // The slider was on Pain: it goes to the last symptom still picked
+    viewModel.toggleType(SymptomType.PAIN)
+    assertEquals(SymptomType.NAUSEA, viewModel.state.strengthOf)
+    // Back to an empty form
+    viewModel.toggleType(SymptomType.FATIGUE)
+    viewModel.toggleType(SymptomType.NAUSEA)
+
+    // With the slider on Nausea, unpicking another symptom leaves it there
     viewModel.toggleType(SymptomType.NAUSEA)
     viewModel.toggleType(SymptomType.PAIN)
     viewModel.toggleType(SymptomType.FEVER)
@@ -1521,6 +1532,7 @@ class AddSymptomViewModelTest {
       val transcript: String,
       val before: (AddSymptomViewModel) -> Unit = {},
       val types: List<SymptomType>,
+      val strengthOf: SymptomType?,
       val strengths: Map<SymptomType, Int> = emptyMap(),
       val date: LocalDate? = null,
       val time: LocalTime? = null,
@@ -1537,25 +1549,33 @@ class AddSymptomViewModelTest {
                 DraftCase(
                     "headache 7 out of 10 yesterday at 9 am",
                     types = listOf(SymptomType.HEADACHE),
+                    strengthOf = SymptomType.HEADACHE,
                     strengths = mapOf(SymptomType.HEADACHE to 7),
                     date = yesterday,
                     time = LocalTime.of(9, 0),
                 ),
                 // Only some fields understood: the rest stays empty
-                DraftCase("I feel sick", types = listOf(SymptomType.NAUSEA)),
+                DraftCase(
+                    "I feel sick",
+                    types = listOf(SymptomType.NAUSEA),
+                    strengthOf = SymptomType.NAUSEA,
+                ),
                 // A time without a day is today, as when it is picked in the form
                 DraftCase(
                     "headache at 9 am",
                     types = listOf(SymptomType.HEADACHE),
+                    strengthOf = SymptomType.HEADACHE,
                     date = today,
                     time = LocalTime.of(9, 0),
                 ),
                 // Nothing understood: only the notes keep what was said
-                DraftCase("hello there", types = emptyList()),
-                // A strength said for several symptoms isn't given to any of them
+                DraftCase("hello there", types = emptyList(), strengthOf = null),
+                // A strength said for several symptoms isn't given to any of them; the slider is
+                // on the first one said
                 DraftCase(
                     "nausea and headache 7 out of 10",
                     types = listOf(SymptomType.NAUSEA, SymptomType.HEADACHE),
+                    strengthOf = SymptomType.NAUSEA,
                 ),
                 // A symptom already given a strength keeps it
                 DraftCase(
@@ -1565,9 +1585,11 @@ class AddSymptomViewModelTest {
                       it.onStrengthChange(3)
                     },
                     types = listOf(SymptomType.HEADACHE),
+                    strengthOf = SymptomType.HEADACHE,
                     strengths = mapOf(SymptomType.HEADACHE to 3),
                 ),
-                // One symptom said beside another with a strength: each keeps its own
+                // One symptom said beside another with a strength: each keeps its own, and the
+                // slider shows the one just said
                 DraftCase(
                     "headache 7 out of 10",
                     before = {
@@ -1575,6 +1597,7 @@ class AddSymptomViewModelTest {
                       it.onStrengthChange(2)
                     },
                     types = listOf(SymptomType.FATIGUE, SymptomType.HEADACHE),
+                    strengthOf = SymptomType.HEADACHE,
                     strengths = mapOf(SymptomType.FATIGUE to 2, SymptomType.HEADACHE to 7),
                 ),
                 // What the patient entered is kept; new symptoms come after theirs
@@ -1587,6 +1610,7 @@ class AddSymptomViewModelTest {
                       it.onNotesChange("After lunch  ")
                     },
                     types = listOf(SymptomType.HEADACHE, SymptomType.NAUSEA),
+                    strengthOf = SymptomType.HEADACHE,
                     strengths = mapOf(SymptomType.HEADACHE to 3),
                     date = today,
                     time = LocalTime.of(11, 0),
@@ -1603,6 +1627,7 @@ class AddSymptomViewModelTest {
           assertTrue(case.transcript, state.isDrafted)
           assertEquals(case.transcript, case.types, state.types)
           assertEquals(case.transcript, case.strengths, state.strengths)
+          assertEquals(case.transcript, case.strengthOf, state.strengthOf)
           assertEquals(case.transcript, case.date, state.date)
           assertEquals(case.transcript, case.time, state.time)
           assertEquals(case.transcript, case.notes, state.notes)
