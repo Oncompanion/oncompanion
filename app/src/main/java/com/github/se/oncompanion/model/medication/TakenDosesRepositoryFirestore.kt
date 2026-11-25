@@ -10,10 +10,12 @@ import com.github.se.oncompanion.model.session.SessionAccess
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.SetOptions
 import java.time.LocalDate
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * [TakenDosesRepository] backed by Cloud Firestore: one document per day at
@@ -49,6 +51,23 @@ class TakenDosesRepositoryFirestore(
             }
         awaitClose { registration.remove() }
       }
+
+  override fun observeDayIfKnown(uid: String, date: LocalDate): Flow<Map<String, Int>?> =
+      SessionAccess.snapshots {
+            // With the metadata changes: when the server confirms the day is empty, only the
+            // snapshot's source changes, which is otherwise not sent
+            val registration =
+                day(uid, date).addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, error ->
+                  when {
+                    error != null -> close(error)
+                    snapshot == null -> Unit
+                    !snapshot.exists() && snapshot.metadata.isFromCache -> trySend(null)
+                    else -> trySend(takenIn(snapshot))
+                  }
+                }
+            awaitClose { registration.remove() }
+          }
+          .distinctUntilChanged()
 
   override suspend fun setTaken(uid: String, date: LocalDate, medicationId: String, count: Int) =
       SessionAccess.operation {

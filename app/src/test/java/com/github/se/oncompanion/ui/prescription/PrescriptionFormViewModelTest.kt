@@ -7,6 +7,7 @@ import com.github.se.oncompanion.domain.carecircle.FollowedPatient
 import com.github.se.oncompanion.domain.medication.ManageMedicationSchedule
 import com.github.se.oncompanion.domain.medication.MedicationDraft
 import com.github.se.oncompanion.domain.medication.PrescriptionDraft
+import com.github.se.oncompanion.domain.medication.ReminderTimes
 import com.github.se.oncompanion.domain.medication.scan.MedicationDetail
 import com.github.se.oncompanion.domain.medication.scan.ScannedField
 import com.github.se.oncompanion.domain.medication.scan.ScannedPrescription
@@ -29,6 +30,7 @@ import java.io.IOException
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -2420,5 +2422,149 @@ class PrescriptionFormViewModelTest {
 
   private companion object {
     const val CAREGIVER = "caregiver"
+  }
+
+  // ---------- Reminders (US-32) ----------
+
+  private fun hours(vararg hours: Int) = hours.map { LocalTime.of(it, 0) }
+
+  @Test
+  fun remindMe_suggestsOneTimePerDose_andOffRemovesThem() = runTest {
+    val viewModel = viewModelWith("Ondansetron")
+    viewModel.onFrequencyChange("Twice a day")
+    assertEquals(emptyList<LocalTime>(), viewModel.medication.reminderTimes)
+
+    viewModel.onRemindChange(true)
+    assertEquals(hours(9, 18), viewModel.medication.reminderTimes)
+    viewModel.onRemindChange(false)
+    assertEquals(emptyList<LocalTime>(), viewModel.medication.reminderTimes)
+  }
+
+  @Test
+  fun theTimes_canBeChanged_followTheFrequency_andAreSaved() = runTest {
+    val viewModel = viewModelWith("Ondansetron")
+    viewModel.onFrequencyChange("Once a day")
+    viewModel.onRemindChange(true)
+    // Seconds are dropped: the reminders are to the minute
+    viewModel.onReminderTimeChange(0, LocalTime.of(8, 30, 15))
+    viewModel.onFrequencyChange("Twice a day")
+    assertEquals(
+        listOf(LocalTime.of(8, 30), LocalTime.of(18, 0)),
+        viewModel.medication.reminderTimes,
+    )
+
+    viewModel.save()
+    advanceUntilIdle()
+    assertEquals(
+        listOf(LocalTime.of(8, 30), LocalTime.of(18, 0)),
+        fakeMedications.prescriptionsOf(uid).single().medications.single().reminderTimes,
+    )
+  }
+
+  @Test
+  fun theFrequencyChangedAndBack_givesBackThePatientsTimes() = runTest {
+    val viewModel = viewModelWith("Ondansetron")
+    viewModel.onFrequencyChange("Twice a day")
+    viewModel.onRemindChange(true)
+    viewModel.onReminderTimeChange(1, LocalTime.of(21, 15))
+
+    // Typed letter by letter, the frequency says one dose a day for a moment
+    viewModel.onFrequencyChange("Once a day")
+    assertEquals(hours(9), viewModel.medication.reminderTimes)
+    viewModel.onFrequencyChange("Twice a day")
+
+    assertEquals(
+        listOf(LocalTime.of(9, 0), LocalTime.of(21, 15)),
+        viewModel.medication.reminderTimes,
+    )
+  }
+
+  @Test
+  fun aFrequencyTheAppCantRead_suggestsNoTime_thePatientChoosesTheFirst() = runTest {
+    val viewModel = viewModelWith("Methotrexate")
+    viewModel.onFrequencyChange("Once a week")
+
+    viewModel.onRemindChange(true)
+    assertEquals(emptyList<LocalTime>(), viewModel.medication.reminderTimes)
+
+    viewModel.onReminderTimeChange(0, LocalTime.of(20, 30, 10))
+    assertEquals(listOf(LocalTime.of(20, 30)), viewModel.medication.reminderTimes)
+  }
+
+  @Test
+  fun withoutAFrequency_thePatientAddsAndRemovesTimes_upToFour_keepingOne() = runTest {
+    val viewModel = viewModelWith("Ondansetron")
+    viewModel.onRemindChange(true)
+    assertEquals(hours(9), viewModel.medication.reminderTimes)
+
+    viewModel.removeReminderTime(0)
+    assertEquals(hours(9), viewModel.medication.reminderTimes)
+    repeat(4) { viewModel.addReminderTime() }
+    assertEquals(hours(9, 13, 18, 21), viewModel.medication.reminderTimes)
+    viewModel.removeReminderTime(1)
+    assertEquals(hours(9, 18, 21), viewModel.medication.reminderTimes)
+
+    // With a count, the frequency decides how many
+    viewModel.onFrequencyChange("Once a day")
+    viewModel.addReminderTime()
+    assertEquals(hours(9), viewModel.medication.reminderTimes)
+  }
+
+  @Test
+  fun theSameTimeTwice_blocksSave() = runTest {
+    val viewModel = viewModelWith("Ondansetron")
+    viewModel.onFrequencyChange("Twice a day")
+    viewModel.onRemindChange(true)
+    assertTrue(viewModel.state.canSave)
+
+    viewModel.onReminderTimeChange(1, LocalTime.of(9, 0))
+    assertFalse(viewModel.state.canSave)
+    assertEquals(setOf(0), viewModel.state.invalidMedications)
+  }
+
+  @Test
+  fun thePatientConfirmingACaregiversPrescription_setsItsReminders() = runTest {
+    val viewModel = reviewing()
+    viewModel.onRemindChange(true)
+
+    viewModel.save()
+    advanceUntilIdle()
+
+    val confirmed = fakeMedications.prescriptionsOf(uid).single()
+    assertEquals(PrescriptionConfirmation.CONFIRMED, confirmed.confirmation)
+    val medication = confirmed.medications[viewModel.state.openMedication]
+    assertEquals(ReminderTimes.suggested(medication.frequency.orEmpty()), medication.reminderTimes)
+    assertTrue(medication.reminderTimes.isNotEmpty())
+  }
+
+  @Test
+  fun aCaregiver_cantChooseReminders() = runTest {
+    val viewModel = caregiverForm()
+    viewModel.onRemindChange(true)
+    viewModel.addReminderTime()
+
+    assertEquals(emptyList<LocalTime>(), viewModel.medication.reminderTimes)
+  }
+
+  @Test
+  fun aCaregiverChangingTheFrequency_leavesThePatientsReminders() = runTest {
+    val reminded = hours(9, 21)
+    fakeMedications.seed(
+        "patient",
+        saved.copy(
+            medications =
+                saved.medications.map {
+                  if (it.id == "med-1") it.copy(reminderTimes = reminded) else it
+                }
+        ),
+    )
+    val viewModel = caregiverEditForm(editablePatient())
+    advanceUntilIdle()
+    viewModel.openMedication(0)
+
+    viewModel.onFrequencyChange("Once a day")
+
+    assertEquals("Once a day", viewModel.medication.frequency)
+    assertEquals(reminded, viewModel.medication.reminderTimes)
   }
 }

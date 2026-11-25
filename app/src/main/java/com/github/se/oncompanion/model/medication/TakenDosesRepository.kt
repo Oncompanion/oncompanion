@@ -22,6 +22,14 @@ interface TakenDosesRepository {
   fun observeDay(uid: String, date: LocalDate): Flow<Map<String, Int>>
 
   /**
+   * As [observeDay], for someone who only reads the day (a caregiver): `null` while it is unknown,
+   * i.e. this phone has no copy of the day and the server hasn't answered yet, as offline. A
+   * missing copy on the patient's own phone means nothing was ticked, since they write it; on a
+   * caregiver's it only means it was never downloaded, so it mustn't show as "0 of 3".
+   */
+  fun observeDayIfKnown(uid: String, date: LocalDate): Flow<Map<String, Int>?>
+
+  /**
    * Records that [count] doses of [medicationId] were taken on [date] (0 unticks them all), without
    * changing the other medications of that day. It returns once saved on the device, also offline.
    *

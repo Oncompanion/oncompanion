@@ -68,8 +68,17 @@ data class EditedSymptom(val entry: SymptomEntry, val date: LocalDate, val time:
  * @property now the current day and time, in the phone's time zone: what the form shows until the
  *   user picks a day or a time, kept up to date by [AddSymptomViewModel.refreshNow]
  * @property types the symptoms picked, in the order the user picked them
- * @property intensity how bad the user felt overall, or `null` if they didn't say (it's optional so
- *   logging takes as few taps as possible)
+ * @property strengths how strong each picked symptom was, for those the user gave a strength
+ *   (optional, so logging takes as few taps as possible)
+ * @property strengthOf the picked symptom the slider sets: the last one picked, or another the user
+ *   chose; `null` when none is picked
+ * @property unpickedStrengths the strengths of symptoms the user unpicked, given back if they pick
+ *   them again (a mistaken tap doesn't lose a strength); never saved
+ * @property intensity the single intensity of an entry logged before strengths, while it is edited:
+ *   kept as it was until a symptom is given a strength, then dropped (the form says it is replaced,
+ *   see [isOverallReplaced]), never copied onto the symptoms (it said how bad the whole entry
+ *   felt). It comes back once no symptom has a strength again, so clearing a strength undoes it.
+ *   `null` otherwise
  * @property date the day the user chose, or `null` for today. Choosing only a time sets it to the
  *   day the time was chosen, so the entry doesn't move a day ahead if the form stays open past
  *   midnight
@@ -95,6 +104,9 @@ data class EditedSymptom(val entry: SymptomEntry, val date: LocalDate, val time:
 data class AddSymptomUiState(
     val now: LocalDateTime,
     val types: List<SymptomType> = emptyList(),
+    val strengths: Map<SymptomType, Int> = emptyMap(),
+    val strengthOf: SymptomType? = null,
+    val unpickedStrengths: Map<SymptomType, Int> = emptyMap(),
     val intensity: Int? = null,
     val date: LocalDate? = null,
     val time: LocalTime? = null,
@@ -131,9 +143,21 @@ data class AddSymptomUiState(
         edited == null ||
             isWhenChanged ||
             types.toSet() != edited.entry.types.toSet() ||
-            intensity != edited.entry.intensity ||
+            strengths != edited.entry.strengths ||
+            intensity != edited.entry.overallIntensity() ||
             savedOtherName != edited.entry.otherName ||
             notes.trim().ifEmpty { null } != edited.entry.notes
+
+  /**
+   * The single intensity of the entry being edited, if it was logged before strengths: the form
+   * keeps saying it while the user sets strengths, so its line doesn't vanish under their finger.
+   */
+  val overallFromBefore: Int?
+    get() = edited?.entry?.overallIntensity()
+
+  /** The strengths now set replace [overallFromBefore]: saving drops it. */
+  val isOverallReplaced: Boolean
+    get() = overallFromBefore != null && intensity == null
 
   /** "Other" is picked, so the user names it: the form asks "Which symptom?". */
   val isOtherPicked: Boolean
@@ -227,6 +251,7 @@ class AddSymptomViewModel(
           AddSymptomUiState(
               now = LocalDateTime.now(clock),
               types = listOfNotNull(picked.takeIf { symptomId == null }),
+              strengthOf = picked.takeIf { symptomId == null },
               isEditing = symptomId != null,
               canDictate = canDictate,
               // The voice screen from the start, so the empty form never flashes before it
@@ -281,7 +306,9 @@ class AddSymptomViewModel(
         isLoading = false,
         edited = edited,
         types = entry.types,
-        intensity = entry.intensity,
+        strengths = entry.strengths,
+        strengthOf = entry.types.firstOrNull(),
+        intensity = entry.overallIntensity(),
         date = edited.date,
         time = edited.time,
         otherName = entry.otherName.orEmpty(),
@@ -290,26 +317,73 @@ class AddSymptomViewModel(
     )
   }
 
-  /** Picks [type], or unpicks it if it is already picked. */
+  /**
+   * Picks [type], so the slider asks how strong it was, or unpicks it if it is already picked: its
+   * strength is put aside, not saved, and comes back if it is picked again; the slider moves to the
+   * last symptom still picked.
+   */
   fun toggleType(type: SymptomType) {
     edit { state ->
-      state.copy(types = if (type in state.types) state.types - type else state.types + type)
+      if (type in state.types) {
+        val types = state.types - type
+        val strength = state.strengths[type]
+        state
+            .copy(
+                types = types,
+                strengthOf = state.strengthOf.takeIf { it != type } ?: types.lastOrNull(),
+                unpickedStrengths =
+                    strength?.let { state.unpickedStrengths + (type to it) }
+                        ?: state.unpickedStrengths,
+            )
+            .withStrengths(state.strengths - type)
+      } else {
+        val strength = state.unpickedStrengths[type]
+        state
+            .copy(
+                types = state.types + type,
+                strengthOf = type,
+                unpickedStrengths = state.unpickedStrengths - type,
+            )
+            .withStrengths(strength?.let { state.strengths + (type to it) } ?: state.strengths)
+      }
+    }
+  }
+
+  /** Lets the slider set the strength of [type], if it is picked. */
+  fun selectStrengthOf(type: SymptomType) {
+    edit { if (type in it.types) it.copy(strengthOf = type) else it }
+  }
+
+  /**
+   * Sets the strength of the symptom the slider is on. Values outside
+   * [SymptomEntry.MIN_INTENSITY]..[SymptomEntry.MAX_INTENSITY] are ignored. The intensity of an
+   * entry from before is hidden: the symptoms now say how strong they were.
+   */
+  fun onStrengthChange(strength: Int) {
+    if (strength !in SymptomEntry.MIN_INTENSITY..SymptomEntry.MAX_INTENSITY) return
+    edit { state ->
+      val type = state.strengthOf ?: return@edit state
+      state.withStrengths(state.strengths + (type to strength))
     }
   }
 
   /**
-   * Sets the intensity. Values outside [SymptomEntry.MIN_INTENSITY]..[SymptomEntry.MAX_INTENSITY]
-   * are ignored.
+   * Takes the strength off the symptom the slider is on, so none is saved for it. Once no symptom
+   * has one, an entry from before gets its intensity back.
    */
-  fun onIntensityChange(intensity: Int) {
-    if (intensity !in SymptomEntry.MIN_INTENSITY..SymptomEntry.MAX_INTENSITY) return
-    edit { it.copy(intensity = intensity) }
+  fun clearStrength() {
+    edit { state -> state.strengthOf?.let { state.withStrengths(state.strengths - it) } ?: state }
   }
 
-  /** Goes back to no intensity, so none is saved. */
-  fun clearIntensity() {
-    edit { it.copy(intensity = null) }
-  }
+  /**
+   * The form with [strengths], and the intensity of an entry from before shown only while no
+   * symptom has a strength (see [AddSymptomUiState.intensity]).
+   */
+  private fun AddSymptomUiState.withStrengths(strengths: Map<SymptomType, Int>): AddSymptomUiState =
+      copy(
+          strengths = strengths,
+          intensity = edited?.entry?.overallIntensity().takeIf { strengths.isEmpty() },
+      )
 
   /** Chooses the day the symptom was felt. */
   fun onDateChange(date: LocalDate) {
@@ -376,9 +450,7 @@ class AddSymptomViewModel(
             types = state.types,
             occurredAt = state.effectiveOccurredAt(ZonedDateTime.now(clock)),
             intensity = state.intensity,
-            // The form doesn't ask a strength per symptom yet: an edit keeps those saved, for the
-            // symptoms still in the entry, or saving would erase them (#543)
-            strengths = state.edited?.entry?.strengths.orEmpty().filterKeys { it in state.types },
+            strengths = state.strengths,
             notes = state.notes.trim().ifEmpty { null },
             otherName = state.savedOtherName,
         )
@@ -659,24 +731,27 @@ class AddSymptomViewModel(
       parseSpokenSymptom(text, Locale.forLanguageTag(language.tag), ZonedDateTime.now(clock))
 
   /**
-   * The form with [draft] in the fields still empty: its symptoms after those picked, its intensity
-   * if none is set, its day and time if the symptom is still "now", and the transcript after the
-   * notes.
+   * The form with [draft] in the fields still empty: its symptoms after those picked, the strength
+   * of the one symptom said if it has none (see [SymptomDraft.saidStrength]), its day and time if
+   * the symptom is still "now", and the transcript after the notes.
    */
   private fun AddSymptomUiState.filledFrom(draft: SymptomDraft): AddSymptomUiState {
     val saysWhen = isNow && (draft.date != null || draft.time != null)
-    return copy(
-        types = types + (draft.types - types.toSet()),
-        intensity = intensity ?: draft.intensity,
-        // A time said without a day is today, as when the patient picks only a time
-        date = if (saysWhen) draft.date ?: LocalDate.now(clock) else date,
-        time = if (saysWhen) draft.time else time,
-        notes =
-            listOf(notes.trimEnd(), draft.notes)
-                .filter { it.isNotBlank() }
-                .joinToString("\n")
-                .take(SymptomEntry.MAX_NOTES_LENGTH),
-    )
+    val types = types + (draft.types - types.toSet())
+    val said = draft.saidStrength?.takeIf { it.first !in strengths }
+    return withStrengths(said?.let { strengths + it } ?: strengths)
+        .copy(
+            types = types,
+            strengthOf = said?.first ?: strengthOf ?: types.firstOrNull(),
+            // A time said without a day is today, as when the patient picks only a time
+            date = if (saysWhen) draft.date ?: LocalDate.now(clock) else date,
+            time = if (saysWhen) draft.time else time,
+            notes =
+                listOf(notes.trimEnd(), draft.notes)
+                    .filter { it.isNotBlank() }
+                    .joinToString("\n")
+                    .take(SymptomEntry.MAX_NOTES_LENGTH),
+        )
   }
 
   /**
