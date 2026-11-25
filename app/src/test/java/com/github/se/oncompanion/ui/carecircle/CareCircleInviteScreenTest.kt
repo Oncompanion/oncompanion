@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.carecircle
@@ -40,8 +41,10 @@ import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.SMALL_LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.navigation.Screen
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -366,7 +369,8 @@ class CareCircleInviteScreenTest {
   /** Shows the screen of [julie] with its ViewModel; returns the back and renewed calls. */
   private fun setScreen(
       // The ViewModel uses the real clock: created now, so the invite code still works
-      invite: CareCircleInvite = julie.copy(createdAt = Instant.now())
+      invite: CareCircleInvite = julie.copy(createdAt = Instant.now()),
+      clock: Clock = Clock.systemDefaultZone(),
   ): Pair<MutableList<Unit>, MutableList<String>> {
     circle = FakeCareCircleRepository()
     invites = FakeCareCircleInviteRepository(circle).apply { setInvites(listOf(invite)) }
@@ -378,6 +382,7 @@ class CareCircleInviteScreenTest {
             invites,
             circle,
             auth,
+            clock = clock,
         )
     val backs = mutableListOf<Unit>()
     val renewed = mutableListOf<String>()
@@ -457,6 +462,25 @@ class CareCircleInviteScreenTest {
       assertEquals(Intent.ACTION_SEND, shared.action)
       assertEquals("text/plain", shared.type)
       assert("K7M2P-Q9XRT" in shared.getStringExtra(Intent.EXTRA_TEXT).orEmpty())
+    }
+  }
+
+  @Test
+  @Config(qualifiers = "fr-rCH")
+  fun screen_share_showsTheExpiryDateInFrench() {
+    val zone = ZoneId.systemDefault()
+    val createdAt = LocalDate.of(2026, 10, 16).atTime(12, 0).atZone(zone).toInstant()
+    setScreen(julie.copy(createdAt = createdAt), Clock.fixed(createdAt, zone))
+    composeTestRule
+        .onNodeWithTag(C.Tag.care_circle_invite_share_button)
+        .performScrollTo()
+        .performClick()
+    composeTestRule.runOnIdle {
+      val chooser = checkNotNull(nextStartedActivity())
+      @Suppress("DEPRECATION")
+      val shared = checkNotNull(chooser.getParcelableExtra<Intent>(Intent.EXTRA_INTENT))
+      val text = checkNotNull(shared.getStringExtra(Intent.EXTRA_TEXT))
+      assert("Le code est valable jusqu’au 23 oct. 2026." in text) { text }
     }
   }
 

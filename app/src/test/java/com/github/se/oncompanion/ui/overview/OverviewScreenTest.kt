@@ -74,6 +74,7 @@ import com.github.se.oncompanion.model.planning.PlanningSource
 import com.github.se.oncompanion.model.planning.PlanningTiming
 import com.github.se.oncompanion.model.speech.FakeSpeechRecognizer
 import com.github.se.oncompanion.model.speech.SpeechRecognizer
+import com.github.se.oncompanion.model.symptom.FakeSymptomRepository
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
 import com.github.se.oncompanion.resources.C
@@ -91,6 +92,7 @@ import com.github.se.oncompanion.ui.navigation.Tab
 import com.github.se.oncompanion.ui.notification.CircleSheetViewModel
 import com.github.se.oncompanion.ui.notification.SailboatBadge
 import com.github.se.oncompanion.ui.notification.circleSheetViewModel
+import com.github.se.oncompanion.ui.symptom.AddSymptomViewModel
 import com.github.se.oncompanion.ui.symptom.label
 import com.github.se.oncompanion.ui.theme.DarkLakeColors
 import com.github.se.oncompanion.ui.theme.LightLakeColors
@@ -225,6 +227,13 @@ class OverviewScreenTest {
       caregiverOf: String? = null,
       onSwitchPatient: () -> Unit = {},
       speech: SpeechRecognizer? = null,
+      checkIn: AddSymptomViewModel =
+          AddSymptomViewModel(
+              FakeAuthRepository(),
+              FakeSymptomRepository(),
+              speechRecognizer = FakeSpeechRecognizer(),
+              symptomName = { it.name },
+          ),
       circle: CircleSheetViewModel = circle(),
   ): RecordingNavigationActions {
     val viewModel =
@@ -244,6 +253,7 @@ class OverviewScreenTest {
           viewModel = viewModel,
           caregiverOf = caregiverOf,
           onSwitchPatient = onSwitchPatient,
+          checkIn = { checkIn },
           circle = circle,
       )
     }
@@ -290,6 +300,13 @@ class OverviewScreenTest {
         .onNodeWithTag(C.Tag.overview_greeting)
         .assertTextEquals(context.getString(R.string.overview_greeting_evening))
     composeTestRule.onNodeWithTag(C.Tag.overview_date).assertTextEquals("Saturday 3 October")
+  }
+
+  @Test
+  @Config(qualifiers = "fr-rCH")
+  fun dateHeadingStartsWithACapitalInFrench() {
+    setContent(loaded.copy(now = morning))
+    composeTestRule.onNodeWithTag(C.Tag.overview_date).assertTextEquals("Samedi 3 octobre")
   }
 
   // ----- Each state -----
@@ -1130,25 +1147,29 @@ class OverviewScreenTest {
       checkInTypes.map { C.Tag.overviewCheckIn(it.name) } + C.Tag.overview_check_in_more
 
   @Test
-  fun checkIn_eachTileOpensTheFormWithItsSymptom_andMoreOpensItEmpty() {
+  fun checkIn_eachTileOpensTheSheetWithItsSymptomPicked_andMoreOpensItEmpty() {
     val navigationActions = setOverviewScreen()
 
     assertTextInside(context.getString(R.string.overview_check_in_title), C.Tag.overview_check_in)
     val labels = listOf("Fatigue", "Nausea", "Pain", "Headache", "Fever", "More…")
-    labels.zip(checkInTileTags).forEach { (label, tag) ->
+    labels.zip(checkInTileTags).zip(checkInTypes + null).forEach { (tile, picked) ->
+      val (label, tag) = tile
       composeTestRule
           .onNode(hasTestTag(tag) and hasText(label))
           .performScrollTo()
           .assertHasClickAction()
           .performClick()
+      SymptomType.entries.forEach {
+        val sheetTile =
+            composeTestRule.onNodeWithTag(C.Tag.overviewCheckInSheet(it.name)).performScrollTo()
+        if (it == picked) sheetTile.assertIsOn() else sheetTile.assertIsOff()
+      }
+      composeTestRule.onNodeWithTag(C.Tag.overview_check_in_sheet_close).performClick()
+      composeTestRule.onNodeWithTag(C.Tag.overview_check_in_sheet).assertDoesNotExist()
     }
 
-    composeTestRule.runOnIdle {
-      assertEquals(
-          (checkInTypes + null).map { Screen.symptomAdd(it) },
-          navigationActions.openedRoutes,
-      )
-    }
+    // The sheet replaces the form: no tile leaves the Overview
+    composeTestRule.runOnIdle { assertTrue(navigationActions.openedRoutes.isEmpty()) }
   }
 
   /** Where each tile's top is, all measured at the same scroll position. */

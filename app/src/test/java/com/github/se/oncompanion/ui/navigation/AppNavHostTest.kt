@@ -16,6 +16,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -1784,21 +1785,29 @@ class AppNavHostTest {
   }
 
   @Test
-  fun checkInTile_opensTheRealForm_withItsSymptomPicked_andCloseReturnsToOverview() {
-    setNavHost(Route.OVERVIEW, authRepository = signedInPatient())
+  fun checkInTile_opensTheSheet_withItsSymptomPicked_andSavingStoresItInTheJournal() {
+    val symptoms = FakeSymptomRepository()
+    setNavHost(Route.OVERVIEW, authRepository = signedInPatient(), symptomRepository = symptoms)
     composeTestRule
         .onNodeWithTag(C.Tag.overviewCheckIn(SymptomType.FEVER.name))
         .performScrollTo()
         .performClick()
 
-    composeTestRule.onNodeWithTag(C.Tag.symptom_add_screen).assertIsDisplayed()
     composeTestRule
-        .onNodeWithTag(C.Tag.symptomAddType(SymptomType.FEVER.name))
+        .onNodeWithTag(C.Tag.overviewCheckInSheet(SymptomType.FEVER.name))
         .performScrollTo()
-        .assertIsSelected()
+        .assertIsOn()
+    composeTestRule
+        .onNodeWithTag(C.Tag.overview_check_in_sheet_save)
+        .performScrollTo()
+        .performClick()
+    composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithTag(C.Tag.symptom_add_close).performClick()
+    composeTestRule.onNodeWithTag(C.Tag.overview_check_in_sheet).assertDoesNotExist()
     composeTestRule.onNodeWithTag(C.Tag.overview_screen).assertIsDisplayed()
+    composeTestRule.runOnIdle {
+      assertEquals(listOf(SymptomType.FEVER), symptoms.symptoms("patient").single().types)
+    }
   }
 
   /** Taps "Speak how you feel" (US-73) with the microphone allowed; returns the recognizer. */
