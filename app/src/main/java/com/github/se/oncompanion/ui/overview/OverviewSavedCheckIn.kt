@@ -22,6 +22,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.R
+import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
@@ -30,6 +31,37 @@ import com.github.se.oncompanion.ui.symptom.symptomTimeFormatter
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.elevation1
 import com.github.se.oncompanion.ui.theme.lakeColors
+
+/**
+ * The patient's check-in: its tiles, or, once they saved an entry today, what they saved until the
+ * day ends (Figma M3: After saving).
+ */
+@Composable
+internal fun PatientCheckIn(
+    uiState: OverviewUiState,
+    onLogSymptom: (SymptomType?) -> Unit,
+    onSpeak: () -> Unit,
+    onUndoSaved: (String) -> Unit,
+    onEditSaved: (String) -> Unit,
+    onOpenJournal: () -> Unit,
+) {
+  val saved = uiState.savedToday
+  if (saved == null) {
+    CheckInDock(
+        onLogSymptom = onLogSymptom,
+        onOpenJournal = onOpenJournal,
+        onSpeak = onSpeak.takeIf { uiState.canSpeak },
+    )
+  } else {
+    SavedCheckIn(
+        saved,
+        onUndo = { onUndoSaved(saved.entry.id) },
+        onEdit = { onEditSaved(saved.entry.id) },
+        onLogAnother = { onLogSymptom(null) },
+        onOpenJournal = onOpenJournal,
+    )
+  }
+}
 
 /**
  * The check-in once the patient saved how they feel today (Figma M3: Check-in · After saving):

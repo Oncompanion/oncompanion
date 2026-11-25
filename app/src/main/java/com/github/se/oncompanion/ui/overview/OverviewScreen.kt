@@ -384,24 +384,14 @@ fun OverviewContent(
           // caregiver only gets the sections the patient shares, never the care circle, which only
           // the patient manages
           if (caregiverOf == null) {
-            val onOpenJournal = { onShortcutClick(OverviewShortcut.SYMPTOMS) }
-            val saved = uiState.savedToday
-            if (saved == null) {
-              CheckInDock(
-                  onLogSymptom = onLogSymptom,
-                  onOpenJournal = onOpenJournal,
-                  onSpeak = onSpeak.takeIf { uiState.canSpeak },
-              )
-            } else {
-              // Until the day ends, the check-in says what was saved (Figma M3: After saving)
-              SavedCheckIn(
-                  saved,
-                  onUndo = { onUndoSaved(saved.entry.id) },
-                  onEdit = { onEditSaved(saved.entry.id) },
-                  onLogAnother = { onLogSymptom(null) },
-                  onOpenJournal = onOpenJournal,
-              )
-            }
+            PatientCheckIn(
+                uiState,
+                onLogSymptom,
+                onSpeak,
+                onUndoSaved,
+                onEditSaved,
+                onOpenJournal = { onShortcutClick(OverviewShortcut.SYMPTOMS) },
+            )
           }
           val tiles =
               if (caregiverOf == null) patientTileShortcuts
