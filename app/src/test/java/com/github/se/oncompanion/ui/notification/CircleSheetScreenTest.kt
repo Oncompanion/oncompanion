@@ -316,6 +316,8 @@ class CircleSheetScreenTest {
   }
 
   @Test
+  // Real text widths: the default graphics mode measures text as almost 0 wide (#678)
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
   @Config(qualifiers = LANDSCAPE_PHONE)
   fun landscape_everyActionCanBeReachedWhole() {
     show(circle)
@@ -326,6 +328,7 @@ class CircleSheetScreenTest {
   }
 
   @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
   @Config(qualifiers = "w320dp-h640dp", fontScale = 2f)
   fun largestFont_onASmallPhone_keepsEveryActionReachable() {
     show(circle)
