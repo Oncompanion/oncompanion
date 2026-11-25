@@ -419,7 +419,7 @@
     <string name="prescription_form_retry">Réessayer</string>
     <string name="prescriptions_list_title">Mes ordonnances</string>
     <string name="prescriptions_back">Retour</string>
-    <string name="prescriptions_enter_manually">Saisir à la main</string>
+    <string name="prescriptions_enter_manually">Saisir manuellement</string>
     <string name="prescriptions_this_month">Ce mois-ci</string>
     <string name="prescriptions_earlier">Plus anciennes</string>
     <string name="prescriptions_item_supporting">%1$s · %2$s</string>
@@ -479,7 +479,7 @@
     <string name="prescriptions_list_title_for">Ordonnances de %1$s</string>
     <string name="prescriptions_empty_hint_for">Les ordonnances enregistrées par %1$s apparaîtront ici.</string>
     <string name="prescriptions_error_title_for">Impossible de charger les ordonnances de %1$s</string>
-    <string name="prescriptions_added_by_a_caregiver">Ajoutée par un proche aidant</string>
+    <string name="prescriptions_added_by_a_caregiver">Ajoutées par un proche aidant</string>
     <string name="prescriptions_added_by_you">Ajoutées par vous</string>
     <string name="prescriptions_waiting_for">En attente de %1$s</string>
     <string name="prescriptions_accepted_by">Acceptée par %1$s</string>
@@ -509,7 +509,7 @@
     <string name="prescription_form_medications_heading">Médicaments (%1$d)</string>
     <string name="prescription_form_add_title_for">Ajouter une ordonnance pour %1$s</string>
     <string name="prescription_already_saved_title_for">Déjà dans les ordonnances de %1$s</string>
-    <string name="added_by_not_confirmed">Ajouté par %1$s · Non confirmé</string>
+    <string name="added_by_not_confirmed">Ajout de %1$s · À confirmer</string>
 
     <!-- Prescription scanning -->
     <string name="prescription_scan_title">Scanner une ordonnance</string>
@@ -602,5 +602,5 @@
     <string name="medication_reminders_picker_confirm">OK</string>
     <string name="medication_reminders_picker_cancel">Annuler</string>
     <string name="medication_reminders_summary">Rappels : %1$s</string>
-    <string name="medication_reminders_of_patient">Rappels de %1$s : %2$s. Seul %1$s peut les modifier.</string>
+    <string name="medication_reminders_of_patient">Rappels de %1$s : %2$s. Seule cette personne peut les modifier.</string>
 </resources>
