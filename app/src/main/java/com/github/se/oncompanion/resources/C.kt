@@ -647,5 +647,11 @@ object C {
 
     // Shared message state: its round info tile
     const val message_state_icon = "message_state_icon"
+
+    /** The card of the "Your circle" notification with this ID (US-50, #457). */
+    fun circleSheetCard(notificationId: String) = "circle_sheet_card_$notificationId"
+
+    /** The "See prescription" link of the notification with this ID. */
+    fun circleSheetOpen(notificationId: String) = "circle_sheet_open_$notificationId"
   }
 }

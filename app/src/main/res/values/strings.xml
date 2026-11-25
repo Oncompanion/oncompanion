@@ -930,4 +930,14 @@
     <string name="reminder_permission_exact">Allow alarms and reminders in Android settings so appointment reminders can arrive at the chosen time.</string>
     <string name="reminder_permission_enable">Enable</string>
     <string name="reminder_permission_settings">Open Android settings</string>
+
+    <!-- A card of the "Your circle" sheet: what the care circle did for the patient (US-50, #457) -->
+    <!-- Who added it and when, e.g. "Marc · 08:05 · added" -->
+    <string name="circle_sheet_added">%1$s · %2$s · added</string>
+    <!-- The card's title when the prescription doesn't say who prescribed it -->
+    <string name="circle_sheet_prescription">Prescription</string>
+    <string name="circle_sheet_to_confirm">To confirm</string>
+    <string name="circle_sheet_confirmed">Confirmed</string>
+    <string name="circle_sheet_rejected">Rejected</string>
+    <string name="circle_sheet_see_prescription">See prescription</string>
 </resources>
