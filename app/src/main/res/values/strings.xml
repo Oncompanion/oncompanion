@@ -953,4 +953,25 @@
     <string name="settings_text_size">Text size</string>
     <string name="settings_text_size_percent">%1$d%% · Phone setting</string>
     <string name="settings_text_size_unavailable">Couldn\'t open your phone\'s text size settings.</string>
+
+    <!-- Medication reminders in the prescription form (US-32) -->
+    <string name="medication_reminders_section">Reminders</string>
+    <string name="medication_reminders_remind_me">Remind me</string>
+    <string name="medication_reminders_off">Off</string>
+    <plurals name="medication_reminders_a_day">
+        <item quantity="one">%1$d a day</item>
+        <item quantity="other">%1$d a day</item>
+    </plurals>
+    <string name="medication_reminders_time">Reminder %1$d</string>
+    <string name="medication_reminders_change_time">Change the time</string>
+    <string name="medication_reminders_remove_time">Remove %1$s</string>
+    <string name="medication_reminders_add_time">Add a time</string>
+    <string name="medication_reminders_repeated">Already at %1$s. Choose another time.</string>
+    <string name="medication_reminders_only_help">Reminders only help you remember. They don\'t change your prescription.</string>
+    <string name="medication_reminders_by_patient">%1$s chooses the reminders after checking this prescription.</string>
+    <string name="medication_reminders_picker_confirm">OK</string>
+    <string name="medication_reminders_picker_cancel">Cancel</string>
+    <string name="medication_reminders_summary">Reminders %1$s</string>
+    <!-- What a caregiver sees of the patient's reminders: "Anne's reminders: 09:00 · 18:00…" -->
+    <string name="medication_reminders_of_patient">%1$s\'s reminders: %2$s. Only %1$s can change them.</string>
 </resources>
