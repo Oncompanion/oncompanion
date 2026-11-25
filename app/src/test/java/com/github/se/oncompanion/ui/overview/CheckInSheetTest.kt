@@ -27,12 +27,16 @@ import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.domain.planning.ownPlanning
+import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.AuthUser
 import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.speech.FakeSpeechRecognizer
+import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
 import com.github.se.oncompanion.model.symptom.FakeSymptomRepository
+import com.github.se.oncompanion.model.symptom.SymptomRepositoryProvider
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
+import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsAboveKeyboard
@@ -397,18 +401,53 @@ class CheckInSheetTest {
 
   @Test
   fun phoneRotated_theSheetStaysOpen_withWhatWasPicked() {
-    val overview = overview()
-    tapCheckInTile(SymptomType.NAUSEA)
-    tile(SymptomType.OTHER).performScrollTo().performClick()
-    node(C.Tag.symptom_add_other_name).performScrollTo().performTextInput("Hiccups")
+    val auth =
+        FakeAuthRepository(onSignIn = { AuthUser(uid = "patient", displayName = "Alex") }).also {
+          runBlocking { it.signInWithGoogle("token") }
+        }
+    val originalAuth = AuthRepositoryProvider.repository
+    val originalSymptoms = SymptomRepositoryProvider.repository
+    val originalProfiles = UserProfileRepositoryProvider.repository
+    AuthRepositoryProvider.repository = auth
+    SymptomRepositoryProvider.repository = FakeSymptomRepository()
+    UserProfileRepositoryProvider.repository = FakeUserProfileRepository()
+    SpeechRecognizerProvider.recognizer = FakeSpeechRecognizer()
+    try {
+      val clock = Clock.fixed(morning.toInstant(ZoneOffset.UTC), ZoneOffset.UTC)
+      val viewModel =
+          OverviewViewModel(
+              authRepository = auth,
+              profileRepository = FakeUserProfileRepository(),
+              observePlanning = ownPlanning(FakePlanningRepository()),
+              clock = clock,
+              zoneId = ZoneOffset.UTC,
+          )
+      // The check-in's ViewModel as the app makes it, kept by the activity across a rotation
+      val show = {
+        context.setContent {
+          OverviewScreen(
+              RecordingNavigationActions(TestNavHostController(LocalContext.current)),
+              viewModel = viewModel,
+          )
+        }
+      }
+      composeTestRule.runOnUiThread(show)
+      tapCheckInTile(SymptomType.NAUSEA)
+      tile(SymptomType.OTHER).performScrollTo().performClick()
+      node(C.Tag.symptom_add_other_name).performScrollTo().performTextInput("Hiccups")
 
-    // Rotating recreates the activity; the ViewModels survive it
-    composeTestRule.activityRule.scenario.recreate()
-    composeTestRule.runOnUiThread(overview.show)
+      composeTestRule.activityRule.scenario.recreate()
+      composeTestRule.runOnUiThread(show)
 
-    tile(SymptomType.NAUSEA).performScrollTo().assertIsOn()
-    tile(SymptomType.OTHER).performScrollTo().assertIsOn()
-    node(C.Tag.symptom_add_other_name).performScrollTo().assertTextContains("Hiccups")
+      tile(SymptomType.NAUSEA).performScrollTo().assertIsOn()
+      tile(SymptomType.OTHER).performScrollTo().assertIsOn()
+      node(C.Tag.symptom_add_other_name).performScrollTo().assertTextContains("Hiccups")
+    } finally {
+      AuthRepositoryProvider.repository = originalAuth
+      SymptomRepositoryProvider.repository = originalSymptoms
+      UserProfileRepositoryProvider.repository = originalProfiles
+      SpeechRecognizerProvider.reset()
+    }
   }
 
   // ----- Large text, landscape and the keyboard -----
