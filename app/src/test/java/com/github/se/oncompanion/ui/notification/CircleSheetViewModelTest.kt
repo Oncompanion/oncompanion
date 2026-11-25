@@ -350,6 +350,15 @@ class CircleSheetViewModelTest {
   }
 
   @Test
+  fun onlyOlderDays_isNothingNewToday() = runViewModelTest {
+    notifications.deliver(uid, added("p0", at(today.minusDays(1), 9, 0)))
+    notifications.deliver(uid, added("p9", at(today.minusDays(2), 9, 0)))
+    val vm = viewModel()
+    runCurrent()
+    assertTrue(vm.circleState.nothingToday)
+  }
+
+  @Test
   fun atMidnight_todayMovesOn_soTodaysCardsBecomeYesterdays() = runViewModelTest {
     // A clock the test moves past midnight
     var time = at(today, 23, 59)
@@ -367,11 +376,14 @@ class CircleSheetViewModelTest {
     vm.followToday()
     runCurrent()
     assertEquals(today, vm.circleState.today)
+    assertFalse(vm.circleState.nothingToday)
 
     time = at(today.plusDays(1), 0, 1)
     dispatcher.scheduler.advanceTimeBy(Duration.ofMinutes(2).toMillis())
     runCurrent()
     assertEquals(today.plusDays(1), vm.circleState.today)
+    // Today's card is yesterday's now: nothing new today
+    assertTrue(vm.circleState.nothingToday)
   }
 
   @Test

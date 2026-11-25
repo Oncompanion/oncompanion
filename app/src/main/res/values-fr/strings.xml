@@ -885,4 +885,14 @@
     <string name="circle_sheet_confirmed">Confirmée</string>
     <string name="circle_sheet_rejected">Refusée</string>
     <string name="circle_sheet_see_prescription">Voir l’ordonnance</string>
+    <string name="circle_sheet_title">Votre cercle</string>
+    <string name="circle_sheet_manage">Gérer</string>
+    <string name="circle_sheet_manage_description">Gérer votre cercle</string>
+    <string name="circle_sheet_members_and_invited">%1$s · %2$s</string>
+    <string name="circle_sheet_invited">Invitations\u00A0: %1$s</string>
+    <string name="circle_sheet_today">Aujourd’hui</string>
+    <string name="circle_sheet_yesterday">Hier</string>
+    <string name="circle_sheet_nothing_today">Rien de nouveau dans votre cercle aujourd’hui.</string>
+    <string name="circle_sheet_nobody_message">Ajoutez un membre de votre famille, un ami ou une personne de l’équipe infirmière pour lui permettre de suivre vos soins. Vous choisissez ce que chaque personne peut voir.</string>
+    <string name="circle_sheet_add_someone">Ajouter une personne de confiance</string>
 </resources>
