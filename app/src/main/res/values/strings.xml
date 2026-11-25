@@ -992,4 +992,26 @@
     <string name="medication_reminders_summary">Reminders %1$s</string>
     <!-- What a caregiver sees of the patient's reminders: "Anne's reminders: 09:00 · 18:00…" -->
     <string name="medication_reminders_of_patient">%1$s\'s reminders: %2$s. Only %1$s can change them.</string>
+
+    <!-- The "Your circle" sheet over the Overview, and its cards: what the care circle did for the patient (US-50, #457) -->
+    <!-- Who added it and when, e.g. "Marc · 08:05 · added" -->
+    <string name="circle_sheet_added">%1$s · %2$s · added</string>
+    <!-- The card's title when the prescription doesn't say who prescribed it -->
+    <string name="circle_sheet_prescription">Prescription</string>
+    <string name="circle_sheet_to_confirm">To confirm</string>
+    <string name="circle_sheet_confirmed">Confirmed</string>
+    <string name="circle_sheet_rejected">Rejected</string>
+    <string name="circle_sheet_see_prescription">See prescription</string>
+    <string name="circle_sheet_title">Your circle</string>
+    <string name="circle_sheet_manage">Manage</string>
+    <!-- What screen readers say for "Manage" -->
+    <string name="circle_sheet_manage_description">Manage your circle</string>
+    <!-- The members, then who is invited, e.g. "Marc, Sophie · Julie invited" -->
+    <string name="circle_sheet_members_and_invited">%1$s · %2$s</string>
+    <string name="circle_sheet_invited">%1$s invited</string>
+    <string name="circle_sheet_nothing_today">Nothing new from your circle today.</string>
+    <string name="circle_sheet_today">Today</string>
+    <string name="circle_sheet_yesterday">Yesterday</string>
+    <string name="circle_sheet_nobody_message">Add a relative, friend or nurse so they can follow your care. You choose what each person can see.</string>
+    <string name="circle_sheet_add_someone">Add someone you trust</string>
 </resources>

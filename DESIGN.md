@@ -363,7 +363,7 @@ Flat cut paper in the Horizon colours: sky, the Salève, the Jet d'eau, the sun 
 The lake of *Speak your symptoms*, its horizon 36 dp lower than the other lakes' so the sun has sky to rise into. The sun (the moon at dusk) is the microphone: a 64 dp disc with the mic cut out of it in lake teal, behind the Salève. Flat white halos around it, more see-through the further out, open with the patient's voice. Held sideways, the lake takes the left half of the screen.
 
 ### Empty lake
-A round medallion of the same lake with one small boat, for empty states (nothing planned, no prescriptions, no one in the circle).
+A round medallion of the same lake with one small boat, for empty states (nothing planned, no prescriptions). The "Your circle" sheet's "No one in your circle yet" draws three empty dashed seats instead, the people still to add (Figma: "Overview · Patient · Care circle · Nobody yet").
 
 ### Member boats
 Each person in the care circle is a small paper boat (*Member boat*: Large 48, Small 40; tones Dawn, Dusk and Lake, and Waiting with a dashed sail for someone who hasn't joined yet). Sail colour is decorative, assigned by position, never a judgement. Their initial sits on the sail like a sail number: Figtree Bold 13 (11 on the small boat), left-aligned to the mast, 3 dp above the foot of the sail; two letters when first letters collide (AM, AR).

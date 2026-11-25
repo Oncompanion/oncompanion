@@ -157,12 +157,14 @@ fun PlanningContent(
 ) {
   val locale = LocalConfiguration.current.locales[0]
   val compact = isCompactHeight()
+  val showAdd = state.canAdd && actions.onAddAppointment != null
   Scaffold(
       modifier = modifier.fillMaxSize().testTag(C.Tag.planning_screen),
       bottomBar = bottomBar,
   ) { innerPadding ->
     Box(Modifier.fillMaxSize().padding(innerPadding)) {
-      Column {
+      // On short screens, keep the floating action clear of the scrolling calendar and agenda.
+      Column(Modifier.padding(end = if (compact && showAdd) 88.dp else 0.dp)) {
         if (!compact) PlanningHeader(state, today, locale, actions)
         PlanningAgenda(
             state,
@@ -184,7 +186,7 @@ fun PlanningContent(
       }
       actions.onAddAppointment?.let { onAdd ->
         // A caregiver only gets "+" when the patient lets them add appointments (US-41)
-        if (!state.canAdd) return@let
+        if (!showAdd) return@let
         val addLabel = stringResource(R.string.planning_add)
         FloatingActionButton(
             onClick = { onAdd(state.selectedDate) },
