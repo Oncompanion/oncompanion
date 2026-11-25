@@ -24,7 +24,7 @@
     <string name="planning_retry">Réessayer</string>
     <string name="planning_no_set_time">Sans heure définie</string>
     <string name="planning_scheduled">Planifié</string>
-    <string name="planning_frequency">Fréquence : %1$s</string>
+    <string name="planning_frequency">Fréquence\u00A0: %1$s</string>
     <string name="planning_frequency_unspecified">Fréquence non renseignée</string>
     <string name="planning_type_appointment">Rendez-vous</string>
     <string name="planning_type_event">Événement de soutien</string>
@@ -58,11 +58,11 @@
     <string name="event_detail_registration_confirmed">Inscription confirmée</string>
     <string name="event_detail_registration_confirmed_supporting">Vous avez indiqué que vous étiez inscrit à cet événement.</string>
     <string name="event_detail_remove">Retirer la confirmation</string>
-    <string name="event_detail_remove_title">Retirer votre confirmation d’inscription ?</string>
+    <string name="event_detail_remove_title">Retirer votre confirmation d’inscription\u202F?</string>
     <string name="event_detail_remove_message">Votre inscription auprès de l’organisateur reste valable.</string>
     <string name="event_detail_remove_cancel">Annuler</string>
     <string name="event_detail_remove_confirm">Retirer</string>
-    <string name="event_detail_remove_title_caregiver">Retirer la confirmation d’inscription de %1$s ?</string>
+    <string name="event_detail_remove_title_caregiver">Retirer la confirmation d’inscription de %1$s\u202F?</string>
     <string name="event_detail_remove_message_caregiver">Seule la confirmation dans l’application est retirée. L’inscription auprès de l’organisateur reste valable.</string>
     <string name="event_detail_registration_error">Impossible de charger ou d’enregistrer votre inscription.</string>
     <string name="event_detail_website_error">Impossible d’ouvrir le site de l’événement.</string>
@@ -106,11 +106,11 @@
     <string name="symptom_journal_summary">%1$s · %2$s</string>
     <string name="symptom_add_title">Noter des symptômes</string>
     <string name="symptom_add_close">Fermer</string>
-    <string name="symptom_add_types">Que ressentez-vous ?</string>
+    <string name="symptom_add_types">Que ressentez-vous\u202F?</string>
     <string name="symptom_add_intensity_value">%1$d/10 · %2$s</string>
     <string name="symptom_add_intensity_not_set">Non renseignée</string>
     <string name="symptom_add_intensity_clear">Effacer</string>
-    <string name="symptom_add_when">Quand avez-vous ressenti ces symptômes ?</string>
+    <string name="symptom_add_when">Quand avez-vous ressenti ces symptômes\u202F?</string>
     <string name="symptom_add_date_time">Date et heure</string>
     <string name="symptom_add_date_time_value">%1$s · %2$s</string>
     <string name="symptom_add_date_time_hint">Réglé sur maintenant. Modifiez la date ou l’heure si les symptômes sont apparus plus tôt.</string>
@@ -118,7 +118,7 @@
     <string name="symptom_add_in_future">Cette date ou heure est dans le futur. Choisissez un moment antérieur.</string>
     <string name="symptom_add_notes_title">Décrivez comment vous vous sentez</string>
     <string name="symptom_add_notes">Notes</string>
-    <string name="symptom_add_other_name_placeholder">Quel symptôme ? Par exemple : hoquet</string>
+    <string name="symptom_add_other_name_placeholder">Quel symptôme\u202F? Par exemple\u00A0: hoquet</string>
     <string name="symptom_add_other_name_listed">%1$s figure déjà dans la liste. Sélectionnez ce symptôme dans la liste.</string>
     <string name="symptom_add_picker_confirm">OK</string>
     <string name="symptom_add_picker_cancel">Annuler</string>
@@ -126,7 +126,7 @@
     <string name="symptom_add_error_not_signed_in">Vous êtes déconnecté. Reconnectez-vous pour enregistrer vos symptômes.</string>
     <string name="symptom_add_error_save_failed">Impossible d’enregistrer vos symptômes. Veuillez réessayer.</string>
     <string name="symptom_detail_delete">Supprimer l’entrée</string>
-    <string name="symptom_delete_title">Supprimer cette entrée ?</string>
+    <string name="symptom_delete_title">Supprimer cette entrée\u202F?</string>
     <string name="symptom_delete_message">Elle sera supprimée de votre journal de symptômes. Cette action est irréversible.</string>
     <string name="symptom_delete_confirm">Supprimer</string>
     <string name="symptom_delete_cancel">Annuler</string>
@@ -143,9 +143,9 @@
     <string name="symptom_detail_symptoms">Symptômes</string>
     <string name="symptom_week_title">Cette semaine</string>
     <plurals name="symptom_week_summary">
-        <item quantity="one">%1$d entrée · Symptôme le plus fréquent : %2$s</item>
-        <item quantity="many">%1$d entrées · Symptôme le plus fréquent : %2$s</item>
-        <item quantity="other">%1$d entrées · Symptôme le plus fréquent : %2$s</item>
+        <item quantity="one">%1$d entrée · Symptôme le plus fréquent\u00A0: %2$s</item>
+        <item quantity="many">%1$d entrées · Symptôme le plus fréquent\u00A0: %2$s</item>
+        <item quantity="other">%1$d entrées · Symptôme le plus fréquent\u00A0: %2$s</item>
     </plurals>
     <plurals name="symptom_week_count">
         <item quantity="one">%1$d entrée</item>
@@ -186,11 +186,11 @@
     <string name="symptom_voice_unavailable_message">Vous pouvez saisir vos symptômes au clavier.</string>
     <string name="symptom_voice_failed_title">La dictée a échoué</string>
     <string name="symptom_voice_failed_message">Réessayez ou utilisez le clavier.</string>
-    <string name="symptom_voice_offline_offer_title">Utiliser la dictée sans connexion ?</string>
-    <string name="symptom_voice_offline_offer_message">Votre téléphone peut télécharger la langue suivante : %1$s. Vous pourrez ensuite dicter sans réseau, par exemple dans une salle d’attente. Un seul téléchargement suffit.</string>
-    <string name="symptom_voice_download">Télécharger : %1$s</string>
+    <string name="symptom_voice_offline_offer_title">Utiliser la dictée sans connexion\u202F?</string>
+    <string name="symptom_voice_offline_offer_message">Votre téléphone peut télécharger la langue suivante\u00A0: %1$s. Vous pourrez ensuite dicter sans réseau, par exemple dans une salle d’attente. Un seul téléchargement suffit.</string>
+    <string name="symptom_voice_download">Télécharger\u00A0: %1$s</string>
     <string name="symptom_voice_not_now">Plus tard</string>
-    <string name="symptom_voice_downloading">Téléchargement en cours : %1$s. La dictée fonctionnera sans connexion une fois le téléchargement terminé.</string>
+    <string name="symptom_voice_downloading">Téléchargement en cours\u00A0: %1$s. La dictée fonctionnera sans connexion une fois le téléchargement terminé.</string>
     <string name="symptom_voice_language_english">anglais</string>
     <string name="symptom_voice_language_french">français</string>
     <string name="symptom_voice_preparing">Préparation…</string>
@@ -198,19 +198,19 @@
     <string name="symptom_strength_in_words">%1$s %2$s</string>
     <string name="symptom_strength_description">Intensité %1$d sur 10, %2$s</string>
     <string name="symptom_voice_leave">Fermer</string>
-    <string name="symptom_add_strength_question">Quelle est l’intensité de ce symptôme (%1$s) ? (facultatif)</string>
-    <string name="symptom_add_overall_from_before">Intensité globale précédente : %1$d/10</string>
+    <string name="symptom_add_strength_question">Quelle est l’intensité de ce symptôme (%1$s)\u202F? (facultatif)</string>
+    <string name="symptom_add_overall_from_before">Intensité globale précédente\u00A0: %1$d/10</string>
     <string name="symptom_strength_chip">%1$s · %2$d/10</string>
     <plurals name="symptom_strength_chip_description">
         <item quantity="one">%1$s, intensité %2$d sur 10</item>
         <item quantity="many">%1$s, intensité %2$d sur 10</item>
         <item quantity="other">%1$s, intensité %2$d sur 10</item>
     </plurals>
-    <string name="symptom_add_strength_question_other">Quelle est son intensité ? (facultatif)</string>
-    <string name="symptom_add_strength_question_plural">Quelle est l’intensité de ces symptômes (%1$s) ? (facultatif)</string>
-    <string name="symptom_add_overall_replaced">Intensité globale précédente : %1$d/10 · remplacée par les intensités par symptôme</string>
+    <string name="symptom_add_strength_question_other">Quelle est son intensité\u202F? (facultatif)</string>
+    <string name="symptom_add_strength_question_plural">Quelle est l’intensité de ces symptômes (%1$s)\u202F? (facultatif)</string>
+    <string name="symptom_add_overall_replaced">Intensité globale précédente\u00A0: %1$d/10 · remplacée par les intensités par symptôme</string>
     <string name="symptom_edit_title_for">Modifier l’entrée de %1$s</string>
-    <string name="symptom_delete_title_for">Supprimer l’entrée de %1$s ?</string>
+    <string name="symptom_delete_title_for">Supprimer l’entrée de %1$s\u202F?</string>
     <string name="symptom_delete_message_for">Elle sera supprimée du journal de symptômes de %1$s. Cette action est irréversible.</string>
 
     <!-- Overview -->
@@ -283,8 +283,8 @@
     <string name="overview_error_title">Impossible de charger votre journée</string>
     <string name="overview_error_hint">Vos raccourcis restent disponibles. Veuillez réessayer.</string>
     <string name="overview_retry">Réessayer</string>
-    <string name="overview_subtitle">Comment vous sentez-vous aujourd’hui ?</string>
-    <string name="overview_check_in_title">Comment vous sentez-vous ?</string>
+    <string name="overview_subtitle">Comment vous sentez-vous aujourd’hui\u202F?</string>
+    <string name="overview_check_in_title">Comment vous sentez-vous\u202F?</string>
     <string name="overview_check_in_more">Plus…</string>
     <string name="overview_journal_link">Journal</string>
     <string name="overview_care_of">Suivi de %1$s</string>
@@ -320,7 +320,7 @@
     <string name="appointment_detail_notes">Notes</string>
     <string name="appointment_detail_edit">Modifier</string>
     <string name="appointment_detail_delete">Supprimer</string>
-    <string name="appointment_delete_title">Supprimer ce rendez-vous ?</string>
+    <string name="appointment_delete_title">Supprimer ce rendez-vous\u202F?</string>
     <string name="appointment_delete_message">Il sera retiré du planning. Cette action est irréversible.</string>
     <string name="appointment_delete_confirm">Supprimer</string>
     <string name="appointment_delete_cancel">Annuler</string>
@@ -365,7 +365,7 @@
     <string name="appointment_edit_signed_out">Reconnectez-vous pour modifier ce rendez-vous.</string>
     <string name="appointment_add_for">Ajouter un rendez-vous pour %1$s</string>
     <string name="appointment_edit_for">Modifier le rendez-vous de %1$s</string>
-    <string name="appointment_delete_title_for">Supprimer le rendez-vous de %1$s ?</string>
+    <string name="appointment_delete_title_for">Supprimer le rendez-vous de %1$s\u202F?</string>
     <string name="appointment_delete_message_for">Il sera retiré du planning de %1$s. Cette action est irréversible.</string>
 
     <!-- Prescriptions and medications -->
@@ -451,7 +451,7 @@
     <string name="prescription_detail_not_found_hint">Elle a peut-être été supprimée sur un autre appareil.</string>
     <string name="prescription_detail_edit">Modifier l’ordonnance</string>
     <string name="prescription_detail_delete">Supprimer l’ordonnance</string>
-    <string name="prescription_delete_title">Supprimer cette ordonnance ?</string>
+    <string name="prescription_delete_title">Supprimer cette ordonnance\u202F?</string>
     <string name="prescription_delete_message">Elle sera supprimée avec tous ses médicaments. Cette action est irréversible.</string>
     <string name="prescription_delete_confirm">Supprimer</string>
     <string name="prescription_delete_cancel">Annuler</string>
@@ -489,7 +489,7 @@
     <string name="prescription_confirm_notice">Un proche aidant a ajouté cette ordonnance. Vérifiez chaque champ, corrigez-le si nécessaire, puis confirmez.</string>
     <string name="prescription_confirm_save">Confirmer l’ordonnance</string>
     <string name="prescription_reject">Refuser</string>
-    <string name="prescription_reject_title">Refuser cette ordonnance ?</string>
+    <string name="prescription_reject_title">Refuser cette ordonnance\u202F?</string>
     <string name="prescription_reject_message">Elle sera retirée de vos ordonnances et ne déclenchera aucun rappel.</string>
     <string name="prescription_reject_cancel">Annuler</string>
     <string name="prescription_form_error_reject_failed">Impossible de refuser cette ordonnance. Veuillez réessayer.</string>
@@ -501,7 +501,7 @@
     <string name="prescriptions_no_access_title_unnamed">Vous ne pouvez plus voir ces ordonnances</string>
     <string name="prescriptions_no_access_hint_unnamed">Vous ne faites plus partie de ce cercle de soins.</string>
     <string name="prescription_form_edit_title_for">Modifier l’ordonnance de %1$s</string>
-    <string name="prescription_delete_title_for">Supprimer l’ordonnance de %1$s ?</string>
+    <string name="prescription_delete_title_for">Supprimer l’ordonnance de %1$s\u202F?</string>
     <string name="prescription_delete_message_for">Elle sera supprimée des ordonnances de %1$s avec tous ses médicaments. Cette action est irréversible.</string>
     <string name="prescription_form_not_allowed_title">Cette ordonnance ne peut pas être modifiée</string>
     <string name="prescription_form_not_allowed_hint">Vous n’avez actuellement pas l’autorisation de modifier les ordonnances de cette personne.</string>
@@ -523,7 +523,7 @@
     <string name="prescription_scan_camera_unavailable_explanation">oncompanion n’a pas pu ouvrir l’appareil photo de votre téléphone. Vous pouvez saisir l’ordonnance manuellement.</string>
     <string name="prescription_scan_take_photo">Prendre une photo</string>
     <string name="prescription_scan_check_title">Vérifier la photo</string>
-    <string name="prescription_scan_check_hint">Tout le texte est-il net et visible sur la photo ?</string>
+    <string name="prescription_scan_check_hint">Tout le texte est-il net et visible sur la photo\u202F?</string>
     <string name="prescription_scan_retake">Reprendre</string>
     <string name="prescription_scan_use_photo">Utiliser cette photo</string>
     <string name="prescription_scan_reading_title">Lecture de l’ordonnance</string>
@@ -557,7 +557,7 @@
     <string name="prescription_review_correct_anything">Vous pouvez tout corriger avant d’enregistrer.</string>
     <string name="prescription_review_may_differ">Vérifiez cette information. Elle peut différer de celle sur le papier.</string>
     <string name="prescription_review_date_hard_to_read">Vérifiez la date. Elle était difficile à lire.</string>
-    <string name="prescription_review_date_not_found">Date absente de la photo : la date du jour est utilisée.</string>
+    <string name="prescription_review_date_not_found">Date absente de la photo\u00A0: la date du jour est utilisée.</string>
     <string name="prescription_review_not_found">Information absente de la photo. Vous pouvez l’ajouter si vous le souhaitez.</string>
     <string name="prescription_review_needs_checking">À vérifier</string>
     <string name="prescription_review_check_name">Vérifiez le nom</string>
@@ -601,12 +601,12 @@
     <string name="medication_reminders_by_patient">%1$s choisit les rappels après avoir vérifié cette ordonnance.</string>
     <string name="medication_reminders_picker_confirm">OK</string>
     <string name="medication_reminders_picker_cancel">Annuler</string>
-    <string name="medication_reminders_summary">Rappels : %1$s</string>
-    <string name="medication_reminders_of_patient">Rappels de %1$s : %2$s. Seul %1$s peut les modifier.</string>
+    <string name="medication_reminders_summary">Rappels\u00A0: %1$s</string>
+    <string name="medication_reminders_of_patient">Rappels de %1$s\u00A0: %2$s. Seul %1$s peut les modifier.</string>
 
     <!-- Account and profile -->
     <string name="app_name">oncompanion</string>
-    <string name="onboarding_role_title">Qui êtes-vous ?</string>
+    <string name="onboarding_role_title">Qui êtes-vous\u202F?</string>
     <string name="onboarding_information_title">Parlez-nous de vous</string>
     <string name="profile_title">Profil</string>
     <string name="profile_screen_title">Mon profil</string>
@@ -622,7 +622,7 @@
     <string name="profile_error">Impossible de charger votre profil. Veuillez réessayer.</string>
     <string name="profile_retry">Réessayer</string>
     <string name="profile_sign_out">Se déconnecter</string>
-    <string name="profile_sign_out_title">Se déconnecter ?</string>
+    <string name="profile_sign_out_title">Se déconnecter\u202F?</string>
     <string name="profile_sign_out_unsynced">Nous n’avons pas pu vérifier que toutes les modifications locales sont enregistrées en ligne. Cela peut aussi arriver si d’anciennes modifications locales ne peuvent pas être vérifiées, même si aucune synchronisation n’est en attente. Si vous vous déconnectez maintenant, les modifications non synchronisées des comptes utilisés sur cet appareil seront définitivement supprimées. Les modifications déjà enregistrées en ligne seront conservées.</string>
     <string name="profile_sign_out_discard">Ignorer les modifications et se déconnecter</string>
     <string name="profile_sign_out_stay">Rester connecté</string>
@@ -715,7 +715,7 @@
     <string name="care_circle_member_not_found">Cette personne ne fait plus partie de votre cercle de soins.</string>
     <string name="care_circle_member_error">Impossible de charger ce membre.</string>
     <string name="care_circle_member_updated">%1$s · Mis à jour à l’instant</string>
-    <string name="care_circle_member_remove_title">Retirer %1$s de votre cercle ?</string>
+    <string name="care_circle_member_remove_title">Retirer %1$s de votre cercle\u202F?</string>
     <string name="care_circle_member_remove_body">Cette personne ne pourra plus voir vos informations.</string>
     <string name="care_circle_member_remove_confirm">Retirer</string>
     <string name="care_circle_member_remove_dismiss">Annuler</string>
@@ -750,8 +750,8 @@
     <string name="care_circle_form_email_hint">Nous préparerons un e-mail contenant le code d’invitation</string>
     <string name="care_circle_form_required">Obligatoire</string>
     <string name="care_circle_form_invalid_email">Saisissez une adresse e-mail valide</string>
-    <string name="care_circle_form_can_see">Que peut voir %1$s ?</string>
-    <string name="care_circle_form_can_see_unnamed">Que peut voir cette personne ?</string>
+    <string name="care_circle_form_can_see">Que peut voir %1$s\u202F?</string>
+    <string name="care_circle_form_can_see_unnamed">Que peut voir cette personne\u202F?</string>
     <string name="care_circle_form_send_invitation">Envoyer l’invitation</string>
     <string name="care_circle_form_missing_first_name">Ajoutez un prénom pour envoyer l’invitation.</string>
     <string name="care_circle_form_missing_relationship">Indiquez votre lien avec cette personne pour envoyer l’invitation.</string>
@@ -772,7 +772,7 @@
     <string name="join_circle_code">Code d’invitation</string>
     <string name="join_circle_code_hint">Par exemple ABCDE-FGHJK</string>
     <string name="join_circle_join">Rejoindre</string>
-    <string name="join_circle_no_code_hint">Vous n’avez pas de code ? Demandez à la personne que vous accompagnez de vous ajouter à son cercle de soins dans oncompanion. Cet écran s’ouvrira à chaque démarrage jusqu’à ce que vous rejoigniez un cercle.</string>
+    <string name="join_circle_no_code_hint">Vous n’avez pas de code\u202F? Demandez à la personne que vous accompagnez de vous ajouter à son cercle de soins dans oncompanion. Cet écran s’ouvrira à chaque démarrage jusqu’à ce que vous rejoigniez un cercle.</string>
     <string name="join_circle_error_invalid">Ce code ne fonctionne pas. Vérifiez-le ou demandez-en un nouveau.</string>
     <string name="join_circle_error_offline">Une connexion est nécessaire pour rejoindre un cercle de soins. Réessayez en ligne.</string>
     <string name="join_circle_error_not_signed_in">Vous n’êtes plus connecté. Veuillez vous reconnecter.</string>
@@ -783,7 +783,7 @@
     <string name="join_circle_already_member_unnamed">Vous faites déjà partie de ce cercle de soins</string>
     <string name="join_circle_joined_hint">Vous verrez les informations que cette personne choisit de partager avec vous.</string>
     <string name="join_circle_continue">Continuer</string>
-    <string name="whose_care_title">Qui suivez-vous ?</string>
+    <string name="whose_care_title">Qui suivez-vous\u202F?</string>
     <string name="whose_care_back">Retour</string>
     <string name="whose_care_intro">Choisissez la personne dont vous souhaitez suivre les soins. Vous voyez uniquement ce qu’elle a choisi de partager.</string>
     <string name="whose_care_count">Cercles de soins (%1$d)</string>
@@ -796,7 +796,7 @@
     <string name="whose_care_unconfirmed_title">Vos cercles de soins apparaîtront après la synchronisation de ce téléphone.</string>
     <string name="removed_from_circle">Vous ne faites plus partie du cercle de soins de %1$s.</string>
     <string name="removed_from_circle_unnamed">Vous ne faites plus partie de ce cercle de soins.</string>
-    <string name="not_shared_title">%1$s ne partage pas cette rubrique avec vous : %2$s</string>
+    <string name="not_shared_title">%1$s ne partage pas cette rubrique avec vous\u00A0: %2$s</string>
     <string name="not_shared_body">Seule cette personne peut choisir ce que vous voyez.</string>
     <string name="care_circle_invite_title">Invitation</string>
     <string name="care_circle_invite_back">Retour</string>
@@ -812,17 +812,17 @@
     <string name="care_circle_invite_no_app">Aucune application sur ce téléphone ne peut envoyer l’invitation. Copiez le code à la place.</string>
     <string name="care_circle_invite_renew">Obtenir un nouveau code</string>
     <string name="care_circle_invite_cancel">Annuler l’invitation</string>
-    <string name="care_circle_invite_cancel_title">Annuler l’invitation de %1$s ?</string>
+    <string name="care_circle_invite_cancel_title">Annuler l’invitation de %1$s\u202F?</string>
     <string name="care_circle_invite_cancel_body">Le code ne fonctionnera plus.</string>
     <string name="care_circle_invite_cancel_keep">Conserver</string>
     <string name="care_circle_invite_action_error">Impossible de modifier cette invitation. Réessayez.</string>
     <string name="care_circle_invite_joined_title">%1$s a rejoint votre cercle</string>
-    <string name="care_circle_invite_joined_body">%1$s peut désormais voir : %2$s. Vous pouvez modifier ce partage à tout moment.</string>
+    <string name="care_circle_invite_joined_body">%1$s peut désormais voir\u00A0: %2$s. Vous pouvez modifier ce partage à tout moment.</string>
     <string name="care_circle_invite_back_to_circle">Retour au cercle de soins</string>
     <string name="care_circle_invite_not_found">Cette invitation n’est plus en attente.</string>
     <string name="care_circle_invite_error">Impossible de charger cette invitation.</string>
     <string name="care_circle_invite_email_subject">Rejoignez mon cercle de soins sur oncompanion</string>
-    <string name="care_circle_invite_message">Bonjour %1$s,\n\nJe vous invite à rejoindre mon cercle de soins sur oncompanion pour suivre mes soins.\n\n1. Installez oncompanion et connectez-vous avec Google.\n2. Choisissez « Je suis proche aidant ».\n3. Touchez « Rejoindre un cercle de soins » et saisissez ce code d’invitation : %2$s\n\n%4$s\n\n%3$s</string>
+    <string name="care_circle_invite_message">Bonjour %1$s,\n\nJe vous invite à rejoindre mon cercle de soins sur oncompanion pour suivre mes soins.\n\n1. Installez oncompanion et connectez-vous avec Google.\n2. Choisissez « Je suis proche aidant ».\n3. Touchez « Rejoindre un cercle de soins » et saisissez ce code d’invitation\u00A0: %2$s\n\n%4$s\n\n%3$s</string>
     <string name="care_circle_invite_message_valid_until">Le code est valable jusqu’au %1$s.</string>
     <string name="care_circle_invite_message_valid_once_sent">Le code sera valable 7 jours après l’envoi de l’invitation depuis mon téléphone.</string>
     <string name="care_circle_invite_not_found_body">L’invitation a été annulée ou la personne vient de rejoindre votre cercle. Vous pouvez consulter les membres dans votre cercle de soins.</string>
