@@ -34,10 +34,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -48,9 +52,13 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.symptom.SymptomType
@@ -66,6 +74,8 @@ import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Route
 import com.github.se.oncompanion.ui.navigation.Screen
 import com.github.se.oncompanion.ui.navigation.Tab
+import com.github.se.oncompanion.ui.symptom.AddSymptomViewModel
+import com.github.se.oncompanion.ui.symptom.label
 import com.github.se.oncompanion.ui.theme.Shapes
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.elevation1
@@ -141,6 +151,8 @@ private val todayFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.E
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
  * @param onSwitchPatient opens "Whose care?", in caregiver mode
  * @param bottomBar what the bottom bar shows on every tab: its tabs and the Prescriptions badge
+ * @param checkIn gives the ViewModel that logs what the patient feels from the check-in's sheet
+ *   (#544), created on the first tile tapped
  */
 @Composable
 fun OverviewScreen(
@@ -154,8 +166,11 @@ fun OverviewScreen(
     caregiverOf: String? = null,
     onSwitchPatient: () -> Unit = {},
     bottomBar: BottomBarUiState = BottomBarUiState(),
+    checkIn: () -> AddSymptomViewModel = checkInViewModel(),
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  // Stays open across a rotation; what was picked stays in the check-in's ViewModel
+  var isCheckInOpen by rememberSaveable { mutableStateOf(false) }
   // The ViewModel outlives navigation and backgrounding: keep the date, greeting, Next up and
   // statuses current when the Overview comes back, and while it is on screen each time an entry
   // starts or ends and at midnight
@@ -170,7 +185,10 @@ fun OverviewScreen(
       onOpenPlanning = { navigationActions.navigateToPlanningOn(uiState.now.toLocalDate()) },
       onOpenAppointment = onOpenAppointment,
       onOpenEvent = onOpenEvent,
-      onLogSymptom = { navigationActions.navigateTo(Screen.symptomAdd(it)) },
+      onLogSymptom = { type ->
+        checkIn().startCheckIn(type)
+        isCheckInOpen = true
+      },
       onSpeak = { navigationActions.navigateTo(Screen.symptomSpeak()) },
       onTickDose = viewModel::tickDose,
       onOpenDoses = viewModel::openDoses,
@@ -195,7 +213,38 @@ fun OverviewScreen(
         onClose = viewModel::closeDoses,
     )
   }
+  if (isCheckInOpen) {
+    CheckInSheetHost(
+        checkIn(),
+        onSaved = { isCheckInOpen = false },
+        onClose = { isCheckInOpen = false },
+    )
+  }
 }
+
+/**
+ * The check-in's ViewModel, kept by the Overview so what was picked survives a rotation. It is only
+ * created when first asked for (a tile tapped): an Overview whose sheet never opens doesn't need
+ * the phone's speech recognizer.
+ */
+@Composable
+private fun checkInViewModel(): () -> AddSymptomViewModel {
+  val owner = checkNotNull(LocalViewModelStoreOwner.current)
+  // The app's context, not the activity's: the ViewModel outlives a rotation
+  val app = LocalContext.current.applicationContext
+  return remember(owner, app) {
+    val factory = viewModelFactory {
+      initializer { AddSymptomViewModel(symptomName = { app.getString(it.label) }) }
+    }
+    val get: () -> AddSymptomViewModel = {
+      ViewModelProvider(owner, factory)[CHECK_IN_KEY, AddSymptomViewModel::class.java]
+    }
+    get
+  }
+}
+
+/** The key of the check-in's ViewModel, beside the Overview's own. */
+private const val CHECK_IN_KEY = "check_in"
 
 /**
  * Stateless content of the Overview, so each state can be tested without a ViewModel.
@@ -209,8 +258,8 @@ fun OverviewScreen(
  * @param onOpenEvent opens the event shown in the patient's "Next up"
  * @param onTickDose ticks a dose of one of the patient's medications, by its ID
  * @param onOpenDoses opens the sheet to correct the doses of one, by its ID
- * @param onLogSymptom opens the symptom form from the patient's check-in, with that symptom picked
- *   or empty for `null`
+ * @param onLogSymptom opens the check-in's sheet from the patient's check-in, with that symptom
+ *   picked or empty for `null`
  * @param onSpeak opens the symptom form already listening, from the check-in's "Speak how you feel"
  *   (US-73), shown only when [OverviewUiState.canSpeak]
  * @param onRetry reloads the day after an error
