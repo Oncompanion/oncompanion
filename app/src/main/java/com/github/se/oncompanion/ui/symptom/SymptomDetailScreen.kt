@@ -75,7 +75,7 @@ private val deleteDialogTags =
         error = C.Tag.symptom_delete_error,
     )
 
-/** "Monday 5 October 2026, 14:30". The app's UI is in English. */
+/** "Monday 5 October 2026, 14:30". Day and month names follow the app language. */
 private val detailDateFormatter
   @Composable get() = rememberAppDateFormatter("EEEE d MMMM yyyy, HH:mm")
 

@@ -125,7 +125,7 @@ private val tileShortcuts =
  */
 private val patientTileShortcuts = listOf(OverviewShortcut.CARE_CIRCLE)
 
-/** "Saturday 3 October", as in the mockup. The app's UI is in English. */
+/** "Saturday 3 October", as in the mockup. Day and month names follow the app language. */
 private val todayFormatter
   @Composable get() = rememberAppDateFormatter("EEEE d MMMM")
 

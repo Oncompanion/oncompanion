@@ -50,7 +50,7 @@ import java.util.Locale
 /** "10:00" */
 private val nextUpTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)
 
-/** "Thu 8 Oct · 10:00", for a later day. The app's UI is in English. */
+/** "Thu 8 Oct · 10:00", for a later day. Day and month names follow the app language. */
 private val nextUpDayFormatter
   @Composable get() = rememberAppDateFormatter("EEE d MMM · HH:mm")
 

@@ -61,7 +61,7 @@ val Severity.label: Int
         Severity.SEVERE -> R.string.symptom_severity_severe
       }
 
-/** "Mon 28 Sep", as in the mockups. The app's UI is in English. */
+/** "Mon 28 Sep", as in the mockups. Day and month names follow the app language. */
 private val dayFormatter
   @Composable get() = rememberAppDateFormatter("EEE d MMM")
 

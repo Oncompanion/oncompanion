@@ -76,7 +76,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.launch
 
-/** "19 Oct 2026", how long an invite code works. */
 /**
  * One invitation to the care circle (#150), following the Figma "US-15 / Invite code" frames: its
  * invite code to send by email, share or copy, what the person will see, and "Cancel invitation".

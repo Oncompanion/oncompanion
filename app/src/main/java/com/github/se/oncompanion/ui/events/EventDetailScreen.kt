@@ -61,7 +61,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.launch
 
-/** "Sat 3 Oct · 10:00", as in the mockup. The app's UI is in English. */
+/** "Sat 3 Oct · 10:00", as in the mockup. Day and month names follow the app language. */
 private val startFormatter
   @Composable get() = rememberAppDateFormatter("EEE d MMM · HH:mm")
 

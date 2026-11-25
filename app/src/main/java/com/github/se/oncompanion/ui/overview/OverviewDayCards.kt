@@ -46,7 +46,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-/** "Sun 4 Oct · 09:30". The app's UI is in English. */
+/** "Sun 4 Oct · 09:30". Day and month names follow the app language. */
 private val appointmentFormatter
   @Composable get() = rememberAppDateFormatter("EEE d MMM · HH:mm")
 

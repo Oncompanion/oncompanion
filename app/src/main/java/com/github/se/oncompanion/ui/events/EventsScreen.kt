@@ -54,7 +54,7 @@ import com.github.se.oncompanion.ui.navigation.Screen
 import com.github.se.oncompanion.ui.navigation.Tab
 import com.github.se.oncompanion.ui.theme.Spacing
 
-/** "Sat 3 Oct · 10:00", as in the mockup. The app's UI is in English. */
+/** "Sat 3 Oct · 10:00", as in the mockup. Day and month names follow the app language. */
 private val eventDateFormatter
   @Composable get() = rememberAppDateFormatter("EEE d MMM · HH:mm")
 
