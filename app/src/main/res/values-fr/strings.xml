@@ -68,8 +68,8 @@
     <string name="event_detail_website_error">Impossible d’ouvrir le site de l’événement.</string>
     <string name="event_detail_website_error_can_confirm">Impossible d’ouvrir le site de l’événement. Vous pouvez toujours toucher « Je suis inscrit ».</string>
     <string name="event_detail_registration_confirmed_by_patient">%1$s a confirmé son inscription à cet événement.</string>
-    <string name="event_detail_registered_caregiver">%1$s confirme son inscription</string>
-    <string name="event_detail_website_error_can_confirm_caregiver">Impossible d’ouvrir le site de l’événement. Vous pouvez toujours toucher « %1$s confirme son inscription ».</string>
+    <string name="event_detail_registered_caregiver">Confirmer l’inscription de %1$s</string>
+    <string name="event_detail_website_error_can_confirm_caregiver">Impossible d’ouvrir le site de l’événement. Vous pouvez toujours toucher « Confirmer l’inscription de %1$s ».</string>
     <string name="event_detail_registration_note_caregiver">La confirmation est enregistrée dans le dossier de %1$s. Pour inscrire %1$s ou réserver une place, contactez l’organisateur.</string>
 
     <!-- Symptoms -->
@@ -297,7 +297,7 @@
     </plurals>
     <string name="overview_speak">Dire comment vous vous sentez</string>
     <string name="caregiver_overview_day">Journée de %1$s</string>
-    <string name="caregiver_overview_shared_only">Vous voyez ce que %1$s a choisi de partager. Seule %1$s peut modifier ces informations.</string>
+    <string name="caregiver_overview_shared_only">Vous voyez ce que %1$s a choisi de partager. Seule cette personne peut modifier ces informations.</string>
     <string name="caregiver_overview_journal">Journal</string>
     <string name="caregiver_overview_full_journal">Journal complet</string>
     <string name="caregiver_overview_journal_empty">Aucune entrée pour le moment</string>
