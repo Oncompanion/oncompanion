@@ -89,25 +89,49 @@ class ReconcileMedicationReminders(
         val wanted =
             entries.flatMap { upcoming(owner, it, now, zone) }.associateBy { it.key.itemId }
         val saved = plans.read(owner).toMutableMap()
-        // A removed reminder is cancelled; one already rung keeps its notification
-        for ((id, plan) in saved.toMap()) {
-          if (id in wanted) continue
-          if (plan.due > now) scheduler.cancel(key(owner, id))
-          saved.remove(id)
-        }
-        var blocked = false
-        for ((id, reminder) in wanted) {
-          val plan = MedicationReminderPlan(reminder.at, hash(reminder.title, reminder.text))
-          if (saved[id] == plan) continue
-          if (scheduler.schedule(reminder) == ReminderScheduleResult.SCHEDULED) saved[id] = plan
-          else {
-            saved.remove(id)
-            blocked = true
-          }
-        }
+        cancelRemoved(owner, wanted.keys, saved, now)
+        val blocked = scheduleWanted(wanted, saved)
         plans.write(owner, saved)
         if (blocked) MedicationReminderSync.BLOCKED else MedicationReminderSync.SYNCHRONIZED
       }
+
+  /**
+   * Cancels the [saved] reminders no longer [wanted]; one that already rang keeps its notification.
+   */
+  private fun cancelRemoved(
+      owner: String,
+      wanted: Set<String>,
+      saved: MutableMap<String, MedicationReminderPlan>,
+      now: Instant,
+  ) {
+    for ((id, plan) in saved.toMap()) {
+      if (id in wanted) continue
+      if (plan.due > now) scheduler.cancel(key(owner, id))
+      saved.remove(id)
+    }
+  }
+
+  /**
+   * Schedules the [wanted] reminders not already in [saved], recording the accepted ones; whether
+   * Android blocked any of them.
+   */
+  private fun scheduleWanted(
+      wanted: Map<String, Reminder>,
+      saved: MutableMap<String, MedicationReminderPlan>,
+  ): Boolean {
+    var blocked = false
+    for ((id, reminder) in wanted) {
+      val plan = MedicationReminderPlan(reminder.at, hash(reminder.title, reminder.text))
+      if (saved[id] == plan) continue
+      if (scheduler.schedule(reminder) == ReminderScheduleResult.SCHEDULED) saved[id] = plan
+      else {
+        // Not recorded, so the next collection tries it again
+        saved.remove(id)
+        blocked = true
+      }
+    }
+    return blocked
+  }
 
   /** The reminders of [medication] still to ring in the next [WINDOW_DAYS] days. */
   private fun upcoming(
