@@ -603,4 +603,30 @@
     <string name="medication_reminders_picker_cancel">Annuler</string>
     <string name="medication_reminders_summary">Rappels : %1$s</string>
     <string name="medication_reminders_of_patient">Rappels de %1$s : %2$s. Seule cette personne peut les modifier.</string>
+
+    <!-- The "Your circle" sheet over the Overview, and its cards: what the care circle did for the patient (US-50, #457) -->
+    <string name="circle_sheet_added">%1$s · %2$s · ajoutée</string>
+    <string name="circle_sheet_prescription">Ordonnance</string>
+    <string name="circle_sheet_to_confirm">À confirmer</string>
+    <string name="circle_sheet_confirmed">Confirmée</string>
+    <string name="circle_sheet_rejected">Refusée</string>
+    <string name="circle_sheet_see_prescription">Voir l’ordonnance</string>
+    <string name="circle_sheet_title">Votre cercle</string>
+    <string name="circle_sheet_manage">Gérer</string>
+    <string name="circle_sheet_manage_description">Gérer votre cercle</string>
+    <string name="circle_sheet_members_and_invited">%1$s · %2$s</string>
+    <string name="circle_sheet_invited">Invitation envoyée à %1$s</string>
+    <string name="circle_sheet_nothing_today">Rien de nouveau de votre cercle aujourd’hui.</string>
+    <string name="circle_sheet_today">Aujourd’hui</string>
+    <string name="circle_sheet_yesterday">Hier</string>
+    <string name="circle_sheet_nobody_message">Ajoutez un proche, un ami ou un soignant pour qu’il puisse suivre vos soins. Vous choisissez ce que chaque personne peut voir.</string>
+    <string name="circle_sheet_add_someone">Ajouter quelqu’un de confiance</string>
+    <!-- The Care circle page's, which the sheet also shows -->
+    <string name="care_circle_empty_title">Personne dans votre cercle pour l’instant</string>
+    <string name="care_circle_error">Impossible de charger votre cercle.</string>
+    <string name="care_circle_retry">Réessayer</string>
+    <!-- The sailboat in the Overview header that opens the "Your circle" sheet: what screen readers say -->
+    <string name="circle_button">Votre cercle</string>
+    <string name="circle_button_new">Votre cercle, du nouveau</string>
+    <string name="circle_button_add">Votre cercle, ajouter quelqu’un</string>
 </resources>
