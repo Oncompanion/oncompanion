@@ -48,9 +48,11 @@ import com.github.se.oncompanion.ui.symptom.AddSymptomViewModel
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
 import java.io.IOException
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -273,12 +275,22 @@ class CheckInSheetTest {
     lateinit var navigationActions: RecordingNavigationActions
   }
 
-  private fun overview(): Overview {
+  /** A clock a test moves forward by hand. */
+  private class MovingClock(var now: Instant) : Clock() {
+    override fun getZone(): ZoneId = ZoneOffset.UTC
+
+    override fun withZone(zone: ZoneId): Clock = this
+
+    override fun instant(): Instant = now
+  }
+
+  private fun overview(
+      clock: Clock = Clock.fixed(morning.toInstant(ZoneOffset.UTC), ZoneOffset.UTC)
+  ): Overview {
     val auth =
         FakeAuthRepository(onSignIn = { AuthUser(uid = "patient", displayName = "Alex") }).also {
           runBlocking { it.signInWithGoogle("token") }
         }
-    val clock = Clock.fixed(morning.toInstant(ZoneOffset.UTC), ZoneOffset.UTC)
     val viewModel =
         OverviewViewModel(
             authRepository = auth,
@@ -374,6 +386,27 @@ class CheckInSheetTest {
     SymptomType.entries.forEach { tile(it).performScrollTo().assertIsOff() }
     node(C.Tag.overview_check_in_sheet_save).performScrollTo().assertIsNotEnabled()
     assertTrue(overview.symptoms.symptoms("patient").isEmpty())
+  }
+
+  @Test
+  fun whileOpen_theTimeFollowsTheClock_andATimeItPassesCanBeSaved() {
+    val clock = MovingClock(morning.toInstant(ZoneOffset.UTC))
+    val overview = overview(clock)
+    tapCheckInTile(SymptomType.NAUSEA)
+    val whenRow = node(C.Tag.overview_check_in_sheet_when).performScrollTo()
+    whenRow.assertTextContains(context.getString(R.string.overview_check_in_sheet_now, "09:30"))
+
+    // Ten minutes later, at the next tick
+    clock.now = morning.plusMinutes(10).toInstant(ZoneOffset.UTC)
+    composeTestRule.mainClock.advanceTimeBy(60_000)
+    whenRow.assertTextContains(context.getString(R.string.overview_check_in_sheet_now, "09:40"))
+
+    // A time still to come can't be saved, until the clock passes it
+    composeTestRule.runOnIdle { overview.checkIn.onTimeChange(LocalTime.of(9, 45)) }
+    node(C.Tag.overview_check_in_sheet_save).performScrollTo().assertIsNotEnabled()
+    clock.now = morning.plusMinutes(20).toInstant(ZoneOffset.UTC)
+    composeTestRule.mainClock.advanceTimeBy(60_000)
+    node(C.Tag.overview_check_in_sheet_save).performScrollTo().assertIsEnabled()
   }
 
   @Test

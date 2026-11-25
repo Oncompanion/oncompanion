@@ -34,7 +34,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -68,8 +67,6 @@ import com.github.se.oncompanion.ui.common.isCompactHeight
 import com.github.se.oncompanion.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.LocalTime
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * The add symptom screen (US-07 "Log a symptom", Figma: "US-04 / Log symptoms"): the user picks
@@ -121,17 +118,8 @@ fun AddSymptomScreen(
   val currentOnSaved by rememberUpdatedState(onSaved)
   LaunchedEffect(uiState.save) { if (uiState.save == SavePhase.SAVED) currentOnSaved() }
 
-  // Keeps the time shown (and the check that the chosen time isn't later) current while the form
-  // is on screen: refreshes when it comes back, then each time a new minute starts
-  val scope = rememberCoroutineScope()
-  LifecycleResumeEffect(viewModel) {
-    val ticker = scope.launch {
-      while (true) {
-        delay(viewModel.refreshNow().toMillis())
-      }
-    }
-    onPauseOrDispose { ticker.cancel() }
-  }
+  // Keeps the time shown current while the form is on screen
+  KeepNowCurrent(viewModel)
 
   // Dictating replaces the form until the patient is done or goes back to it
   val voice = uiState.voice

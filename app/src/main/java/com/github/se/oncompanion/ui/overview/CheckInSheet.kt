@@ -48,6 +48,7 @@ import com.github.se.oncompanion.ui.common.LakeTextField
 import com.github.se.oncompanion.ui.common.SavePhase
 import com.github.se.oncompanion.ui.symptom.AddSymptomUiState
 import com.github.se.oncompanion.ui.symptom.AddSymptomViewModel
+import com.github.se.oncompanion.ui.symptom.KeepNowCurrent
 import com.github.se.oncompanion.ui.symptom.OtherNameField
 import com.github.se.oncompanion.ui.symptom.SymptomStrengths
 import com.github.se.oncompanion.ui.symptom.WhenPicker
@@ -82,6 +83,8 @@ internal fun CheckInSheetHost(
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val currentOnSaved by rememberUpdatedState(onSaved)
   LaunchedEffect(uiState.save) { if (uiState.save == SavePhase.SAVED) currentOnSaved() }
+  // "Now, 09:30" and the check that the time chosen isn't later follow the clock
+  KeepNowCurrent(viewModel)
   CheckInSheet(
       uiState = uiState,
       actions =

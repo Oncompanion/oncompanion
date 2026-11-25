@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -17,6 +18,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.ClickableReadOnlyField
@@ -26,6 +28,8 @@ import com.github.se.oncompanion.ui.common.PickerTestTags
 import com.github.se.oncompanion.ui.common.TimePickerDialog
 import java.time.LocalDate
 import java.time.LocalTime
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** Which picker of the "When" field is open. */
 internal enum class WhenPicker {
@@ -135,6 +139,24 @@ internal fun WhenPickers(
     WhenPicker.NONE -> {
       // No picker is open: nothing to show
     }
+  }
+}
+
+/**
+ * Keeps "now" current while the form or the check-in sheet is on screen, for the time shown and the
+ * check that the chosen time isn't later: refreshes when it comes back, then each time a new minute
+ * starts. Stops while it's hidden.
+ */
+@Composable
+internal fun KeepNowCurrent(viewModel: AddSymptomViewModel) {
+  val scope = rememberCoroutineScope()
+  LifecycleResumeEffect(viewModel) {
+    val ticker = scope.launch {
+      while (true) {
+        delay(viewModel.refreshNow().toMillis())
+      }
+    }
+    onPauseOrDispose { ticker.cancel() }
   }
 }
 
