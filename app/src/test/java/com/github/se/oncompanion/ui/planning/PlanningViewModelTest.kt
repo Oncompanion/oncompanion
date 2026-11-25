@@ -1341,61 +1341,69 @@ class PlanningViewModelTest {
       }
 
   /**
-   * From a grid, openInList switches to List on the day, with a window around it, and asks the List
-   * to show those entries once: the List gets it when it starts listening, a later listener (after
-   * a rotation) doesn't, and nothing is saved.
+   * From a grid, openInList switches to List on the day, with a window around it, and keeps the
+   * jump in the state until the List plays it: a newer jump replaces it, the List rebuilt meanwhile
+   * still finds it, leaving the List drops it, and nothing about it is saved.
    */
   @Test
-  fun openInListSwitchesToListAndAsksOnce() =
+  fun openInListKeepsTheJumpUntilTheListPlaysIt() =
       runTest(dispatcher) {
         val saved = SavedStateHandle()
         val repository = FakePlanningRepository()
         val vm = PlanningViewModel(ownPlanning(repository), clock, zone, saved)
         vm.selectView(PlanningView.MONTH)
         drain()
+        val states = mutableListOf<PlanningUiState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+          vm.uiState.collect { states += it }
+        }
         val day = LocalDate.of(2027, 6, 15)
         val keys =
             setOf(item("a", "2027-06-15T08:00:00Z").key, item("b", "2027-06-15T08:00:00Z").key)
-        fun listen(into: MutableList<PlanningListJump>) =
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-              vm.listJumps.collect { into += it }
-            }
+        val first = PlanningListJump(day, keys)
 
-        // The grid asks before the List is on screen
+        // Every state holding the jump already shows List on its day
         vm.openInList(day, keys)
         drain()
-        val state = vm.uiState.value
-        assertEquals(PlanningView.LIST, state.view)
-        assertEquals(day, state.selectedDate)
-        assertEquals(PlanningListWindow.around(day), state.listWindow)
+        val withJump = states.filter { it.pendingJump != null }
+        assertTrue(withJump.isNotEmpty())
+        for (state in withJump) {
+          assertEquals(PlanningView.LIST, state.view)
+          assertEquals(day, state.selectedDate)
+          assertTrue(day in state.listWindow)
+        }
+        assertEquals(first, vm.uiState.value.pendingJump)
+        assertEquals(PlanningListWindow.around(day), vm.uiState.value.listWindow)
         assertEquals(PlanningListWindow.around(day).range(zone), repository.ranges.last())
-        val first = mutableListOf<PlanningListJump>()
-        val list = listen(first)
-        drain()
-        assertEquals(listOf(PlanningListJump(day, keys)), first)
 
-        // The List is recreated: the jump isn't played again
-        list.cancel()
-        val second = mutableListOf<PlanningListJump>()
-        listen(second)
-        drain()
-        assertTrue(second.isEmpty())
-
-        // A day already in the window: no new read, and one more jump
+        // A second jump before the first is played: only the latest is kept, without a new read
         val reads = repository.ranges.size
-        val inside = day.plusWeeks(2)
-        vm.openInList(inside, setOf("x"))
+        val latest = PlanningListJump(day.plusWeeks(2), setOf("x"))
+        vm.openInList(latest.date, latest.keys)
         drain()
         assertEquals(reads, repository.ranges.size)
-        assertEquals(PlanningListWindow.around(day), vm.uiState.value.listWindow)
-        assertEquals(listOf(PlanningListJump(inside, setOf("x"))), second)
-        assertEquals(1, first.size)
+        assertEquals(latest, vm.uiState.value.pendingJump)
+        // The first one played late doesn't clear it
+        vm.jumpShown(first)
+        assertEquals(latest, vm.uiState.value.pendingJump)
+        // It stays while the List grows or another day is picked in it, until played once
+        vm.showLater()
+        vm.selectDate(day)
+        drain()
+        assertEquals(latest, vm.uiState.value.pendingJump)
+        vm.jumpShown(latest)
+        assertNull(vm.uiState.value.pendingJump)
+
+        // Leaving the List drops a jump not played
+        vm.openInList(day, keys)
+        vm.selectView(PlanningView.WEEK)
+        drain()
+        assertNull(vm.uiState.value.pendingJump)
         // Only the selection is saved
         assertEquals(
             setOf("planning_selected_date", "planning_view", "planning_period_start"),
             saved.keys(),
         )
-        assertEquals("LIST", saved.get<String>("planning_view"))
         assertThrows(IllegalArgumentException::class.java) {
           vm.openInList(LocalDate.of(0, 12, 31), keys)
         }

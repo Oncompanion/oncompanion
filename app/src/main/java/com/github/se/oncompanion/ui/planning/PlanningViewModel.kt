@@ -18,12 +18,9 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -44,6 +41,8 @@ import kotlinx.coroutines.launch
  * @property readDays the days whose entries [itemsByDay] holds from an answer: a day outside them
  *   isn't read yet, so the List can't say it has nothing planned. Null before any answer, after a
  *   change of account or access, or when a read keeps none of them; a failed read keeps them
+ * @property pendingJump the List's jump asked by [PlanningViewModel.openInList], until the List
+ *   plays it ([PlanningViewModel.jumpShown]); null when there is none or the view left the List
  * @property isNotShared in caregiver mode, the patient doesn't share their planning: no entries
  * @property canAdd whether adding an appointment is offered: always in the user's own planning, and
  *   in caregiver mode once the patient's planning shows and they let the caregiver add (US-41)
@@ -58,6 +57,7 @@ data class PlanningUiState(
     val isLoading: Boolean = true,
     val readDays: PlanningRange? = null,
     val hasError: Boolean = false,
+    val pendingJump: PlanningListJump? = null,
     val today: LocalDate = selectedDate,
     val isNotShared: Boolean = false,
     val canAdd: Boolean = true,
@@ -95,11 +95,13 @@ data class PlanningUiState(
 }
 
 /**
- * A one-shot request to the List: scroll to [date] and flash the entries with [keys], once. It is
- * never kept in the state or saved, so a rotation doesn't play it again.
+ * A request to the List, played once: scroll to [date] and flash the entries with [keys]. It stays
+ * in [PlanningUiState.pendingJump] until the List calls [PlanningViewModel.jumpShown], so a List
+ * rebuilt meanwhile (a rotation) still plays it, and never twice. It isn't saved: after process
+ * death, the List opens on [date] without it.
  *
- * What the List can rely on when it receives one:
- * - [PlanningViewModel.uiState] already shows List on [date], in a window that holds it.
+ * What the List can rely on:
+ * - The state that holds it already shows List on [date], in a window that holds it.
  * - The entries may not be loaded yet (a new window is read after the request): wait for [keys] to
  *   appear under [date] in [PlanningUiState.itemsByDay]; if the read ends without one of them (it
  *   was deleted meanwhile), show the day without flashing it.
@@ -136,16 +138,6 @@ class PlanningViewModel(
       )
   val uiState: StateFlow<PlanningUiState> = mutableState.asStateFlow()
   private var observation: Job? = null
-  // Conflated: only the latest jump matters, and it is received once
-  private val listJumpRequests = Channel<PlanningListJump>(Channel.CONFLATED)
-
-  /**
-   * The List's jumps requested by [openInList]. Each is received once, by one collector, and waits
-   * until one collects; of several sent before that, only the latest is kept. A jump a collector
-   * received is gone even if it was cancelled before acting on it, so the List collects in a
-   * `LaunchedEffect` and acts in the same step.
-   */
-  val listJumps: Flow<PlanningListJump> = listJumpRequests.receiveAsFlow()
 
   init {
     save(mutableState.value)
@@ -183,13 +175,22 @@ class PlanningViewModel(
   fun showLater() = growListWindow(PlanningListWindow::later)
 
   /**
-   * Shows [date] in the List, from a grid (#555, #556), and asks the List once, through
-   * [listJumps], to scroll to it and flash the entries with [keys].
+   * Shows [date] in the List, from a grid (#555, #556), and asks the List, through
+   * [PlanningUiState.pendingJump], to scroll to it and flash the entries with [keys]. A newer jump
+   * replaces one not played yet.
    */
   fun openInList(date: LocalDate, keys: Set<String>) {
     require(PlanningDates.isSupported(date)) { "Date must have a four-digit positive year" }
-    select(date, PlanningPeriod.of(PlanningView.LIST, date))
-    listJumpRequests.trySend(PlanningListJump(date, keys))
+    select(date, PlanningPeriod.of(PlanningView.LIST, date), PlanningListJump(date, keys))
+  }
+
+  /**
+   * The List played [jump]: it is cleared, unless a newer one replaced it meanwhile, which stays to
+   * be played.
+   */
+  fun jumpShown(jump: PlanningListJump) {
+    val state = mutableState.value
+    if (state.pendingJump == jump) mutableState.value = state.copy(pendingJump = null)
   }
 
   /** Moves to the previous period, if it is within the supported years. */
@@ -255,11 +256,22 @@ class PlanningViewModel(
     if (state.view == PlanningView.LIST) show(state.copy(listWindow = grow(state.listWindow)))
   }
 
-  /** Selects [date] in [period]; the List's window stays while it holds the day. */
-  private fun select(date: LocalDate, period: PlanningPeriod) {
+  /**
+   * Selects [date] in [period]; the List's window stays while it holds the day. A [jump] not played
+   * yet stays while the view is List.
+   */
+  private fun select(date: LocalDate, period: PlanningPeriod, jump: PlanningListJump? = null) {
     val previous = mutableState.value
     val window = previous.listWindow.takeIf { date in it } ?: PlanningListWindow.around(date)
-    show(previous.copy(selectedDate = date, period = period, listWindow = window))
+    val pendingJump = if (period.view == PlanningView.LIST) jump ?: previous.pendingJump else null
+    show(
+        previous.copy(
+            selectedDate = date,
+            period = period,
+            listWindow = window,
+            pendingJump = pendingJump,
+        )
+    )
   }
 
   /** Shows [next], loading again only when the days to load change. */
