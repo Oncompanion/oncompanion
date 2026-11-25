@@ -590,8 +590,8 @@ class M2EndToEndTest {
   }
 
   private fun inviteCaregiver(addPrescriptions: Boolean = false) {
-    ui.open(C.Tag.overview_shortcut_care_circle, hasTestTag(C.Tag.care_circle_empty_add_button))
-    ui.open(C.Tag.care_circle_empty_add_button, hasTestTag(C.Tag.care_circle_form_first_name))
+    ui.open(C.Tag.circle_button, hasTestTag(C.Tag.circle_sheet_add_someone))
+    ui.open(C.Tag.circle_sheet_add_someone, hasTestTag(C.Tag.care_circle_form_first_name))
         .replaceText(circleName)
     ui.tag(C.Tag.care_circle_form_relationship).reveal().performClick()
     ui.tag(C.Tag.careCircleFormRelationshipOption("DAUGHTER")).reveal().performClick()
@@ -641,7 +641,8 @@ class M2EndToEndTest {
 
   private fun assertAcceptedMember() {
     val member = C.Tag.careCircleMember(checkNotNull(caregiver.uid))
-    ui.open(C.Tag.overview_shortcut_care_circle, hasTestTag(C.Tag.care_circle_member_list))
+    ui.open(C.Tag.circle_button, hasTestTag(C.Tag.circle_sheet_manage))
+    ui.open(C.Tag.circle_sheet_manage, hasTestTag(C.Tag.care_circle_member_list))
     ui.tag(C.Tag.care_circle_member_list).performScrollToNode(hasTestTag(member))
     ui.waitFor(hasTestTag(member) and text(circleName)).assertIsDisplayed()
     compose.onNodeWithTag(C.Tag.careCircleInvite(inviteCode)).assertDoesNotExist()

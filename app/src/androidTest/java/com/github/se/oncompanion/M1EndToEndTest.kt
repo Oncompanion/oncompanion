@@ -596,9 +596,9 @@ class M1EndToEndTest {
    * waiting to join. Joining with the invite code on the caregiver's side has no screen yet (#137).
    */
   private fun inviteToCareCircle(firstName: String) {
-    // A new patient's circle is empty: its add button is in the page
-    ui.open(C.Tag.overview_shortcut_care_circle, hasTestTag(C.Tag.care_circle_empty_add_button))
-    ui.open(C.Tag.care_circle_empty_add_button, hasTestTag(C.Tag.care_circle_form_first_name))
+    // A new patient's circle is empty: the sailboat's sheet offers to add someone
+    ui.open(C.Tag.circle_button, hasTestTag(C.Tag.circle_sheet_add_someone))
+    ui.open(C.Tag.circle_sheet_add_someone, hasTestTag(C.Tag.care_circle_form_first_name))
         .typeText(firstName)
     ui.tag(C.Tag.care_circle_form_relationship).reveal().performClick()
     // On a short screen the menu scrolls, and an option below its visible part can't be tapped
