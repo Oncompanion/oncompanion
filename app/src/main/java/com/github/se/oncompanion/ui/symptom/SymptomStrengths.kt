@@ -115,15 +115,7 @@ fun SymptomStrengths(
       }
     }
     Text(
-        text =
-            // "Other" not named yet is "it" (Figma: "Check-in · Other, not named yet")
-            if (strengthOf == SymptomType.OTHER && otherName == null)
-                stringResource(R.string.symptom_add_strength_question_other)
-            else
-                stringResource(
-                    R.string.symptom_add_strength_question,
-                    nameInSentence(strengthOf, otherName),
-                ),
+        text = strengthQuestion(strengthOf, otherName),
         style = MaterialTheme.typography.titleMedium,
         modifier = Modifier.semantics { heading() },
     )

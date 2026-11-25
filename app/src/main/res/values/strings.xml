@@ -309,6 +309,8 @@
     </plurals>
     <!-- The question over the slider for "Other" before it is named -->
     <string name="symptom_add_strength_question_other">How strong is it? (optional)</string>
+    <!-- The question for a symptom whose name is a plural, e.g. "How strong are your sleep problems? (optional)" -->
+    <string name="symptom_add_strength_question_plural">How strong are your %1$s? (optional)</string>
     <!-- The same line once a strength is set: saving drops the single intensity -->
     <string name="symptom_add_overall_replaced">Overall: %1$d/10 (from before) · replaced by the strengths</string>
 
