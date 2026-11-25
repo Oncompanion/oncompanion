@@ -478,6 +478,10 @@ class M1EndToEndTest {
             hasAnyDescendant(hasText(string(R.string.symptom_voice_intensity, 7)))
     )
     reviewWhatWasHeard(tired, type = "FATIGUE", pickedUp = R.string.symptom_type_fatigue)
+    // The intensity reached the form, not only the preview
+    ui.tag(C.Tag.symptom_add_intensity_value)
+        .reveal()
+        .assertTextContains(string(R.string.symptom_voice_intensity, 7), substring = true)
     ui.open(C.Tag.symptom_add_save, hasTestTag(C.Tag.overview_greeting))
   }
 
