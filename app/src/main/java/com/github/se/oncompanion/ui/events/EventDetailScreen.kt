@@ -56,6 +56,7 @@ import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.LakeDialog
 import com.github.se.oncompanion.ui.common.LakeSnackbarHost
 import com.github.se.oncompanion.ui.common.NotSharedMessage
+import com.github.se.oncompanion.ui.common.formatDateHeading
 import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -505,7 +506,7 @@ private fun DetailMessage(
 /** "Sat 3 Oct · 10:00 – 11:30", or the start alone when the end isn't known. */
 @Composable
 private fun Event.dateAndTime(): String {
-  val start = startDateTime.format(startFormatter)
+  val start = startFormatter.formatDateHeading(startDateTime)
   val end = endDateTime ?: return start
   val endText =
       if (end.toLocalDate() == startDateTime.toLocalDate()) end.format(endTimeFormatter)

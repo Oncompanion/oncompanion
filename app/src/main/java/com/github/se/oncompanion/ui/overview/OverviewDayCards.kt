@@ -37,6 +37,7 @@ import com.github.se.oncompanion.ui.common.EmptyLake
 import com.github.se.oncompanion.ui.common.LARGE_FONT_SCALE
 import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
+import com.github.se.oncompanion.ui.common.formatDateHeading
 import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.buttonLabel
@@ -159,11 +160,12 @@ private val WHEN_ICON_SIZE = 18.dp
 /** "Tomorrow, Sun 4 Oct · 09:30" ("Today, ..." / "Tomorrow, ..." when that's the case). */
 @Composable
 private fun appointmentWhen(appointment: NextAppointment, today: LocalDate): String {
-  val formatted = appointment.dateTime.format(appointmentFormatter)
-  return when (appointment.dateTime.toLocalDate()) {
-    today -> stringResource(R.string.overview_today_at, formatted)
-    today.plusDays(1) -> stringResource(R.string.overview_tomorrow_at, formatted)
-    else -> formatted
+  val start = appointment.dateTime
+  val formatter = appointmentFormatter
+  return when (start.toLocalDate()) {
+    today -> stringResource(R.string.overview_today_at, start.format(formatter))
+    today.plusDays(1) -> stringResource(R.string.overview_tomorrow_at, start.format(formatter))
+    else -> formatter.formatDateHeading(start)
   }
 }
 

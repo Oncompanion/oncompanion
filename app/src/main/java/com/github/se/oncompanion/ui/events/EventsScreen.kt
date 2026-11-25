@@ -46,6 +46,7 @@ import com.github.se.oncompanion.model.event.Event
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeBanner
 import com.github.se.oncompanion.ui.common.LakeMessageState
+import com.github.se.oncompanion.ui.common.formatDateHeading
 import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.navigation.BottomBarUiState
 import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
@@ -171,7 +172,7 @@ private fun EventCard(event: Event, onClick: () -> Unit) {
       )
       Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = event.startDateTime.format(eventDateFormatter),
+            text = eventDateFormatter.formatDateHeading(event.startDateTime),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.primary,
         )

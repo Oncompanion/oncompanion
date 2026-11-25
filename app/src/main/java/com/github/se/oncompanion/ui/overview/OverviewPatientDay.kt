@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.CardLink
+import com.github.se.oncompanion.ui.common.formatDateHeading
 import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.cardChip
@@ -231,7 +232,7 @@ private fun nextUpWhen(nextUp: NextUp, today: LocalDate): String {
         today -> start.format(nextUpTimeFormatter)
         today.plusDays(1) ->
             stringResource(R.string.overview_tomorrow_at, start.format(nextUpDayFormatter))
-        else -> start.format(nextUpDayFormatter)
+        else -> nextUpDayFormatter.formatDateHeading(start)
       }
   val place = nextUp.place?.takeIf { it.isNotBlank() } ?: return time
   return stringResource(R.string.overview_with_place, time, place)

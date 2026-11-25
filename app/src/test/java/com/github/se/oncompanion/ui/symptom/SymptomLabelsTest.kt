@@ -128,6 +128,6 @@ class SymptomLabelsTest {
     val saturday = LocalDate.of(2026, 10, 3)
     val today = saturday.plusDays(4)
     composeTestRule.setContent { Text(dayLabel(saturday, today)) }
-    composeTestRule.onNodeWithText("sam. 3 oct.").assertExists()
+    composeTestRule.onNodeWithText("Sam. 3 oct.").assertExists()
   }
 }
