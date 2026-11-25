@@ -22,6 +22,7 @@ import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
@@ -168,8 +169,22 @@ class AndroidSpeechRecognizer(
     }
   }
 
+  /** One listening session with Android's recognizer, destroyed when the flow ends. */
+  private fun recognition(language: SpeechLanguage, onDevice: Boolean) =
+      callbackFlow {
+            stopRequested = false
+            val session = Session(language, onDevice && canListenOnDevice(), this)
+            session.start()
+            awaitClose {
+              releaseChecker()
+              session.release()
+            }
+          }
+          // A session is short: keep every event, so a slow screen never loses the final one
+          .buffer(Channel.UNLIMITED)
+
   /**
-   * One listening session with Android's recognizer, destroyed when the flow ends.
+   * What one listening session heard so far, and how it answers Android's recognizer.
    *
    * A recognizer that fails before the patient starts speaking gets a second start when it may then
    * work. The on-device one, after an error from the phone's speech service, which can drop a
@@ -177,118 +192,123 @@ class AndroidSpeechRecognizer(
    * phone's default one, asked to prefer offline, fails for a language it hasn't downloaded even
    * when the phone is online: it starts again without that preference. Both can say they are ready
    * before failing, so only speech counts, not being ready.
+   *
+   * @param useOnDevice whether it listens with the on-device recognizer
+   * @param events where the session sends what it hears, closed when it ends
    */
-  private fun recognition(language: SpeechLanguage, onDevice: Boolean) = callbackFlow {
-    val useOnDevice = onDevice && canListenOnDevice()
-    stopRequested = false
+  private inner class Session(
+      private val language: SpeechLanguage,
+      private val useOnDevice: Boolean,
+      private val events: ProducerScope<SpeechEvent>,
+  ) : RecognitionListener {
     // What was heard in the segments already finished, when the recognizer cuts at each pause
-    val heard = mutableListOf<String>()
-    fun soFar(current: String? = null) = (heard + listOfNotNull(current)).joinToString(" ")
-    fun finish(text: String) {
-      trySend(
+    private val heard = mutableListOf<String>()
+    // Whether the patient started speaking, and whether the recognizer was started a second time
+    private var spoke = false
+    private var restarted = false
+    // Said once, even if the recognizer was started a second time
+    private var saidListening = false
+    // Offline if the phone can, until the default recognizer starts again online
+    private var preferOffline = true
+    private lateinit var recognizer: AndroidRecognizer
+
+    /** Starts a new recognizer, which [stop] can reach. */
+    fun start() {
+      recognizer = newRecognizer(useOnDevice)
+      listening = recognizer
+      recognizer.setRecognitionListener(this)
+      recognizer.startListening(recognizerIntent(language, appContext.packageName, preferOffline))
+    }
+
+    /** Releases the recognizer; also cancels listening if the user left before the end. */
+    fun release() {
+      if (listening === recognizer) listening = null
+      recognizer.destroy()
+    }
+
+    private fun soFar(current: String? = null) = (heard + listOfNotNull(current)).joinToString(" ")
+
+    private fun finish(text: String) {
+      events.trySend(
           if (text.isBlank()) SpeechEvent.Failed(SpeechError.NO_SPEECH)
           else SpeechEvent.FinalText(text)
       )
-      close()
+      events.close()
     }
-    // Whether the patient started speaking, and whether the recognizer was started a second time
-    var spoke = false
-    var restarted = false
-    // Said once, even if the recognizer was started a second time
-    var saidListening = false
-    // Offline if the phone can, until the default recognizer starts again online
-    var preferOffline = true
-    lateinit var recognizer: AndroidRecognizer
-    fun start(listener: RecognitionListener) {
-      recognizer = newRecognizer(useOnDevice)
-      listening = recognizer
-      recognizer.setRecognitionListener(listener)
-      recognizer.startListening(recognizerIntent(language, appContext.packageName, preferOffline))
-    }
+
     // A failure before listening that a second start can get past: a service error on the
     // on-device recognizer, or the default one missing the language offline (it may have it online)
-    fun canRestart(error: Int): Boolean {
+    private fun canRestart(error: Int): Boolean {
       if (spoke || restarted || stopRequested) return false
       return if (useOnDevice) error in SERVICE_ERRORS else error in LANGUAGE_ERRORS
     }
-    start(
-        object : RecognitionListener {
-          override fun onReadyForSpeech(params: Bundle?) {
-            // The session holds the phone's speech service now: the check's recognizer can go
-            releaseChecker()
-            if (!saidListening) trySend(SpeechEvent.Listening)
-            saidListening = true
-          }
 
-          override fun onBeginningOfSpeech() {
-            spoke = true
-          }
-
-          override fun onPartialResults(partialResults: Bundle?) {
-            bestText(partialResults)?.let {
-              spoke = true
-              trySend(SpeechEvent.PartialText(soFar(it)))
-            }
-          }
-
-          // Android 13+: one sentence is over, the session goes on after the pause
-          override fun onSegmentResults(segmentResults: Bundle) {
-            bestText(segmentResults)?.let {
-              heard += it
-              trySend(SpeechEvent.PartialText(soFar()))
-            }
-          }
-
-          override fun onEndOfSegmentedSession() = finish(soFar())
-
-          override fun onResults(results: Bundle?) = finish(soFar(bestText(results)))
-
-          override fun onError(error: Int) {
-            // Only Android's code, never anything the patient said: tells a phone's failures apart
-            Log.w(TAG, "Listening failed with error $error (on device: $useOnDevice)")
-            // The patient hasn't spoken yet: start again, online for the default recognizer
-            if (canRestart(error)) {
-              restarted = true
-              preferOffline = useOnDevice
-              recognizer.destroy()
-              start(this)
-              return
-            }
-            // Some phones answer a stop before any speech with a client error: the user stopped
-            // without saying anything, which is not a failure
-            val reason =
-                if (error == AndroidRecognizer.ERROR_CLIENT && stopRequested) SpeechError.NO_SPEECH
-                else speechErrorOf(error, useOnDevice)
-            // Silence after some sentences only ends the session: keep what was heard
-            if (reason == SpeechError.NO_SPEECH && heard.isNotEmpty()) finish(soFar())
-            else {
-              trySend(SpeechEvent.Failed(reason))
-              close()
-            }
-          }
-
-          // Only how loud it is, to show the app hears the user; never the sound itself
-          override fun onRmsChanged(rmsdB: Float) {
-            trySend(SpeechEvent.Level(levelOf(rmsdB)))
-          }
-
-          // The raw audio isn't used: the app keeps nothing of the recording
-          override fun onBufferReceived(buffer: ByteArray?) = Unit
-
-          override fun onEndOfSpeech() = Unit
-
-          override fun onEvent(eventType: Int, params: Bundle?) = Unit
-        }
-    )
-    awaitClose {
+    override fun onReadyForSpeech(params: Bundle?) {
+      // The session holds the phone's speech service now: the check's recognizer can go
       releaseChecker()
-      if (listening === recognizer) listening = null
-      // Also cancels listening if the user left before the end
-      recognizer.destroy()
+      if (!saidListening) events.trySend(SpeechEvent.Listening)
+      saidListening = true
     }
+
+    override fun onBeginningOfSpeech() {
+      spoke = true
+    }
+
+    override fun onPartialResults(partialResults: Bundle?) {
+      bestText(partialResults)?.let {
+        spoke = true
+        events.trySend(SpeechEvent.PartialText(soFar(it)))
+      }
+    }
+
+    // Android 13+: one sentence is over, the session goes on after the pause
+    override fun onSegmentResults(segmentResults: Bundle) {
+      bestText(segmentResults)?.let {
+        heard += it
+        events.trySend(SpeechEvent.PartialText(soFar()))
+      }
+    }
+
+    override fun onEndOfSegmentedSession() = finish(soFar())
+
+    override fun onResults(results: Bundle?) = finish(soFar(bestText(results)))
+
+    override fun onError(error: Int) {
+      // Only Android's code, never anything the patient said: tells a phone's failures apart
+      Log.w(TAG, "Listening failed with error $error (on device: $useOnDevice)")
+      // The patient hasn't spoken yet: start again, online for the default recognizer
+      if (canRestart(error)) {
+        restarted = true
+        preferOffline = useOnDevice
+        recognizer.destroy()
+        start()
+        return
+      }
+      // Some phones answer a stop before any speech with a client error: the user stopped
+      // without saying anything, which is not a failure
+      val reason =
+          if (error == AndroidRecognizer.ERROR_CLIENT && stopRequested) SpeechError.NO_SPEECH
+          else speechErrorOf(error, useOnDevice)
+      // Silence after some sentences only ends the session: keep what was heard
+      if (reason == SpeechError.NO_SPEECH && heard.isNotEmpty()) finish(soFar())
+      else {
+        events.trySend(SpeechEvent.Failed(reason))
+        events.close()
+      }
+    }
+
+    // Only how loud it is, to show the app hears the user; never the sound itself
+    override fun onRmsChanged(rmsdB: Float) {
+      events.trySend(SpeechEvent.Level(levelOf(rmsdB)))
+    }
+
+    // The raw audio isn't used: the app keeps nothing of the recording
+    override fun onBufferReceived(buffer: ByteArray?) = Unit
+
+    override fun onEndOfSpeech() = Unit
+
+    override fun onEvent(eventType: Int, params: Bundle?) = Unit
   }
-      // A session is short: keep every event, so a slow screen never loses the final one
-      .buffer(Channel.UNLIMITED)
 
   /** Whether the phone has an on-device recognizer the app can listen with (Android 13+). */
   @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.TIRAMISU)
