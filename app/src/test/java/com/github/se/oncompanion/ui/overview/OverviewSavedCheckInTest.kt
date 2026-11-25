@@ -203,15 +203,18 @@ class OverviewSavedCheckInTest {
     lateinit var navigationActions: RecordingNavigationActions
   }
 
-  /** The patient's Overview with [entry] saved today, over ViewModels that survive a rotation. */
-  private fun overview(): Overview {
+  /**
+   * The patient's Overview with [entries] saved today (by default [entry]), over ViewModels that
+   * survive a rotation.
+   */
+  private fun overview(vararg entries: SymptomEntry = arrayOf(entry)): Overview {
     val auth =
         FakeAuthRepository(onSignIn = { AuthUser(uid = "patient", displayName = "Alex") }).also {
           runBlocking { it.signInWithGoogle("token") }
         }
     val clock = Clock.fixed(morning.toInstant(ZoneOffset.UTC), ZoneOffset.UTC)
     val symptoms =
-        FakeSymptomRepository(clock = { clock.instant() }).apply { seed("patient", entry) }
+        FakeSymptomRepository(clock = { clock.instant() }).apply { seed("patient", *entries) }
     val viewModel =
         OverviewViewModel(
             authRepository = auth,
@@ -249,6 +252,32 @@ class OverviewSavedCheckInTest {
     node(C.Tag.overview_saved_undo).performScrollTo().performClick()
     composeTestRule.waitForIdle()
 
+    assertTrue(overview.symptoms.symptoms("patient").isEmpty())
+    node(C.Tag.overview_saved).assertDoesNotExist()
+    node(C.Tag.overview_check_in).assertExists()
+  }
+
+  @Test
+  fun undo_tappedAgainAndAgain_undoesEachEntryShown_untilTheTiles() {
+    // Saved at 08:00, then at 09:30 ([entry])
+    val earlier =
+        entry.copy(
+            id = "e0",
+            types = listOf(SymptomType.HEADACHE),
+            strengths = mapOf(SymptomType.HEADACHE to 4),
+            occurredAt = morning.withHour(8).toInstant(ZoneOffset.UTC),
+            createdAt = morning.withHour(8).toInstant(ZoneOffset.UTC),
+        )
+    val overview = overview(earlier, entry)
+
+    // The card changes to the entry saved before; the next tap undoes that one
+    node(C.Tag.overview_saved_undo).performScrollTo().performClick()
+    composeTestRule.onNodeWithText("Headache 4/10").assertExists()
+    composeTestRule.onNodeWithText("08:00").assertExists()
+    assertEquals(listOf("e0"), overview.symptoms.symptoms("patient").map { it.id })
+
+    node(C.Tag.overview_saved_undo).performScrollTo().performClick()
+    composeTestRule.waitForIdle()
     assertTrue(overview.symptoms.symptoms("patient").isEmpty())
     node(C.Tag.overview_saved).assertDoesNotExist()
     node(C.Tag.overview_check_in).assertExists()

@@ -1587,6 +1587,31 @@ class OverviewViewModelTest {
   }
 
   @Test
+  fun undoSaved_again_andAgain_undoesEachEntryOfTheDay_untilTheTiles() {
+    val symptoms =
+        FakeSymptomRepository().apply {
+          seed(
+              "patient",
+              entry("first", now.withHour(7)),
+              entry("second", now.withHour(8)),
+              entry("third", now.withHour(9)),
+          )
+        }
+    val vm = journalViewModel(symptoms)
+    ShadowLooper.idleMainLooper()
+
+    // Each Undo deletes the entry shown, and the one saved before it takes its place
+    for ((undone, next) in listOf("third" to "second", "second" to "first", "first" to null)) {
+      assertEquals(undone, vm.savedId())
+      vm.undoSaved(undone)
+      ShadowLooper.idleMainLooper()
+      assertEquals("after undoing $undone", next, vm.savedId())
+    }
+    assertTrue(symptoms.symptoms("patient").isEmpty())
+    assertFalse(vm.uiState.value.undoFailed)
+  }
+
+  @Test
   fun undoSaved_failing_bringsTheEntryBack_andSaysSoOnce() {
     val symptoms = FakeSymptomRepository().apply { seed("patient", entry("last", now)) }
     val auth = signedIn(patient)
