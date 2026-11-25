@@ -500,7 +500,8 @@ class OverviewViewModel(
         // Built inside the flow, so even a failure to start reaches the catch
         flow { emitAll(symptomRepository.observeSymptoms(uid)) }
             .catch { e ->
-              Log.w(TAG, "Couldn't read the journal", e)
+              // The type only: a message can name the entry's path
+              Log.w(TAG, "Couldn't read the journal: ${e.javaClass.simpleName}")
               emit(emptyList())
             }
             .collect { entries ->
@@ -558,7 +559,7 @@ class OverviewViewModel(
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        Log.e(TAG, "Couldn't undo the entry saved", e)
+        Log.e(TAG, "Couldn't undo the entry saved: ${e.javaClass.simpleName}")
         undone -= id
         refreshSaved()
         _uiState.update { it.copy(undoFailed = true) }
