@@ -7,8 +7,8 @@ import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.allowed
 import com.github.se.oncompanion.utils.denied
+import com.github.se.oncompanion.utils.forgedTime
 import com.google.android.gms.tasks.Task
-import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Source
@@ -311,8 +311,7 @@ class CareCircleRedeemSecurityRulesTest {
     val forged = "someone@example.com"
     denied(redeemBatch(inviteCode, member = memberFields(inviteCode, "email" to forged)))
     denied(redeemBatch(inviteCode, member = memberFields(inviteCode, "email" to null)))
-    val now = Timestamp.now()
-    denied(redeemBatch(inviteCode, member = memberFields(inviteCode, "addedAt" to now)))
+    denied(redeemBatch(inviteCode, member = memberFields(inviteCode, "addedAt" to forgedTime)))
   }
 
   @Test

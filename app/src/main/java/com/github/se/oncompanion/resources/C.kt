@@ -138,6 +138,8 @@ object C {
     const val overview_check_in_more = "overview_check_in_more"
     const val overview_journal_link = "overview_journal_link"
     const val overview_speak = "overview_speak"
+    // The check or empty ring of a tile in the check-in's sheet
+    const val overview_tile_mark = "overview_tile_mark"
 
     // Caregiver Overview
     const val caregiver_overview_screen = "caregiver_overview_screen"
@@ -148,6 +150,7 @@ object C {
     const val caregiver_overview_retry = "caregiver_overview_retry"
     const val caregiver_overview_journal = "caregiver_overview_journal"
     const val caregiver_overview_full_journal = "caregiver_overview_full_journal"
+    const val caregiver_overview_prescriptions_link = "caregiver_overview_prescriptions_link"
 
     const val bottom_navigation_bar = "bottom_navigation_bar"
     const val bottom_navigation_tab_overview = "bottom_navigation_tab_overview"
@@ -215,6 +218,8 @@ object C {
     const val symptom_add_intensity_value = "symptom_add_intensity_value"
     const val symptom_add_intensity_clear = "symptom_add_intensity_clear"
     const val symptom_add_intensity_track = "symptom_add_intensity_track"
+    const val symptom_add_strengths = "symptom_add_strengths"
+    const val symptom_add_overall = "symptom_add_overall"
     const val symptom_add_when = "symptom_add_when"
     const val symptom_add_notes = "symptom_add_notes"
     const val symptom_add_other_name = "symptom_add_other_name"
@@ -270,6 +275,11 @@ object C {
     const val settings_screen = "settings_screen"
     const val settings_back = "settings_back"
     const val profile_settings = "profile_settings"
+    const val settings_language = "settings_language"
+    const val language_screen = "language_screen"
+    const val language_device = "language_device"
+    const val language_english = "language_english"
+    const val language_french = "language_french"
     const val settings_date_time = "settings_date_time"
     const val settings_date_time_screen = "settings_date_time_screen"
     const val settings_time_format = "settings_time_format"
@@ -277,6 +287,7 @@ object C {
     const val settings_date_format = "settings_date_format"
     const val settings_date_format_screen = "settings_date_format_screen"
     const val settings_format_preview = "settings_format_preview"
+    const val settings_text_size = "settings_text_size"
 
     /** Identifies a clock-format option by its stable preference name. */
     fun settingsTimeChoice(name: String) = "settings_time_choice_$name"
@@ -357,6 +368,9 @@ object C {
 
     /** The chip of a symptom type on the add screen; [type] is its enum name, e.g. `FATIGUE`. */
     fun symptomAddType(type: String) = "symptom_add_type_$type"
+
+    /** The chip choosing which picked symptom the slider sets; [type] is its enum name. */
+    fun symptomAddStrengthChip(type: String) = "symptom_add_strength_chip_$type"
 
     /**
      * The strength bar of a symptom on its detail, by
@@ -647,5 +661,19 @@ object C {
 
     // Shared message state: its round info tile
     const val message_state_icon = "message_state_icon"
+
+    // Medication reminders in the prescription form (US-32)
+    const val medication_reminders = "medication_reminders"
+    const val medication_reminders_switch = "medication_reminders_switch"
+    const val medication_reminders_add_time = "medication_reminders_add_time"
+    const val medication_reminders_picker = "medication_reminders_picker"
+    const val medication_reminders_picker_confirm = "medication_reminders_picker_confirm"
+    const val medication_reminders_picker_cancel = "medication_reminders_picker_cancel"
+
+    /** The field of the reminder at [index] of the open medication. */
+    fun medicationReminderTime(index: Int) = "medication_reminder_time_$index"
+
+    /** The button that removes the reminder at [index]. */
+    fun medicationReminderRemove(index: Int) = "medication_reminder_remove_$index"
   }
 }

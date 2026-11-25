@@ -41,29 +41,41 @@ import com.github.se.oncompanion.ui.theme.full
 import com.github.se.oncompanion.ui.theme.lakeColors
 
 /**
+ * What the patient can do with the doses on their medications card; a caregiver's card has none.
+ *
+ * @property onTickDose ticks the next dose of a medication, by its ID, or unticks one taken once a
+ *   day
+ * @property onOpenDoses opens the sheet to correct the doses of one taken several times a day
+ */
+internal data class DoseActions(
+    val onTickDose: (String) -> Unit,
+    val onOpenDoses: (String) -> Unit,
+)
+
+/**
  * A medication's name, then its frequency as a chip and, when its doses can be ticked, a bar with
  * one segment per dose and the round button at the end of the row. Taken once a day, the row and
  * the button toggle the dose. Several times a day, the button ticks the next one and "1 of 3" says
  * where the patient is; the row, and the button once all are taken, open the sheet to correct them.
  *
- * @param onOpenDoses opens the sheet to correct the doses, by the medication's ID
+ * Without [actions] (a caregiver's card), the row only shows where the patient is: no button, not
+ * clickable, and "0 of 1" also for a medication taken once a day, since no button says it.
  */
 @Composable
-internal fun MedicationRow(
-    medication: TodayMedication,
-    onTickDose: (String) -> Unit,
-    onOpenDoses: (String) -> Unit,
-) {
+internal fun MedicationRow(medication: TodayMedication, actions: DoseActions?) {
   val doses = medication.dosesPerDay
-  val tick = { onTickDose(medication.medicationId) }
-  val open = { onOpenDoses(medication.medicationId) }
+  val tick: () -> Unit = { actions?.onTickDose?.invoke(medication.medicationId) }
+  val open: () -> Unit = { actions?.onOpenDoses?.invoke(medication.medicationId) }
   val label = doseButtonLabel(medication)
   Row(
       Modifier.testTag(C.Tag.overviewMedication(medication.key))
           .then(
-              when (doses) {
-                null -> Modifier
-                1 -> Modifier.clickable(onClickLabel = label, role = Role.Button) { tick() }
+              when {
+                // Read-only: one stop for TalkBack, with nothing that sounds tappable
+                actions == null -> Modifier.semantics(mergeDescendants = true) {}
+                doses == null -> Modifier
+                doses == 1 ->
+                    Modifier.clickable(onClickLabel = label, role = Role.Button) { tick() }
                 else ->
                     Modifier.clickable(
                         onClickLabel =
@@ -83,27 +95,28 @@ internal fun MedicationRow(
           style = MaterialTheme.typography.cardItem,
           color = MaterialTheme.colorScheme.onSurface,
       )
-      DosesLine(medication)
+      DosesLine(medication, readOnly = actions == null)
     }
-    if (doses != null) {
+    if (doses != null && actions != null) {
       DoseButton(medication, label, if (doses > 1 && medication.taken >= doses) open else tick)
     }
   }
 }
 
 /**
- * The frequency chip, the bar and "1 of 3" (only when there are several doses a day). With large
- * text they don't fit on one line: the bar and the count go under the chip.
+ * The frequency chip, the bar and "1 of 3" (only when there are several doses a day, or on a
+ * [readOnly] row). With large text they don't fit on one line: the bar and the count go under the
+ * chip.
  */
 @Composable
-private fun DosesLine(medication: TodayMedication) {
+private fun DosesLine(medication: TodayMedication, readOnly: Boolean) {
   if (LocalDensity.current.fontScale >= LARGE_TEXT_SCALE) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
       frequencyLabel(medication)?.let { FrequencyChip(it) }
       medication.dosesPerDay?.let {
         DoseBar(it, medication.taken, Modifier.fillMaxWidth(), SEGMENT_HEIGHT)
       }
-      DosesTaken(medication)
+      DosesTaken(medication, readOnly)
     }
   } else {
     Row(
@@ -114,20 +127,27 @@ private fun DosesLine(medication: TodayMedication) {
       medication.dosesPerDay?.let {
         DoseBar(it, medication.taken, Modifier.weight(1f), SEGMENT_HEIGHT)
       }
-      DosesTaken(medication)
+      DosesTaken(medication, readOnly)
     }
   }
 }
 
-/** "1 of 3", then "All taken", for a medication taken several times a day; nothing otherwise. */
+/**
+ * "1 of 3", then "All taken", for a medication taken several times a day, or any with doses on a
+ * [readOnly] row; nothing otherwise. Read-only, TalkBack hears "1 of 3 doses taken today": the bar
+ * says nothing to it, and no button says it instead.
+ */
 @Composable
-private fun DosesTaken(medication: TodayMedication) {
+private fun DosesTaken(medication: TodayMedication, readOnly: Boolean) {
   val doses = medication.dosesPerDay ?: return
-  if (doses == 1) return
+  if (doses == 1 && !readOnly) return
   val allTaken = medication.taken >= doses
+  val spoken =
+      pluralStringResource(R.plurals.overview_doses_taken_read_only, doses, medication.taken, doses)
   Text(
       if (allTaken) stringResource(R.string.overview_doses_all_taken)
       else stringResource(R.string.overview_doses_taken, medication.taken, doses),
+      modifier = if (readOnly) Modifier.semantics { contentDescription = spoken } else Modifier,
       style = MaterialTheme.typography.bodyMedium,
       color =
           if (allTaken) MaterialTheme.lakeColors.primaryText
@@ -136,8 +156,8 @@ private fun DosesTaken(medication: TodayMedication) {
 }
 
 /**
- * One segment per dose of the day, the first [taken] filled, each [segmentHeight] high; the button
- * says it to TalkBack.
+ * One segment per dose of the day, the first [taken] filled, each [segmentHeight] high; the button,
+ * or the count on a read-only row, says it to TalkBack.
  */
 @Composable
 internal fun DoseBar(doses: Int, taken: Int, modifier: Modifier, segmentHeight: Dp) {
@@ -249,15 +269,16 @@ private fun doseButtonLabel(medication: TodayMedication): String {
 }
 
 /**
- * "2 more ›" under the list, opening Planning where every medication of the day is listed. It looks
- * like "Planning ›" and keeps a 48 dp touch target.
+ * "2 more ›" under the list, opening where every medication of the day is listed: Planning for the
+ * patient, the prescriptions for a caregiver. It looks like the card's link and keeps a 48 dp touch
+ * target.
  */
 @Composable
-internal fun MoreLink(count: Int, onOpenPlanning: () -> Unit) {
+internal fun MoreLink(count: Int, onOpen: () -> Unit) {
   Row(
       Modifier.heightIn(min = LINK_HEIGHT)
           .clip(MaterialTheme.shapes.medium)
-          .clickable(role = Role.Button, onClick = onOpenPlanning)
+          .clickable(role = Role.Button, onClick = onOpen)
           .testTag(C.Tag.overview_more_medications),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(Spacing.xxs),

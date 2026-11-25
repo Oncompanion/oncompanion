@@ -9,6 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -93,8 +95,7 @@ internal fun PatientDay(
     MedicationsCard(
         medications,
         onOpenPlanning,
-        onTickDose,
-        onOpenDoses,
+        DoseActions(onTickDose, onOpenDoses),
         if (nextUp == null) modifier else Modifier,
     )
   }
@@ -241,17 +242,22 @@ private fun nextUpWhen(nextUp: NextUp, today: LocalDate): String {
  * More rows would push the cards under it and squeeze the lake header, so the count goes in the
  * title instead.
  *
- * @param onTickDose ticks the next dose of a medication, by its ID, or unticks one taken once a day
- * @param onOpenDoses opens the sheet to correct the doses of one taken several times a day
+ * Without [doseActions], it is the caregiver's read-only card (Figma M3, Alex's day · Medications,
+ * read-only): "Medications today", and its links open the patient's prescriptions, which a
+ * caregiver may see without their planning.
+ *
+ * @param onOpenLink opens Planning, or the patient's prescriptions on the caregiver's card
+ * @param doseActions what the patient can do with the doses; `null` on the caregiver's card
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun MedicationsCard(
     medications: List<TodayMedication>,
-    onOpenPlanning: () -> Unit,
-    onTickDose: (String) -> Unit,
-    onOpenDoses: (String) -> Unit,
+    onOpenLink: () -> Unit,
+    doseActions: DoseActions?,
     modifier: Modifier,
 ) {
+  val readOnly = doseActions == null
   DayCard(modifier.testTag(C.Tag.overview_medications)) {
     Row(
         Modifier.padding(
@@ -265,27 +271,48 @@ internal fun MedicationsCard(
       CardBadge(R.drawable.ic_pill)
       Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         val hidden = medications.size - MEDICATIONS_SHOWN
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          Eyebrow(
-              if (hidden > 0)
-                  stringResource(R.string.overview_today_medications_count, medications.size)
-              else stringResource(R.string.overview_today_medications),
-              Modifier.weight(1f),
-          )
-          CardLink(
-              stringResource(R.string.overview_planning_link),
-              onOpenPlanning,
-              Modifier.testTag(C.Tag.overview_planning_link),
-          )
+        // With large text, the link goes under the title rather than cutting it mid-word
+        FlowRow(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+          Eyebrow(medicationsTitle(medications.size, hidden > 0, readOnly))
+          if (readOnly) {
+            CardLink(
+                stringResource(R.string.prescriptions_title),
+                onOpenLink,
+                Modifier.testTag(C.Tag.caregiver_overview_prescriptions_link),
+            )
+          } else {
+            CardLink(
+                stringResource(R.string.overview_planning_link),
+                onOpenLink,
+                Modifier.testTag(C.Tag.overview_planning_link),
+            )
+          }
         }
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-          medications.take(MEDICATIONS_SHOWN).forEach { MedicationRow(it, onTickDose, onOpenDoses) }
+          medications.take(MEDICATIONS_SHOWN).forEach { MedicationRow(it, doseActions) }
         }
-        if (hidden > 0) MoreLink(hidden, onOpenPlanning)
+        if (hidden > 0) MoreLink(hidden, onOpenLink)
       }
     }
   }
 }
+
+/**
+ * The medications card's title: "Today's medications" for the patient, "Medications today" on a
+ * [readOnly] caregiver's card (Figma M3), with the [count] when not all of them show.
+ */
+@Composable
+private fun medicationsTitle(count: Int, withCount: Boolean, readOnly: Boolean): String =
+    when {
+      readOnly && withCount -> stringResource(R.string.caregiver_overview_medications_count, count)
+      readOnly -> stringResource(R.string.caregiver_overview_medications)
+      withCount -> stringResource(R.string.overview_today_medications_count, count)
+      else -> stringResource(R.string.overview_today_medications)
+    }
 
 /**
  * "Planning ›" at the top of the Next up and medications cards, so Planning is one tap away from
