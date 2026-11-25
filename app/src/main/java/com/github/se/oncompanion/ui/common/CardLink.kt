@@ -52,3 +52,10 @@ internal fun CardLink(label: String, onClick: () -> Unit, modifier: Modifier) {
 
 /** The Figma's chevron after a link ("Planning ›", "N more ›"). */
 internal val CHEVRON_SIZE = 18.dp
+
+/**
+ * The touch height of a link, or of a banner's or snackbar's text action: Android's 48 dp minimum,
+ * even where it looks smaller. The "Your circle" sheet's links are full rows of it (44 dp in the
+ * Figma).
+ */
+internal val LINK_HEIGHT = 48.dp

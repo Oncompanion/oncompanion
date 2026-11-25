@@ -349,8 +349,5 @@ private val BADGE_ICON_SIZE = 18.dp
 /** The heart is a little larger in its disc than the other icons. */
 private val HEART_ICON_SIZE = 20.dp
 
-/** A link or pill stays a 48 dp touch target, even where it looks smaller. */
-internal val LINK_HEIGHT = 48.dp
-
 /** The Figma's frequency chip: 14 dp corners. */
 private val CHIP_SHAPE = RoundedCornerShape(14.dp)

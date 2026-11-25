@@ -36,6 +36,7 @@ import com.github.se.oncompanion.R
 import com.github.se.oncompanion.domain.medication.DoseCondition
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.CHEVRON_SIZE
+import com.github.se.oncompanion.ui.common.LINK_HEIGHT
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.cardItem
 import com.github.se.oncompanion.ui.theme.full

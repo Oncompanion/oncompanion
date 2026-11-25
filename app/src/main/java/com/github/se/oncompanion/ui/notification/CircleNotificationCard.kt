@@ -33,6 +33,7 @@ import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.CardLink
+import com.github.se.oncompanion.ui.common.LINK_HEIGHT
 import com.github.se.oncompanion.ui.navigation.route
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.cardDetail
@@ -211,6 +212,3 @@ private val BADGE = 40.dp
 private val INITIAL = 20.sp
 private val CARD_BORDER = 1.dp
 private val WAITING_BORDER = 1.5.dp
-
-/** The sheet's links are full rows, 44 dp in the Figma and 48 dp here, Android's touch target. */
-internal val LINK_HEIGHT = 48.dp
