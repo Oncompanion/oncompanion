@@ -5,14 +5,27 @@ package com.github.se.oncompanion.ui.reminder
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.se.oncompanion.domain.auth.*
-import com.github.se.oncompanion.domain.reminder.*
+import com.github.se.oncompanion.domain.auth.SessionMemory
+import com.github.se.oncompanion.domain.auth.SignOut
+import com.github.se.oncompanion.domain.auth.SignOutProvider
+import com.github.se.oncompanion.domain.auth.SignOutState
+import com.github.se.oncompanion.domain.reminder.AppointmentReminderSync
+import com.github.se.oncompanion.domain.reminder.AppointmentRemindersProvider
+import com.github.se.oncompanion.domain.reminder.ReconcileAppointmentReminders
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.session.SessionAccess
-import com.github.se.oncompanion.model.user.*
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import com.github.se.oncompanion.model.user.Role
+import com.github.se.oncompanion.model.user.UserProfileRepository
+import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
  * Scheduling status and an account-checked appointment navigation request, never display content.
@@ -86,7 +99,12 @@ constructor(
     }
   }
 
-  /** Rechecks cached appointments after settings or a transient read failure, without prompting. */
+  /**
+   * Recollects on every resume to retry failed reads and blocked notifications as well as repair
+   * lost exact alarms. This intentionally also replaces undelivered alarms when access is
+   * unchanged. Permission checks alone cannot tell whether an accepted alarm still exists; never
+   * prompts.
+   */
   fun refresh() {
     refreshes.value++
   }

@@ -10,6 +10,7 @@ import com.github.se.oncompanion.model.session.SessionAccess
 import com.github.se.oncompanion.model.user.*
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import java.time.*
+import java.util.TimeZone
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flow
@@ -290,6 +291,9 @@ class ReconcileAppointmentRemindersTest {
     watch(f, states)
     assertEquals(AppointmentReminderSync.SYNCHRONIZED, states.last())
     assertEquals(1, f.scheduler.scheduled.size)
+    change(f, appointment().copy(reminder = AppointmentReminder.THREE_HOURS))
+    assertEquals(2, f.scheduler.scheduled.size)
+    assertEquals(AppointmentReminderSync.SYNCHRONIZED, states.last())
     f.profiles.getProfileError = IllegalStateException()
     f.auth.signInWithGoogle("second")
     runCurrent()
@@ -298,6 +302,70 @@ class ReconcileAppointmentRemindersTest {
     f.auth.signInWithGoogle("patient")
     runCurrent()
     assertEquals(AppointmentReminderSync.SYNCHRONIZED, states.last())
+  }
+
+  @Test
+  fun corruptReceiptsAreRebuiltAndAppointmentChangesRemainObserved() = runTest {
+    val context =
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>()
+    context
+        .getSharedPreferences("appointment_reminder_plans", 0)
+        .edit()
+        .putString("patient", "corrupt")
+        .commit()
+    val f = fixture()
+    f.appointments.seed("patient", appointment())
+    val receipts = AppointmentReminderPlansPreferences(context)
+    val states = mutableListOf<AppointmentReminderSync>()
+    watch(f, states, receipts)
+    assertEquals(AppointmentReminderSync.SYNCHRONIZED, states.last())
+    assertEquals(1, receipts.read("patient").size)
+    assertEquals(1, f.scheduler.scheduled.size)
+    change(f, appointment().copy(reminder = AppointmentReminder.NONE))
+    assertTrue(receipts.read("patient").isEmpty())
+    assertFalse(f.scheduler.reminders.containsKey(appointmentKey()))
+  }
+
+  @Test
+  fun sameCoordinatorFormatsWithCurrentPhoneZoneUnlessExplicitlyOverridden() = runTest {
+    val original = TimeZone.getDefault()
+    try {
+      for (override in listOf(null, ZoneOffset.UTC)) {
+        TimeZone.setDefault(TimeZone.getTimeZone("Europe/Zurich"))
+        val f = fixture()
+        f.appointments.seed("patient", appointment())
+        val zoneText = AppointmentReminderText { visit, zone ->
+          ReminderText(visit.title, visit.scheduledAt.atZone(zone).toString())
+        }
+        val coordinator =
+            ReconcileAppointmentReminders(
+                zoneText,
+                f.appointments,
+                f.auth,
+                f.profiles,
+                f.scheduler,
+                f.plans,
+                clock,
+                override,
+            )
+        backgroundScope.launch { coordinator.observe().collect {} }
+        runCurrent()
+        assertEquals(
+            appointment().scheduledAt.atZone(override ?: ZoneId.of("Europe/Zurich")).toString(),
+            f.scheduler.reminders.getValue(appointmentKey()).text,
+        )
+        TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"))
+        // A new snapshot formats again on the same instance; no title or timing change is needed.
+        change(f, appointment().copy(notes = "Unrelated edit"))
+        assertEquals(
+            appointment().scheduledAt.atZone(override ?: ZoneId.of("America/New_York")).toString(),
+            f.scheduler.reminders.getValue(appointmentKey()).text,
+        )
+        assertEquals(if (override == null) 2 else 1, f.scheduler.scheduled.size)
+      }
+    } finally {
+      TimeZone.setDefault(original)
+    }
   }
 
   @Test

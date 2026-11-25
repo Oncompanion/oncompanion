@@ -7,6 +7,7 @@ import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.allowed
 import com.github.se.oncompanion.utils.denied
+import com.github.se.oncompanion.utils.forgedTime
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
@@ -340,7 +341,7 @@ class SymptomSecurityRulesTest {
     assertCreateDenied(validOther().apply { put("notes", "n".repeat(1001)) })
     assertCreateDenied(validSymptom().apply { put("notes", 42) })
     assertCreateDenied(validSymptom().apply { put("occurredAt", "2026-10-05") })
-    assertCreateDenied(validSymptom().apply { put("createdAt", Timestamp.now()) })
+    assertCreateDenied(validSymptom().apply { put("createdAt", forgedTime) })
   }
 
   // ---- delete ----
@@ -434,7 +435,7 @@ class SymptomSecurityRulesTest {
 
   @Test
   fun updateChangingCreatedAtIsDenied() {
-    assertUpdateDenied(mapOf("createdAt" to Timestamp.now()))
+    assertUpdateDenied(mapOf("createdAt" to forgedTime))
     assertUpdateDenied(mapOf("createdAt" to FieldValue.serverTimestamp()))
     assertUpdateDenied(mapOf("createdAt" to FieldValue.delete()))
   }

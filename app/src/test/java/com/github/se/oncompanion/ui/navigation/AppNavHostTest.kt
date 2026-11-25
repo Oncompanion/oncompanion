@@ -931,9 +931,10 @@ class AppNavHostTest {
         authRepository = auth,
         medicationRepository = medications,
     )
-    waitForTag(OverviewShortcut.PRESCRIPTIONS.testTag)
+    // Anne takes Ondansetron today: her medications card opens her prescriptions
+    waitForTag(C.Tag.caregiver_overview_prescriptions_link)
     composeTestRule
-        .onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag)
+        .onNodeWithTag(C.Tag.caregiver_overview_prescriptions_link)
         .performScrollTo()
         .performClick()
     waitForTag(C.Tag.prescriptionsItem("chemo"))

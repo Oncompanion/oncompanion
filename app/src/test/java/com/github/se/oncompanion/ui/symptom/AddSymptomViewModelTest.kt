@@ -142,6 +142,7 @@ class AddSymptomViewModelTest {
     assertTrue(state.isNow)
     assertEquals(emptyList<SymptomType>(), state.types)
     assertNull(state.intensity)
+    assertEquals(emptyMap<SymptomType, Int>(), state.strengths)
     assertNull(state.date)
     assertNull(state.time)
     assertEquals("", state.notes)
@@ -194,41 +195,116 @@ class AddSymptomViewModelTest {
     assertEquals(listOf(SymptomType.PAIN, SymptomType.NAUSEA), viewModel.state.types)
   }
 
-  // ----- Intensity -----
+  // ----- Strengths -----
 
   @Test
-  fun intensity_isOptional() {
+  fun strengths_areOptional_andTheSliderIsOnTheLastPickedSymptom() {
     val viewModel = viewModel()
-    viewModel.toggleType(SymptomType.NAUSEA)
+    assertNull(viewModel.state.strengthOf)
 
-    assertNull(viewModel.state.intensity)
+    viewModel.toggleType(SymptomType.NAUSEA)
+    viewModel.toggleType(SymptomType.FATIGUE)
+
+    assertEquals(emptyMap<SymptomType, Int>(), viewModel.state.strengths)
+    assertEquals(SymptomType.FATIGUE, viewModel.state.strengthOf)
     assertTrue(viewModel.state.canSave)
   }
 
   @Test
-  fun changingTheIntensity_setsIt_evenToTheSameValue_andClearRemovesIt() {
+  fun changingTheStrength_setsItForTheSelectedSymptom_evenToTheSameValue_andClearRemovesIt() {
     val viewModel = viewModel()
+    viewModel.toggleType(SymptomType.NAUSEA)
+    viewModel.toggleType(SymptomType.FATIGUE)
 
-    viewModel.onIntensityChange(4)
-    assertEquals(4, viewModel.state.intensity)
-    viewModel.onIntensityChange(8)
+    viewModel.onStrengthChange(4)
+    viewModel.selectStrengthOf(SymptomType.NAUSEA)
+    viewModel.onStrengthChange(8)
     // Dragging the slider reports the same value several times: it stays set
-    viewModel.onIntensityChange(8)
-    assertEquals(8, viewModel.state.intensity)
+    viewModel.onStrengthChange(8)
+    assertEquals(
+        mapOf(SymptomType.FATIGUE to 4, SymptomType.NAUSEA to 8),
+        viewModel.state.strengths,
+    )
 
-    viewModel.clearIntensity()
-    assertNull(viewModel.state.intensity)
+    viewModel.clearStrength()
+    assertEquals(mapOf(SymptomType.FATIGUE to 4), viewModel.state.strengths)
   }
 
   @Test
-  fun intensityOutsideTheScale_isIgnored() {
+  fun strengthOutsideTheScale_orWithNoSymptomPicked_isIgnored() {
     val viewModel = viewModel()
-    viewModel.onIntensityChange(5)
+    viewModel.onStrengthChange(5)
+    assertEquals(emptyMap<SymptomType, Int>(), viewModel.state.strengths)
 
-    viewModel.onIntensityChange(0)
-    viewModel.onIntensityChange(11)
+    viewModel.toggleType(SymptomType.PAIN)
+    viewModel.onStrengthChange(5)
+    viewModel.onStrengthChange(0)
+    viewModel.onStrengthChange(11)
 
-    assertEquals(5, viewModel.state.intensity)
+    assertEquals(mapOf(SymptomType.PAIN to 5), viewModel.state.strengths)
+  }
+
+  @Test
+  fun selectingASymptomThatIsNotPicked_keepsTheSliderWhereItIs() {
+    val viewModel = viewModel()
+    viewModel.toggleType(SymptomType.PAIN)
+
+    viewModel.selectStrengthOf(SymptomType.FEVER)
+
+    assertEquals(SymptomType.PAIN, viewModel.state.strengthOf)
+  }
+
+  @Test
+  fun unpickingASymptom_putsItsStrengthAside_untilItIsPickedAgain() {
+    val viewModel = viewModel()
+    viewModel.toggleType(SymptomType.NAUSEA)
+    viewModel.toggleType(SymptomType.PAIN)
+    viewModel.onStrengthChange(6)
+    viewModel.selectStrengthOf(SymptomType.NAUSEA)
+    viewModel.onStrengthChange(3)
+
+    viewModel.toggleType(SymptomType.NAUSEA)
+    // The slider moves to a symptom still picked
+    assertEquals(mapOf(SymptomType.PAIN to 6), viewModel.state.strengths)
+    assertEquals(SymptomType.PAIN, viewModel.state.strengthOf)
+
+    // A mistaken tap doesn't lose it
+    viewModel.toggleType(SymptomType.NAUSEA)
+    assertEquals(mapOf(SymptomType.PAIN to 6, SymptomType.NAUSEA to 3), viewModel.state.strengths)
+    assertEquals(SymptomType.NAUSEA, viewModel.state.strengthOf)
+    // Once given back, clearing it isn't undone by unpicking and picking it again
+    viewModel.clearStrength()
+    viewModel.toggleType(SymptomType.NAUSEA)
+    viewModel.toggleType(SymptomType.NAUSEA)
+    assertNull(viewModel.state.strengths[SymptomType.NAUSEA])
+
+    viewModel.toggleType(SymptomType.NAUSEA)
+    viewModel.toggleType(SymptomType.PAIN)
+    assertNull(viewModel.state.strengthOf)
+  }
+
+  @Test
+  fun unpicking_movesTheSliderOnlyIfItWasOnThatSymptom() {
+    val viewModel = viewModel()
+    viewModel.toggleType(SymptomType.FATIGUE)
+    viewModel.toggleType(SymptomType.NAUSEA)
+    viewModel.toggleType(SymptomType.PAIN)
+    // The slider was on Pain: it goes to the last symptom still picked
+    viewModel.toggleType(SymptomType.PAIN)
+    assertEquals(SymptomType.NAUSEA, viewModel.state.strengthOf)
+    // Back to an empty form
+    viewModel.toggleType(SymptomType.FATIGUE)
+    viewModel.toggleType(SymptomType.NAUSEA)
+
+    // With the slider on Nausea, unpicking another symptom leaves it there
+    viewModel.toggleType(SymptomType.NAUSEA)
+    viewModel.toggleType(SymptomType.PAIN)
+    viewModel.toggleType(SymptomType.FEVER)
+    viewModel.selectStrengthOf(SymptomType.NAUSEA)
+
+    viewModel.toggleType(SymptomType.PAIN)
+
+    assertEquals(SymptomType.NAUSEA, viewModel.state.strengthOf)
   }
 
   // ----- Notes -----
@@ -460,8 +536,9 @@ class AddSymptomViewModelTest {
       runTest(dispatcher) {
         val viewModel = viewModel()
         viewModel.toggleType(SymptomType.FATIGUE)
+        viewModel.onStrengthChange(3)
         viewModel.toggleType(SymptomType.HEADACHE)
-        viewModel.onIntensityChange(6)
+        viewModel.onStrengthChange(6)
         viewModel.onNotesChange("  After the walk \n")
 
         viewModel.save()
@@ -472,12 +549,17 @@ class AddSymptomViewModelTest {
         assertEquals(SavePhase.SAVED, viewModel.state.save)
         val entry = savedEntry()
         assertEquals(listOf(SymptomType.FATIGUE, SymptomType.HEADACHE), entry.types)
-        assertEquals(6, entry.intensity)
+        assertEquals(
+            mapOf(SymptomType.FATIGUE to 3, SymptomType.HEADACHE to 6),
+            entry.strengths,
+        )
+        // A new entry has no overall intensity: each symptom says how strong it was
+        assertNull(entry.intensity)
         assertEquals("After the walk", entry.notes)
       }
 
   @Test
-  fun save_withoutDayOrTime_isNow_withoutIntensityOrNotes() =
+  fun save_withoutDayOrTime_isNow_withoutStrengthsOrNotes() =
       runTest(dispatcher) {
         val viewModel = viewModel()
         viewModel.toggleType(SymptomType.NAUSEA)
@@ -489,6 +571,7 @@ class AddSymptomViewModelTest {
         val entry = savedEntry()
         assertEquals(now, entry.occurredAt)
         assertNull(entry.intensity)
+        assertEquals(emptyMap<SymptomType, Int>(), entry.strengths)
         assertNull(entry.notes)
       }
 
@@ -600,7 +683,9 @@ class AddSymptomViewModelTest {
         viewModel.save()
         viewModel.toggleType(SymptomType.PAIN)
         advanceUntilIdle()
-        viewModel.onIntensityChange(3)
+        viewModel.onStrengthChange(3)
+        viewModel.clearStrength()
+        viewModel.selectStrengthOf(SymptomType.FATIGUE)
         viewModel.onNotesChange("Late")
         viewModel.onDateChange(today.minusDays(1))
         viewModel.onTimeChange(LocalTime.of(8, 0))
@@ -611,6 +696,7 @@ class AddSymptomViewModelTest {
             AddSymptomUiState(
                 now = today.atTime(14, 0),
                 types = listOf(SymptomType.FATIGUE),
+                strengthOf = SymptomType.FATIGUE,
                 save = SavePhase.SAVED,
                 canDictate = true,
             ),
@@ -682,7 +768,10 @@ class AddSymptomViewModelTest {
         assertFalse(state.isLoading)
         assertTrue(state.isFormShown)
         assertEquals(listOf(SymptomType.FATIGUE), state.types)
+        // An entry from before strengths keeps its overall intensity, shown as it was
         assertEquals(4, state.intensity)
+        assertEquals(emptyMap<SymptomType, Int>(), state.strengths)
+        assertEquals(SymptomType.FATIGUE, state.strengthOf)
         assertEquals(today.minusDays(1), state.date)
         assertEquals(LocalTime.of(9, 12, 37, 500_000_000), state.time)
         assertEquals("After lunch", state.notes)
@@ -775,7 +864,8 @@ class AddSymptomViewModelTest {
   @Test
   fun editing_saveIsEnabledByAChange_andDisabledAgainWhenItIsUndone() =
       runTest(dispatcher) {
-        val viewModel = editing()
+        val viewModel =
+            editing(logged.copy(intensity = null, strengths = mapOf(SymptomType.FATIGUE to 4)))
         advanceUntilIdle()
 
         viewModel.toggleType(SymptomType.PAIN)
@@ -783,9 +873,9 @@ class AddSymptomViewModelTest {
         viewModel.toggleType(SymptomType.PAIN)
         assertFalse(viewModel.state.canSave)
 
-        viewModel.onIntensityChange(7)
+        viewModel.onStrengthChange(7)
         assertTrue(viewModel.state.canSave)
-        viewModel.onIntensityChange(4)
+        viewModel.onStrengthChange(4)
         assertFalse(viewModel.state.canSave)
 
         // Spaces around the notes aren't saved, so they aren't a change
@@ -816,7 +906,7 @@ class AddSymptomViewModelTest {
         viewModel.toggleType(SymptomType.FATIGUE)
         viewModel.toggleType(SymptomType.NAUSEA)
         viewModel.toggleType(SymptomType.HEADACHE)
-        viewModel.clearIntensity()
+        viewModel.onStrengthChange(5)
         viewModel.onDateChange(today.minusDays(2))
         viewModel.onTimeChange(LocalTime.of(20, 30))
         viewModel.onNotesChange("  Worse at night ")
@@ -830,6 +920,7 @@ class AddSymptomViewModelTest {
                 id = "s1",
                 types = listOf(SymptomType.NAUSEA, SymptomType.HEADACHE),
                 intensity = null,
+                strengths = mapOf(SymptomType.HEADACHE to 5),
                 occurredAt = at(today.minusDays(2), 20, 30),
                 notes = "Worse at night",
                 createdAt = logged.createdAt,
@@ -848,6 +939,10 @@ class AddSymptomViewModelTest {
             )
         val viewModel = editing(withStrengths)
         advanceUntilIdle()
+        // It opens with its strengths, and nothing to save yet
+        assertEquals(withStrengths.strengths, viewModel.state.strengths)
+        assertNull(viewModel.state.intensity)
+        assertFalse(viewModel.state.canSave)
         // Only the notes change, then nausea is removed: its strength goes with it
         viewModel.onNotesChange("Better after a nap")
         viewModel.toggleType(SymptomType.NAUSEA)
@@ -863,13 +958,13 @@ class AddSymptomViewModelTest {
       runTest(dispatcher) {
         val viewModel = editing()
         advanceUntilIdle()
-        viewModel.onIntensityChange(8)
+        viewModel.onStrengthChange(8)
 
         viewModel.save()
         advanceUntilIdle()
 
         assertEquals(logged.occurredAt, savedEntry().occurredAt)
-        assertEquals(8, savedEntry().intensity)
+        assertEquals(mapOf(SymptomType.FATIGUE to 8), savedEntry().strengths)
       }
 
   @Test
@@ -880,7 +975,7 @@ class AddSymptomViewModelTest {
         val repeated = logged.copy(occurredAt = Instant.parse("2026-10-25T01:30:00Z"))
         val viewModel = editing(repeated)
         advanceUntilIdle()
-        viewModel.onIntensityChange(8)
+        viewModel.onStrengthChange(8)
 
         viewModel.save()
         advanceUntilIdle()
@@ -899,6 +994,42 @@ class AddSymptomViewModelTest {
         advanceUntilIdle()
 
         assertEquals(at(today.minusDays(3), 9, 12).plusMillis(37_500), savedEntry().occurredAt)
+        // An entry from before strengths, saved without one, keeps its overall intensity
+        assertEquals(4, savedEntry().intensity)
+        assertEquals(emptyMap<SymptomType, Int>(), savedEntry().strengths)
+      }
+
+  @Test
+  fun editing_anOldEntry_aStrengthReplacesItsOverallIntensity_untilNoneIsLeft() =
+      runTest(dispatcher) {
+        val viewModel = editing()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.state.isOverallReplaced)
+        viewModel.onStrengthChange(6)
+        assertNull(viewModel.state.intensity)
+        // The form still says the old overall, now replaced
+        assertEquals(4, viewModel.state.overallFromBefore)
+        assertTrue(viewModel.state.isOverallReplaced)
+        // Clearing the strength undoes it: the overall is back and nothing changed
+        viewModel.clearStrength()
+        assertEquals(4, viewModel.state.intensity)
+        assertFalse(viewModel.state.isOverallReplaced)
+        assertFalse(viewModel.state.canSave)
+        // Unpicking the only symptom with a strength undoes it too
+        viewModel.toggleType(SymptomType.NAUSEA)
+        viewModel.onStrengthChange(3)
+        assertNull(viewModel.state.intensity)
+        viewModel.toggleType(SymptomType.NAUSEA)
+        assertEquals(4, viewModel.state.intensity)
+
+        viewModel.onStrengthChange(6)
+
+        viewModel.save()
+        advanceUntilIdle()
+
+        assertNull(savedEntry().intensity)
+        assertEquals(mapOf(SymptomType.FATIGUE to 6), savedEntry().strengths)
       }
 
   @Test
@@ -1006,7 +1137,7 @@ class AddSymptomViewModelTest {
       runTest(dispatcher) {
         val viewModel = editing()
         advanceUntilIdle()
-        viewModel.onIntensityChange(9)
+        viewModel.onStrengthChange(9)
         repository.writeError = IOException("disk full")
 
         viewModel.save()
@@ -1019,7 +1150,8 @@ class AddSymptomViewModelTest {
         advanceUntilIdle()
 
         assertEquals(SavePhase.SAVED, viewModel.state.save)
-        assertEquals(9, savedEntry().intensity)
+        assertEquals(mapOf(SymptomType.FATIGUE to 9), savedEntry().strengths)
+        assertNull(savedEntry().intensity)
       }
 
   @Test
@@ -1324,7 +1456,7 @@ class AddSymptomViewModelTest {
         assertNull(viewModel.state.voice)
         assertTrue(viewModel.state.isDrafted)
         assertEquals(listOf(SymptomType.NAUSEA), viewModel.state.types)
-        assertEquals(7, viewModel.state.intensity)
+        assertEquals(mapOf(SymptomType.NAUSEA to 7), viewModel.state.strengths)
       }
 
   @Test
@@ -1400,7 +1532,8 @@ class AddSymptomViewModelTest {
       val transcript: String,
       val before: (AddSymptomViewModel) -> Unit = {},
       val types: List<SymptomType>,
-      val intensity: Int? = null,
+      val strengthOf: SymptomType?,
+      val strengths: Map<SymptomType, Int> = emptyMap(),
       val date: LocalDate? = null,
       val time: LocalTime? = null,
       val notes: String = transcript,
@@ -1416,32 +1549,69 @@ class AddSymptomViewModelTest {
                 DraftCase(
                     "headache 7 out of 10 yesterday at 9 am",
                     types = listOf(SymptomType.HEADACHE),
-                    intensity = 7,
+                    strengthOf = SymptomType.HEADACHE,
+                    strengths = mapOf(SymptomType.HEADACHE to 7),
                     date = yesterday,
                     time = LocalTime.of(9, 0),
                 ),
                 // Only some fields understood: the rest stays empty
-                DraftCase("I feel sick", types = listOf(SymptomType.NAUSEA)),
+                DraftCase(
+                    "I feel sick",
+                    types = listOf(SymptomType.NAUSEA),
+                    strengthOf = SymptomType.NAUSEA,
+                ),
                 // A time without a day is today, as when it is picked in the form
                 DraftCase(
                     "headache at 9 am",
                     types = listOf(SymptomType.HEADACHE),
+                    strengthOf = SymptomType.HEADACHE,
                     date = today,
                     time = LocalTime.of(9, 0),
                 ),
                 // Nothing understood: only the notes keep what was said
-                DraftCase("hello there", types = emptyList()),
+                DraftCase("hello there", types = emptyList(), strengthOf = null),
+                // A strength said for several symptoms isn't given to any of them; the slider is
+                // on the first one said
+                DraftCase(
+                    "nausea and headache 7 out of 10",
+                    types = listOf(SymptomType.NAUSEA, SymptomType.HEADACHE),
+                    strengthOf = SymptomType.NAUSEA,
+                ),
+                // A symptom already given a strength keeps it
+                DraftCase(
+                    "headache 7 out of 10",
+                    before = {
+                      it.toggleType(SymptomType.HEADACHE)
+                      it.onStrengthChange(3)
+                    },
+                    types = listOf(SymptomType.HEADACHE),
+                    strengthOf = SymptomType.HEADACHE,
+                    strengths = mapOf(SymptomType.HEADACHE to 3),
+                ),
+                // One symptom said beside another with a strength: each keeps its own, and the
+                // slider shows the one just said
+                DraftCase(
+                    "headache 7 out of 10",
+                    before = {
+                      it.toggleType(SymptomType.FATIGUE)
+                      it.onStrengthChange(2)
+                    },
+                    types = listOf(SymptomType.FATIGUE, SymptomType.HEADACHE),
+                    strengthOf = SymptomType.HEADACHE,
+                    strengths = mapOf(SymptomType.FATIGUE to 2, SymptomType.HEADACHE to 7),
+                ),
                 // What the patient entered is kept; new symptoms come after theirs
                 DraftCase(
                     "nausea and headache 7 out of 10 yesterday at 9 am",
                     before = {
                       it.toggleType(SymptomType.HEADACHE)
-                      it.onIntensityChange(3)
+                      it.onStrengthChange(3)
                       it.onTimeChange(LocalTime.of(11, 0))
                       it.onNotesChange("After lunch  ")
                     },
                     types = listOf(SymptomType.HEADACHE, SymptomType.NAUSEA),
-                    intensity = 3,
+                    strengthOf = SymptomType.HEADACHE,
+                    strengths = mapOf(SymptomType.HEADACHE to 3),
                     date = today,
                     time = LocalTime.of(11, 0),
                     notes = "After lunch\nnausea and headache 7 out of 10 yesterday at 9 am",
@@ -1456,7 +1626,8 @@ class AddSymptomViewModelTest {
           assertNull(case.transcript, state.voice)
           assertTrue(case.transcript, state.isDrafted)
           assertEquals(case.transcript, case.types, state.types)
-          assertEquals(case.transcript, case.intensity, state.intensity)
+          assertEquals(case.transcript, case.strengths, state.strengths)
+          assertEquals(case.transcript, case.strengthOf, state.strengthOf)
           assertEquals(case.transcript, case.date, state.date)
           assertEquals(case.transcript, case.time, state.time)
           assertEquals(case.transcript, case.notes, state.notes)
@@ -1472,11 +1643,13 @@ class AddSymptomViewModelTest {
         heard(said, viewModel)
 
         viewModel.onDone()
-        // The saved symptom, intensity, day and time stay; the new symptom and the words are added
+        // The saved symptom, day and time stay; the new symptom, its strength and the words are
+        // added. The strength said replaces the overall intensity of this entry from before
         val state = viewModel.state
         assertTrue(state.isDrafted)
         assertEquals(listOf(SymptomType.FATIGUE, SymptomType.NAUSEA), state.types)
-        assertEquals(4, state.intensity)
+        assertEquals(mapOf(SymptomType.NAUSEA to 7), state.strengths)
+        assertNull(state.intensity)
         assertEquals(today.minusDays(1), state.date)
         assertEquals(LocalTime.of(9, 12, 37, 500_000_000), state.time)
         assertEquals("After lunch\n$said", state.notes)
@@ -1505,7 +1678,7 @@ class AddSymptomViewModelTest {
 
         val saved = savedEntry()
         assertEquals(listOf(SymptomType.HEADACHE), saved.types)
-        assertEquals(7, saved.intensity)
+        assertEquals(mapOf(SymptomType.HEADACHE to 7), saved.strengths)
         assertEquals(at(today.minusDays(1), 9, 0), saved.occurredAt)
         assertEquals("headache 7 out of 10 yesterday at 9 am", saved.notes)
       }
@@ -1943,7 +2116,7 @@ class AddSymptomViewModelTest {
         viewModel.onDone()
         viewModel.onSpeak(hasMicrophone = true)
         assertEquals(listOf(SymptomType.PAIN), viewModel.state.types)
-        assertNull(viewModel.state.intensity)
+        assertEquals(emptyMap<SymptomType, Int>(), viewModel.state.strengths)
         advanceUntilIdle()
         assertEquals(SavePhase.SAVED, viewModel.state.save)
         assertEquals(1, speech.languages.size)
@@ -1995,14 +2168,14 @@ class AddSymptomViewModelTest {
         advanceUntilIdle()
         assertEquals(logged.types, viewModel.state.types)
 
-        viewModel.onIntensityChange(6)
+        viewModel.onStrengthChange(6)
         viewModel.save()
         advanceUntilIdle()
 
         assertEquals(SavePhase.SAVED, viewModel.state.save)
         assertTrue(repository.symptoms(uid).isEmpty())
         val saved = repository.symptoms("patient").single()
-        assertEquals(6, saved.intensity)
+        assertEquals(mapOf(SymptomType.FATIGUE to 6), saved.strengths)
         assertEquals(uid, saved.editedBy)
         assertEquals("Sam", saved.editedByName)
         assertEquals("bob", saved.addedBy)
@@ -2015,12 +2188,12 @@ class AddSymptomViewModelTest {
         val viewModel = editing(logged.copy(editedBy = "bob", editedByName = "Bob"))
         advanceUntilIdle()
 
-        viewModel.onIntensityChange(2)
+        viewModel.onStrengthChange(2)
         viewModel.save()
         advanceUntilIdle()
 
         val saved = repository.symptoms(uid).single()
-        assertEquals(2, saved.intensity)
+        assertEquals(mapOf(SymptomType.FATIGUE to 2), saved.strengths)
         assertNull(saved.editedBy)
         assertNull(saved.editedByName)
       }
@@ -2035,10 +2208,15 @@ class AddSymptomViewModelTest {
         val viewModel = caregiverEditing(symptoms = symptoms)
         advanceUntilIdle()
 
-        viewModel.onIntensityChange(6)
+        viewModel.onStrengthChange(6)
         viewModel.save()
         advanceUntilIdle()
+        // Saved on the phone before the server answers, as offline: the strength is written
         assertEquals(SavePhase.SAVED, viewModel.state.save)
+        assertEquals(
+            mapOf(SymptomType.FATIGUE to 6),
+            symptoms.symptoms("patient").single().strengths,
+        )
         symptoms.rejectPendingWrites()
 
         assertEquals(listOf(logged), symptoms.symptoms("patient"))
@@ -2080,7 +2258,7 @@ class AddSymptomViewModelTest {
 
         // Saved on the phone, then refused by the server, which no longer has the symptom
         symptoms.serverRejectsWrites = true
-        viewModel.onIntensityChange(6)
+        viewModel.onStrengthChange(6)
         viewModel.save()
         advanceUntilIdle()
         assertEquals(SavePhase.SAVED, viewModel.state.save)

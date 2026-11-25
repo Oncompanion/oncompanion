@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
@@ -5,10 +6,10 @@ package com.github.se.oncompanion
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,7 +31,7 @@ import com.github.se.oncompanion.ui.theme.AppAppearanceRoot
 import com.github.se.oncompanion.ui.theme.AppAppearanceViewModel
 
 /** Installs session recovery before authenticated navigation or Firestore operations start. */
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
   private val startViewModel: StartViewModel by viewModels()
   private val appearanceViewModel: AppAppearanceViewModel by viewModels()
@@ -95,6 +96,8 @@ class MainActivity : ComponentActivity() {
   }
 
   private fun acceptReminder(intent: Intent) {
+    // Recents may reuse the original notification intent after Back finished the root Activity.
+    if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return
     intent.appointmentReminder()?.let { (owner, item) -> reminders.open(owner, item) }
   }
 }

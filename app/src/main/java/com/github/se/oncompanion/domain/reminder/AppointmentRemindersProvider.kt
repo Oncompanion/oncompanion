@@ -4,7 +4,8 @@ package com.github.se.oncompanion.domain.reminder
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
-import com.github.se.oncompanion.model.reminder.*
+import com.github.se.oncompanion.model.reminder.AndroidAppointmentReminderText
+import com.github.se.oncompanion.model.reminder.AppointmentReminderPlansProvider
 
 /** Builds the app-scoped coordinator only after device adapters are installed; preserves fakes. */
 object AppointmentRemindersProvider {

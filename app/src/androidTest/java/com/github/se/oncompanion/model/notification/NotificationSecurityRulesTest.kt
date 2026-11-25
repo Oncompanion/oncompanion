@@ -7,6 +7,7 @@ import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.allowed
 import com.github.se.oncompanion.utils.denied
+import com.github.se.oncompanion.utils.forgedTime
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FieldValue
@@ -116,7 +117,7 @@ class NotificationSecurityRulesTest {
             mapOf("itemId" to "presc-9"),
             mapOf("actorUid" to aliceUid),
             mapOf("actorFirstName" to "Mallory"),
-            mapOf("createdAt" to Timestamp.now()),
+            mapOf("createdAt" to forgedTime),
             mapOf("expiresAt" to Timestamp(Instant.now().plus(Duration.ofDays(365)))),
             mapOf("seen" to true, "medication" to "Ondansetron 8 mg"),
         )

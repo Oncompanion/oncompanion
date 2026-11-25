@@ -31,6 +31,17 @@ object PlanningRepositoryProvider {
     sources().observeItems(ownerUid, range, sections)
   }
 
+  /**
+   * The patient's medications alone, for the caregiver's Overview: reading only the prescriptions,
+   * it works while the patient keeps their planning private. Like [repository], it reads the
+   * medication provider on each observation. Tests replace it with a fake.
+   */
+  @Volatile
+  var medications: PlanningRepository = PlanningRepository { ownerUid, range, sections ->
+    MedicationPlanningSource(MedicationRepositoryProvider.repository)
+        .observeItems(ownerUid, range, sections)
+  }
+
   /** The sources of the default [repository], built from the providers' current repositories. */
   private fun sources() =
       ObservePlanning(

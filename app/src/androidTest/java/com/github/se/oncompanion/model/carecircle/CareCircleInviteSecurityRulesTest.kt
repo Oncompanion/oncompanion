@@ -8,7 +8,7 @@ import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.allowed
 import com.github.se.oncompanion.utils.denied
-import com.google.firebase.Timestamp
+import com.github.se.oncompanion.utils.forgedTime
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Source
@@ -137,7 +137,7 @@ class CareCircleInviteSecurityRulesTest {
 
   @Test
   fun cannotChooseTheCreationTime(): Unit = runBlocking {
-    denied(newInvite().set(inviteFields(aliceUid, "createdAt" to Timestamp.now())))
+    denied(newInvite().set(inviteFields(aliceUid, "createdAt" to forgedTime)))
   }
 
   @Test
@@ -224,7 +224,7 @@ class CareCircleInviteSecurityRulesTest {
     val invite = aliceInvite()
     denied(invite.update("ownerUid", bobUid))
     denied(invite.update("ownerFirstName", "Alicia"))
-    denied(invite.update("createdAt", Timestamp.now()))
+    denied(invite.update("createdAt", forgedTime))
   }
 
   @Test

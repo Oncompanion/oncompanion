@@ -341,7 +341,8 @@ class M2EndToEndTest {
       repository.addPrescription(patientUid, prescriptionFixture(prescriptionId, caregiverUid))
       withTimeout(10_000) { FirebaseEmulator.firestore.waitForPendingWrites().await() }
     }
-    ui.open(C.Tag.overview_shortcut_prescriptions, hasTestTag(C.Tag.prescriptions_list))
+    // The patient takes the confirmed medication today: its card opens the prescriptions
+    ui.open(C.Tag.caregiver_overview_prescriptions_link, hasTestTag(C.Tag.prescriptions_list))
     ui.open(C.Tag.prescriptionsItem(prescriptionId), hasTestTag(C.Tag.prescription_detail_content))
     ui.waitFor(
         hasTestTag(C.Tag.added_by) and
@@ -422,7 +423,7 @@ class M2EndToEndTest {
     signOutThroughProfile()
     credentials.select(patient)
     ui.open(C.Tag.google_sign_in_button, patientGreeting())
-    // The patient's prescriptions are a tab; the caregiver's tile stays on their Overview
+    // The patient's prescriptions are a tab; the caregiver's card links to them from their Overview
     ui.open(Tab.PRESCRIPTIONS.testTag, hasTestTag(C.Tag.prescriptions_list))
     ui.open(C.Tag.prescriptionsItem(confirmedId), hasTestTag(C.Tag.prescription_detail_content))
     ui.waitFor(
@@ -441,7 +442,8 @@ class M2EndToEndTest {
     signOutThroughProfile()
     credentials.select(caregiver)
     ui.open(C.Tag.google_sign_in_button, caregiverTitle())
-    ui.open(C.Tag.overview_shortcut_prescriptions, hasTestTag(C.Tag.prescriptions_list))
+    // The patient takes the confirmed medication today: its card opens the prescriptions
+    ui.open(C.Tag.caregiver_overview_prescriptions_link, hasTestTag(C.Tag.prescriptions_list))
     ui.open(C.Tag.prescriptionsItem(prescriptionId), hasTestTag(C.Tag.prescription_detail_content))
     ui.open(C.Tag.prescription_detail_delete_button, hasTestTag(C.Tag.prescription_delete_dialog))
     ui.waitFor(

@@ -4,6 +4,7 @@
 package com.github.se.oncompanion
 
 import android.content.ComponentName
+import android.content.Intent
 import android.view.WindowManager
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.assertIsDisplayed
@@ -13,6 +14,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.domain.auth.SignOut
@@ -41,6 +44,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -122,6 +126,42 @@ class MainActivityTest {
     } finally {
       // ActivityScenario identifies lifecycle callbacks using its original launch intent.
       composeTestRule.runOnUiThread { activity.intent = originalIntent }
+    }
+  }
+
+  /**
+   * A fresh tap is queued for sign-in; relaunching that intent from Recents never queues it again.
+   */
+  @Test
+  @Config(sdk = [28, 34])
+  fun coldReminderIntent_ignoresHistoryButAcceptsFreshTaps() {
+    for (fromHistory in listOf(false, true)) {
+      val saved = SavedStateHandle()
+      val incoming =
+          Intent(
+                  Intent.ACTION_VIEW,
+                  "oncompanion-reminder://local/patient/appointment/visit".toUri(),
+              )
+              .apply { if (fromHistory) addFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) }
+      val controller = Robolectric.buildActivity(MainActivity::class.java, incoming)
+      // Capture the real ViewModel's saved request while signed out, before navigation consumes it.
+      ViewModelProvider(
+          controller.get(),
+          object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                AppointmentRemindersViewModel(saved) as T
+          },
+      )[AppointmentRemindersViewModel::class.java]
+      try {
+        controller.create().start().resume()
+        assertEquals(
+            if (fromHistory) null else listOf("patient", "visit"),
+            saved.get<List<String>>("appointment_reminder_request"),
+        )
+      } finally {
+        controller.pause().stop().destroy()
+      }
     }
   }
 

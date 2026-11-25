@@ -47,6 +47,7 @@ import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.SMALL_LANDSCAPE_PHONE
+import com.github.se.oncompanion.ui.SMALL_PHONE
 import com.github.se.oncompanion.ui.assertIsAboveKeyboard
 import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
@@ -77,7 +78,8 @@ class AddSymptomScreenTest {
   private val now = today.atTime(14, 0)
 
   private val empty = AddSymptomUiState(now = now)
-  private val filled = empty.copy(types = listOf(SymptomType.FATIGUE))
+  private val filled =
+      empty.copy(types = listOf(SymptomType.FATIGUE), strengthOf = SymptomType.FATIGUE)
 
   /** What the content reported, in order, e.g. `type=FATIGUE` or `save`. */
   private val events = mutableListOf<String>()
@@ -97,11 +99,19 @@ class AddSymptomScreenTest {
           uiState = uiState,
           onBack = { events += "close" },
           onToggleType = { events += "type=$it" },
-          onIntensityChange = {
-            events += "intensity=$it"
-            uiState = uiState.copy(intensity = it)
+          onSelectStrengthOf = {
+            events += "strengthOf=$it"
+            uiState = uiState.copy(strengthOf = it)
           },
-          onClearIntensity = { events += "clearIntensity" },
+          onStrengthChange = { strength ->
+            events += "strength=$strength"
+            uiState =
+                uiState.copy(
+                    strengths = uiState.strengths + (uiState.strengthOf!! to strength),
+                    intensity = null,
+                )
+          },
+          onClearStrength = { events += "clearStrength" },
           onDateChange = { events += "date=$it" },
           onTimeChange = { events += "time=$it" },
           onNotesChange = {
@@ -134,7 +144,7 @@ class AddSymptomScreenTest {
     scrolledTo(C.Tag.symptom_add_when).assert(hasText(text))
   }
 
-  /** Taps the intensity track [x] pixels from its left edge, as computed from its size. */
+  /** Taps the strength track [x] pixels from its left edge, as computed from its size. */
   private fun tapTrack(x: androidx.compose.ui.test.TouchInjectionScope.() -> Float) {
     scrolledTo(C.Tag.symptom_add_intensity_track).performTouchInput { click(Offset(x(), centerY)) }
   }
@@ -160,9 +170,8 @@ class AddSymptomScreenTest {
     SymptomType.entries.forEach { type ->
       scrolledTo(C.Tag.symptomAddType(type.name)).assertIsNotSelected()
     }
-    scrolledTo(C.Tag.symptom_add_intensity_value)
-        .assertTextEquals(string(R.string.symptom_add_intensity_not_set))
-    node(C.Tag.symptom_add_intensity_clear).assertDoesNotExist()
+    // How strong a symptom is can only be said once one is picked
+    node(C.Tag.symptom_add_strengths).assertDoesNotExist()
     assertWhen("${string(R.string.symptom_journal_today)} · 14:00")
     composeTestRule.onNodeWithText(string(R.string.symptom_add_date_time_hint)).assertExists()
     composeTestRule.onNodeWithText(string(R.string.symptom_add_in_future)).assertDoesNotExist()
@@ -182,16 +191,105 @@ class AddSymptomScreenTest {
   }
 
   @Test
-  fun pickedIntensity_showsItsSeverity_andClear() {
-    setContent(filled.copy(intensity = 6))
+  fun oneSymptom_asksHowStrongItIs_withoutChips() {
+    setContent(filled)
+
+    scrolledTo(C.Tag.symptom_add_intensity_value)
+        .assertTextEquals(string(R.string.symptom_add_intensity_not_set))
+    node(C.Tag.symptom_add_intensity_clear).assertDoesNotExist()
+    composeTestRule.onNodeWithText("How strong is your fatigue? (optional)").assertExists()
+    node(C.Tag.symptomAddStrengthChip(SymptomType.FATIGUE.name)).assertDoesNotExist()
+    node(C.Tag.symptom_add_overall).assertDoesNotExist()
+  }
+
+  @Test
+  fun pickedStrength_showsItsSeverity_andClear() {
+    setContent(filled.copy(strengths = mapOf(SymptomType.FATIGUE to 6)))
 
     scrolledTo(C.Tag.symptom_add_intensity_value).assertTextEquals("6/10 · Moderate")
     scrolledTo(C.Tag.symptom_add_intensity_clear).assertIsDisplayed()
   }
 
   @Test
-  fun otherNotNamedYet_asksWhichSymptom_andSaveIsDisabled() {
-    setContent(empty.copy(types = listOf(SymptomType.OTHER)))
+  fun severalSymptoms_showAChipEach_withItsStrength_andTheQuestionOfTheSelectedOne() {
+    setContent(
+        empty.copy(
+            types = listOf(SymptomType.NAUSEA, SymptomType.FATIGUE),
+            strengths = mapOf(SymptomType.NAUSEA to 4),
+            strengthOf = SymptomType.FATIGUE,
+        )
+    )
+
+    scrolledTo(C.Tag.symptomAddStrengthChip(SymptomType.NAUSEA.name))
+        .assert(hasText("Nausea · 4/10"))
+        .assertIsNotSelected()
+        // TalkBack reads the name, the strength and whether it is the one being set
+        .assert(hasContentDescription("Nausea, intensity 4 out of 10"))
+    scrolledTo(C.Tag.symptomAddStrengthChip(SymptomType.FATIGUE.name))
+        .assert(hasText("Fatigue"))
+        .assertIsSelected()
+    composeTestRule.onNodeWithText("How strong is your fatigue? (optional)").assertExists()
+    node(C.Tag.symptom_add_intensity_value)
+        .assertTextEquals(string(R.string.symptom_add_intensity_not_set))
+
+    node(C.Tag.symptomAddStrengthChip(SymptomType.NAUSEA.name)).performClick()
+
+    assertEquals(listOf("strengthOf=NAUSEA"), events)
+    composeTestRule.onNodeWithText("How strong is your nausea? (optional)").assertExists()
+    node(C.Tag.symptom_add_intensity_value).assertTextEquals("4/10 · Moderate")
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = SMALL_PHONE)
+  fun settingStrengths_movesNeitherTheChipsNorTheSlider() {
+    val types =
+        listOf(
+            SymptomType.FATIGUE,
+            SymptomType.BREATHLESSNESS,
+            SymptomType.SLEEP_PROBLEMS,
+            SymptomType.HEADACHE,
+        )
+    setContent(empty.copy(types = types, strengthOf = SymptomType.FATIGUE))
+    val chips = types.map { C.Tag.symptomAddStrengthChip(it.name) }
+    scrolledTo(chips.first())
+    fun bounds() = (chips + C.Tag.symptom_add_intensity).map { node(it).getBoundsInRoot() }
+    val before = bounds()
+
+    // The strongest strength makes the longest labels, e.g. "Fatigue · 10/10"
+    types.forEach { type ->
+      node(C.Tag.symptomAddStrengthChip(type.name)).performClick()
+      node(C.Tag.symptom_add_intensity).performSemanticsAction(SemanticsActions.SetProgress) {
+        it(10f)
+      }
+    }
+
+    node(chips.first()).assert(hasText("Fatigue · 10/10"))
+    assertEquals(before, bounds())
+  }
+
+  @Test
+  fun aRenamedOther_isCalledByItsName_inTheChipAndTheQuestion() {
+    setContent(
+        empty.copy(
+            types = listOf(SymptomType.PAIN, SymptomType.OTHER),
+            otherName = "Hiccups",
+            strengths = mapOf(SymptomType.OTHER to 2),
+            strengthOf = SymptomType.OTHER,
+        )
+    )
+
+    scrolledTo(C.Tag.symptomAddStrengthChip(SymptomType.OTHER.name))
+        .assert(hasText("Hiccups · 2/10"))
+    composeTestRule.onNodeWithText("How strong is your Hiccups? (optional)").assertExists()
+  }
+
+  @Test
+  fun otherNotNamedYet_asksWhichSymptom_andHowStrongItIs_andSaveIsDisabled() {
+    setContent(empty.copy(types = listOf(SymptomType.OTHER), strengthOf = SymptomType.OTHER))
+
+    // Not "your other": it has no name yet (Figma: "Check-in · Other, not named yet")
+    composeTestRule.onNodeWithText("How strong is it? (optional)").assertExists()
 
     // One field, as in Figma: the placeholder asks, without a label or a helper text
     scrolledTo(C.Tag.symptom_add_other_name)
@@ -335,13 +433,13 @@ class AddSymptomScreenTest {
 
   @Test
   fun movingTheSlider_reportsTheIntensity() {
-    setContent(filled.copy(intensity = 3))
+    setContent(filled.copy(strengths = mapOf(SymptomType.FATIGUE to 3)))
 
     scrolledTo(C.Tag.symptom_add_intensity).performSemanticsAction(SemanticsActions.SetProgress) {
       it(8f)
     }
 
-    assertEquals(listOf("intensity=8"), events)
+    assertEquals(listOf("strength=8"), events)
     node(C.Tag.symptom_add_intensity_value).assertTextEquals("8/10 · Severe")
   }
 
@@ -353,7 +451,7 @@ class AddSymptomScreenTest {
       it(1f)
     }
 
-    assertEquals("intensity=1", events.last())
+    assertEquals("strength=1", events.last())
     node(C.Tag.symptom_add_intensity_value).assertTextEquals("1/10 · Mild")
   }
 
@@ -369,7 +467,7 @@ class AddSymptomScreenTest {
 
     tapTrack { stopX(1) }
 
-    assertEquals(listOf("intensity=1"), events)
+    assertEquals(listOf("strength=1"), events)
   }
 
   @Test
@@ -378,7 +476,7 @@ class AddSymptomScreenTest {
 
     tapTrack { stopX(4) }
 
-    assertEquals(listOf("intensity=4"), events)
+    assertEquals(listOf("strength=4"), events)
   }
 
   @Test
@@ -387,7 +485,7 @@ class AddSymptomScreenTest {
 
     tapTrack { stopX(10) }
 
-    assertEquals(listOf("intensity=10"), events)
+    assertEquals(listOf("strength=10"), events)
   }
 
   @Test
@@ -403,18 +501,18 @@ class AddSymptomScreenTest {
 
     // The first touch sets 1, then the slider follows the finger to the end of the track (minus
     // the distance a drag needs to start)
-    assertEquals("intensity=1", events.first())
-    val last = events.last().removePrefix("intensity=").toInt()
+    assertEquals("strength=1", events.first())
+    val last = events.last().removePrefix("strength=").toInt()
     assertTrue("ended on $last", last >= 9)
   }
 
   @Test
   fun clear_reportsIt() {
-    setContent(filled.copy(intensity = 4))
+    setContent(filled.copy(strengths = mapOf(SymptomType.FATIGUE to 4)))
 
     scrolledTo(C.Tag.symptom_add_intensity_clear).performClick()
 
-    assertEquals(listOf("clearIntensity"), events)
+    assertEquals(listOf("clearStrength"), events)
   }
 
   @Test
@@ -556,6 +654,7 @@ class AddSymptomScreenTest {
           edited = EditedSymptom(logged, today.minusDays(1), LocalTime.of(9, 12)),
           types = logged.types,
           intensity = logged.intensity,
+          strengthOf = SymptomType.FATIGUE,
           date = today.minusDays(1),
           time = LocalTime.of(9, 12),
           notes = "After lunch",
@@ -604,14 +703,11 @@ class AddSymptomScreenTest {
 
     composeTestRule.onNodeWithText(string(R.string.symptom_edit_title)).assertIsDisplayed()
     scrolledTo(C.Tag.symptomAddType(SymptomType.FATIGUE.name)).assertIsSelected()
-    scrolledTo(C.Tag.symptom_add_intensity_value)
-        .assertTextEquals(
-            string(
-                R.string.symptom_add_intensity_value,
-                4,
-                string(R.string.symptom_severity_moderate),
-            )
-        )
+    // Logged before each symptom had its strength: its overall intensity is shown as it was
+    scrolledTo(C.Tag.symptom_add_overall)
+        .assertTextEquals(string(R.string.symptom_add_overall_from_before, 4))
+    node(C.Tag.symptom_add_intensity_value)
+        .assertTextEquals(string(R.string.symptom_add_intensity_not_set))
     assertWhen("${string(R.string.symptom_journal_yesterday)} · 09:12")
     composeTestRule.onNodeWithText(string(R.string.symptom_add_date_time_hint)).assertDoesNotExist()
     scrolledTo(C.Tag.symptom_add_notes).assert(hasText("After lunch"))
@@ -619,10 +715,30 @@ class AddSymptomScreenTest {
         .assert(hasText(string(R.string.symptom_edit_save)))
         .assertIsNotEnabled()
 
-    uiState = editingForm.copy(intensity = 7)
+    // The first strength replaces the overall intensity, which says so where it was
+    assertTheFirstStrengthReplacesTheOverall_withoutMovingTheSlider()
 
     node(C.Tag.symptom_add_save).assertIsEnabled().performClick()
-    assertEquals(listOf("save"), events)
+    assertEquals(listOf("strength=7", "save"), events)
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = SMALL_PHONE, fontScale = 2f)
+  fun editing_largeText_replacingTheOverallKeepsTheSliderInPlace() {
+    setContent(editingForm)
+    assertTheFirstStrengthReplacesTheOverall_withoutMovingTheSlider()
+  }
+
+  /** Sets a first strength on [editingForm]: its overall says it is replaced, on as many lines. */
+  private fun assertTheFirstStrengthReplacesTheOverall_withoutMovingTheSlider() {
+    val slider = scrolledTo(C.Tag.symptom_add_intensity)
+    val before = slider.getBoundsInRoot()
+    slider.performSemanticsAction(SemanticsActions.SetProgress) { it(7f) }
+    node(C.Tag.symptom_add_overall)
+        .assertTextEquals(string(R.string.symptom_add_overall_replaced, 4))
+    // The slider stays under the finger
+    assertEquals(before, node(C.Tag.symptom_add_intensity).getBoundsInRoot())
   }
 
   // ----- Keyboard -----
@@ -810,7 +926,7 @@ class AddSymptomScreenTest {
     assertEquals(1, savedCount)
     val entry = repository.symptoms("alice").single()
     assertEquals(listOf(SymptomType.FATIGUE), entry.types)
-    assertEquals(7, entry.intensity)
+    assertEquals(mapOf(SymptomType.FATIGUE to 7), entry.strengths)
     assertEquals(clock.instant(), entry.occurredAt)
   }
 
@@ -857,8 +973,9 @@ class AddSymptomScreenTest {
           uiState = AddSymptomUiState(now = java.time.LocalDateTime.of(2026, 10, 5, 9, 0)),
           onBack = {},
           onToggleType = {},
-          onIntensityChange = {},
-          onClearIntensity = {},
+          onSelectStrengthOf = {},
+          onStrengthChange = {},
+          onClearStrength = {},
           onDateChange = {},
           onTimeChange = {},
           onNotesChange = {},
@@ -879,8 +996,9 @@ class AddSymptomScreenTest {
           uiState = editingForm,
           onBack = {},
           onToggleType = {},
-          onIntensityChange = {},
-          onClearIntensity = {},
+          onSelectStrengthOf = {},
+          onStrengthChange = {},
+          onClearStrength = {},
           onDateChange = {},
           onTimeChange = {},
           onNotesChange = {},
@@ -892,6 +1010,34 @@ class AddSymptomScreenTest {
 
     composeTestRule.onNodeWithText("Edit Anne's entry").assertIsDisplayed()
   }
+
+  // ----- Large text -----
+
+  /** At 200% text, each strength chip and the slider can be scrolled to and used. */
+  private fun assertStrengthsReachableAtLargeText() {
+    val types = listOf(SymptomType.SLEEP_PROBLEMS, SymptomType.BREATHLESSNESS, SymptomType.NAUSEA)
+    setContent(empty.copy(types = types, strengthOf = SymptomType.NAUSEA))
+
+    types.forEach { type ->
+      scrolledTo(C.Tag.symptomAddStrengthChip(type.name)).assertIsDisplayed().performClick()
+    }
+    scrolledTo(C.Tag.symptom_add_intensity).assertIsDisplayed()
+    scrolledTo(C.Tag.symptom_add_intensity_track).performTouchInput { click(center) }
+
+    assertEquals(types.map { "strengthOf=$it" }, events.dropLast(1))
+    assertTrue(events.last().startsWith("strength="))
+    scrolledTo(C.Tag.symptomAddStrengthChip(SymptomType.NAUSEA.name))
+        .assertIsSelected()
+        .assert(hasText("Nausea · ", substring = true))
+  }
+
+  @Test
+  @Config(qualifiers = SMALL_PHONE, fontScale = 2f)
+  fun portrait_largeText_strengthsCanBeReachedAndSet() = assertStrengthsReachableAtLargeText()
+
+  @Test
+  @Config(qualifiers = LANDSCAPE_PHONE, fontScale = 2f)
+  fun landscape_largeText_strengthsCanBeReachedAndSet() = assertStrengthsReachableAtLargeText()
 
   // ----- Figma: "Log symptoms" -----
   // Native graphics, so texts have their real width (the default mode measures them almost 0 wide)
