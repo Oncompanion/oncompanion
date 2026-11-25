@@ -4,7 +4,6 @@ package com.github.se.oncompanion.ui.notification
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,13 +20,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -35,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
 import com.github.se.oncompanion.resources.C
+import com.github.se.oncompanion.ui.common.CardLink
 import com.github.se.oncompanion.ui.navigation.route
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.cardDetail
@@ -163,10 +161,10 @@ private fun PrescriptionLines(card: CircleCard, onOpen: () -> Unit) {
   )
   // A rejected prescription was removed from the patient's: nothing to open
   if (prescription.confirmation != PrescriptionConfirmation.REJECTED) {
-    LinkRow(
+    CardLink(
         stringResource(R.string.circle_sheet_see_prescription),
         onOpen,
-        C.Tag.circleSheetOpen(card.notification.id),
+        Modifier.heightIn(min = LINK_HEIGHT).testTag(C.Tag.circleSheetOpen(card.notification.id)),
     )
   }
 }
@@ -205,30 +203,6 @@ private fun StatusChip(text: String, container: Color, content: Color) {
   )
 }
 
-/** A link with a chevron ("See prescription ›"), a full 48 dp touch target. */
-@Composable
-private fun LinkRow(label: String, onClick: () -> Unit, tag: String) {
-  Row(
-      verticalAlignment = Alignment.CenterVertically,
-      modifier =
-          Modifier.heightIn(min = LINK_HEIGHT)
-              .clip(MaterialTheme.shapes.medium)
-              .clickable(role = Role.Button, onClick = onClick)
-              .testTag(tag),
-  ) {
-    Text(
-        label,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.lakeColors.primaryText,
-    )
-    Icon(
-        painterResource(R.drawable.ic_chevron_right),
-        contentDescription = null,
-        tint = MaterialTheme.lakeColors.primaryText,
-    )
-  }
-}
-
 // The time as the Overview writes it; #558 will make every screen follow the chosen format
 private val TIME = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)
 
@@ -237,4 +211,6 @@ private val BADGE = 40.dp
 private val INITIAL = 20.sp
 private val CARD_BORDER = 1.dp
 private val WAITING_BORDER = 1.5.dp
-private val LINK_HEIGHT = 48.dp
+
+/** The sheet's links are full rows, 44 dp in the Figma and 48 dp here, Android's touch target. */
+internal val LINK_HEIGHT = 48.dp

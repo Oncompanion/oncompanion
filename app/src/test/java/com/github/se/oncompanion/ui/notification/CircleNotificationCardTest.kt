@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -113,7 +114,8 @@ class CircleNotificationCardTest {
     compose.onNodeWithText("Dr. Martin").assertIsDisplayed()
     compose.onNodeWithText(string(R.string.circle_sheet_to_confirm)).assertIsDisplayed()
     compose.onNodeWithText("Ondansetron, Dexamethasone").assertIsDisplayed()
-    compose.onNodeWithTag(link).performClick()
+    // A full row, as in the Figma (44 dp there, Android's 48 dp touch target here)
+    compose.onNodeWithTag(link).assertHeightIsAtLeast(48.dp).performClick()
     assertEquals(listOf(Screen.prescriptionEdit("p1")), opened)
   }
 

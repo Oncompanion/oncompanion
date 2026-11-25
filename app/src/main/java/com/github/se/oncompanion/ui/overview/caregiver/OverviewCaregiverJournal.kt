@@ -15,8 +15,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
+import com.github.se.oncompanion.ui.common.CardLink
 import com.github.se.oncompanion.ui.overview.CardBadge
-import com.github.se.oncompanion.ui.overview.CardLink
 import com.github.se.oncompanion.ui.overview.DayCard
 import com.github.se.oncompanion.ui.overview.Eyebrow
 import com.github.se.oncompanion.ui.symptom.dayLabel
