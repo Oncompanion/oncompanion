@@ -662,6 +662,18 @@ object C {
     // Shared message state: its round info tile
     const val message_state_icon = "message_state_icon"
 
+    // The "Your circle" sheet (US-50, #457)
+    const val circle_sheet = "circle_sheet"
+    const val circle_sheet_loading = "circle_sheet_loading"
+    const val circle_sheet_error = "circle_sheet_error"
+    const val circle_sheet_retry = "circle_sheet_retry"
+    const val circle_sheet_manage = "circle_sheet_manage"
+    const val circle_sheet_members = "circle_sheet_members"
+    const val circle_sheet_nobody_yet = "circle_sheet_nobody_yet"
+    const val circle_sheet_seats = "circle_sheet_seats"
+    const val circle_sheet_add_someone = "circle_sheet_add_someone"
+    const val circle_sheet_nothing_today = "circle_sheet_nothing_today"
+
     /** The card of the "Your circle" notification with this ID (US-50, #457). */
     fun circleSheetCard(notificationId: String) = "circle_sheet_card_$notificationId"
 
