@@ -34,10 +34,12 @@ internal fun CardLink(label: String, onClick: () -> Unit, modifier: Modifier) {
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(Spacing.xxs),
   ) {
+    // The chevron keeps its room: words too long for the line wrap instead of pushing it out
     Text(
         label,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.lakeColors.primaryText,
+        modifier = Modifier.weight(1f, fill = false),
     )
     Icon(
         painterResource(R.drawable.ic_chevron_right),
