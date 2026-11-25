@@ -170,18 +170,17 @@ class AndroidSpeechRecognizer(
   }
 
   /** One listening session with Android's recognizer, destroyed when the flow ends. */
-  private fun recognition(language: SpeechLanguage, onDevice: Boolean) =
-      callbackFlow {
-            stopRequested = false
-            val session = Session(language, onDevice && canListenOnDevice(), this)
-            session.start()
-            awaitClose {
-              releaseChecker()
-              session.release()
-            }
-          }
-          // A session is short: keep every event, so a slow screen never loses the final one
-          .buffer(Channel.UNLIMITED)
+  private fun recognition(language: SpeechLanguage, onDevice: Boolean) = callbackFlow {
+    stopRequested = false
+    val session = Session(language, onDevice && canListenOnDevice(), this)
+    session.start()
+    awaitClose {
+      releaseChecker()
+      session.release()
+    }
+  }
+      // A session is short: keep every event, so a slow screen never loses the final one
+      .buffer(Channel.UNLIMITED)
 
   /**
    * What one listening session heard so far, and how it answers Android's recognizer.
