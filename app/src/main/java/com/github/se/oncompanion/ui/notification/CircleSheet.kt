@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -110,18 +111,23 @@ internal fun CircleSheetContent(
       verticalArrangement = Arrangement.spacedBy(Spacing.md),
   ) {
     when (uiState) {
-      CircleSheetUiState.Loading ->
-          Box(Modifier.fillMaxWidth().padding(Spacing.xl), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(Modifier.size(PROGRESS).testTag(C.Tag.circle_sheet_loading))
-          }
-      CircleSheetUiState.Error ->
-          LakeMessageState(
-              title = stringResource(R.string.care_circle_error),
-              actionLabel = stringResource(R.string.care_circle_retry),
-              onAction = onRetry,
-              actionTestTag = C.Tag.circle_sheet_retry,
-              modifier = Modifier.testTag(C.Tag.circle_sheet_error),
-          )
+      // The title stays while loading or after an error (DESIGN.md: the screen keeps its header)
+      CircleSheetUiState.Loading -> {
+        Title()
+        Box(Modifier.fillMaxWidth().padding(Spacing.xl), contentAlignment = Alignment.Center) {
+          CircularProgressIndicator(Modifier.size(PROGRESS).testTag(C.Tag.circle_sheet_loading))
+        }
+      }
+      CircleSheetUiState.Error -> {
+        Title()
+        LakeMessageState(
+            title = stringResource(R.string.care_circle_error),
+            actionLabel = stringResource(R.string.care_circle_retry),
+            onAction = onRetry,
+            actionTestTag = C.Tag.circle_sheet_retry,
+            modifier = Modifier.testTag(C.Tag.circle_sheet_error),
+        )
+      }
       CircleSheetUiState.NobodyYet -> NobodyYet(onAddSomeone)
       is CircleSheetUiState.Circle -> Circle(uiState, onManage, onOpen)
     }
@@ -136,12 +142,16 @@ private fun Circle(
     onOpen: (String) -> Unit,
 ) {
   val colors = MaterialTheme.colorScheme
+  val manageDescription = stringResource(R.string.circle_sheet_manage_description)
   Row(verticalAlignment = Alignment.CenterVertically) {
     Title(Modifier.weight(1f))
     CardLink(
         stringResource(R.string.circle_sheet_manage),
         onManage,
-        Modifier.heightIn(min = LINK_HEIGHT).testTag(C.Tag.circle_sheet_manage),
+        // "Manage your circle" for TalkBack, as "Manage" alone could be anything
+        Modifier.heightIn(min = LINK_HEIGHT)
+            .semantics { contentDescription = manageDescription }
+            .testTag(C.Tag.circle_sheet_manage),
     )
   }
   // "Marc, Sophie · Julie invited": who can follow the patient's care

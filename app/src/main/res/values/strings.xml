@@ -1004,6 +1004,8 @@
     <string name="circle_sheet_see_prescription">See prescription</string>
     <string name="circle_sheet_title">Your circle</string>
     <string name="circle_sheet_manage">Manage</string>
+    <!-- What screen readers say for "Manage" -->
+    <string name="circle_sheet_manage_description">Manage your circle</string>
     <!-- The members, then who is invited, e.g. "Marc, Sophie · Julie invited" -->
     <string name="circle_sheet_members_and_invited">%1$s · %2$s</string>
     <string name="circle_sheet_invited">%1$s invited</string>

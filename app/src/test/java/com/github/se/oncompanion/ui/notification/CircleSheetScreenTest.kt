@@ -19,6 +19,7 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -168,8 +169,9 @@ class CircleSheetScreenTest {
   }
 
   @Test
-  fun loading_showsOnlyTheProgress() {
+  fun loading_showsTheTitleAndTheProgress() {
     show(CircleSheetUiState.Loading)
+    compose.onNodeWithText(string(R.string.circle_sheet_title)).assertIsDisplayed()
     compose.onNodeWithTag(C.Tag.circle_sheet_loading).assertIsDisplayed()
     compose.onNodeWithTag(C.Tag.circle_sheet_manage).assertDoesNotExist()
     compose.onNodeWithTag(C.Tag.circle_sheet_error).assertDoesNotExist()
@@ -178,6 +180,7 @@ class CircleSheetScreenTest {
   @Test
   fun error_saysSo_andRetryCallsBack() {
     show(CircleSheetUiState.Error)
+    compose.onNodeWithText(string(R.string.circle_sheet_title)).assertIsDisplayed()
     compose.onNodeWithText(string(R.string.care_circle_error)).assertIsDisplayed()
     compose.onNodeWithTag(C.Tag.circle_sheet_retry).performClick()
     assertEquals(1, retried)
@@ -245,7 +248,12 @@ class CircleSheetScreenTest {
       compose.onNodeWithText(string(R.string.circle_sheet_title)).assertIsDisplayed()
       compose.onNodeWithTag(C.Tag.circle_sheet_members).assertTextEquals(line)
     }
-    compose.onNodeWithTag(C.Tag.circle_sheet_manage).assertHeightIsAtLeast(48.dp).performClick()
+    // TalkBack says what it manages, as "Manage" alone could be anything
+    compose
+        .onNodeWithTag(C.Tag.circle_sheet_manage)
+        .assert(hasContentDescription(string(R.string.circle_sheet_manage_description)))
+        .assertHeightIsAtLeast(48.dp)
+        .performClick()
     assertEquals(1, managed)
 
     // Everyone left, but what they did stays: no names line, the cards still show
