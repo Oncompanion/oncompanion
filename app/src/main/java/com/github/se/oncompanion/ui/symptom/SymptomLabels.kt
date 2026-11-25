@@ -2,6 +2,7 @@
 
 package com.github.se.oncompanion.ui.symptom
 
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
@@ -27,6 +28,25 @@ val SymptomType.label: Int
         SymptomType.SLEEP_PROBLEMS -> R.string.symptom_type_sleep_problems
         SymptomType.BREATHLESSNESS -> R.string.symptom_type_breathlessness
         SymptomType.OTHER -> R.string.symptom_type_other
+      }
+
+/**
+ * The icon of a symptom type, as on the check-in tiles (Figma: "Symptom tile"); "Other" has the
+ * dots of "More…".
+ */
+@get:DrawableRes
+val SymptomType.icon: Int
+  get() =
+      when (this) {
+        SymptomType.FATIGUE -> R.drawable.ic_symptom_fatigue
+        SymptomType.NAUSEA -> R.drawable.ic_symptom_nausea
+        SymptomType.PAIN -> R.drawable.ic_symptom_pain
+        SymptomType.FEVER -> R.drawable.ic_symptom_fever
+        SymptomType.HEADACHE -> R.drawable.ic_symptom_headache
+        SymptomType.APPETITE_LOSS -> R.drawable.ic_symptom_appetite
+        SymptomType.SLEEP_PROBLEMS -> R.drawable.ic_symptom_sleep
+        SymptomType.BREATHLESSNESS -> R.drawable.ic_symptom_breathlessness
+        SymptomType.OTHER -> R.drawable.ic_symptom_more
       }
 
 /** The label of a severity level, as shown in the journal (Figma: "Symptoms – History"). */

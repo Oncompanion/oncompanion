@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,11 +33,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,15 +46,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.resources.C
-import com.github.se.oncompanion.ui.common.ClickableReadOnlyField
-import com.github.se.oncompanion.ui.common.DayPickerDialog
 import com.github.se.oncompanion.ui.common.LakeBanner
 import com.github.se.oncompanion.ui.common.LakeBannerTone
 import com.github.se.oncompanion.ui.common.LakeButton
@@ -65,13 +58,10 @@ import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.LakeFilterChip
 import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.LakeSnackbarHost
-import com.github.se.oncompanion.ui.common.LakeTextField
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
 import com.github.se.oncompanion.ui.common.MessageArea
-import com.github.se.oncompanion.ui.common.PickerTestTags
 import com.github.se.oncompanion.ui.common.SaveButton
 import com.github.se.oncompanion.ui.common.SavePhase
-import com.github.se.oncompanion.ui.common.TimePickerDialog
 import com.github.se.oncompanion.ui.common.appSettingsIntent
 import com.github.se.oncompanion.ui.common.hasPermission
 import com.github.se.oncompanion.ui.common.isCompactHeight
@@ -80,13 +70,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-/** Which picker of the "When" field is open. */
-private enum class WhenPicker {
-  NONE,
-  DATE,
-  TIME,
-}
 
 /**
  * The add symptom screen (US-07 "Log a symptom", Figma: "US-04 / Log symptoms"): the user picks
@@ -474,135 +457,3 @@ private fun TypeChips(picked: List<SymptomType>, onToggleType: (SymptomType) -> 
     }
   }
 }
-
-/**
- * The day and time, "Today" and the current time until the user changes them. Tapping it picks a
- * day, then a time.
- */
-@Composable
-private fun WhenField(
-    uiState: AddSymptomUiState,
-    onDateChange: (LocalDate) -> Unit,
-    onTimeChange: (LocalTime) -> Unit,
-) {
-  var picker by rememberSaveable { mutableStateOf(WhenPicker.NONE) }
-  val today = uiState.now.toLocalDate()
-  val date = uiState.date ?: today
-  val time = uiState.time ?: uiState.now.toLocalTime()
-
-  ClickableReadOnlyField(
-      value =
-          stringResource(
-              R.string.symptom_add_date_time_value,
-              dayLabel(date, today),
-              time.format(symptomTimeFormatter),
-          ),
-      label = stringResource(R.string.symptom_add_date_time),
-      onClick = { picker = WhenPicker.DATE },
-      onClickLabel = stringResource(R.string.symptom_add_change_date_time),
-      trailingIcon = { Icon(painterResource(R.drawable.ic_schedule), contentDescription = null) },
-      // The error if the time is later than now, else the hint while the time is still "now"
-      supportingText =
-          when {
-            uiState.isInFuture -> {
-              { Text(stringResource(R.string.symptom_add_in_future)) }
-            }
-            uiState.isNow -> {
-              { Text(stringResource(R.string.symptom_add_date_time_hint)) }
-            }
-            else -> null
-          },
-      isError = uiState.isInFuture,
-      modifier = Modifier.testTag(C.Tag.symptom_add_when),
-  )
-
-  // The day first, then the time; cancelling the time keeps the confirmed day
-  when (picker) {
-    WhenPicker.DATE ->
-        DayPickerDialog(
-            date = date,
-            onConfirm = {
-              onDateChange(it)
-              picker = WhenPicker.TIME
-            },
-            onDismiss = { picker = WhenPicker.NONE },
-            confirmLabel = stringResource(R.string.symptom_add_picker_confirm),
-            cancelLabel = stringResource(R.string.symptom_add_picker_cancel),
-            testTags =
-                PickerTestTags(
-                    picker = C.Tag.symptom_add_date_picker,
-                    confirm = C.Tag.symptom_add_picker_confirm,
-                    cancel = C.Tag.symptom_add_picker_cancel,
-                ),
-            // A symptom can't be logged in advance
-            latestDate = today,
-        )
-    WhenPicker.TIME ->
-        TimePickerDialog(
-            time = time,
-            onConfirm = {
-              onTimeChange(it)
-              picker = WhenPicker.NONE
-            },
-            onDismiss = { picker = WhenPicker.NONE },
-            confirmLabel = stringResource(R.string.symptom_add_picker_confirm),
-            cancelLabel = stringResource(R.string.symptom_add_picker_cancel),
-            // As the symptom screens show times (HH:mm), whatever the phone's setting
-            is24Hour = true,
-            testTags =
-                PickerTestTags(
-                    picker = C.Tag.symptom_add_time_picker,
-                    confirm = C.Tag.symptom_add_picker_confirm,
-                    cancel = C.Tag.symptom_add_picker_cancel,
-                ),
-        )
-    WhenPicker.NONE -> {}
-  }
-}
-
-/**
- * "Which symptom?", the name of the "Other" symptom, required to save it (Figma: "Check-in · Other,
- * not named yet"). A name of the list says to pick that symptom instead.
- */
-@Composable
-private fun OtherNameField(uiState: AddSymptomUiState, onOtherNameChange: (String) -> Unit) {
-  val listedAs = uiState.otherNameListedAs
-  LakeTextField(
-      value = uiState.otherName,
-      onValueChange = onOtherNameChange,
-      placeholder = { Text(stringResource(R.string.symptom_add_other_name_placeholder)) },
-      supportingText =
-          listedAs?.let {
-            {
-              Text(stringResource(R.string.symptom_add_other_name_listed, stringResource(it.label)))
-            }
-          },
-      isError = listedAs != null,
-      singleLine = true,
-      keyboardOptions =
-          KeyboardOptions(
-              capitalization = KeyboardCapitalization.Sentences,
-              imeAction = ImeAction.Done,
-          ),
-      modifier = Modifier.fillMaxWidth().testTag(C.Tag.symptom_add_other_name),
-  )
-}
-
-/** Free text. */
-@Composable
-private fun NotesField(uiState: AddSymptomUiState, onNotesChange: (String) -> Unit) {
-  LakeTextField(
-      value = uiState.notes,
-      onValueChange = onNotesChange,
-      label = { Text(stringResource(R.string.symptom_add_notes)) },
-      maxLines = 6,
-      modifier = Modifier.fillMaxWidth().testTag(C.Tag.symptom_add_notes),
-  )
-}
-
-/** The message shown in the snackbar for each saving error. */
-private fun AddSymptomError.messageRes(): Int =
-    when (this) {
-      AddSymptomError.NOT_SIGNED_IN -> R.string.symptom_add_error_not_signed_in
-      AddSymptomError.SAVE_FAILED -> R.string.symptom_add_error_save_failed
-    }

@@ -1,0 +1,14 @@
+<!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
+<!-- "Icon/symptom-sleep" from the Figma (outlined, 24 dp): tinted by the Icon that shows it -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M20 14.5C19.5951 15.9247 18.8249 17.2189 17.7657 18.2543C16.7065 19.2897 15.3952 20.0304 13.9617 20.4029C12.5281 20.7755 11.0221 20.7669 9.59285 20.3782C8.16361 19.9894 6.86076 19.2339 5.81342 18.1866C4.76607 17.1392 4.01059 15.8364 3.62183 14.4072C3.23307 12.9779 3.22453 11.4719 3.59706 10.0383C3.96959 8.60478 4.71026 7.29345 5.74566 6.2343C6.78106 5.17515 8.07526 4.40494 9.5 4C8.10761 5.39239 7.32538 7.28087 7.32538 9.25C7.32538 11.2191 8.10761 13.1076 9.5 14.5C10.8924 15.8924 12.7809 16.6746 14.75 16.6746C16.7191 16.6746 18.6076 15.8924 20 14.5Z"
+        android:strokeWidth="2"
+        android:strokeColor="@android:color/black"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
