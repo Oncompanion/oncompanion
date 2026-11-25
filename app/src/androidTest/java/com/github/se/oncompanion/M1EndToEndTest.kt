@@ -48,6 +48,7 @@ import com.github.se.oncompanion.utils.ScriptedSpeechRecognizer
 import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -95,6 +96,9 @@ class M1EndToEndTest {
   // Read in setUp: the activity isn't launched yet when the test class is built
   private var phoneRecognizer: SpeechRecognizer? = null
 
+  // The phone's language, put back after a test that sets its own
+  private val deviceLocale = Locale.getDefault()
+
   @Before
   fun setUp(): Unit = runBlocking {
     phoneRecognizer = SpeechRecognizerProvider.installed
@@ -109,6 +113,7 @@ class M1EndToEndTest {
   fun tearDown(): Unit = runBlocking {
     AppHostActivity.content.value = {}
     phoneRecognizer?.let { SpeechRecognizerProvider.recognizer = it }
+    Locale.setDefault(deviceLocale)
     SettingsRepositoryProvider.repository.setAppearance(AppearancePreference.FOLLOW_DEVICE)
     SettingsRepositoryProvider.repository.setDateFormat(DateFormatPreference.FOLLOW_DEVICE)
     SettingsRepositoryProvider.repository.setTimeFormat(TimeFormatPreference.FOLLOW_DEVICE)
@@ -155,11 +160,13 @@ class M1EndToEndTest {
 
   /**
    * US-44 and US-73: the patient dictates a symptom from the journal's Add symptom, then from the
-   * Overview's "Speak how you feel", checks each draft and saves it; both are in the journal. The
-   * phrases are English, as the emulator is: on a French phone the app would parse them in French.
+   * Overview's "Speak how you feel", checks each draft and saves it; both are in the journal.
    */
   @Test
   fun newPatient_logsSymptomsByVoice() {
+    // The phrases are English: the app parses what it hears in the phone's language, so a French
+    // emulator would draft nothing from them
+    Locale.setDefault(Locale.US)
     // The emulator can't hear anyone: the fake recognizer "hears" one phrase per dictation
     SpeechRecognizerProvider.recognizer =
         ScriptedSpeechRecognizer("I feel nauseous", "I'm really tired, about 7 out of 10")
