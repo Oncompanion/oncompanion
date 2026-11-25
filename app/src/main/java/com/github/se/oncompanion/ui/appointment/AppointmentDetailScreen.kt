@@ -39,6 +39,7 @@ import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.NotSharedMessage
+import com.github.se.oncompanion.ui.common.formatDateHeading
 import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import java.time.ZoneId
 
@@ -220,7 +221,8 @@ private fun AppointmentFields(
   val pattern =
       if (DateFormat.is24HourFormat(LocalContext.current)) "EEE d MMM yyyy · HH:mm"
       else "EEE d MMM yyyy · h:mm a"
-  val dateTime = appointment.scheduledAt.atZone(zoneId).format(rememberAppDateFormatter(pattern))
+  val dateTime =
+      rememberAppDateFormatter(pattern).formatDateHeading(appointment.scheduledAt.atZone(zoneId))
   ListItem(
       headlineContent = { Text(dateTime) },
       supportingContent = { Text(stringResource(R.string.appointment_date_time)) },

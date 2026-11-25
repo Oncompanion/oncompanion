@@ -57,6 +57,7 @@ import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
 import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.NotSharedMessage
+import com.github.se.oncompanion.ui.common.formatDateHeading
 import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Screen
@@ -358,7 +359,7 @@ private fun InfoCard(entry: SymptomEntry, zone: ZoneId) {
         )
       }
       InfoRow(
-          value = entry.occurredAt.atZone(zone).format(detailDateFormatter),
+          value = detailDateFormatter.formatDateHeading(entry.occurredAt.atZone(zone)),
           label = stringResource(R.string.symptom_detail_when),
           testTag = C.Tag.symptom_detail_when,
       ) {

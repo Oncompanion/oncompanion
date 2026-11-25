@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAccessor
 
 /**
  * A formatter for a calendar day in the phone's language: [skeleton] lists the fields to show (e.g.
@@ -28,3 +29,7 @@ internal fun rememberAppDateFormatter(pattern: String): DateTimeFormatter {
   val locale = LocalConfiguration.current.locales[0]
   return remember(locale, pattern) { DateTimeFormatter.ofPattern(pattern, locale) }
 }
+
+/** Formats a standalone date heading with an initial capital in the formatter's locale. */
+internal fun DateTimeFormatter.formatDateHeading(date: TemporalAccessor): String =
+    format(date).replaceFirstChar { it.titlecase(locale) }

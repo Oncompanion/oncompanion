@@ -59,6 +59,7 @@ import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.NotSharedMessage
 import com.github.se.oncompanion.ui.common.PaperLakeHeader
 import com.github.se.oncompanion.ui.common.PaperLakeStatusBar
+import com.github.se.oncompanion.ui.common.formatDateHeading
 import com.github.se.oncompanion.ui.common.isPaperLakeHeaderBand
 import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.navigation.BottomBarUiState
@@ -444,7 +445,7 @@ internal fun Greeting(firstName: String?, now: LocalDateTime, titleStyle: TextSt
 @Composable
 private fun TodayDate(now: LocalDateTime) {
   Text(
-      text = now.format(todayFormatter),
+      text = todayFormatter.formatDateHeading(now),
       style = MaterialTheme.typography.bodyLarge,
       modifier = Modifier.testTag(C.Tag.overview_date),
   )

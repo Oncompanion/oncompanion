@@ -222,7 +222,7 @@ class AppointmentDetailScreenTest {
           )
         }
       }
-      compose.onNodeWithText("ven. 23 oct. 2026 · 1:00 AM").assertIsDisplayed()
+      compose.onNodeWithText("Ven. 23 oct. 2026 · 1:00 AM").assertIsDisplayed()
     } finally {
       Settings.System.putString(context.contentResolver, Settings.System.TIME_12_24, previous)
     }

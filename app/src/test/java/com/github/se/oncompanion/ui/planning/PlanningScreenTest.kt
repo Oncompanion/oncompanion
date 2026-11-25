@@ -95,6 +95,7 @@ class PlanningScreenTest {
   @Config(qualifiers = "fr-rCH")
   fun planningShowsFrenchLabelsWithoutChangingTheAppointmentTitle() {
     render(state(items = listOf(item)))
+    compose.onNodeWithText("Octobre 2026").assertIsDisplayed()
     compose.onNodeWithText("Planifié").assertIsDisplayed()
     compose.onNodeWithText(item.title).assertIsDisplayed()
   }
