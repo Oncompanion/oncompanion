@@ -233,6 +233,8 @@ remain separate work.
 
 ![Planning and Overview](architecture-planning.svg)
 
+On short screens, the calendar and agenda scroll together with room beside them for the Add button.
+
 ### Appointments and summary
 
 ![Appointments and summary](architecture-appointments.svg)
