@@ -128,8 +128,8 @@ class PlanningViewModel(
       )
   val uiState: StateFlow<PlanningUiState> = mutableState.asStateFlow()
   private var observation: Job? = null
-  // The days the entries on screen were last read for; null before any entries or after a change of
-  // account or access
+  // The days whose entries on screen come from an answer; null before any entries, after a change
+  // of account or access, or when a read keeps none of them
   private var answeredRange: PlanningRange? = null
   // Conflated: only the latest jump matters, and it is received once
   private val listJumpRequests = Channel<PlanningListJump>(Channel.CONFLATED)
@@ -281,11 +281,13 @@ class PlanningViewModel(
   private fun observePeriod(from: PlanningUiState = mutableState.value) {
     observation?.cancel()
     val range = from.loadedRange(zoneId)
+    // Only the entries of the days still loaded are kept, so only those days stay answered
+    answeredRange = answeredRange?.intersect(range)
     mutableState.value =
         from
             .copy(
                 isLoading = true,
-                isLoadingMore = answeredRange?.overlaps(range) == true,
+                isLoadingMore = answeredRange != null,
                 hasError = false,
                 itemsByDay = from.itemsByDay.filterKeys { it in range },
             )
@@ -358,9 +360,12 @@ class PlanningViewModel(
   }
 }
 
-/** Whether [this] and [other] have a day in common. */
-private fun PlanningRange.overlaps(other: PlanningRange): Boolean =
-    startDateInclusive < other.endDateExclusive && other.startDateInclusive < endDateExclusive
+/** The days [this] and [other] have in common, or null if none. */
+private fun PlanningRange.intersect(other: PlanningRange): PlanningRange? {
+  val start = maxOf(startDateInclusive, other.startDateInclusive)
+  val end = minOf(endDateExclusive, other.endDateExclusive)
+  return if (start < end) PlanningRange(start, end, zoneId) else null
+}
 
 /**
  * [this] with the selected day's entries, already in agenda order in [itemsByDay], as its lists.

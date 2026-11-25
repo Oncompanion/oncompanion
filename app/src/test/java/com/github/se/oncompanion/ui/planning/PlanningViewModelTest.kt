@@ -1192,6 +1192,15 @@ class PlanningViewModelTest {
                     { vm.selectDate(LocalDate.of(2027, 6, 1)) },
                     false to false,
                 ),
+                // The jump to October dropped June's entries before its read answered
+                Triple(
+                    "back to days a jump dropped",
+                    {
+                      vm.selectDate(LocalDate.of(2026, 10, 2))
+                      vm.selectDate(LocalDate.of(2027, 6, 1))
+                    },
+                    false to false,
+                ),
             )
         for ((name, step, expected) in cases) {
           val (failsNext, loadingMore) = expected
