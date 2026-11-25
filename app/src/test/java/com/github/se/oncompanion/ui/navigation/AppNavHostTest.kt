@@ -1745,12 +1745,12 @@ class AppNavHostTest {
     composeTestRule.onNodeWithTag(Tab.EVENTS.testTag).performClick()
     composeTestRule.onNodeWithTag(Tab.PLANNING.testTag).performClick()
     composeTestRule.onNodeWithTag(C.Tag.planningItem(entries.last().key)).assertIsDisplayed()
-    // The Overview reads the same planning data over a month; Planning's own week is read once
+    // The Overview reads the same planning data over a month; the List's window is read once
     composeTestRule.runOnIdle {
       assertEquals(
           1,
           repository.ranges.count {
-            ChronoUnit.DAYS.between(it.startDateInclusive, it.endDateExclusive) == 7L
+            ChronoUnit.DAYS.between(it.startDateInclusive, it.endDateExclusive) == 85L
           },
       )
     }

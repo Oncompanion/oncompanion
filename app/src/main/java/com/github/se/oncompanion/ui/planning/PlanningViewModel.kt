@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.se.oncompanion.domain.planning.CarePlanning
 import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
 import com.github.se.oncompanion.model.planning.PlanningItem
+import com.github.se.oncompanion.model.planning.PlanningRange
 import com.github.se.oncompanion.model.planning.PlanningTiming
 import com.github.se.oncompanion.ui.common.currentDay
 import java.text.Collator
@@ -23,14 +24,22 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * Selected calendar day, the period loaded around it, and the agenda currently available.
+ * Selected calendar day, the days loaded around it, and the agenda currently available.
  *
- * @property period the days of the chosen view around [selectedDate]; its range is what is loaded
+ * @property period the days of the chosen view around [selectedDate]; the grids load its range
+ * @property listWindow the days the List loads around [selectedDate]: kept while it holds the day,
+ *   else rebuilt around it; it only grows ([PlanningViewModel.showEarlier],
+ *   [PlanningViewModel.showLater]) and isn't saved, so a restored day gets a new one
  * @property itemsByDay every loaded entry under the day it starts in the display zone, in agenda
  *   order; only days with entries are keys. An entry that goes past midnight is listed on its start
  *   day only: showing it on each day it covers is up to the view that needs it (#555)
  * @property untimedItems the selected day's medications, by name
  * @property scheduledItems the selected day's timed entries, by time
+ * @property isLoading a read is pending. With [isLoadingMore], the entries of the days that stay
+ *   loaded are shown while the others load (the List grew, or the view changed over the same days);
+ *   without it, nothing is known yet (the first read, another account, or new days only)
+ * @property isLoadingMore while [isLoading], whether the entries shown come from an answer for some
+ *   of the days being read: the List keeps them with a small loader instead of its first load's
  * @property isNotShared in caregiver mode, the patient doesn't share their planning: no entries
  * @property canAdd whether adding an appointment is offered: always in the user's own planning, and
  *   in caregiver mode once the patient's planning shows and they let the caregiver add (US-41)
@@ -38,10 +47,12 @@ import kotlinx.coroutines.launch
 data class PlanningUiState(
     val selectedDate: LocalDate,
     val period: PlanningPeriod = PlanningPeriod.of(PlanningView.LIST, selectedDate),
+    val listWindow: PlanningListWindow = PlanningListWindow.around(selectedDate),
     val itemsByDay: Map<LocalDate, List<PlanningItem>> = emptyMap(),
     val untimedItems: List<PlanningItem> = emptyList(),
     val scheduledItems: List<PlanningItem> = emptyList(),
     val isLoading: Boolean = true,
+    val isLoadingMore: Boolean = false,
     val hasError: Boolean = false,
     val today: LocalDate = selectedDate,
     val isNotShared: Boolean = false,
@@ -54,6 +65,10 @@ data class PlanningUiState(
   /** The view the period belongs to. */
   val view: PlanningView
     get() = period.view
+
+  /** The days loaded in [zoneId]: the [listWindow] in List, else the [period]'s range. */
+  fun loadedRange(zoneId: ZoneId): PlanningRange =
+      if (view == PlanningView.LIST) listWindow.range(zoneId) else period.range(zoneId)
 
   /** The Monday of the selected day's week, which the List view's strip shows. */
   val weekStart: LocalDate
@@ -69,8 +84,9 @@ data class PlanningUiState(
 }
 
 /**
- * Owns calendar selection: the selected day and the period of the chosen view, which it loads.
- * Presentation and date labels belong to the view.
+ * Owns calendar selection: the selected day, the period of the chosen view, and the List's window
+ * of days; it loads the window in List and the period in the grids. Presentation and date labels
+ * belong to the view.
  *
  * @param patientUid in caregiver mode, the patient whose planning is shown; null for the user's own
  */
@@ -94,6 +110,9 @@ class PlanningViewModel(
       )
   val uiState: StateFlow<PlanningUiState> = mutableState.asStateFlow()
   private var observation: Job? = null
+  // The days the entries on screen were last read for; null before any entries or after a change of
+  // account or access
+  private var answeredRange: PlanningRange? = null
 
   init {
     save(mutableState.value)
@@ -103,7 +122,8 @@ class PlanningViewModel(
 
   /**
    * Selects a day. The period stays while it holds the day (three days don't move under a day
-   * picked inside them); otherwise the view's period of that day is loaded.
+   * picked inside them); otherwise the view's period of that day is loaded. Likewise, the List's
+   * window stays while it holds the day, else a new one is built around it.
    */
   fun selectDate(date: LocalDate) {
     require(date.year in 1..9999) { "Date must have a four-digit positive year" }
@@ -116,6 +136,18 @@ class PlanningViewModel(
     val state = mutableState.value
     if (view != state.view) select(state.selectedDate, PlanningPeriod.of(view, state.selectedDate))
   }
+
+  /**
+   * Loads four more weeks before the List's window; the List calls it near its first day. Nothing
+   * happens in the grids, which load their period.
+   */
+  fun showEarlier() = growListWindow(PlanningListWindow::earlier)
+
+  /**
+   * Loads four more weeks after the List's window; the List calls it near its last day. Nothing
+   * happens in the grids, which load their period.
+   */
+  fun showLater() = growListWindow(PlanningListWindow::later)
 
   /** Moves to the previous period, if it is within the supported years. */
   fun previousPeriod() = move(-1)
@@ -146,7 +178,7 @@ class PlanningViewModel(
   }
 
   /** Retries observation while keeping previously displayed items. */
-  fun retry() = observePeriod(preserveItems = true)
+  fun retry() = observePeriod()
 
   /**
    * The selected day and period saved before the activity was recreated, as a whole: if any part
@@ -175,15 +207,26 @@ class PlanningViewModel(
     state.period.moved(state.selectedDate, steps)?.let { select(it.selectedDate, it.period) }
   }
 
-  /** Selects [date] in [period], loading again only when the days to load change. */
+  private fun growListWindow(grow: (PlanningListWindow) -> PlanningListWindow) {
+    val state = mutableState.value
+    if (state.view == PlanningView.LIST) show(state.copy(listWindow = grow(state.listWindow)))
+  }
+
+  /** Selects [date] in [period]; the List's window stays while it holds the day. */
   private fun select(date: LocalDate, period: PlanningPeriod) {
     val previous = mutableState.value
-    val next = previous.copy(selectedDate = date, period = period)
+    val window = previous.listWindow.takeIf { date in it } ?: PlanningListWindow.around(date)
+    show(previous.copy(selectedDate = date, period = period, listWindow = window))
+  }
+
+  /** Shows [next], loading again only when the days to load change. */
+  private fun show(next: PlanningUiState) {
     save(next)
-    // List and Week of the same Monday load the same days: no new read. Either way the new
-    // selection is published once, with its own agenda
-    if (period.range(zoneId) != previous.period.range(zoneId)) observePeriod(next)
-    else mutableState.value = next.withDayAgenda()
+    val previousRange = mutableState.value.loadedRange(zoneId)
+    val range = next.loadedRange(zoneId)
+    // Days that are still loaded don't need a new read. Either way the new selection is published
+    // once, with its own agenda
+    if (range == previousRange) mutableState.value = next.withDayAgenda() else observePeriod(next)
   }
 
   private fun save(state: PlanningUiState) {
@@ -193,26 +236,25 @@ class PlanningViewModel(
   }
 
   /**
-   * Observes the period of [from], published at once as loading; [preserveItems] keeps its entries
-   * until the first answer (a retry).
+   * Observes the days [from] loads, published at once as loading. The entries of the days that stay
+   * loaded are kept until the first answer (a retry, a wider window, a grid within the List's
+   * days).
    */
-  private fun observePeriod(
-      from: PlanningUiState = mutableState.value,
-      preserveItems: Boolean = false,
-  ) {
+  private fun observePeriod(from: PlanningUiState = mutableState.value) {
     observation?.cancel()
+    val range = from.loadedRange(zoneId)
     mutableState.value =
         from
             .copy(
                 isLoading = true,
+                isLoadingMore = answeredRange?.overlaps(range) == true,
                 hasError = false,
-                itemsByDay = if (preserveItems) from.itemsByDay else emptyMap(),
+                itemsByDay = from.itemsByDay.filterKeys { it in range },
             )
             .withDayAgenda()
-    val range = from.period.range(zoneId)
-    // A retry keeps the displayed items until the first answer, whatever it is; after that, an
-    // account change clears them again
-    var keepItems = preserveItems
+    // The kept items stay until the first answer, whatever it is; after that, an account change
+    // clears them again
+    var keepItems = true
     observation = viewModelScope.launch {
       try {
         observePlanning(patientUid, range).collect { planning ->
@@ -228,6 +270,8 @@ class PlanningViewModel(
                     .orEmpty()
                     .groupedByDay(zoneId)
               } else null
+          val isLoadingMore = planning is CarePlanning.Loading && keepItems
+          trackAnswer(planning, range, keepItems)
           if (planning !is CarePlanning.Loading) keepItems = false
           // The entries, the flags and the selected day's agenda are published together
           val state = mutableState.value
@@ -236,6 +280,7 @@ class PlanningViewModel(
                   .copy(
                       itemsByDay = itemsByDay ?: state.itemsByDay,
                       isLoading = planning is CarePlanning.Loading,
+                      isLoadingMore = isLoadingMore && state.isLoadingMore,
                       hasError = planning is CarePlanning.Failed,
                       isNotShared = planning is CarePlanning.NotShared,
                       // A caregiver only gets "Add" with the patient's planning on screen
@@ -247,8 +292,24 @@ class PlanningViewModel(
       } catch (cancelled: CancellationException) {
         throw cancelled
       } catch (_: Exception) {
-        mutableState.value = mutableState.value.copy(isLoading = false, hasError = true)
+        mutableState.value =
+            mutableState.value.copy(isLoading = false, isLoadingMore = false, hasError = true)
       }
+    }
+  }
+
+  /**
+   * Remembers which days the entries on screen were read for: a read of other days shows them as
+   * loading more ([PlanningUiState.isLoadingMore]) only over those days. A failure keeps them.
+   */
+  private fun trackAnswer(planning: CarePlanning, range: PlanningRange, keepItems: Boolean) {
+    when (planning) {
+      is CarePlanning.Shown -> answeredRange = range
+      CarePlanning.Failed -> Unit
+      // An account or access change after the first answer clears the entries
+      CarePlanning.Loading -> if (!keepItems) answeredRange = null
+      CarePlanning.NotShared,
+      CarePlanning.NoAccess -> answeredRange = null
     }
   }
 
@@ -258,6 +319,10 @@ class PlanningViewModel(
     const val PERIOD_START = "planning_period_start"
   }
 }
+
+/** Whether [this] and [other] have a day in common. */
+private fun PlanningRange.overlaps(other: PlanningRange): Boolean =
+    startDateInclusive < other.endDateExclusive && other.startDateInclusive < endDateExclusive
 
 /**
  * [this] with the selected day's entries, already in agenda order in [itemsByDay], as its lists.
