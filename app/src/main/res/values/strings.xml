@@ -957,6 +957,8 @@
     <string name="settings_date_ymd">Year–month–day</string>
     <!-- Local reminders -->
     <string name="reminder_channel_name">Care reminders</string>
+    <!-- Appointment reminder delivery content; no notes or attribution in system notifications. -->
+    <string name="appointment_reminder_with_location">%1$s · %2$s</string>
     <string name="reminder_permission_offer">Enable notifications for your appointment reminders.</string>
     <string name="reminder_permission_blocked">Notifications are blocked for oncompanion. You won\'t receive appointment reminders.</string>
     <string name="reminder_permission_channel">Care reminders are blocked in Android settings. You won\'t receive appointment reminders.</string>
@@ -988,4 +990,14 @@
     <string name="medication_reminders_summary">Reminders %1$s</string>
     <!-- What a caregiver sees of the patient's reminders: "Anne's reminders: 09:00 · 18:00…" -->
     <string name="medication_reminders_of_patient">%1$s\'s reminders: %2$s. Only %1$s can change them.</string>
+
+    <!-- A card of the "Your circle" sheet: what the care circle did for the patient (US-50, #457) -->
+    <!-- Who added it and when, e.g. "Marc · 08:05 · added" -->
+    <string name="circle_sheet_added">%1$s · %2$s · added</string>
+    <!-- The card's title when the prescription doesn't say who prescribed it -->
+    <string name="circle_sheet_prescription">Prescription</string>
+    <string name="circle_sheet_to_confirm">To confirm</string>
+    <string name="circle_sheet_confirmed">Confirmed</string>
+    <string name="circle_sheet_rejected">Rejected</string>
+    <string name="circle_sheet_see_prescription">See prescription</string>
 </resources>

@@ -1,11 +1,13 @@
 // Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
+// Co-authored-by: Codex <noreply@openai.com>
 
 package com.github.se.oncompanion.ui.symptom
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.symptom.Severity
@@ -137,9 +139,11 @@ private val PLURAL_LABELS = setOf(SymptomType.SLEEP_PROBLEMS)
  */
 @Composable
 fun SymptomEntry.strengthsInWords(): String? {
+  // French begins with the symptom label, which may be a name entered by the user.
+  val symptomFirst = LocalConfiguration.current.locales[0].language == Locale.FRENCH.language
   val phrases =
       strengthsInOrder().map { (type, strength) ->
-        val name = nameInSentence(type, otherName)
+        val name = if (symptomFirst) nameOf(type) else nameInSentence(type, otherName)
         val severity = stringResource(Severity.of(strength).label).lowercase(Locale.ENGLISH)
         stringResource(R.string.symptom_strength_in_words, severity, name)
       }
@@ -147,5 +151,6 @@ fun SymptomEntry.strengthsInWords(): String? {
   val joined = phrases.reduce { all, phrase ->
     stringResource(R.string.symptom_journal_summary, all, phrase)
   }
+  if (symptomFirst) return joined
   return joined.replaceFirstChar { it.titlecase(Locale.ENGLISH) }
 }

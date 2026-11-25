@@ -68,8 +68,8 @@
     <string name="event_detail_website_error">Impossible d’ouvrir le site de l’événement.</string>
     <string name="event_detail_website_error_can_confirm">Impossible d’ouvrir le site de l’événement. Vous pouvez toujours toucher « Je suis inscrit ».</string>
     <string name="event_detail_registration_confirmed_by_patient">%1$s a confirmé son inscription à cet événement.</string>
-    <string name="event_detail_registered_caregiver">%1$s confirme son inscription</string>
-    <string name="event_detail_website_error_can_confirm_caregiver">Impossible d’ouvrir le site de l’événement. Vous pouvez toujours toucher « %1$s confirme son inscription ».</string>
+    <string name="event_detail_registered_caregiver">Confirmer l’inscription de %1$s</string>
+    <string name="event_detail_website_error_can_confirm_caregiver">Impossible d’ouvrir le site de l’événement. Vous pouvez toujours toucher « Confirmer l’inscription de %1$s ».</string>
     <string name="event_detail_registration_note_caregiver">La confirmation est enregistrée dans le dossier de %1$s. Pour inscrire %1$s ou réserver une place, contactez l’organisateur.</string>
 
     <!-- Symptoms -->
@@ -195,7 +195,7 @@
     <string name="symptom_voice_language_french">français</string>
     <string name="symptom_voice_preparing">Préparation…</string>
     <string name="symptom_voice_online_only">Votre téléphone a besoin d’une connexion pour vous comprendre. Sans connexion, saisissez votre symptôme au clavier.</string>
-    <string name="symptom_strength_in_words">%1$s %2$s</string>
+    <string name="symptom_strength_in_words">%2$s · intensité %1$s</string>
     <string name="symptom_strength_description">Intensité %1$d sur 10, %2$s</string>
     <string name="symptom_voice_leave">Fermer</string>
     <string name="symptom_add_strength_question">Quelle est l’intensité de ce symptôme (%1$s)\u202F? (facultatif)</string>
@@ -297,7 +297,7 @@
     </plurals>
     <string name="overview_speak">Dire comment vous vous sentez</string>
     <string name="caregiver_overview_day">Journée de %1$s</string>
-    <string name="caregiver_overview_shared_only">Vous voyez ce que %1$s a choisi de partager. Seule %1$s peut modifier ces informations.</string>
+    <string name="caregiver_overview_shared_only">Vous voyez ce que %1$s a choisi de partager. Seule cette personne peut modifier ces informations.</string>
     <string name="caregiver_overview_journal">Journal</string>
     <string name="caregiver_overview_full_journal">Journal complet</string>
     <string name="caregiver_overview_journal_empty">Aucune entrée pour le moment</string>
@@ -334,6 +334,7 @@
     <string name="appointment_reminder_one_hour">1 heure avant</string>
     <string name="appointment_reminder_three_hours">3 heures avant</string>
     <string name="appointment_reminder_one_day">1 jour avant</string>
+    <string name="appointment_reminder_with_location">%1$s · %2$s</string>
     <string name="appointment_title">Titre</string>
     <string name="appointment_date">Date</string>
     <string name="appointment_time">Heure</string>
@@ -419,7 +420,7 @@
     <string name="prescription_form_retry">Réessayer</string>
     <string name="prescriptions_list_title">Mes ordonnances</string>
     <string name="prescriptions_back">Retour</string>
-    <string name="prescriptions_enter_manually">Saisir à la main</string>
+    <string name="prescriptions_enter_manually">Saisir manuellement</string>
     <string name="prescriptions_this_month">Ce mois-ci</string>
     <string name="prescriptions_earlier">Plus anciennes</string>
     <string name="prescriptions_item_supporting">%1$s · %2$s</string>
@@ -479,7 +480,7 @@
     <string name="prescriptions_list_title_for">Ordonnances de %1$s</string>
     <string name="prescriptions_empty_hint_for">Les ordonnances enregistrées par %1$s apparaîtront ici.</string>
     <string name="prescriptions_error_title_for">Impossible de charger les ordonnances de %1$s</string>
-    <string name="prescriptions_added_by_a_caregiver">Ajoutée par un proche aidant</string>
+    <string name="prescriptions_added_by_a_caregiver">Ajoutées par un proche aidant</string>
     <string name="prescriptions_added_by_you">Ajoutées par vous</string>
     <string name="prescriptions_waiting_for">En attente de %1$s</string>
     <string name="prescriptions_accepted_by">Acceptée par %1$s</string>
@@ -509,7 +510,7 @@
     <string name="prescription_form_medications_heading">Médicaments (%1$d)</string>
     <string name="prescription_form_add_title_for">Ajouter une ordonnance pour %1$s</string>
     <string name="prescription_already_saved_title_for">Déjà dans les ordonnances de %1$s</string>
-    <string name="added_by_not_confirmed">Ajouté par %1$s · Non confirmé</string>
+    <string name="added_by_not_confirmed">Ajout de %1$s · À confirmer</string>
 
     <!-- Prescription scanning -->
     <string name="prescription_scan_title">Scanner une ordonnance</string>
@@ -602,7 +603,7 @@
     <string name="medication_reminders_picker_confirm">OK</string>
     <string name="medication_reminders_picker_cancel">Annuler</string>
     <string name="medication_reminders_summary">Rappels\u00A0: %1$s</string>
-    <string name="medication_reminders_of_patient">Rappels de %1$s\u00A0: %2$s. Seul %1$s peut les modifier.</string>
+    <string name="medication_reminders_of_patient">Rappels de %1$s\u00A0: %2$s. Seule cette personne peut les modifier.</string>
 
     <!-- Account and profile -->
     <string name="app_name">oncompanion</string>
@@ -876,4 +877,12 @@
     <string name="settings_text_size">Taille du texte</string>
     <string name="settings_text_size_percent">%1$d%% · Réglage du téléphone</string>
     <string name="settings_text_size_unavailable">Impossible d’ouvrir les réglages de taille du texte du téléphone.</string>
+
+    <!-- Circle notifications -->
+    <string name="circle_sheet_added">%1$s · %2$s · Ajout</string>
+    <string name="circle_sheet_prescription">Ordonnance</string>
+    <string name="circle_sheet_to_confirm">À confirmer</string>
+    <string name="circle_sheet_confirmed">Confirmée</string>
+    <string name="circle_sheet_rejected">Refusée</string>
+    <string name="circle_sheet_see_prescription">Voir l’ordonnance</string>
 </resources>
