@@ -47,11 +47,11 @@ import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.assertSameColor
 import com.github.se.oncompanion.ui.colorAt
+import com.github.se.oncompanion.ui.common.TodayMedication
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.overview.NextUp
 import com.github.se.oncompanion.ui.overview.OverviewShortcut
 import com.github.se.oncompanion.ui.overview.TodayItemKind
-import com.github.se.oncompanion.ui.overview.TodayMedication
 import com.github.se.oncompanion.ui.overview.caregiver.SectionVisibility.PRIVATE
 import com.github.se.oncompanion.ui.overview.caregiver.SectionVisibility.SHOWN
 import com.github.se.oncompanion.ui.theme.OncompanionTheme

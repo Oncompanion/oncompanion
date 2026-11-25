@@ -1,6 +1,6 @@
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
-package com.github.se.oncompanion.ui.overview
+package com.github.se.oncompanion.ui.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -40,26 +40,25 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
-import com.github.se.oncompanion.ui.common.LakeButton
-import com.github.se.oncompanion.ui.common.LakeButtonDefaults
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.lakeColors
 import kotlinx.coroutines.launch
 
 /**
  * The sheet where the patient corrects how many doses of a medication taken several times a day
- * they took today (Figma M3, Overview: "Medications · sheet"). − and + change the count shown, and
- * only Done saves it: swiping the sheet down, Back or a tap outside closes it without saving.
+ * they took today (Figma M3, Overview: "Medications · sheet"), on any screen where the patient
+ * ticks their doses. − and + change the count shown, and only Done saves it: swiping the sheet
+ * down, Back or a tap outside closes it without saving.
  *
  * @param sheet the medication and the count set so far
- * @param onLess one dose fewer, see [OverviewViewModel.lessDoses]
- * @param onMore one dose more, see [OverviewViewModel.moreDoses]
+ * @param onLess one dose fewer, see [DosesSheet.withDraftChangedBy]
+ * @param onMore one dose more, see [DosesSheet.withDraftChangedBy]
  * @param onDone saves the count and closes the sheet, once it has slid away
  * @param onClose closes it without saving
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun OverviewDosesSheet(
+internal fun MedicationDosesSheet(
     sheet: DosesSheet,
     onLess: () -> Unit,
     onMore: () -> Unit,

@@ -196,7 +196,7 @@
     {
       "id": "scan",
       "type": "rectangle",
-      "x": 1290,
+      "x": 1560,
       "y": 20,
       "width": 240,
       "height": 100,
@@ -213,9 +213,9 @@
       "roundness": {
         "type": 3
       },
-      "seed": 2056767044,
-      "version": 1,
-      "versionNonce": 665600859,
+      "seed": 1534240598,
+      "version": 2,
+      "versionNonce": 1866658352,
       "isDeleted": false,
       "boundElements": [
         {
@@ -223,14 +223,14 @@
           "id": "scan_t"
         }
       ],
-      "updated": 1794000000000,
+      "updated": 1795500000000,
       "link": null,
       "locked": false
     },
     {
       "id": "scan_t",
       "type": "text",
-      "x": 1302.475,
+      "x": 1572.475,
       "y": 38.125,
       "width": 215.05,
       "height": 63.75,
@@ -245,12 +245,12 @@
       "groupIds": [],
       "frameId": null,
       "roundness": null,
-      "seed": 386977620,
-      "version": 1,
-      "versionNonce": 285680178,
+      "seed": 1135104409,
+      "version": 2,
+      "versionNonce": 652202999,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1794000000000,
+      "updated": 1795500000000,
       "link": null,
       "locked": false,
       "text": "ScanScreen\ntakes and reads a photo\n(camera: CameraX)",
@@ -291,6 +291,10 @@
         {
           "type": "text",
           "id": "intake_t"
+        },
+        {
+          "type": "arrow",
+          "id": "intake_dose_ticks"
         }
       ],
       "updated": 1794000000000,
@@ -480,7 +484,7 @@
     {
       "id": "draft",
       "type": "rectangle",
-      "x": 1290,
+      "x": 1560,
       "y": 200,
       "width": 240,
       "height": 100,
@@ -497,9 +501,9 @@
       "roundness": {
         "type": 3
       },
-      "seed": 1330795425,
-      "version": 1,
-      "versionNonce": 1243997287,
+      "seed": 760708539,
+      "version": 2,
+      "versionNonce": 1667939455,
       "isDeleted": false,
       "boundElements": [
         {
@@ -507,14 +511,14 @@
           "id": "draft_t"
         }
       ],
-      "updated": 1794000000000,
+      "updated": 1795500000000,
       "link": null,
       "locked": false
     },
     {
       "id": "draft_t",
       "type": "text",
-      "x": 1293.125,
+      "x": 1563.125,
       "y": 218.125,
       "width": 233.75000000000003,
       "height": 63.75,
@@ -529,12 +533,12 @@
       "groupIds": [],
       "frameId": null,
       "roundness": null,
-      "seed": 1599416180,
-      "version": 1,
-      "versionNonce": 372452043,
+      "seed": 2072541554,
+      "version": 2,
+      "versionNonce": 603975191,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1794000000000,
+      "updated": 1795500000000,
       "link": null,
       "locked": false,
       "text": "DraftPrescriptionFromScan\nOCR → draft, the user\nconfirms it in the form",
@@ -760,7 +764,7 @@
     {
       "id": "reader",
       "type": "rectangle",
-      "x": 1290,
+      "x": 1560,
       "y": 380,
       "width": 240,
       "height": 100,
@@ -777,9 +781,9 @@
       "roundness": {
         "type": 3
       },
-      "seed": 1851315659,
-      "version": 1,
-      "versionNonce": 1938629691,
+      "seed": 1153242001,
+      "version": 2,
+      "versionNonce": 777263937,
       "isDeleted": false,
       "boundElements": [
         {
@@ -787,14 +791,14 @@
           "id": "reader_t"
         }
       ],
-      "updated": 1794000000000,
+      "updated": 1795500000000,
       "link": null,
       "locked": false
     },
     {
       "id": "reader_t",
       "type": "text",
-      "x": 1288.45,
+      "x": 1558.45,
       "y": 387.5,
       "width": 243.10000000000002,
       "height": 85.0,
@@ -809,12 +813,12 @@
       "groupIds": [],
       "frameId": null,
       "roundness": null,
-      "seed": 692866724,
-      "version": 2,
-      "versionNonce": 1001694577,
+      "seed": 246688407,
+      "version": 3,
+      "versionNonce": 1231432787,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1794000000000,
+      "updated": 1795500000000,
       "link": null,
       "locked": false,
       "text": "TextRecognizer\nScanPhotoStore (app cache,\nnever uploaded)\nScanTipSettings",
@@ -855,6 +859,10 @@
         {
           "type": "text",
           "id": "intakes_t"
+        },
+        {
+          "type": "arrow",
+          "id": "dose_ticks_intakes"
         }
       ],
       "updated": 1794000000000,
@@ -1044,7 +1052,7 @@
     {
       "id": "sdks",
       "type": "rectangle",
-      "x": 1290,
+      "x": 1560,
       "y": 560,
       "width": 240,
       "height": 100,
@@ -1061,9 +1069,9 @@
       "roundness": {
         "type": 3
       },
-      "seed": 1772939540,
-      "version": 1,
-      "versionNonce": 870463669,
+      "seed": 1583992908,
+      "version": 2,
+      "versionNonce": 222705161,
       "isDeleted": false,
       "boundElements": [
         {
@@ -1071,14 +1079,14 @@
           "id": "sdks_t"
         }
       ],
-      "updated": 1794000000000,
+      "updated": 1795500000000,
       "link": null,
       "locked": false
     },
     {
       "id": "sdks_t",
       "type": "text",
-      "x": 1330.8,
+      "x": 1600.8,
       "y": 587.5,
       "width": 158.4,
       "height": 45.0,
@@ -1093,12 +1101,12 @@
       "groupIds": [],
       "frameId": null,
       "roundness": null,
-      "seed": 1894733234,
-      "version": 2,
-      "versionNonce": 1186720233,
+      "seed": 785178052,
+      "version": 3,
+      "versionNonce": 1569329351,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1794000000000,
+      "updated": 1795500000000,
       "link": null,
       "locked": false,
       "text": "ML Kit · CameraX\nSharedPreferences",
@@ -1374,7 +1382,7 @@
     {
       "id": "scan_draft",
       "type": "arrow",
-      "x": 1410.0,
+      "x": 1680.0,
       "y": 120,
       "width": 0.0,
       "height": 80,
@@ -1391,12 +1399,12 @@
       "roundness": {
         "type": 2
       },
-      "seed": 1019699007,
-      "version": 1,
-      "versionNonce": 524610514,
+      "seed": 1277767249,
+      "version": 2,
+      "versionNonce": 652252316,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1794000000000,
+      "updated": 1795500000000,
       "link": null,
       "locked": false,
       "points": [
@@ -1426,7 +1434,7 @@
     {
       "id": "draft_reader",
       "type": "arrow",
-      "x": 1410.0,
+      "x": 1680.0,
       "y": 300,
       "width": 0.0,
       "height": 80,
@@ -1443,12 +1451,12 @@
       "roundness": {
         "type": 2
       },
-      "seed": 1421921897,
-      "version": 1,
-      "versionNonce": 762527182,
+      "seed": 42326064,
+      "version": 2,
+      "versionNonce": 907634580,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1794000000000,
+      "updated": 1795500000000,
       "link": null,
       "locked": false,
       "points": [
@@ -1634,7 +1642,7 @@
     {
       "id": "reader_sdks",
       "type": "arrow",
-      "x": 1410.0,
+      "x": 1680.0,
       "y": 480,
       "width": 0.0,
       "height": 80,
@@ -1651,12 +1659,12 @@
       "roundness": {
         "type": 2
       },
-      "seed": 1241230391,
-      "version": 1,
-      "versionNonce": 1381588400,
+      "seed": 1922420888,
+      "version": 2,
+      "versionNonce": 1345756365,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1794000000000,
+      "updated": 1795500000000,
       "link": null,
       "locked": false,
       "points": [
@@ -2013,7 +2021,7 @@
       "x": 20,
       "y": 700,
       "width": 1804,
-      "height": 270.0,
+      "height": 292.5,
       "angle": 0,
       "strokeColor": "#495057",
       "backgroundColor": "transparent",
@@ -2026,15 +2034,15 @@
       "frameId": null,
       "roundness": null,
       "seed": 254861318,
-      "version": 6,
+      "version": 7,
       "versionNonce": 267186447,
       "isDeleted": false,
       "boundElements": [],
       "updated": 1794000000000,
       "link": null,
       "locked": false,
-      "text": "Nothing drafted from a scan is saved until the user confirms it in the prescription form. ManageMedicationSchedule is the only way\nmedications are written, so reminders can follow them later (see Reminders). A caregiver allowed to adds one from the same form (US-43),\nsigned with their first name: it shows as not confirmed, and observeMedications (what reminders read) leaves it out until the patient confirms it; one they reject moves apart, for the caregiver who added it only.\nUS-28: DoseCount reads how many doses a day a frequency says, and none when it's taken only if needed, up to a maximum, less than daily or unclear;\nTakenDosesRepository keeps one count per medication per day, written by the patient only; the Overview shows a bar per medication and saves the ticks (#546).\nUS-35: MedicationDetailScreen reads one prescription through ObserveCareSection, then opens PrescriptionDetailScreen.\nUS-46 data: caregiver updates omit confirmation to preserve concurrent patient decisions; patient updates confirm pending entries.\nUS-46 UI: existing detail actions and form use canEditEntries; EditedBy names the editor, and deletion asks whose prescription is removed.\nUS-50: ManageMedicationSchedule notifies the patient when a caregiver adds a prescription (#458); the patient's decision will notify that caregiver (planned, #459).\nUS-72: a prescription can carry an optional note (planned): one more field of the prescription, no new class.\nPrescription, medication detail and camera-off messages use the shared scrollable MessageArea.\nUS-32: the patient chooses each medication's reminder times in the prescription form; they are stored in its prescription (a map by medication), never by a caregiver.",
-      "originalText": "Nothing drafted from a scan is saved until the user confirms it in the prescription form. ManageMedicationSchedule is the only way\nmedications are written, so reminders can follow them later (see Reminders). A caregiver allowed to adds one from the same form (US-43),\nsigned with their first name: it shows as not confirmed, and observeMedications (what reminders read) leaves it out until the patient confirms it; one they reject moves apart, for the caregiver who added it only.\nUS-28: DoseCount reads how many doses a day a frequency says, and none when it's taken only if needed, up to a maximum, less than daily or unclear;\nTakenDosesRepository keeps one count per medication per day, written by the patient only; the Overview shows a bar per medication and saves the ticks (#546).\nUS-35: MedicationDetailScreen reads one prescription through ObserveCareSection, then opens PrescriptionDetailScreen.\nUS-46 data: caregiver updates omit confirmation to preserve concurrent patient decisions; patient updates confirm pending entries.\nUS-46 UI: existing detail actions and form use canEditEntries; EditedBy names the editor, and deletion asks whose prescription is removed.\nUS-50: ManageMedicationSchedule notifies the patient when a caregiver adds a prescription (#458); the patient's decision will notify that caregiver (planned, #459).\nUS-72: a prescription can carry an optional note (planned): one more field of the prescription, no new class.\nPrescription, medication detail and camera-off messages use the shared scrollable MessageArea.\nUS-32: the patient chooses each medication's reminder times in the prescription form; they are stored in its prescription (a map by medication), never by a caregiver.",
+      "text": "Nothing drafted from a scan is saved until the user confirms it in the prescription form. ManageMedicationSchedule is the only way\nmedications are written, so reminders can follow them later (see Reminders). A caregiver allowed to adds one from the same form (US-43),\nsigned with their first name: it shows as not confirmed, and observeMedications (what reminders read) leaves it out until the patient confirms it; one they reject moves apart, for the caregiver who added it only.\nUS-28: DoseCount reads how many doses a day a frequency says, and none when it's taken only if needed, up to a maximum, less than daily or unclear;\nTakenDosesRepository keeps one count per medication per day, written by the patient only; the Overview shows a bar per medication and saves the ticks (#546).\nDoseTicks, the dose row and its sheet (ui/common) hold the tick rules once, for every screen where the patient ticks doses (#349).\nUS-35: MedicationDetailScreen reads one prescription through ObserveCareSection, then opens PrescriptionDetailScreen.\nUS-46 data: caregiver updates omit confirmation to preserve concurrent patient decisions; patient updates confirm pending entries.\nUS-46 UI: existing detail actions and form use canEditEntries; EditedBy names the editor, and deletion asks whose prescription is removed.\nUS-50: ManageMedicationSchedule notifies the patient when a caregiver adds a prescription (#458); the patient's decision will notify that caregiver (planned, #459).\nUS-72: a prescription can carry an optional note (planned): one more field of the prescription, no new class.\nPrescription, medication detail and camera-off messages use the shared scrollable MessageArea.\nUS-32: the patient chooses each medication's reminder times in the prescription form; they are stored in its prescription (a map by medication), never by a caregiver.",
+      "originalText": "Nothing drafted from a scan is saved until the user confirms it in the prescription form. ManageMedicationSchedule is the only way\nmedications are written, so reminders can follow them later (see Reminders). A caregiver allowed to adds one from the same form (US-43),\nsigned with their first name: it shows as not confirmed, and observeMedications (what reminders read) leaves it out until the patient confirms it; one they reject moves apart, for the caregiver who added it only.\nUS-28: DoseCount reads how many doses a day a frequency says, and none when it's taken only if needed, up to a maximum, less than daily or unclear;\nTakenDosesRepository keeps one count per medication per day, written by the patient only; the Overview shows a bar per medication and saves the ticks (#546).\nDoseTicks, the dose row and its sheet (ui/common) hold the tick rules once, for every screen where the patient ticks doses (#349).\nUS-35: MedicationDetailScreen reads one prescription through ObserveCareSection, then opens PrescriptionDetailScreen.\nUS-46 data: caregiver updates omit confirmation to preserve concurrent patient decisions; patient updates confirm pending entries.\nUS-46 UI: existing detail actions and form use canEditEntries; EditedBy names the editor, and deletion asks whose prescription is removed.\nUS-50: ManageMedicationSchedule notifies the patient when a caregiver adds a prescription (#458); the patient's decision will notify that caregiver (planned, #459).\nUS-72: a prescription can carry an optional note (planned): one more field of the prescription, no new class.\nPrescription, medication detail and camera-off messages use the shared scrollable MessageArea.\nUS-32: the patient chooses each medication's reminder times in the prescription form; they are stored in its prescription (a map by medication), never by a caregiver.",
       "fontSize": 18,
       "fontFamily": 2,
       "textAlign": "left",
@@ -2389,6 +2397,324 @@
       },
       "endBinding": {
         "elementId": "notifications",
+        "focus": 0,
+        "gap": 4
+      }
+    },
+    {
+      "id": "planning_ticks",
+      "type": "rectangle",
+      "x": 1290,
+      "y": 20,
+      "width": 240,
+      "height": 100,
+      "angle": 0,
+      "strokeColor": "#868e96",
+      "backgroundColor": "#ffffff",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "seed": 874645341,
+      "version": 3,
+      "versionNonce": 1854103625,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "planning_ticks_t"
+        },
+        {
+          "type": "arrow",
+          "id": "planning_dose_ticks"
+        }
+      ],
+      "updated": 1795500000000,
+      "link": null,
+      "locked": false
+    },
+    {
+      "id": "planning_ticks_t",
+      "type": "text",
+      "x": 1300,
+      "y": 32.5,
+      "width": 220,
+      "height": 75,
+      "angle": 0,
+      "strokeColor": "#868e96",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 1699836871,
+      "version": 4,
+      "versionNonce": 1717413128,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1795500000000,
+      "link": null,
+      "locked": false,
+      "text": "PlanningScreen\nticks today's doses\n(#349, planned)",
+      "originalText": "PlanningScreen\nticks today's doses\n(#349, planned)",
+      "fontSize": 18,
+      "fontFamily": 2,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "planning_ticks",
+      "lineHeight": 1.25,
+      "autoResize": true
+    },
+    {
+      "id": "dose_ticks",
+      "type": "rectangle",
+      "x": 1290,
+      "y": 200,
+      "width": 240,
+      "height": 100,
+      "angle": 0,
+      "strokeColor": "#7048e8",
+      "backgroundColor": "#e5dbff",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "seed": 666620971,
+      "version": 2,
+      "versionNonce": 1391848450,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "dose_ticks_t"
+        },
+        {
+          "type": "arrow",
+          "id": "intake_dose_ticks"
+        },
+        {
+          "type": "arrow",
+          "id": "dose_ticks_intakes"
+        },
+        {
+          "type": "arrow",
+          "id": "planning_dose_ticks"
+        }
+      ],
+      "updated": 1795500000000,
+      "link": null,
+      "locked": false
+    },
+    {
+      "id": "dose_ticks_t",
+      "type": "text",
+      "x": 1300,
+      "y": 212.5,
+      "width": 220,
+      "height": 75,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 1432050465,
+      "version": 4,
+      "versionNonce": 717529005,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1795500000000,
+      "link": null,
+      "locked": false,
+      "text": "DoseTicks (ui/common):\nUI helper, not a use case;\nticks and the doses sheet",
+      "originalText": "DoseTicks (ui/common):\nUI helper, not a use case;\nticks and the doses sheet",
+      "fontSize": 17,
+      "fontFamily": 2,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "dose_ticks",
+      "lineHeight": 1.25,
+      "autoResize": true
+    },
+    {
+      "id": "intake_dose_ticks",
+      "type": "arrow",
+      "x": 1250,
+      "y": 120,
+      "width": 100,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#868e96",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 522976296,
+      "version": 3,
+      "versionNonce": 315561198,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1795500000000,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ],
+        [
+          100,
+          40
+        ],
+        [
+          100,
+          80
+        ]
+      ],
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "intake",
+        "focus": 0,
+        "gap": 4
+      },
+      "endBinding": {
+        "elementId": "dose_ticks",
+        "focus": 0,
+        "gap": 4
+      }
+    },
+    {
+      "id": "dose_ticks_intakes",
+      "type": "arrow",
+      "x": 1330,
+      "y": 300,
+      "width": 66,
+      "height": 130,
+      "angle": 0,
+      "strokeColor": "#868e96",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 1758256503,
+      "version": 3,
+      "versionNonce": 1835775489,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1795500000000,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          130
+        ],
+        [
+          -66,
+          130
+        ]
+      ],
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "dose_ticks",
+        "focus": 0,
+        "gap": 4
+      },
+      "endBinding": {
+        "elementId": "intakes",
+        "focus": 0,
+        "gap": 4
+      }
+    },
+    {
+      "id": "planning_dose_ticks",
+      "type": "arrow",
+      "x": 1470,
+      "y": 120,
+      "width": 0,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#868e96",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "dotted",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 603678722,
+      "version": 4,
+      "versionNonce": 1440894172,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1795500000000,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          80
+        ]
+      ],
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "planning_ticks",
+        "focus": 0,
+        "gap": 4
+      },
+      "endBinding": {
+        "elementId": "dose_ticks",
         "focus": 0,
         "gap": 4
       }

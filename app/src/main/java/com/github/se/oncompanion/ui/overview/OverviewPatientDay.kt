@@ -13,10 +13,10 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -28,14 +28,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
+import com.github.se.oncompanion.ui.common.DoseActions
+import com.github.se.oncompanion.ui.common.MedicationRow
+import com.github.se.oncompanion.ui.common.TodayMedication
 import com.github.se.oncompanion.ui.theme.Spacing
-import com.github.se.oncompanion.ui.theme.cardChip
 import com.github.se.oncompanion.ui.theme.cardDetail
 import com.github.se.oncompanion.ui.theme.cardEyebrow
 import com.github.se.oncompanion.ui.theme.cardTitle
@@ -315,6 +318,35 @@ private fun medicationsTitle(count: Int, withCount: Boolean, readOnly: Boolean):
     }
 
 /**
+ * "2 more ›" under the list, opening where every medication of the day is listed: Planning for the
+ * patient, the prescriptions for a caregiver. It looks like the card's link and keeps a 48 dp touch
+ * target.
+ */
+@Composable
+internal fun MoreLink(count: Int, onOpen: () -> Unit) {
+  Row(
+      Modifier.heightIn(min = LINK_HEIGHT)
+          .clip(MaterialTheme.shapes.medium)
+          .clickable(role = Role.Button, onClick = onOpen)
+          .testTag(C.Tag.overview_more_medications),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(Spacing.xxs),
+  ) {
+    Text(
+        pluralStringResource(R.plurals.overview_more_medications, count, count),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.lakeColors.primaryText,
+    )
+    Icon(
+        painterResource(R.drawable.ic_chevron_right),
+        contentDescription = null,
+        tint = MaterialTheme.lakeColors.primaryText,
+        modifier = Modifier.size(CHEVRON_SIZE),
+    )
+  }
+}
+
+/**
  * "Planning ›" at the top of the Next up and medications cards, so Planning is one tap away from
  * either, or "Full journal ›" on the caregiver's journal card. It keeps the Figma's 20 dp row:
  * Compose extends the touch target of a smaller clickable to 48 dp.
@@ -338,19 +370,6 @@ internal fun CardLink(label: String, onClick: () -> Unit, modifier: Modifier) {
         modifier = Modifier.size(CHEVRON_SIZE),
     )
   }
-}
-
-/** The recorded frequency ("Twice a day"), as a neutral chip. */
-@Composable
-internal fun FrequencyChip(text: String) {
-  Text(
-      text,
-      style = MaterialTheme.typography.cardChip,
-      color = MaterialTheme.colorScheme.onSurface,
-      modifier =
-          Modifier.background(MaterialTheme.lakeColors.stone.chip, CHIP_SHAPE)
-              .padding(horizontal = Spacing.md, vertical = Spacing.xs),
-  )
 }
 
 /**
@@ -409,6 +428,3 @@ internal val CHEVRON_SIZE = 18.dp
 
 /** A link or pill stays a 48 dp touch target, even where it looks smaller. */
 internal val LINK_HEIGHT = 48.dp
-
-/** The Figma's frequency chip: 14 dp corners. */
-private val CHIP_SHAPE = RoundedCornerShape(14.dp)

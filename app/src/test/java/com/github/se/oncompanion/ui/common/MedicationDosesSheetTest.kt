@@ -1,6 +1,6 @@
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
-package com.github.se.oncompanion.ui.overview
+package com.github.se.oncompanion.ui.common
 
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -41,6 +41,8 @@ import com.github.se.oncompanion.ui.SMALL_LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.navigation.NavigationActions
+import com.github.se.oncompanion.ui.overview.OverviewScreen
+import com.github.se.oncompanion.ui.overview.OverviewViewModel
 import java.time.Clock
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -51,8 +53,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
+/**
+ * The doses sheet shared by the screens where the patient ticks doses. The rotation tests open it
+ * from the Overview, the first screen that uses it.
+ */
 @RunWith(AndroidJUnit4::class)
-class OverviewDosesSheetTest {
+class MedicationDosesSheetTest {
 
   // An activity rule, so the phone can be rotated (the activity recreated)
   @get:Rule val composeTestRule = createAndroidComposeRule<ComponentActivity>()
@@ -76,7 +82,7 @@ class OverviewDosesSheetTest {
   private fun showSheet(draft: Int, medication: TodayMedication = ondansetron, doses: Int = 3) {
     composeTestRule.runOnUiThread {
       composeTestRule.activity.setContent {
-        OverviewDosesSheet(
+        MedicationDosesSheet(
             DosesSheet(medication, doses = doses, draft = draft),
             onLess = { calls += "less" },
             onMore = { calls += "more" },

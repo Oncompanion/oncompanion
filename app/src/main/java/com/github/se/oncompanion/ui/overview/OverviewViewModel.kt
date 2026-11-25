@@ -8,7 +8,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.oncompanion.domain.carecircle.CareAccess
 import com.github.se.oncompanion.domain.carecircle.ResolveCareCircleAccess
-import com.github.se.oncompanion.domain.medication.DailyDoses
 import com.github.se.oncompanion.domain.planning.CarePlanning
 import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
 import com.github.se.oncompanion.model.auth.AuthRepository
@@ -24,8 +23,11 @@ import com.github.se.oncompanion.model.speech.SpeechRecognizer
 import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
 import com.github.se.oncompanion.model.user.UserProfileRepository
 import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
+import com.github.se.oncompanion.ui.common.DoseTicks
+import com.github.se.oncompanion.ui.common.DosesSheet
+import com.github.se.oncompanion.ui.common.TodayMedication
+import com.github.se.oncompanion.ui.common.todayMedicationsOf
 import java.time.Clock
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
@@ -113,43 +115,6 @@ data class NextUp(
 )
 
 /**
- * One of the medications to take today, on the patient's "Today's medications" card, with the doses
- * they ticked (US-28).
- *
- * @property key identifies it, the same as in Planning
- * @property medicationId the [com.github.se.oncompanion.model.medication.Medication] it is, under
- *   which its doses are saved
- * @property name its name and dosage (e.g. "Ondansetron 8 mg")
- * @property frequency the frequency recorded on the prescription, if any
- * @property dailyDoses [frequency] as the card says it in its own words ("Once a day" for "1-0-0"),
- *   or `null` to show it as written
- * @property dosesPerDay how many doses can be ticked today, read from [frequency]; `null` when
- *   there is nothing to tick (taken only if needed, a frequency that doesn't say a number) or
- *   today's ticks couldn't be read
- * @property taken how many of them the patient ticked today, from 0 to [dosesPerDay]
- */
-data class TodayMedication(
-    val key: String,
-    val medicationId: String,
-    val name: String,
-    val frequency: String? = null,
-    val dailyDoses: DailyDoses? = null,
-    val dosesPerDay: Int? = null,
-    val taken: Int = 0,
-)
-
-/**
- * The sheet where the patient corrects how many doses of a medication taken several times a day
- * they took today (#546). Nothing is saved until Done: a sheet closed any other way, or an app
- * stopped with it open, leaves the saved count as it was.
- *
- * @property medication the medication corrected, as the card shows it now
- * @property doses its doses a day, at least 2
- * @property draft the count the patient set with − and +, from 0 to [doses]
- */
-data class DosesSheet(val medication: TodayMedication, val doses: Int, val draft: Int)
-
-/**
  * What the Overview shows.
  *
  * @property now the current time, for the greeting, today's date and the entries' status
@@ -217,15 +182,12 @@ class OverviewViewModel(
 
   private var dayObservation: Job? = null
 
-  /** Follows the doses the patient ticked today, in patient mode. */
-  private var dosesObservation: Job? = null
-
   /**
-   * The doses ticked today by medication ID, or `null` while they are unknown (not read yet, or
-   * they couldn't be): then no medication can be ticked, since a tick saves a count and ticking
-   * from a wrong 0 would overwrite the real one.
+   * The doses the patient ticked today and the sheet correcting them, in patient mode; unknown in
+   * caregiver mode, so nothing can be ticked.
    */
-  private var takenToday: Map<String, Int>? = null
+  private val doseTicks =
+      DoseTicks(viewModelScope, takenDosesRepository, authRepository, ::refreshMedications)
 
   /** Follows which sections the patient shares, in caregiver mode. */
   private var sharedObservation: Job? = null
@@ -271,11 +233,10 @@ class OverviewViewModel(
     dayObservation?.cancel()
     val now = now()
     val today = now.toLocalDate()
-    if (patientUid != null) followSharedSections(patientUid) else followTakenDoses(today)
-    // A draft was for the day it was opened on: at midnight it would be saved on the new day. The
-    // planning's loading state also empties today's medications, which closes it, but that's not
-    // what the sheet should rely on
-    _uiState.update { it.copy(now = now, isLoading = true, hasError = false, dosesSheet = null) }
+    if (patientUid != null) followSharedSections(patientUid)
+    else doseTicks.follow(authRepository.signedInUid(TAG), today)
+    // Following the day closes the sheet: a draft was for the day it was opened on
+    _uiState.update { it.copy(now = now, isLoading = true, hasError = false) }
     val range = overviewRange(today, zoneId)
     dayObservation = viewModelScope.launch {
       observePlanning(patientUid, range)
@@ -327,136 +288,50 @@ class OverviewViewModel(
               nextUp = nextUpOf(planned, now, zoneId),
               todayEntries = entriesOf(planned, now),
           )
-          .withMedications(todayMedicationsOf(planned, now, zoneId, takenToday))
+          .withMedications(todayMedicationsOf(planned, now, zoneId, doseTicks.taken))
 
-  /**
-   * [medications] shown, and the sheet kept only while its medication is still there with several
-   * doses to tick (a caregiver can delete the prescription, or its frequency can change), its draft
-   * within the new count.
-   */
-  private fun OverviewUiState.withMedications(medications: List<TodayMedication>) =
-      copy(
-          todayMedications = medications,
-          dosesSheet =
-              dosesSheet?.let { sheet ->
-                sheetOf(
-                    medications.find { it.medicationId == sheet.medication.medicationId },
-                    sheet.draft,
-                )
-              },
-      )
-
-  /**
-   * The sheet for [medication], with [draft] (its count saved for `null`), or `null` if it can't be
-   * corrected there: unknown, nothing to tick, or taken once a day.
-   */
-  private fun sheetOf(medication: TodayMedication?, draft: Int?): DosesSheet? {
-    if (medication == null) return null
-    val doses = medication.dosesPerDay ?: return null
-    if (doses < 2) return null
-    return DosesSheet(medication, doses, draft?.coerceAtMost(doses) ?: medication.taken)
-  }
-
-  /**
-   * Follows the doses the patient ticked on [day], in patient mode. If they can't be read, nothing
-   * can be ticked until the day is loaded again (Retry, or the next day).
-   */
-  private fun followTakenDoses(day: LocalDate) {
-    dosesObservation?.cancel()
-    takenToday = null
-    val uid = authRepository.signedInUid(TAG) ?: return
-    dosesObservation = viewModelScope.launch {
-      takenDosesRepository
-          .observeDay(uid, day)
-          .catch { e ->
-            Log.w(TAG, "Couldn't read the doses taken today", e)
-            takenToday = null
-            refreshMedications()
-          }
-          .collect { taken ->
-            takenToday = taken
-            refreshMedications()
-          }
-    }
+  /** [medications] shown, with the sheet as [DoseTicks.keepSheetFor] leaves it. */
+  private fun OverviewUiState.withMedications(medications: List<TodayMedication>): OverviewUiState {
+    doseTicks.keepSheetFor(medications)
+    return copy(todayMedications = medications, dosesSheet = doseTicks.sheet)
   }
 
   private fun refreshMedications() {
     _uiState.update {
-      it.withMedications(todayMedicationsOf(items.value, it.now, zoneId, takenToday))
+      it.withMedications(todayMedicationsOf(items.value, it.now, zoneId, doseTicks.taken))
     }
   }
+
+  private fun medication(medicationId: String) =
+      _uiState.value.todayMedications.find { it.medicationId == medicationId }
 
   /**
    * The patient ticks a dose of [medicationId]: the next one, up to its doses a day, or, for a
    * medication taken once a day that is already ticked, unticks it (its button and row toggle).
    * Nothing happens for a medication without doses to tick.
    */
-  fun tickDose(medicationId: String) {
-    val medication = _uiState.value.todayMedications.find { it.medicationId == medicationId }
-    val doses = medication?.dosesPerDay ?: return
-    val count =
-        if (doses == 1) 1 - medication.taken.coerceAtMost(1)
-        else (medication.taken + 1).coerceAtMost(doses)
-    if (count != medication.taken) saveTaken(medicationId, count)
-  }
+  fun tickDose(medicationId: String) = doseTicks.tick(medication(medicationId))
 
   /**
    * Opens the sheet to correct the doses of [medicationId], from the count saved. Only for a
    * medication taken several times a day whose ticks are known: one taken once a day toggles.
    */
-  fun openDoses(medicationId: String) {
-    _uiState.update { state ->
-      val sheet = sheetOf(state.todayMedications.find { it.medicationId == medicationId }, null)
-      if (sheet == null) state else state.copy(dosesSheet = sheet)
-    }
-  }
+  fun openDoses(medicationId: String) = doseTicks.openSheet(medication(medicationId))
 
   /** One dose fewer in the sheet's draft, not below 0. */
-  fun lessDoses() = changeDraft(-1)
+  fun lessDoses() = doseTicks.lessDoses()
 
   /** One dose more in the sheet's draft, up to the doses a day. */
-  fun moreDoses() = changeDraft(1)
-
-  private fun changeDraft(by: Int) {
-    _uiState.update { state ->
-      val sheet = state.dosesSheet ?: return@update state
-      state.copy(dosesSheet = sheet.copy(draft = (sheet.draft + by).coerceIn(0, sheet.doses)))
-    }
-  }
+  fun moreDoses() = doseTicks.moreDoses()
 
   /**
-   * Done: closes the sheet and saves its draft, if it differs from the count saved now (another
-   * phone may have ticked since it opened).
+   * Done: closes the sheet and saves its draft on the day shown, if it differs from the count saved
+   * now (another phone may have ticked since it opened).
    */
-  fun saveDoses() {
-    val sheet = _uiState.value.dosesSheet ?: return
-    closeDoses()
-    if (sheet.draft != sheet.medication.taken) saveTaken(sheet.medication.medicationId, sheet.draft)
-  }
+  fun saveDoses() = doseTicks.saveSheet()
 
   /** Closes the sheet without saving: swiped down, Back, or a tap outside it. */
-  fun closeDoses() {
-    _uiState.update { it.copy(dosesSheet = null) }
-  }
-
-  /** Saves [count] doses of [medicationId] on the day shown; the repository reports a rejection. */
-  private fun saveTaken(medicationId: String, count: Int) {
-    val uid = authRepository.signedInUid(TAG) ?: return
-    val day = _uiState.value.now.toLocalDate()
-    // Shown at once, so a second quick tap builds on this one instead of saving the same count
-    // again; the day's next snapshot confirms it, or brings back the saved count if it's rejected
-    takenToday = takenToday?.plus(medicationId to count)
-    refreshMedications()
-    viewModelScope.launch {
-      try {
-        takenDosesRepository.setTaken(uid, day, medicationId, count)
-      } catch (e: CancellationException) {
-        throw e
-      } catch (e: Exception) {
-        Log.e(TAG, "Couldn't save the doses taken", e)
-      }
-    }
-  }
+  fun closeDoses() = doseTicks.closeSheet()
 
   /** The first appointment that hasn't started yet. */
   private fun nextAppointmentOf(planned: List<PlanningItem>, now: LocalDateTime): NextAppointment? =

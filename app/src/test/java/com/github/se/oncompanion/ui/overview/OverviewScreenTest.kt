@@ -76,6 +76,7 @@ import com.github.se.oncompanion.ui.assertSameColor
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.colorAt
 import com.github.se.oncompanion.ui.common.LakeButtonDefaults
+import com.github.se.oncompanion.ui.common.TodayMedication
 import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Route
