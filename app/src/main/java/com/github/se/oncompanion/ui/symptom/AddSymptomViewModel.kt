@@ -72,6 +72,8 @@ data class EditedSymptom(val entry: SymptomEntry, val date: LocalDate, val time:
  *   (optional, so logging takes as few taps as possible)
  * @property strengthOf the picked symptom the slider sets: the last one picked, or another the user
  *   chose; `null` when none is picked
+ * @property unpickedStrengths the strengths of symptoms the user unpicked, given back if they pick
+ *   them again (a mistaken tap doesn't lose a strength); never saved
  * @property intensity the single intensity of an entry logged before strengths, while it is edited:
  *   kept as it was until a symptom is given a strength, then dropped (the form says it is replaced,
  *   see [isOverallReplaced]), never copied onto the symptoms (it said how bad the whole entry
@@ -104,6 +106,7 @@ data class AddSymptomUiState(
     val types: List<SymptomType> = emptyList(),
     val strengths: Map<SymptomType, Int> = emptyMap(),
     val strengthOf: SymptomType? = null,
+    val unpickedStrengths: Map<SymptomType, Int> = emptyMap(),
     val intensity: Int? = null,
     val date: LocalDate? = null,
     val time: LocalTime? = null,
@@ -316,20 +319,32 @@ class AddSymptomViewModel(
 
   /**
    * Picks [type], so the slider asks how strong it was, or unpicks it if it is already picked: its
-   * strength goes with it, and the slider moves to the last symptom still picked.
+   * strength is put aside, not saved, and comes back if it is picked again; the slider moves to the
+   * last symptom still picked.
    */
   fun toggleType(type: SymptomType) {
     edit { state ->
       if (type in state.types) {
         val types = state.types - type
+        val strength = state.strengths[type]
         state
             .copy(
                 types = types,
                 strengthOf = state.strengthOf.takeIf { it != type } ?: types.lastOrNull(),
+                unpickedStrengths =
+                    strength?.let { state.unpickedStrengths + (type to it) }
+                        ?: state.unpickedStrengths,
             )
             .withStrengths(state.strengths - type)
       } else {
-        state.copy(types = state.types + type, strengthOf = type)
+        val strength = state.unpickedStrengths[type]
+        state
+            .copy(
+                types = state.types + type,
+                strengthOf = type,
+                unpickedStrengths = state.unpickedStrengths - type,
+            )
+            .withStrengths(strength?.let { state.strengths + (type to it) } ?: state.strengths)
       }
     }
   }

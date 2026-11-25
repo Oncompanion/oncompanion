@@ -255,7 +255,7 @@ class AddSymptomViewModelTest {
   }
 
   @Test
-  fun unpickingASymptom_dropsItsStrength_andPickingItAgainStartsEmpty() {
+  fun unpickingASymptom_putsItsStrengthAside_untilItIsPickedAgain() {
     val viewModel = viewModel()
     viewModel.toggleType(SymptomType.NAUSEA)
     viewModel.toggleType(SymptomType.PAIN)
@@ -268,9 +268,15 @@ class AddSymptomViewModelTest {
     assertEquals(mapOf(SymptomType.PAIN to 6), viewModel.state.strengths)
     assertEquals(SymptomType.PAIN, viewModel.state.strengthOf)
 
+    // A mistaken tap doesn't lose it
+    viewModel.toggleType(SymptomType.NAUSEA)
+    assertEquals(mapOf(SymptomType.PAIN to 6, SymptomType.NAUSEA to 3), viewModel.state.strengths)
+    assertEquals(SymptomType.NAUSEA, viewModel.state.strengthOf)
+    // Once given back, clearing it isn't undone by unpicking and picking it again
+    viewModel.clearStrength()
+    viewModel.toggleType(SymptomType.NAUSEA)
     viewModel.toggleType(SymptomType.NAUSEA)
     assertNull(viewModel.state.strengths[SymptomType.NAUSEA])
-    assertEquals(SymptomType.NAUSEA, viewModel.state.strengthOf)
 
     viewModel.toggleType(SymptomType.NAUSEA)
     viewModel.toggleType(SymptomType.PAIN)
