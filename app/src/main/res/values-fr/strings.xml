@@ -195,7 +195,7 @@
     <string name="symptom_voice_language_french">français</string>
     <string name="symptom_voice_preparing">Préparation…</string>
     <string name="symptom_voice_online_only">Votre téléphone a besoin d’une connexion pour vous comprendre. Sans connexion, saisissez votre symptôme au clavier.</string>
-    <string name="symptom_strength_in_words">%1$s %2$s</string>
+    <string name="symptom_strength_in_words">%2$s · intensité %1$s</string>
     <string name="symptom_strength_description">Intensité %1$d sur 10, %2$s</string>
     <string name="symptom_voice_leave">Fermer</string>
     <string name="symptom_add_strength_question">Quelle est l’intensité de ce symptôme (%1$s) ? (facultatif)</string>
