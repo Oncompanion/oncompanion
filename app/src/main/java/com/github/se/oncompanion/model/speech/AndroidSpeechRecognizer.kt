@@ -179,8 +179,10 @@ class AndroidSpeechRecognizer(
    *
    * A recognizer that fails before the patient starts speaking gets a second start when it may then
    * work. The on-device one, after an error from the phone's speech service, which can drop a
-   * session while it restarts though the language is on the phone (#675, see [checker]). It can say
-   * it is ready before failing, so only speech counts, not being ready.
+   * session while it restarts though the language is on the phone (#675, see [checker]). The
+   * phone's default one, asked to prefer offline, fails for a language it hasn't downloaded even
+   * when the phone is online: it starts again without that preference. Both can say they are ready
+   * before failing, so only speech counts, not being ready.
    */
   private fun recognition(language: SpeechLanguage, onDevice: Boolean) = callbackFlow {
     val useOnDevice = onDevice && canListenOnDevice()
@@ -200,18 +202,20 @@ class AndroidSpeechRecognizer(
     var restarted = false
     // Said once, even if the recognizer was started a second time
     var saidListening = false
+    // Offline if the phone can, until the default recognizer starts again online
+    var preferOffline = true
     lateinit var recognizer: AndroidRecognizer
     fun start(listener: RecognitionListener) {
       recognizer = newRecognizer(useOnDevice)
       listening = recognizer
       recognizer.setRecognitionListener(listener)
-      recognizer.startListening(recognizerIntent(language, appContext.packageName))
+      recognizer.startListening(recognizerIntent(language, appContext.packageName, preferOffline))
     }
     // A failure before listening that a second start can get past: a service error on the
-    // on-device recognizer
+    // on-device recognizer, or the default one missing the language offline (it may have it online)
     fun canRestart(error: Int): Boolean {
       if (spoke || restarted || stopRequested) return false
-      return useOnDevice && error in SERVICE_ERRORS
+      return if (useOnDevice) error in SERVICE_ERRORS else error in LANGUAGE_ERRORS
     }
     start(
         object : RecognitionListener {
@@ -248,9 +252,10 @@ class AndroidSpeechRecognizer(
           override fun onError(error: Int) {
             // Only Android's code, never anything the patient said: tells a phone's failures apart
             Log.w(TAG, "Listening failed with error $error (on device: $useOnDevice)")
-            // The patient hasn't spoken yet: start again
+            // The patient hasn't spoken yet: start again, online for the default recognizer
             if (canRestart(error)) {
               restarted = true
+              preferOffline = useOnDevice
               recognizer.destroy()
               start(this)
               return
@@ -310,13 +315,20 @@ class AndroidSpeechRecognizer(
           PackageManager.PERMISSION_GRANTED
 }
 
-/** What Android's recognizer is asked: free speech in [language], with text as it comes. */
-internal fun recognizerIntent(language: SpeechLanguage, packageName: String): Intent =
+/**
+ * What Android's recognizer is asked: free speech in [language], with text as it comes, without a
+ * connection if it can when [preferOffline].
+ */
+internal fun recognizerIntent(
+    language: SpeechLanguage,
+    packageName: String,
+    preferOffline: Boolean = true,
+): Intent =
     Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
       putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
       putExtra(RecognizerIntent.EXTRA_LANGUAGE, language.tag)
       putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-      putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+      putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, preferOffline)
       putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
       putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, packageName)
       // Android 13+: let the patient pause to think, and end only after a few seconds of
@@ -415,4 +427,15 @@ private val SERVICE_ERRORS =
         AndroidRecognizer.ERROR_SERVER,
         AndroidRecognizer.ERROR_SERVER_DISCONNECTED,
         AndroidRecognizer.ERROR_CLIENT,
+    )
+
+/**
+ * Android's errors for a language the recognizer can't use: the phone's default recognizer, asked
+ * to prefer offline, sends them for a language it hasn't downloaded, though it has it online.
+ */
+@SuppressLint("InlinedApi")
+private val LANGUAGE_ERRORS =
+    setOf(
+        AndroidRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED,
+        AndroidRecognizer.ERROR_LANGUAGE_UNAVAILABLE,
     )

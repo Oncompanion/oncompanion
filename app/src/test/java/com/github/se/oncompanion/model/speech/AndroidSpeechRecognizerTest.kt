@@ -645,6 +645,14 @@ class AndroidSpeechRecognizerTest {
       assertNotSame("error $error", first, second)
       assertTrue("error $error", shadowOf(first).isDestroyed)
       assertTrue("error $error", latestIsOnDevice())
+      // Still offline: the on-device recognizer needs no connection
+      assertTrue(
+          "error $error",
+          android.lastRecognizerIntent.getBooleanExtra(
+              RecognizerIntent.EXTRA_PREFER_OFFLINE,
+              false,
+          ),
+      )
       // Done reaches the recognizer listening now, not the one destroyed (Robolectric doesn't
       // record
       // stopListening(), so this checks which one stop() would reach)
@@ -672,6 +680,48 @@ class AndroidSpeechRecognizerTest {
     assertSame(second, ShadowSpeechRecognizer.getLatestSpeechRecognizer())
     assertEquals(listOf(SpeechEvent.Failed(SpeechError.FAILED)), failing.events)
     assertTrue(android.isDestroyed)
+  }
+
+  @Test
+  fun aLanguageNotDownloaded_isListenedToOnline() = runTest {
+    // Google's recognizer, asked to prefer offline, says it is ready, then fails for a language it
+    // hasn't downloaded even online: it is started again without that preference
+    val online = startListening(language = SpeechLanguage.FRENCH)
+    val first = ShadowSpeechRecognizer.getLatestSpeechRecognizer()
+    android.triggerOnReadyForSpeech(Bundle())
+    // Blank words aren't the patient speaking
+    android.triggerOnPartialResults(results("  "))
+    android.triggerOnError(AndroidRecognizer.ERROR_LANGUAGE_UNAVAILABLE)
+    shadowOf(Looper.getMainLooper()).idle()
+
+    assertNotSame(first, ShadowSpeechRecognizer.getLatestSpeechRecognizer())
+    assertTrue(shadowOf(first).isDestroyed)
+    val intent = android.lastRecognizerIntent
+    assertFalse(intent.getBooleanExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true))
+    assertEquals("fr-FR", intent.getStringExtra(RecognizerIntent.EXTRA_LANGUAGE))
+    android.triggerOnReadyForSpeech(Bundle())
+    android.triggerOnResults(results("fatigue"))
+    runCurrent()
+    assertEquals(listOf(SpeechEvent.Listening, SpeechEvent.FinalText("fatigue")), online.events)
+
+    // Started only once more: what the second one says is what the patient is told
+    val cases =
+        listOf(
+            AndroidRecognizer.ERROR_NETWORK to SpeechError.NEEDS_CONNECTION,
+            AndroidRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED to SpeechError.LANGUAGE_UNAVAILABLE,
+        )
+    for ((error, expected) in cases) {
+      val session = startListening()
+      android.triggerOnError(AndroidRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED)
+      shadowOf(Looper.getMainLooper()).idle()
+      val second = ShadowSpeechRecognizer.getLatestSpeechRecognizer()
+      android.triggerOnError(error)
+      shadowOf(Looper.getMainLooper()).idle()
+      runCurrent()
+
+      assertSame("error $error", second, ShadowSpeechRecognizer.getLatestSpeechRecognizer())
+      assertEquals("error $error", listOf(SpeechEvent.Failed(expected)), session.events)
+    }
   }
 
   @Test
@@ -733,6 +783,27 @@ class AndroidSpeechRecognizerTest {
                     onDevice = true,
                     error = AndroidRecognizer.ERROR_CLIENT,
                     expected = SpeechError.NO_SPEECH,
+                    stopped = true,
+                ),
+                Case(
+                    name = "online, once speaking",
+                    onDevice = false,
+                    error = AndroidRecognizer.ERROR_LANGUAGE_UNAVAILABLE,
+                    expected = SpeechError.LANGUAGE_UNAVAILABLE,
+                    spoke = true,
+                ),
+                Case(
+                    name = "online, once words came",
+                    onDevice = false,
+                    error = AndroidRecognizer.ERROR_LANGUAGE_UNAVAILABLE,
+                    expected = SpeechError.LANGUAGE_UNAVAILABLE,
+                    said = "tired",
+                ),
+                Case(
+                    name = "online, stopped",
+                    onDevice = false,
+                    error = AndroidRecognizer.ERROR_LANGUAGE_UNAVAILABLE,
+                    expected = SpeechError.LANGUAGE_UNAVAILABLE,
                     stopped = true,
                 ),
             )
