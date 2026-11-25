@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,6 +46,7 @@ import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeTextField
 import com.github.se.oncompanion.ui.common.SavePhase
+import com.github.se.oncompanion.ui.common.isCompactHeight
 import com.github.se.oncompanion.ui.symptom.AddSymptomUiState
 import com.github.se.oncompanion.ui.symptom.AddSymptomViewModel
 import com.github.se.oncompanion.ui.symptom.KeepNowCurrent
@@ -131,6 +133,9 @@ internal fun CheckInSheet(uiState: AddSymptomUiState, actions: CheckInActions) {
       onDismissRequest = { if (currentCanClose) actions.onClose() },
       sheetState = sheetState,
       containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+      // A phone held sideways gives the handle's room to the note and Save above the keyboard; ✕
+      // and a swipe down still close the sheet
+      dragHandle = if (isCompactHeight()) null else ({ BottomSheetDefaults.DragHandle() }),
       modifier = Modifier.testTag(C.Tag.overview_check_in_sheet),
   ) {
     CheckInSheetBody(uiState, actions, canClose)
