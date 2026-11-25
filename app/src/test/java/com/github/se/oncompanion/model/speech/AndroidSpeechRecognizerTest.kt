@@ -33,7 +33,9 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -411,12 +413,11 @@ class AndroidSpeechRecognizerTest {
       runCurrent()
 
       assertEquals("$support", expected, answer.await())
-      assertTrue("released after $support", android.isDestroyed)
     }
   }
 
   @Test
-  fun whenThePhoneCantAnswer_itIsUnknown_andTheRecognizerIsReleased() = runTest {
+  fun whenThePhoneCantAnswer_itIsUnknown() = runTest {
     ShadowSpeechRecognizer.setIsOnDeviceRecognitionAvailable(true)
     val answer = askOffline()
 
@@ -424,7 +425,57 @@ class AndroidSpeechRecognizerTest {
     runCurrent()
 
     assertEquals(OfflineSpeech.UNKNOWN, answer.await())
-    assertTrue(android.isDestroyed)
+  }
+
+  @Test
+  fun theRecognizerThatAnswered_isKeptUntilTheNextSessionIsReady() = runTest {
+    // #675: destroying it at once shut the phone's speech service down under the next session
+    ShadowSpeechRecognizer.setIsOnDeviceRecognitionAvailable(true)
+    val recognizer = AndroidSpeechRecognizer(context, UnconfinedTestDispatcher(testScheduler))
+    val installed: ShadowSpeechRecognizer.() -> Unit = {
+      triggerSupportResult(support(installed = listOf("en-US")))
+    }
+    // How the next session goes → whether the check's recognizer is released by then
+    val sessions: List<Triple<String, ShadowSpeechRecognizer.() -> Unit, Boolean>> =
+        listOf(
+            Triple("not ready yet", {}, false),
+            Triple("ready", { triggerOnReadyForSpeech(Bundle()) }, true),
+            Triple("failed", { triggerOnError(AndroidRecognizer.ERROR_AUDIO) }, true),
+            // As on the phone: dropped before the patient spoke, so started again, not ready yet
+            Triple(
+                "started again",
+                { triggerOnError(AndroidRecognizer.ERROR_SERVER_DISCONNECTED) },
+                false,
+            ),
+        )
+    for ((name, session, released) in sessions) {
+      answer(recognizer, installed)
+      val checker = android
+      assertFalse("$name: kept after answering", checker.isDestroyed)
+
+      val listening = startListening(recognizer = recognizer, onDevice = true)
+      android.session()
+      shadowOf(Looper.getMainLooper()).idle()
+      runCurrent()
+
+      assertEquals("$name: released", released, checker.isDestroyed)
+      // Still listening: whichever recognizer listens now releases it once ready
+      if (!released) {
+        android.triggerOnReadyForSpeech(Bundle())
+        assertTrue("$name: released once ready", checker.isDestroyed)
+      }
+      listening.job.cancel()
+      runCurrent()
+    }
+
+    // Not listened with, even when the phone couldn't answer: released by the next check, which
+    // keeps its own
+    answer(recognizer) { triggerSupportError(AndroidRecognizer.ERROR_SERVER) }
+    val unused = android
+    assertFalse(unused.isDestroyed)
+    answer(recognizer, installed)
+    assertTrue(unused.isDestroyed)
+    assertFalse(android.isDestroyed)
   }
 
   @Test
@@ -568,6 +619,151 @@ class AndroidSpeechRecognizerTest {
   }
 
   @Test
+  fun onDevice_aServiceErrorBeforeThePatientSpeaks_startsItOnceMore() = runTest {
+    // #675: the phone's speech service drops the on-device session before the patient spoke
+    ShadowSpeechRecognizer.setIsOnDeviceRecognitionAvailable(true)
+    val serviceErrors =
+        listOf(
+            AndroidRecognizer.ERROR_NETWORK,
+            AndroidRecognizer.ERROR_NETWORK_TIMEOUT,
+            AndroidRecognizer.ERROR_SERVER,
+            AndroidRecognizer.ERROR_SERVER_DISCONNECTED,
+            AndroidRecognizer.ERROR_CLIENT,
+        )
+    for (error in serviceErrors) {
+      val recognizer = AndroidSpeechRecognizer(context, UnconfinedTestDispatcher(testScheduler))
+      val retried = startListening(recognizer = recognizer, onDevice = true)
+      val first = ShadowSpeechRecognizer.getLatestSpeechRecognizer()
+      // Ready, then failing before the patient spoke
+      android.triggerOnReadyForSpeech(Bundle())
+      android.triggerOnError(error)
+      shadowOf(Looper.getMainLooper()).idle()
+
+      // A new on-device recognizer listens, and the patient sees neither the failure nor a second
+      // start
+      val second = ShadowSpeechRecognizer.getLatestSpeechRecognizer()
+      assertNotSame("error $error", first, second)
+      assertTrue("error $error", shadowOf(first).isDestroyed)
+      assertTrue("error $error", latestIsOnDevice())
+      // Done reaches the recognizer listening now, not the one destroyed (Robolectric doesn't
+      // record
+      // stopListening(), so this checks which one stop() would reach)
+      assertSame("error $error", second, ReflectionHelpers.getField(recognizer, "listening"))
+      android.triggerOnReadyForSpeech(Bundle())
+      android.triggerOnResults(results("tired"))
+      runCurrent()
+      assertEquals(
+          "error $error",
+          listOf(SpeechEvent.Listening, SpeechEvent.FinalText("tired")),
+          retried.events,
+      )
+      assertTrue("error $error", android.isDestroyed)
+    }
+
+    // Started only once more: a second failure is reported, as a failure, not as a missing
+    // connection, which the on-device recognizer doesn't need
+    val failing = startListening(onDevice = true)
+    android.triggerOnError(AndroidRecognizer.ERROR_SERVER)
+    shadowOf(Looper.getMainLooper()).idle()
+    val second = ShadowSpeechRecognizer.getLatestSpeechRecognizer()
+    android.triggerOnError(AndroidRecognizer.ERROR_SERVER)
+    shadowOf(Looper.getMainLooper()).idle()
+    runCurrent()
+    assertSame(second, ShadowSpeechRecognizer.getLatestSpeechRecognizer())
+    assertEquals(listOf(SpeechEvent.Failed(SpeechError.FAILED)), failing.events)
+    assertTrue(android.isDestroyed)
+  }
+
+  @Test
+  fun otherFailures_endListeningWithoutStartingAgain() = runTest {
+    ShadowSpeechRecognizer.setIsOnDeviceRecognitionAvailable(true)
+    // What happened before the error, the error → what the patient is told
+    data class Case(
+        val name: String,
+        val onDevice: Boolean,
+        val error: Int,
+        val expected: SpeechError,
+        val spoke: Boolean = false,
+        val said: String? = null,
+        val stopped: Boolean = false,
+    )
+    // Errors that don't come from the phone's speech service: starting again wouldn't help
+    val notTheService =
+        listOf(
+            AndroidRecognizer.ERROR_NO_MATCH,
+            AndroidRecognizer.ERROR_SPEECH_TIMEOUT,
+            AndroidRecognizer.ERROR_RECOGNIZER_BUSY,
+            AndroidRecognizer.ERROR_AUDIO,
+            AndroidRecognizer.ERROR_INSUFFICIENT_PERMISSIONS,
+            AndroidRecognizer.ERROR_LANGUAGE_UNAVAILABLE,
+            AndroidRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED,
+        )
+    val cases =
+        notTheService.map {
+          Case(
+              name = "on device, error $it",
+              onDevice = true,
+              error = it,
+              expected = speechErrorOf(it, onDevice = true),
+          )
+        } +
+            listOf(
+                Case(
+                    name = "online",
+                    onDevice = false,
+                    error = AndroidRecognizer.ERROR_SERVER_DISCONNECTED,
+                    expected = SpeechError.NEEDS_CONNECTION,
+                ),
+                Case(
+                    name = "on device, once speaking",
+                    onDevice = true,
+                    error = AndroidRecognizer.ERROR_SERVER_DISCONNECTED,
+                    expected = SpeechError.FAILED,
+                    spoke = true,
+                ),
+                Case(
+                    name = "on device, once words came",
+                    onDevice = true,
+                    error = AndroidRecognizer.ERROR_SERVER_DISCONNECTED,
+                    expected = SpeechError.FAILED,
+                    said = "tired",
+                ),
+                Case(
+                    name = "on device, stopped",
+                    onDevice = true,
+                    error = AndroidRecognizer.ERROR_CLIENT,
+                    expected = SpeechError.NO_SPEECH,
+                    stopped = true,
+                ),
+            )
+    for (case in cases) {
+      val recognizer = AndroidSpeechRecognizer(context, UnconfinedTestDispatcher(testScheduler))
+      val session = startListening(recognizer = recognizer, onDevice = case.onDevice)
+      val created = ShadowSpeechRecognizer.getLatestSpeechRecognizer()
+      android.triggerOnReadyForSpeech(Bundle())
+      if (case.spoke) listener.onBeginningOfSpeech()
+      case.said?.let { android.triggerOnPartialResults(results(it)) }
+      if (case.stopped) recognizer.stop()
+
+      android.triggerOnError(case.error)
+      shadowOf(Looper.getMainLooper()).idle()
+      runCurrent()
+
+      assertSame(case.name, created, ShadowSpeechRecognizer.getLatestSpeechRecognizer())
+      assertEquals(
+          case.name,
+          listOfNotNull(
+              SpeechEvent.Listening,
+              case.said?.let { SpeechEvent.PartialText(it) },
+              SpeechEvent.Failed(case.expected),
+          ),
+          session.events,
+      )
+      assertTrue(case.name, android.isDestroyed)
+    }
+  }
+
+  @Test
   fun androidErrorsAreGroupedByWhatTheUserCanDo() {
     val cases =
         mapOf(
@@ -588,6 +784,9 @@ class AndroidSpeechRecognizerTest {
         )
     for ((code, expected) in cases) {
       assertEquals("error $code", expected, speechErrorOf(code))
+      // The on-device recognizer needs no connection: the same errors are its service failing
+      val onDevice = if (expected == SpeechError.NEEDS_CONNECTION) SpeechError.FAILED else expected
+      assertEquals("on device, error $code", onDevice, speechErrorOf(code, onDevice = true))
     }
   }
 
