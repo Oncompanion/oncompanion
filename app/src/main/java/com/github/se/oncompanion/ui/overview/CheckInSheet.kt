@@ -57,7 +57,6 @@ import com.github.se.oncompanion.ui.symptom.dayLabel
 import com.github.se.oncompanion.ui.symptom.messageRes
 import com.github.se.oncompanion.ui.symptom.symptomTimeFormatter
 import com.github.se.oncompanion.ui.theme.Spacing
-import com.github.se.oncompanion.ui.theme.lakeColors
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -71,14 +70,12 @@ private val sheetTiles: List<SymptomType?> = SymptomType.entries
  *
  * @param onSaved called once the entry is saved, to close the sheet
  * @param onClose closes the sheet without saving
- * @param onSpeak opens the voice logging page instead
  */
 @Composable
 internal fun CheckInSheetHost(
     viewModel: AddSymptomViewModel,
     onSaved: () -> Unit,
     onClose: () -> Unit,
-    onSpeak: () -> Unit,
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val currentOnSaved by rememberUpdatedState(onSaved)
@@ -99,7 +96,6 @@ internal fun CheckInSheetHost(
               onNotesChange = viewModel::onNotesChange,
               onSave = viewModel::save,
               onClose = onClose,
-              onSpeak = onSpeak,
           ),
   )
 }
@@ -116,7 +112,6 @@ internal data class CheckInActions(
     val onNotesChange: (String) -> Unit = {},
     val onSave: () -> Unit = {},
     val onClose: () -> Unit = {},
-    val onSpeak: () -> Unit = {},
 )
 
 /**
@@ -179,7 +174,7 @@ internal fun CheckInSheetBody(
         onClear = actions.onClearStrength,
     )
     WhenRow(uiState, actions.onDateChange, actions.onTimeChange)
-    NoteField(uiState, actions.onNotesChange, actions.onSpeak)
+    NoteField(uiState, actions.onNotesChange)
     uiState.error?.let {
       Text(
           stringResource(it.messageRes()),
@@ -281,37 +276,17 @@ private fun WhenRow(
 }
 
 /**
- * "Add a note (optional)", with the microphone that opens the voice logging page instead, when the
- * phone can listen (Figma: "Note").
+ * "Add a note (optional)" (Figma: "Note"). No microphone: speaking a symptom starts from the
+ * Overview's "Speak how you feel", not from inside the sheet.
  */
 @Composable
-private fun NoteField(
-    uiState: AddSymptomUiState,
-    onNotesChange: (String) -> Unit,
-    onSpeak: () -> Unit,
-) {
+private fun NoteField(uiState: AddSymptomUiState, onNotesChange: (String) -> Unit) {
   LakeTextField(
       value = uiState.notes,
       onValueChange = onNotesChange,
       placeholder = { Text(stringResource(R.string.overview_check_in_sheet_note)) },
       maxLines = 4,
       keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-      trailingIcon =
-          if (uiState.canDictate) {
-            {
-              IconButton(
-                  onClick = onSpeak,
-                  enabled = uiState.save == SavePhase.EDITING,
-                  modifier = Modifier.testTag(C.Tag.overview_check_in_sheet_speak),
-              ) {
-                Icon(
-                    painterResource(R.drawable.ic_mic),
-                    stringResource(R.string.overview_check_in_sheet_speak),
-                    tint = MaterialTheme.lakeColors.primaryText,
-                )
-              }
-            }
-          } else null,
       modifier = Modifier.fillMaxWidth().testTag(C.Tag.overview_check_in_sheet_note),
   )
 }

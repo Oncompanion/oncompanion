@@ -40,7 +40,6 @@ import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.common.SavePhase
 import com.github.se.oncompanion.ui.navigation.NavigationActions
-import com.github.se.oncompanion.ui.navigation.Screen
 import com.github.se.oncompanion.ui.showKeyboard
 import com.github.se.oncompanion.ui.symptom.AddSymptomError
 import com.github.se.oncompanion.ui.symptom.AddSymptomUiState
@@ -90,7 +89,6 @@ class CheckInSheetTest {
           onNotesChange = { calls += "notes $it" },
           onSave = { calls += "save" },
           onClose = { calls += "close" },
-          onSpeak = { calls += "speak" },
       )
 
   private val nausea =
@@ -99,7 +97,6 @@ class CheckInSheetTest {
           types = listOf(SymptomType.NAUSEA),
           strengths = mapOf(SymptomType.NAUSEA to 4),
           strengthOf = SymptomType.NAUSEA,
-          canDictate = true,
       )
 
   /** Shows the sheet in [state], replacing what was shown, so a test can show another state. */
@@ -132,7 +129,6 @@ class CheckInSheetTest {
     tile(SymptomType.FEVER).performScrollTo().performClick()
     tile(SymptomType.NAUSEA).performScrollTo().performClick()
     node(C.Tag.overview_check_in_sheet_note).performScrollTo().performTextInput("After lunch")
-    node(C.Tag.overview_check_in_sheet_speak).performClick()
     node(C.Tag.overview_check_in_sheet_save).performScrollTo().performClick()
     node(C.Tag.overview_check_in_sheet_close).performClick()
 
@@ -142,7 +138,6 @@ class CheckInSheetTest {
               "toggle FEVER",
               "toggle NAUSEA",
               "notes After lunch",
-              "speak",
               "save",
               "close",
           ),
@@ -213,20 +208,11 @@ class CheckInSheetTest {
   }
 
   @Test
-  fun withoutASpeechRecognizer_theNoteHasNoMicrophone() {
-    showSheet(nausea.copy(canDictate = false))
-
-    node(C.Tag.overview_check_in_sheet_note).performScrollTo().assertIsDisplayed()
-    node(C.Tag.overview_check_in_sheet_speak).assertDoesNotExist()
-  }
-
-  @Test
   fun whileSaving_nothingClosesTheSheet_andItSaysItIsSaving() {
     showSheet(nausea.copy(save = SavePhase.SAVING))
 
     node(C.Tag.overview_check_in_sheet_saving).performScrollTo().assertIsDisplayed()
     node(C.Tag.overview_check_in_sheet_close).assertIsNotEnabled()
-    node(C.Tag.overview_check_in_sheet_speak).assertIsNotEnabled()
     Espresso.pressBack()
     composeTestRule.runOnIdle { assertEquals(emptyList<String>(), calls) }
     node(C.Tag.overview_check_in_sheet).assertExists()
@@ -423,18 +409,6 @@ class CheckInSheetTest {
     tile(SymptomType.NAUSEA).performScrollTo().assertIsOn()
     tile(SymptomType.OTHER).performScrollTo().assertIsOn()
     node(C.Tag.symptom_add_other_name).performScrollTo().assertTextContains("Hiccups")
-  }
-
-  @Test
-  fun theMicrophone_closesTheSheet_andOpensTheVoicePage() {
-    val overview = overview()
-    tapCheckInTile(SymptomType.NAUSEA)
-
-    node(C.Tag.overview_check_in_sheet_speak).performScrollTo().performClick()
-    composeTestRule.waitForIdle()
-
-    node(C.Tag.overview_check_in_sheet).assertDoesNotExist()
-    assertEquals(listOf(Screen.symptomSpeak()), overview.navigationActions.openedRoutes)
   }
 
   // ----- Large text, landscape and the keyboard -----
