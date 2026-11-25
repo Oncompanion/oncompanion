@@ -29,6 +29,8 @@ import com.github.se.oncompanion.model.symptom.SymptomEntry
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
 import com.github.se.oncompanion.resources.C
+import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
+import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Screen
@@ -178,13 +180,26 @@ class OverviewSavedCheckInTest {
     val summary = summaryBounds()
     val undo = bounds(C.Tag.overview_saved_undo)
     assertTrue("$undo under $summary", undo.top >= summary.bottom)
+    assertEveryActionFullyVisible()
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = LANDSCAPE_PHONE)
+  fun inLandscape_everyActionCanBeReached_whole() {
+    showContent(saved)
+    assertEveryActionFullyVisible()
+  }
+
+  /** Undo, Edit, "Log another" and Journal can each be scrolled to and are shown whole. */
+  private fun assertEveryActionFullyVisible() {
     listOf(
             C.Tag.overview_saved_undo,
             C.Tag.overview_saved_edit,
             C.Tag.overview_saved_log_another,
             C.Tag.overview_journal_link,
         )
-        .forEach { node(it).performScrollTo().assertIsDisplayed() }
+        .forEach { node(it).performScrollTo().assertIsFullyVisible() }
   }
 
   // ----- On the Overview, over its ViewModel -----
