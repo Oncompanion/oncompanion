@@ -38,7 +38,7 @@ class AppointmentReminderStorageTest {
   }
 
   @Test
-  fun receiptsAreAccountScoped_andCorruptionOrClosedSessionFailsRatherThanReplays() {
+  fun receiptsAreAccountScoped_andClosedSessionFails() {
     val first = AppointmentReminderPlansPreferences(context)
     val plan = AppointmentReminderPlan(due, "timing", "content")
     first.write("patient", mapOf("id/with special chars" to plan))
@@ -49,14 +49,60 @@ class AppointmentReminderStorageTest {
     assertThrows(IllegalStateException::class.java) { second.read("patient") }
     assertThrows(IllegalStateException::class.java) { second.write("patient", emptyMap()) }
     SessionAccess.reopen()
-    context
-        .getSharedPreferences("appointment_reminder_plans", 0)
-        .edit()
-        .putString("patient", "corrupt")
-        .commit()
-    assertThrows(org.json.JSONException::class.java) { second.read("patient") }
     first.write("patient", emptyMap())
     assertTrue(second.read("patient").isEmpty())
+  }
+
+  @Test
+  fun malformedReceiptsResetOnlyTheirAccountAndCanBeRebuilt() {
+    val store = AppointmentReminderPlansPreferences(context)
+    val plan = AppointmentReminderPlan(due, "timing", "content")
+    val preferences = context.getSharedPreferences("appointment_reminder_plans", 0)
+    store.write("other", mapOf("other-visit" to plan))
+    val malformed =
+        listOf(
+            "corrupt",
+            "{\"visit\":{}}",
+            "{\"visit\":{\"due\":\"not-an-instant\",\"timing\":\"t\",\"content\":\"c\"}}",
+        )
+    for (raw in malformed) {
+      preferences.edit().putString("patient", raw).commit()
+      assertTrue(store.read("patient").isEmpty())
+      assertFalse(preferences.contains("patient"))
+      assertEquals(mapOf("other-visit" to plan), store.read("other"))
+      store.write("patient", mapOf("visit" to plan))
+      assertEquals(
+          mapOf("visit" to plan),
+          AppointmentReminderPlansPreferences(context).read("patient"),
+      )
+    }
+  }
+
+  @Test
+  fun failedCorruptionResetOrClosedSessionDoesNotDiscardReceipts() {
+    val preferences = context.getSharedPreferences("appointment_reminder_plans", 0)
+    preferences.edit().putString("patient", "corrupt").commit()
+    val failed = FailedCommitContext(context)
+    assertThrows(IllegalStateException::class.java) {
+      AppointmentReminderPlansPreferences(failed).read("patient")
+    }
+    assertFalse(failed.applied)
+    assertEquals("corrupt", preferences.getString("patient", null))
+    SessionAccess.block()
+    assertThrows(IllegalStateException::class.java) {
+      AppointmentReminderPlansPreferences(context).read("patient")
+    }
+    assertEquals("corrupt", preferences.getString("patient", null))
+  }
+
+  @Test
+  fun unexpectedPreferenceTypeFailureIsNotSilentlyReset() {
+    val preferences = context.getSharedPreferences("appointment_reminder_plans", 0)
+    preferences.edit().putInt("patient", 7).commit()
+    assertThrows(ClassCastException::class.java) {
+      AppointmentReminderPlansPreferences(context).read("patient")
+    }
+    assertEquals(7, preferences.getInt("patient", 0))
   }
 
   @Test

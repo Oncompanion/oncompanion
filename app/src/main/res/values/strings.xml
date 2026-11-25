@@ -960,7 +960,6 @@
     <!-- Local reminders -->
     <string name="reminder_channel_name">Care reminders</string>
     <!-- Appointment reminder delivery content; no notes or attribution in system notifications. -->
-    <string name="appointment_reminder_without_location">%1$s</string>
     <string name="appointment_reminder_with_location">%1$s · %2$s</string>
     <string name="reminder_permission_offer">Enable notifications for your appointment reminders.</string>
     <string name="reminder_permission_blocked">Notifications are blocked for oncompanion. You won\'t receive appointment reminders.</string>

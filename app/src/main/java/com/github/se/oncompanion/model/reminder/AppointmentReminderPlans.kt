@@ -9,7 +9,11 @@ data class AppointmentReminderPlan(val due: Instant, val timing: String, val con
 
 /** Account-scoped accepted plans, retained across coordinator/process recreation. */
 interface AppointmentReminderPlans {
-  /** Reads only this account's receipts; corrupt storage must fail rather than silently replay. */
+  /**
+   * Reads this account's receipts; malformed receipts are cleared so current appointments can
+   * rebuild them. A failed reset or closed session still fails instead of scheduling from untrusted
+   * data.
+   */
   fun read(ownerUid: String): Map<String, AppointmentReminderPlan>
 
   /** Atomically replaces this account's receipts, removing the key when empty. */

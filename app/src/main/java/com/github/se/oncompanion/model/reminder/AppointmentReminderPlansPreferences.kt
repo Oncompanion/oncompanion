@@ -7,6 +7,8 @@ import androidx.annotation.VisibleForTesting
 import androidx.core.content.edit
 import com.github.se.oncompanion.model.session.SessionAccess
 import java.time.Instant
+import java.time.format.DateTimeParseException
+import org.json.JSONException
 import org.json.JSONObject
 
 /** Local scheduling receipts, fenced with session cleanup; no appointment display content. */
@@ -19,16 +21,31 @@ class AppointmentReminderPlansPreferences(context: Context) : AppointmentReminde
 
   override fun read(ownerUid: String): Map<String, AppointmentReminderPlan> =
       SessionAccess.immediate {
-        val data = JSONObject(preferences.getString(ownerUid, null) ?: "{}")
-        data.keys().asSequence().associateWith { id ->
-          val entry = data.getJSONObject(id)
-          AppointmentReminderPlan(
-              Instant.parse(entry.getString("due")),
-              entry.getString("timing"),
-              entry.getString("content"),
-          )
+        try {
+          decode(preferences.getString(ownerUid, null) ?: "{}")
+        } catch (error: Exception) {
+          if (error !is JSONException && error !is DateTimeParseException) throw error
+          clearCorruptReceipts(ownerUid)
         }
       }
+
+  private fun decode(raw: String): Map<String, AppointmentReminderPlan> {
+    val data = JSONObject(raw)
+    return data.keys().asSequence().associateWith { id ->
+      val entry = data.getJSONObject(id)
+      AppointmentReminderPlan(
+          Instant.parse(entry.getString("due")),
+          entry.getString("timing"),
+          entry.getString("content"),
+      )
+    }
+  }
+
+  private fun clearCorruptReceipts(ownerUid: String): Map<String, AppointmentReminderPlan> {
+    // Receipts are reconstructible scheduling metadata. Reset only the damaged account, on disk.
+    write(ownerUid, emptyMap())
+    return emptyMap()
+  }
 
   override fun write(ownerUid: String, plans: Map<String, AppointmentReminderPlan>) =
       SessionAccess.immediate {

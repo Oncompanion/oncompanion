@@ -32,7 +32,7 @@ class AndroidAppointmentReminderText(context: Context) : AppointmentReminderText
         appointment.location
             ?.takeIf { it.isNotBlank() }
             ?.let { context.getString(R.string.appointment_reminder_with_location, dateTime, it) }
-            ?: context.getString(R.string.appointment_reminder_without_location, dateTime)
+            ?: dateTime
     return ReminderText(appointment.title, text)
   }
 }

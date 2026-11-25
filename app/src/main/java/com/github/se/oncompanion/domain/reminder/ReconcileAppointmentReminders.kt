@@ -44,13 +44,14 @@ class ReconcileAppointmentReminders(
     private val scheduler: ReminderScheduler = ReminderSchedulerProvider.scheduler,
     private val plans: AppointmentReminderPlans = AppointmentReminderPlansProvider.repository,
     private val clock: Clock = Clock.systemDefaultZone(),
-    private val zoneId: ZoneId = ZoneId.systemDefault(),
+    private val zoneId: ZoneId? = null,
 ) {
   /**
    * Follows this patient's cached appointments, including caregiver edits; failures are not
-   * deletion. Recollection retries blocked/failed work. Account changes stop the previous
-   * observation; alarm cancellation/restoration, boot/permission wiring and tap navigation follow
-   * separately.
+   * deletion. A failure ends the affected observation: the caller must recollect to resume
+   * appointment updates (an account change also starts a new patient observation). Recollection
+   * retries blocked work too. Account changes stop the previous observation; alarm
+   * cancellation/restoration, boot/permission wiring and tap navigation follow separately.
    */
   @OptIn(ExperimentalCoroutinesApi::class)
   fun observe(): Flow<AppointmentReminderSync> =
@@ -95,7 +96,7 @@ class ReconcileAppointmentReminders(
           val appointment = candidate.appointment
           val due = candidate.due
           val timing = hash(listOf(appointment.scheduledAt.toString(), appointment.reminder.name))
-          val content = text.format(appointment, zoneId)
+          val content = text.format(appointment, zoneId ?: ZoneId.systemDefault())
           val revision = hash(listOf(content.title, content.text))
           val next = AppointmentReminderPlan(due, timing, revision)
           if (!needsUpdate(saved[id], next, now)) continue
