@@ -12,6 +12,7 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -34,6 +35,7 @@ import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
 import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import com.github.se.oncompanion.resources.C
+import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.common.SavePhase
@@ -443,7 +445,25 @@ class CheckInSheetTest {
     }
   }
 
-  // ----- Large text -----
+  // ----- Large text and landscape -----
+
+  /** Material's description of the sheet's drag handle. */
+  private fun dragHandle() =
+      composeTestRule.onNodeWithContentDescription("Drag handle", useUnmergedTree = true)
+
+  @Test
+  fun upright_theSheetHasItsHandle() {
+    showSheet(nausea)
+    dragHandle().assertExists()
+  }
+
+  @Test
+  @Config(qualifiers = LANDSCAPE_PHONE)
+  fun sideways_theHandleGivesItsRoomToTheKeyboard() {
+    showSheet(nausea)
+    node(C.Tag.overview_check_in_sheet_close).assertExists()
+    dragHandle().assertDoesNotExist()
+  }
 
   @Test
   @Config(qualifiers = "w360dp-h640dp", fontScale = 2f)
