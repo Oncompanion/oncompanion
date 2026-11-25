@@ -52,31 +52,32 @@ fun ownPlanning(
 
 /**
  * The [ObserveCarePlanning] of a caregiver signed in as "caregiver" who follows "patient", sees the
- * [shared] sections of their [planning], and may add to the [canAdd] ones.
+ * [shared] sections of their [planning], and may add to the [canAdd] ones. A test changes what the
+ * patient shares through [circle].
  */
 fun followedPlanning(
     planning: PlanningRepository,
     shared: Set<CarePermission>,
     canAdd: Set<CarePermission> = emptySet(),
+    circle: FakeCareCircleRepository = FakeCareCircleRepository(),
 ): ObserveCarePlanning {
   val auth = FakeAuthRepository {
     AuthUser(it)
   }
       .also { runBlocking { it.signInWithGoogle("caregiver") } }
-  val circle =
-      FakeCareCircleRepository().apply {
-        setMembers(
-            "patient",
-            listOf(
-                CareCircleMember(
-                    uid = "caregiver",
-                    firstName = "Sam",
-                    permissions = shared,
-                    canAdd = canAdd,
-                )
-            ),
-        )
-      }
+  circle.apply {
+    setMembers(
+        "patient",
+        listOf(
+            CareCircleMember(
+                uid = "caregiver",
+                firstName = "Sam",
+                permissions = shared,
+                canAdd = canAdd,
+            )
+        ),
+    )
+  }
   val profiles =
       FakeUserProfileRepository().apply {
         seed(UserProfile("caregiver", Role.CAREGIVER, firstName = "Sam"))

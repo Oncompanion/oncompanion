@@ -15,7 +15,9 @@ import com.github.se.oncompanion.model.appointment.AppointmentType
 import com.github.se.oncompanion.model.appointment.FakeAppointmentRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.AuthUser
+import com.github.se.oncompanion.model.carecircle.CareCircleMember
 import com.github.se.oncompanion.model.carecircle.CarePermission
+import com.github.se.oncompanion.model.carecircle.FakeCareCircleRepository
 import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningSource
@@ -32,6 +34,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
@@ -1158,8 +1161,9 @@ class PlanningViewModelTest {
       }
 
   /**
-   * Loading more needs entries read for some of the same days; otherwise it is a first load, which
-   * shows no entries. An empty planning that grows is loading more too.
+   * Loading more needs entries read for some of the same days ([PlanningUiState.readDays]);
+   * otherwise it is a first load, which shows no entries. An empty planning that grows is loading
+   * more too.
    */
   @Test
   fun loadingMoreOnlyOverDaysAlreadyRead() =
@@ -1177,20 +1181,32 @@ class PlanningViewModelTest {
               }
             }
         val vm = PlanningViewModel(ownPlanning(repository), clock, zone, SavedStateHandle())
+        fun readDays() =
+            vm.uiState.value.readDays?.let { "${it.startDateInclusive}..${it.endDateExclusive}" }
         drain()
         // Nothing read yet
         assertTrue(vm.uiState.value.isLoading)
         assertFalse(vm.uiState.value.isLoadingMore)
-        // step, whether its read fails -> loading more while it loads
+        // step, whether its read fails -> the days read while it loads (loading more if any)
         val cases =
-            listOf<Triple<String, () -> Unit, Pair<Boolean, Boolean>>>(
-                Triple("first read fails", {}, true to false),
-                Triple("retry without anything read", vm::retry, false to false),
-                Triple("empty planning grows", vm::showLater, false to true),
+            listOf<Triple<String, () -> Unit, Pair<Boolean, String?>>>(
+                Triple("first read fails", {}, true to null),
+                Triple("retry without anything read", vm::retry, false to null),
+                Triple("empty planning grows", vm::showLater, false to "2026-09-04..2026-11-28"),
+                Triple("loading more fails", vm::showLater, true to "2026-09-04..2026-12-26"),
+                Triple("retry after it", vm::retry, false to "2026-09-04..2026-12-26"),
+                Triple(
+                    "grows twice before an answer",
+                    {
+                      vm.showLater()
+                      vm.showLater()
+                    },
+                    false to "2026-09-04..2027-01-23",
+                ),
                 Triple(
                     "new days only",
                     { vm.selectDate(LocalDate.of(2027, 6, 1)) },
-                    false to false,
+                    false to null,
                 ),
                 // The jump to October dropped June's entries before its read answered
                 Triple(
@@ -1199,21 +1215,91 @@ class PlanningViewModelTest {
                       vm.selectDate(LocalDate.of(2026, 10, 2))
                       vm.selectDate(LocalDate.of(2027, 6, 1))
                     },
-                    false to false,
+                    false to null,
                 ),
+                Triple(
+                    "list to week",
+                    { vm.selectView(PlanningView.WEEK) },
+                    false to "2027-05-31..2027-06-07",
+                ),
+                Triple("next week", vm::nextPeriod, false to null),
             )
         for ((name, step, expected) in cases) {
-          val (failsNext, loadingMore) = expected
+          val (failsNext, readWhileLoading) = expected
           step()
           drain()
           assertTrue(name, vm.uiState.value.isLoading)
-          assertEquals(name, loadingMore, vm.uiState.value.isLoadingMore)
+          assertEquals(name, readWhileLoading, readDays())
+          assertEquals(name, readWhileLoading != null, vm.uiState.value.isLoadingMore)
           fails = failsNext
           answer.complete(Unit)
           drain()
           answer = CompletableDeferred()
           assertFalse(name, vm.uiState.value.isLoading || vm.uiState.value.isLoadingMore)
+          // A failure keeps the days read; an answer reads all the days loaded
+          val read =
+              if (failsNext) readWhileLoading
+              else
+                  vm.uiState.value.loadedRange(zone).let {
+                    "${it.startDateInclusive}..${it.endDateExclusive}"
+                  }
+          assertEquals(name, read, readDays())
         }
+      }
+
+  /**
+   * After another account signs in, or the patient stops sharing, nothing is read anymore: the next
+   * read is a first load, not loading more.
+   */
+  @Test
+  fun loadingMoreStartsOverAfterAnAccessChange() =
+      runTest(dispatcher) {
+        // Another account: its read doesn't answer yet
+        val auth = FakeAuthRepository { AuthUser(it) }
+        auth.signInWithGoogle("a")
+        val repository = FakePlanningRepository()
+        val own = PlanningViewModel(ownPlanning(repository, auth), clock, zone, SavedStateHandle())
+        drain()
+        assertNotNull(own.uiState.value.readDays)
+        repository.observation = { flow { awaitCancellation() } }
+        auth.signInWithGoogle("b")
+        drain()
+        own.showLater()
+        assertTrue(own.uiState.value.isLoading)
+        assertNull(own.uiState.value.readDays)
+        assertFalse(own.uiState.value.isLoadingMore)
+
+        // The patient stops sharing their planning with the caregiver
+        val circle = FakeCareCircleRepository()
+        val followed =
+            PlanningViewModel(
+                followedPlanning(
+                    FakePlanningRepository(),
+                    setOf(CarePermission.PLANNING),
+                    circle = circle,
+                ),
+                clock,
+                zone,
+                SavedStateHandle(),
+                patientUid = "patient",
+            )
+        drain()
+        assertNotNull(followed.uiState.value.readDays)
+        circle.setMembers(
+            "patient",
+            listOf(
+                CareCircleMember(
+                    uid = "caregiver",
+                    firstName = "Sam",
+                    permissions = setOf(CarePermission.SYMPTOMS),
+                )
+            ),
+        )
+        drain()
+        assertTrue(followed.uiState.value.isNotShared)
+        followed.showLater()
+        assertNull(followed.uiState.value.readDays)
+        assertFalse(followed.uiState.value.isLoadingMore)
       }
 
   /**

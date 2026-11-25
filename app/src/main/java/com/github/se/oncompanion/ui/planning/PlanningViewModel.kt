@@ -41,8 +41,9 @@ import kotlinx.coroutines.launch
  * @property isLoading a read is pending. With [isLoadingMore], the entries of the days that stay
  *   loaded are shown while the others load (the List grew, or the view changed over the same days);
  *   without it, nothing is known yet (the first read, another account, or new days only)
- * @property isLoadingMore while [isLoading], whether the entries shown come from an answer for some
- *   of the days being read: the List keeps them with a small loader instead of its first load's
+ * @property readDays the days whose entries [itemsByDay] holds from an answer: a day outside them
+ *   isn't read yet, so the List can't say it has nothing planned. Null before any answer, after a
+ *   change of account or access, or when a read keeps none of them; a failed read keeps them
  * @property isNotShared in caregiver mode, the patient doesn't share their planning: no entries
  * @property canAdd whether adding an appointment is offered: always in the user's own planning, and
  *   in caregiver mode once the patient's planning shows and they let the caregiver add (US-41)
@@ -55,7 +56,7 @@ data class PlanningUiState(
     val untimedItems: List<PlanningItem> = emptyList(),
     val scheduledItems: List<PlanningItem> = emptyList(),
     val isLoading: Boolean = true,
-    val isLoadingMore: Boolean = false,
+    val readDays: PlanningRange? = null,
     val hasError: Boolean = false,
     val today: LocalDate = selectedDate,
     val isNotShared: Boolean = false,
@@ -64,6 +65,13 @@ data class PlanningUiState(
   /** The complete agenda in section order, derived from the two displayed sections. */
   val items: List<PlanningItem>
     get() = untimedItems + scheduledItems
+
+  /**
+   * While [isLoading], whether some days are already read ([readDays]): the List keeps their
+   * entries with a small loader instead of its first load's.
+   */
+  val isLoadingMore: Boolean
+    get() = isLoading && readDays != null
 
   /** The view the period belongs to. */
   val view: PlanningView
@@ -128,9 +136,6 @@ class PlanningViewModel(
       )
   val uiState: StateFlow<PlanningUiState> = mutableState.asStateFlow()
   private var observation: Job? = null
-  // The days whose entries on screen come from an answer; null before any entries, after a change
-  // of account or access, or when a read keeps none of them
-  private var answeredRange: PlanningRange? = null
   // Conflated: only the latest jump matters, and it is received once
   private val listJumpRequests = Channel<PlanningListJump>(Channel.CONFLATED)
 
@@ -281,13 +286,12 @@ class PlanningViewModel(
   private fun observePeriod(from: PlanningUiState = mutableState.value) {
     observation?.cancel()
     val range = from.loadedRange(zoneId)
-    // Only the entries of the days still loaded are kept, so only those days stay answered
-    answeredRange = answeredRange?.intersect(range)
+    // Only the entries of the days still loaded are kept, so only those days stay read
     mutableState.value =
         from
             .copy(
                 isLoading = true,
-                isLoadingMore = answeredRange != null,
+                readDays = from.readDays?.intersect(range),
                 hasError = false,
                 itemsByDay = from.itemsByDay.filterKeys { it in range },
             )
@@ -310,17 +314,16 @@ class PlanningViewModel(
                     .orEmpty()
                     .groupedByDay(zoneId)
               } else null
-          val isLoadingMore = planning is CarePlanning.Loading && keepItems
-          trackAnswer(planning, range, keepItems)
+          val state = mutableState.value
+          val readDays = state.readDaysAfter(planning, range, keepItems)
           if (planning !is CarePlanning.Loading) keepItems = false
           // The entries, the flags and the selected day's agenda are published together
-          val state = mutableState.value
           mutableState.value =
               state
                   .copy(
                       itemsByDay = itemsByDay ?: state.itemsByDay,
                       isLoading = planning is CarePlanning.Loading,
-                      isLoadingMore = isLoadingMore && state.isLoadingMore,
+                      readDays = readDays,
                       hasError = planning is CarePlanning.Failed,
                       isNotShared = planning is CarePlanning.NotShared,
                       // A caregiver only gets "Add" with the patient's planning on screen
@@ -332,26 +335,28 @@ class PlanningViewModel(
       } catch (cancelled: CancellationException) {
         throw cancelled
       } catch (_: Exception) {
-        mutableState.value =
-            mutableState.value.copy(isLoading = false, isLoadingMore = false, hasError = true)
+        mutableState.value = mutableState.value.copy(isLoading = false, hasError = true)
       }
     }
   }
 
   /**
-   * Remembers which days the entries on screen were read for: a read of other days shows them as
-   * loading more ([PlanningUiState.isLoadingMore]) only over those days. A failure keeps them.
+   * The days read once [planning] arrives for [range]: all of them for entries, the same after a
+   * failure (it keeps what is shown), and none without entries to show.
    */
-  private fun trackAnswer(planning: CarePlanning, range: PlanningRange, keepItems: Boolean) {
-    when (planning) {
-      is CarePlanning.Shown -> answeredRange = range
-      CarePlanning.Failed -> Unit
-      // An account or access change after the first answer clears the entries
-      CarePlanning.Loading -> if (!keepItems) answeredRange = null
-      CarePlanning.NotShared,
-      CarePlanning.NoAccess -> answeredRange = null
-    }
-  }
+  private fun PlanningUiState.readDaysAfter(
+      planning: CarePlanning,
+      range: PlanningRange,
+      keepItems: Boolean,
+  ): PlanningRange? =
+      when (planning) {
+        is CarePlanning.Shown -> range
+        CarePlanning.Failed -> readDays
+        // An account or access change after the first answer clears the entries
+        CarePlanning.Loading -> readDays.takeIf { keepItems }
+        CarePlanning.NotShared,
+        CarePlanning.NoAccess -> null
+      }
 
   private companion object {
     const val SELECTED_DATE = "planning_selected_date"
