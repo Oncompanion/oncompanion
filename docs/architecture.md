@@ -685,6 +685,24 @@ Paper lake toolbar and full Figma restyle. It shows recorded fields only, with n
 times or unsaved Notes field. View prescription pushes the existing prescription detail, and Back
 pops to the medication and then the original Planning day and scroll position.
 
+## Medication reminders (#553, not collected yet)
+
+`domain/reminder/ReconcileMedicationReminders` follows the signed-in account's medications
+(`observeMedications`: confirmed prescriptions only, so a caregiver's waits for the patient, US-43)
+and schedules one reminder per reminder time with the `ReminderScheduler`, every day from the start
+date to the end of the duration. Each alarm rings once, so only the next 3 days are scheduled:
+collecting `observe()` again, when the app opens, adds the following days. A time already passed is
+never caught up, and a time rings where the patient is (the phone's time zone). The notification
+says the medication's name, dosage and frequency as recorded.
+
+`MedicationReminderPlans` keeps, per account and on the phone only, each scheduled reminder's time
+and a hash of its text (never the medication's name). After a change, an unchanged reminder isn't
+scheduled again, a removed one is cancelled, and one that already rang keeps its notification.
+Unreadable entries are forgotten: scheduling again replaces the alarm with the same key. Like the
+appointment one, the collector, the tap that opens the prescription and the sign-out cleanup (#454)
+come later. Android drops every alarm when the phone restarts, but the plans still list them, so
+they wouldn't be scheduled again: restoring them after a restart is #454 too.
+
 ## Device settings (#507)
 
 Profile opens the Settings nested graph and Back returns to the same Profile entry.
