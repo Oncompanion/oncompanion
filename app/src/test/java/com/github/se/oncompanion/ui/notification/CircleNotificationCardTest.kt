@@ -35,6 +35,7 @@ import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.colorAt
 import com.github.se.oncompanion.ui.navigation.Screen
+import com.github.se.oncompanion.ui.textLayout
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
 import java.time.Instant
 import java.time.LocalDate
@@ -186,14 +187,20 @@ class CircleNotificationCardTest {
   }
 
   @Test
+  // Real text widths: the default graphics mode measures text as almost 0 wide, so nothing would
+  // wrap or overflow at 200%
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
   @Config(qualifiers = "w320dp-h640dp", fontScale = 2f)
   fun largestFont_onASmallPhone_keepsTheStateAndTheLinkWhole() {
     show(prescription(PrescriptionConfirmation.PENDING))
 
-    compose
-        .onNodeWithText(string(R.string.circle_sheet_to_confirm))
-        .performScrollTo()
-        .assertIsFullyVisible()
+    // The state moves under the prescriber rather than being squeezed onto two lines
+    val state =
+        compose.onNodeWithText(string(R.string.circle_sheet_to_confirm), useUnmergedTree = true)
+    state.performScrollTo()
+    state.assertIsFullyVisible()
+    assertEquals(1, state.textLayout().lineCount)
+    // The link stays whole; CardLinkTest checks its chevron keeps its room
     compose.onNodeWithTag(link).performScrollTo().assertIsFullyVisible()
   }
 }
