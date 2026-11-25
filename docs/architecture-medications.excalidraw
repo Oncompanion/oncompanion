@@ -323,8 +323,8 @@
       "updated": 1794000000000,
       "link": null,
       "locked": false,
-      "text": "OverviewScreen\ntick doses (#546)\n(see Planning and Overview)",
-      "originalText": "OverviewScreen\ntick doses (#546)\n(see Planning and Overview)",
+      "text": "OverviewScreen\ntick doses (#546);\ncaregiver: read only",
+      "originalText": "OverviewScreen\ntick doses (#546);\ncaregiver: read only",
       "fontSize": 17,
       "fontFamily": 2,
       "textAlign": "center",
@@ -431,6 +431,10 @@
         {
           "type": "text",
           "id": "schedule_t"
+        },
+        {
+          "type": "arrow",
+          "id": "schedule_notifications"
         }
       ],
       "updated": 1794000000000,
@@ -2029,8 +2033,8 @@
       "updated": 1794000000000,
       "link": null,
       "locked": false,
-      "text": "Nothing drafted from a scan is saved until the user confirms it in the prescription form. ManageMedicationSchedule is the only way\nmedications are written, so reminders can follow them later (see Reminders). A caregiver allowed to adds one from the same form (US-43),\nsigned with their first name: it shows as not confirmed, and observeMedications (what reminders read) leaves it out until the patient confirms it; one they reject moves apart, for the caregiver who added it only.\nUS-28: DoseCount reads how many doses a day a frequency says, and none when it's taken only if needed, up to a maximum, less than daily or unclear;\nTakenDosesRepository keeps one count per medication per day, written by the patient only; the Overview shows a bar per medication and saves the ticks (#546).\nUS-35: MedicationDetailScreen reads one prescription through ObserveCareSection, then opens PrescriptionDetailScreen.\nUS-46 data: caregiver updates omit confirmation to preserve concurrent patient decisions; patient updates confirm pending entries.\nUS-46 UI: existing detail actions and form use canEditEntries; EditedBy names the editor, and deletion asks whose prescription is removed.\nUS-50: a caregiver's form will notify the patient that a prescription waits for review, and the patient's decision notifies that caregiver (NotificationRepository, see Planning).\nUS-72: a prescription can carry an optional note (planned): one more field of the prescription, no new class.\nPrescription, medication detail and camera-off messages use the shared scrollable MessageArea.\nUS-32: the patient chooses each medication's reminder times in the prescription form; they are stored in its prescription (a map by medication), never by a caregiver.",
-      "originalText": "Nothing drafted from a scan is saved until the user confirms it in the prescription form. ManageMedicationSchedule is the only way\nmedications are written, so reminders can follow them later (see Reminders). A caregiver allowed to adds one from the same form (US-43),\nsigned with their first name: it shows as not confirmed, and observeMedications (what reminders read) leaves it out until the patient confirms it; one they reject moves apart, for the caregiver who added it only.\nUS-28: DoseCount reads how many doses a day a frequency says, and none when it's taken only if needed, up to a maximum, less than daily or unclear;\nTakenDosesRepository keeps one count per medication per day, written by the patient only; the Overview shows a bar per medication and saves the ticks (#546).\nUS-35: MedicationDetailScreen reads one prescription through ObserveCareSection, then opens PrescriptionDetailScreen.\nUS-46 data: caregiver updates omit confirmation to preserve concurrent patient decisions; patient updates confirm pending entries.\nUS-46 UI: existing detail actions and form use canEditEntries; EditedBy names the editor, and deletion asks whose prescription is removed.\nUS-50: a caregiver's form will notify the patient that a prescription waits for review, and the patient's decision notifies that caregiver (NotificationRepository, see Planning).\nUS-72: a prescription can carry an optional note (planned): one more field of the prescription, no new class.\nPrescription, medication detail and camera-off messages use the shared scrollable MessageArea.\nUS-32: the patient chooses each medication's reminder times in the prescription form; they are stored in its prescription (a map by medication), never by a caregiver.",
+      "text": "Nothing drafted from a scan is saved until the user confirms it in the prescription form. ManageMedicationSchedule is the only way\nmedications are written, so reminders can follow them later (see Reminders). A caregiver allowed to adds one from the same form (US-43),\nsigned with their first name: it shows as not confirmed, and observeMedications (what reminders read) leaves it out until the patient confirms it; one they reject moves apart, for the caregiver who added it only.\nUS-28: DoseCount reads how many doses a day a frequency says, and none when it's taken only if needed, up to a maximum, less than daily or unclear;\nTakenDosesRepository keeps one count per medication per day, written by the patient only; the Overview shows a bar per medication and saves the ticks (#546).\nUS-35: MedicationDetailScreen reads one prescription through ObserveCareSection, then opens PrescriptionDetailScreen.\nUS-46 data: caregiver updates omit confirmation to preserve concurrent patient decisions; patient updates confirm pending entries.\nUS-46 UI: existing detail actions and form use canEditEntries; EditedBy names the editor, and deletion asks whose prescription is removed.\nUS-50: ManageMedicationSchedule notifies the patient when a caregiver adds a prescription (#458); the patient's decision will notify that caregiver (planned, #459).\nUS-72: a prescription can carry an optional note (planned): one more field of the prescription, no new class.\nPrescription, medication detail and camera-off messages use the shared scrollable MessageArea.\nUS-32: the patient chooses each medication's reminder times in the prescription form; they are stored in its prescription (a map by medication), never by a caregiver.",
+      "originalText": "Nothing drafted from a scan is saved until the user confirms it in the prescription form. ManageMedicationSchedule is the only way\nmedications are written, so reminders can follow them later (see Reminders). A caregiver allowed to adds one from the same form (US-43),\nsigned with their first name: it shows as not confirmed, and observeMedications (what reminders read) leaves it out until the patient confirms it; one they reject moves apart, for the caregiver who added it only.\nUS-28: DoseCount reads how many doses a day a frequency says, and none when it's taken only if needed, up to a maximum, less than daily or unclear;\nTakenDosesRepository keeps one count per medication per day, written by the patient only; the Overview shows a bar per medication and saves the ticks (#546).\nUS-35: MedicationDetailScreen reads one prescription through ObserveCareSection, then opens PrescriptionDetailScreen.\nUS-46 data: caregiver updates omit confirmation to preserve concurrent patient decisions; patient updates confirm pending entries.\nUS-46 UI: existing detail actions and form use canEditEntries; EditedBy names the editor, and deletion asks whose prescription is removed.\nUS-50: ManageMedicationSchedule notifies the patient when a caregiver adds a prescription (#458); the patient's decision will notify that caregiver (planned, #459).\nUS-72: a prescription can carry an optional note (planned): one more field of the prescription, no new class.\nPrescription, medication detail and camera-off messages use the shared scrollable MessageArea.\nUS-32: the patient chooses each medication's reminder times in the prescription form; they are stored in its prescription (a map by medication), never by a caregiver.",
       "fontSize": 18,
       "fontFamily": 2,
       "textAlign": "left",
@@ -2151,11 +2155,11 @@
       "width": 220,
       "height": 100,
       "angle": 0,
-      "strokeColor": "#868e96",
-      "backgroundColor": "#ffffff",
+      "strokeColor": "#2f9e44",
+      "backgroundColor": "#d3f9d8",
       "fillStyle": "solid",
       "strokeWidth": 2,
-      "strokeStyle": "dashed",
+      "strokeStyle": "solid",
       "roughness": 0,
       "opacity": 100,
       "groupIds": [],
@@ -2179,6 +2183,10 @@
         {
           "type": "arrow",
           "id": "notifications_fs"
+        },
+        {
+          "type": "arrow",
+          "id": "schedule_notifications"
         }
       ],
       "updated": 1794000000000,
@@ -2193,7 +2201,7 @@
       "width": 200,
       "height": 67.5,
       "angle": 0,
-      "strokeColor": "#868e96",
+      "strokeColor": "#1e1e1e",
       "backgroundColor": "transparent",
       "fillStyle": "solid",
       "strokeWidth": 1,
@@ -2211,8 +2219,8 @@
       "updated": 1794000000000,
       "link": null,
       "locked": false,
-      "text": "NotificationRepository\nreview notifications\n(US-50, planned)",
-      "originalText": "NotificationRepository\nreview notifications\n(US-50, planned)",
+      "text": "NotificationRepository\nreview notifications\n(US-50)",
+      "originalText": "NotificationRepository\nreview notifications\n(US-50)",
       "fontSize": 18,
       "fontFamily": 2,
       "textAlign": "center",
@@ -2233,7 +2241,7 @@
       "backgroundColor": "transparent",
       "fillStyle": "solid",
       "strokeWidth": 2,
-      "strokeStyle": "dotted",
+      "strokeStyle": "solid",
       "roughness": 0,
       "opacity": 100,
       "groupIds": [],
@@ -2276,7 +2284,7 @@
     {
       "id": "screens_notifications",
       "type": "arrow",
-      "x": 730,
+      "x": 465,
       "y": 120,
       "width": 26,
       "height": 310,
@@ -2309,7 +2317,7 @@
           310
         ],
         [
-          -26,
+          11,
           310
         ]
       ],
@@ -2318,6 +2326,64 @@
       "endArrowhead": "arrow",
       "startBinding": {
         "elementId": "screens",
+        "focus": 0,
+        "gap": 4
+      },
+      "endBinding": {
+        "elementId": "notifications",
+        "focus": 0,
+        "gap": 4
+      }
+    },
+    {
+      "id": "schedule_notifications",
+      "type": "arrow",
+      "x": 746,
+      "y": 250,
+      "width": 42,
+      "height": 180,
+      "angle": 0,
+      "strokeColor": "#868e96",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 1195633628,
+      "version": 1,
+      "versionNonce": 138616906,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1794000000000,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -16,
+          0
+        ],
+        [
+          -16,
+          180
+        ],
+        [
+          -42,
+          180
+        ]
+      ],
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "schedule",
         "focus": 0,
         "gap": 4
       },

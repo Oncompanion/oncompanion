@@ -6,6 +6,10 @@ package com.github.se.oncompanion.ui.overview
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -25,6 +29,8 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -40,6 +46,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -58,6 +65,8 @@ import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningSource
 import com.github.se.oncompanion.model.planning.PlanningTiming
+import com.github.se.oncompanion.model.speech.FakeSpeechRecognizer
+import com.github.se.oncompanion.model.speech.SpeechRecognizer
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
 import com.github.se.oncompanion.resources.C
@@ -72,6 +81,7 @@ import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Route
 import com.github.se.oncompanion.ui.navigation.Screen
 import com.github.se.oncompanion.ui.navigation.Tab
+import com.github.se.oncompanion.ui.symptom.label
 import com.github.se.oncompanion.ui.theme.DarkLakeColors
 import com.github.se.oncompanion.ui.theme.LightLakeColors
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
@@ -96,6 +106,7 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -192,6 +203,7 @@ class OverviewScreenTest {
       planning: FakePlanningRepository = FakePlanningRepository(),
       caregiverOf: String? = null,
       onSwitchPatient: () -> Unit = {},
+      speech: SpeechRecognizer? = null,
   ): RecordingNavigationActions {
     val viewModel =
         OverviewViewModel(
@@ -200,6 +212,7 @@ class OverviewScreenTest {
             observePlanning = ownPlanning(planning),
             clock = clockAt(morning),
             zoneId = ZoneOffset.UTC,
+            speechRecognizer = speech,
         )
     lateinit var navigationActions: RecordingNavigationActions
     composeTestRule.setContent {
@@ -1164,6 +1177,193 @@ class OverviewScreenTest {
     checkInTileTags.forEach {
       composeTestRule.onNodeWithTag(it).performScrollTo().assertIsFullyVisible()
     }
+  }
+
+  // The check-in's sheet (#544) shows every symptom, as tiles that say whether they are picked
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  // The sheet's width on a 390 dp phone, inside its 16 dp margins
+  @Config(qualifiers = "w358dp-h874dp")
+  fun sheetTiles_areThreePerRow_wrappingLossOfAppetite_andSayWhichArePicked() {
+    val tapped = mutableListOf<SymptomType?>()
+    val picked = listOf(SymptomType.NAUSEA, SymptomType.OTHER)
+    composeTestRule.setContent {
+      OncompanionTheme {
+        SymptomTiles(SymptomType.entries, { tapped += it }, picked, tagOf = { "tile_${it?.name}" })
+      }
+    }
+
+    val tiles = SymptomType.entries.map { composeTestRule.onNodeWithTag("tile_${it.name}") }
+    val tops = tiles.map { it.fetchSemanticsNode().positionInRoot.y }
+    // "Loss of appetite" wraps between its words instead of leaving two tiles per row
+    val rows = tops.chunked(3)
+    rows.forEach { assertEquals(listOf(it[0], it[0], it[0]), it) }
+    assertTrue(rows.map { it[0] }.zipWithNext().all { (above, below) -> above < below })
+    // Checked or not, read as a checkbox so it doesn't rely on colour alone
+    SymptomType.entries.zip(tiles).forEach { (type, tile) ->
+      if (type in picked) tile.assertIsOn() else tile.assertIsOff()
+    }
+    tiles[SymptomType.FEVER.ordinal].performClick()
+    composeTestRule.runOnIdle { assertEquals(listOf(SymptomType.FEVER), tapped) }
+  }
+
+  /** The sheet's nine tiles, two picked, in a column that scrolls as the sheet does. */
+  private fun setSheetTiles(tapped: MutableList<SymptomType?>) {
+    composeTestRule.setContent {
+      OncompanionTheme {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+          SymptomTiles(
+              SymptomType.entries,
+              { tapped += it },
+              listOf(SymptomType.NAUSEA, SymptomType.OTHER),
+              tagOf = { "tile_${it?.name}" },
+          )
+        }
+      }
+    }
+  }
+
+  /**
+   * Each of the nine tiles can be scrolled to and tapped; its label only wraps between words and
+   * stays inside the tile, clear of the tile's check or ring.
+   */
+  private fun assertEachSheetTileIsWholeAndReachable() {
+    val tapped = mutableListOf<SymptomType?>()
+    setSheetTiles(tapped)
+    SymptomType.entries.forEach { type ->
+      val tag = "tile_${type.name}"
+      val tile = composeTestRule.onNodeWithTag(tag).performScrollTo().assertIsDisplayed()
+      val tileBounds = tile.getUnclippedBoundsInRoot()
+      val label = context.getString(type.label)
+      val text =
+          composeTestRule.onNode(
+              hasText(label) and hasAnyAncestor(hasTestTag(tag)),
+              useUnmergedTree = true,
+          )
+      val layouts = mutableListOf<TextLayoutResult>()
+      text.fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+      val layout = layouts.single()
+      (0 until layout.lineCount - 1).forEach { line ->
+        val end = layout.getLineEnd(line)
+        assertTrue("$label breaks inside a word", label[end - 1] == ' ' || label[end] == ' ')
+      }
+      val textBounds = text.getUnclippedBoundsInRoot()
+      val mark =
+          composeTestRule
+              .onNode(
+                  hasTestTag(C.Tag.overview_tile_mark) and hasAnyAncestor(hasTestTag(tag)),
+                  useUnmergedTree = true,
+              )
+              .getUnclippedBoundsInRoot()
+      for (inner in listOf(textBounds, mark)) {
+        assertTrue(
+            "$label: $inner in $tileBounds",
+            inner.left >= tileBounds.left &&
+                inner.right <= tileBounds.right &&
+                inner.top >= tileBounds.top &&
+                inner.bottom <= tileBounds.bottom,
+        )
+      }
+      val overlaps =
+          mark.left < textBounds.right &&
+              textBounds.left < mark.right &&
+              mark.top < textBounds.bottom &&
+              textBounds.top < mark.bottom
+      assertFalse("$label is under its mark", overlaps)
+      tile.performClick()
+    }
+    composeTestRule.runOnIdle { assertEquals(SymptomType.entries, tapped) }
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = LANDSCAPE_PHONE)
+  fun sheetTilesInLandscape_areWholeAndReachable() = assertEachSheetTileIsWholeAndReachable()
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = "w360dp-h640dp", fontScale = 2f)
+  fun sheetTilesAt200Percent_areWholeAndReachable() = assertEachSheetTileIsWholeAndReachable()
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = LANDSCAPE_PHONE, fontScale = 2f)
+  fun sheetTilesInLandscapeAt200Percent_areWholeAndReachable() =
+      assertEachSheetTileIsWholeAndReachable()
+
+  // ----- Speaking from the check-in (US-73) -----
+
+  @Test
+  fun checkIn_offersSpeakHowYouFeel_onlyWhenThePhoneCanListen() {
+    var state by mutableStateOf(loaded.copy(canSpeak = true))
+    var spoken = 0
+    composeTestRule.setContent { OverviewContent(state, {}, {}, {}, {}, onSpeak = { spoken++ }) }
+
+    composeTestRule
+        .onNodeWithTag(C.Tag.overview_speak)
+        .performScrollTo()
+        .assertTextEquals(context.getString(R.string.overview_speak))
+        .assertHeightIsAtLeast(48.dp)
+        .performClick()
+    composeTestRule.runOnIdle { assertEquals(1, spoken) }
+
+    // A phone that can't listen keeps the card as it was
+    state = loaded
+    composeTestRule.onNodeWithTag(C.Tag.overview_speak).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(C.Tag.overview_journal_link).assertExists()
+  }
+
+  @Test
+  fun speak_opensTheSymptomFormAlreadyListening() {
+    val navigationActions = setOverviewScreen(speech = FakeSpeechRecognizer())
+
+    composeTestRule.onNodeWithTag(C.Tag.overview_speak).performScrollTo().performClick()
+
+    composeTestRule.runOnIdle {
+      assertEquals(listOf(Screen.symptomSpeak()), navigationActions.openedRoutes)
+    }
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = LANDSCAPE_PHONE)
+  fun speak_isFullyVisible_inLandscape() {
+    setContent(loaded.copy(canSpeak = true))
+    composeTestRule.onNodeWithTag(C.Tag.overview_speak).performScrollTo().assertIsFullyVisible()
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = "w360dp-h640dp", fontScale = 2f)
+  fun atTheLargestFont_journalGoesUnderTheTitle_andSpeakStaysWhole() {
+    setContent(loaded.copy(canSpeak = true))
+    val title = composeTestRule.onNodeWithText(context.getString(R.string.overview_check_in_title))
+    title.performScrollTo().assertIsFullyVisible()
+    composeTestRule.onNodeWithTag(C.Tag.overview_journal_link).performScrollTo()
+    assertTrue(
+        "Journal under the title, so no word is broken",
+        bounds(C.Tag.overview_journal_link).top >= title.getUnclippedBoundsInRoot().bottom,
+    )
+    composeTestRule.onNodeWithTag(C.Tag.overview_speak).performScrollTo().assertIsFullyVisible()
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = "w390dp-h874dp")
+  fun speak_atTheFigmasWidth_isUnderTheTiles_asWideAsThem() {
+    setContent(loaded.copy(canSpeak = true))
+    composeTestRule.onNodeWithTag(C.Tag.overview_speak).performScrollTo()
+    val tiles = checkInTileTags.map { bounds(it) }
+    val speak = bounds(C.Tag.overview_speak)
+    assertTrue("under the tiles", speak.top >= tiles.maxOf { it.bottom })
+    assertEquals(tiles.minOf { it.left }.value, speak.left.value, 1f)
+    assertEquals(tiles.maxOf { it.right }.value, speak.right.value, 1f)
+    // The title row keeps the heart, the title and Journal, with no mic
+    val title =
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.overview_check_in_title))
+            .getUnclippedBoundsInRoot()
+    assertTrue("Journal beside the title", bounds(C.Tag.overview_journal_link).top < title.bottom)
   }
 
   // ----- Look (Figma "US-23 / Overview – Dashboard") -----

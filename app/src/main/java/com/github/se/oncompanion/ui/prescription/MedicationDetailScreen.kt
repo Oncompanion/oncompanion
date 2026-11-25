@@ -159,6 +159,13 @@ private fun MedicationFields(state: MedicationDetailUiState.Loaded) {
         R.string.prescription_form_duration,
     )
   }
+  // The times the patient chose to be reminded at (US-32), as in the form
+  if (medication.reminderTimes.isNotEmpty()) {
+    MedicationField(
+        medication.reminderTimes.joinToString(" · ") { it.format(reminderTimeFormatter) },
+        R.string.medication_reminders_section,
+    )
+  }
   prescription.prescribedBy
       ?.takeIf { it.isNotBlank() }
       ?.let { MedicationField(it, R.string.prescription_detail_prescribed_by) }

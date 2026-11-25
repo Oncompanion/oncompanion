@@ -1,0 +1,14 @@
+<!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
+<!-- "Icon/symptom-appetite" from the Figma (outlined, 24 dp): tinted by the Icon that shows it -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M6 3V9C6 9.53043 6.21071 10.0391 6.58579 10.4142C6.96086 10.7893 7.46957 11 8 11C8.53043 11 9.03914 10.7893 9.41421 10.4142C9.78929 10.0391 10 9.53043 10 9V3 M8 11V21 M17 3C15 4 14 7 14 10C14 11 15 12 17 12V3Z M17 12V21"
+        android:strokeWidth="2"
+        android:strokeColor="@android:color/black"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -8,26 +8,18 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,48 +27,30 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.setProgress
-import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.oncompanion.R
-import com.github.se.oncompanion.model.symptom.Severity
-import com.github.se.oncompanion.model.symptom.SymptomEntry
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.resources.C
-import com.github.se.oncompanion.ui.common.ClickableReadOnlyField
-import com.github.se.oncompanion.ui.common.DayPickerDialog
 import com.github.se.oncompanion.ui.common.LakeBanner
 import com.github.se.oncompanion.ui.common.LakeBannerTone
 import com.github.se.oncompanion.ui.common.LakeButton
@@ -84,46 +58,18 @@ import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.LakeFilterChip
 import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.LakeSnackbarHost
-import com.github.se.oncompanion.ui.common.LakeTextField
 import com.github.se.oncompanion.ui.common.LakeTopAppBar
 import com.github.se.oncompanion.ui.common.MessageArea
-import com.github.se.oncompanion.ui.common.PickerTestTags
 import com.github.se.oncompanion.ui.common.SaveButton
 import com.github.se.oncompanion.ui.common.SavePhase
-import com.github.se.oncompanion.ui.common.TimePickerDialog
 import com.github.se.oncompanion.ui.common.appSettingsIntent
 import com.github.se.oncompanion.ui.common.hasPermission
 import com.github.se.oncompanion.ui.common.isCompactHeight
 import com.github.se.oncompanion.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.LocalTime
-import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-// The smallest touch target, for the row of the intensity value and Clear
-private val TOUCH_TARGET = 48.dp
-
-private const val MIN_INTENSITY = SymptomEntry.MIN_INTENSITY
-private const val MAX_INTENSITY = SymptomEntry.MAX_INTENSITY
-
-/**
- * How far the Material slider draws its first and last stops from its edges (half its track
- * height), to line the taps up with the stops. Checked against the rendered slider.
- */
-private val SliderStopInset = 8.dp
-
-/**
- * The gap around the handle, Material's "active handle leading space" (private in SliderDefaults).
- */
-private val THUMB_TRACK_GAP = 6.dp
-
-/** Which picker of the "When" field is open. */
-private enum class WhenPicker {
-  NONE,
-  DATE,
-  TIME,
-}
 
 /**
  * The add symptom screen (US-07 "Log a symptom", Figma: "US-04 / Log symptoms"): the user picks
@@ -160,6 +106,11 @@ fun AddSymptomScreen(
     onPauseOrDispose {}
   }
 
+  // Opened from "Speak how you feel" on the Overview (US-73): starts dictating once shown
+  LaunchedEffect(viewModel) {
+    viewModel.onOpened(context.hasPermission(Manifest.permission.RECORD_AUDIO))
+  }
+
   // Tells the view model when the phone's download dialog covers the screen, and when it closes
   LifecycleResumeEffect(viewModel) {
     viewModel.onScreenShown()
@@ -185,11 +136,15 @@ fun AddSymptomScreen(
   // Dictating replaces the form until the patient is done or goes back to it
   val voice = uiState.voice
   if (voice != null) {
-    BackHandler(onBack = viewModel::cancelVoice)
+    // Opened from the Overview to speak, closing goes back there rather than to an empty form
+    val closeVoice = if (uiState.leavesOnClose) onBack else viewModel::cancelVoice
+    BackHandler(onBack = closeVoice)
     VoiceSymptomContent(
         voice = voice,
         today = uiState.now.toLocalDate(),
-        onClose = viewModel::cancelVoice,
+        onClose = closeVoice,
+        onTypeInstead = viewModel::cancelVoice,
+        leavesOnClose = uiState.leavesOnClose,
         onAllowMicrophone = { microphone.launch(Manifest.permission.RECORD_AUDIO) },
         onOpenSettings = { context.startActivity(appSettingsIntent(context)) },
         onDone = viewModel::onDone,
@@ -206,8 +161,9 @@ fun AddSymptomScreen(
       onBack = onBack,
       onSpeak = { viewModel.onSpeak(context.hasPermission(Manifest.permission.RECORD_AUDIO)) },
       onToggleType = viewModel::toggleType,
-      onIntensityChange = viewModel::onIntensityChange,
-      onClearIntensity = viewModel::clearIntensity,
+      onSelectStrengthOf = viewModel::selectStrengthOf,
+      onStrengthChange = viewModel::onStrengthChange,
+      onClearStrength = viewModel::clearStrength,
       onDateChange = viewModel::onDateChange,
       onTimeChange = viewModel::onTimeChange,
       onNotesChange = viewModel::onNotesChange,
@@ -235,8 +191,9 @@ fun AddSymptomContent(
     uiState: AddSymptomUiState,
     onBack: () -> Unit,
     onToggleType: (SymptomType) -> Unit,
-    onIntensityChange: (Int) -> Unit,
-    onClearIntensity: () -> Unit,
+    onSelectStrengthOf: (SymptomType) -> Unit,
+    onStrengthChange: (Int) -> Unit,
+    onClearStrength: () -> Unit,
     onDateChange: (LocalDate) -> Unit,
     onTimeChange: (LocalTime) -> Unit,
     onNotesChange: (String) -> Unit,
@@ -311,8 +268,9 @@ fun AddSymptomContent(
           SymptomFields(
               uiState = uiState,
               onToggleType = onToggleType,
-              onIntensityChange = onIntensityChange,
-              onClearIntensity = onClearIntensity,
+              onSelectStrengthOf = onSelectStrengthOf,
+              onStrengthChange = onStrengthChange,
+              onClearStrength = onClearStrength,
               onDateChange = onDateChange,
               onTimeChange = onTimeChange,
               onNotesChange = onNotesChange,
@@ -413,8 +371,9 @@ private fun FormSaveButton(uiState: AddSymptomUiState, onSave: () -> Unit) {
 private fun SymptomFields(
     uiState: AddSymptomUiState,
     onToggleType: (SymptomType) -> Unit,
-    onIntensityChange: (Int) -> Unit,
-    onClearIntensity: () -> Unit,
+    onSelectStrengthOf: (SymptomType) -> Unit,
+    onStrengthChange: (Int) -> Unit,
+    onClearStrength: () -> Unit,
     onDateChange: (LocalDate) -> Unit,
     onTimeChange: (LocalTime) -> Unit,
     onNotesChange: (String) -> Unit,
@@ -447,9 +406,18 @@ private fun SymptomFields(
         // Under the chips, as soon as "Other" is picked: it can't be saved without a name
         if (uiState.isOtherPicked) OtherNameField(uiState, onOtherNameChange)
       }
-      FormGroup(R.string.symptom_add_intensity) {
-        IntensitySlider(uiState.intensity, onIntensityChange, onClearIntensity)
-      }
+      // How strong each picked symptom was, once one is picked
+      SymptomStrengths(
+          types = uiState.types,
+          strengths = uiState.strengths,
+          strengthOf = uiState.strengthOf,
+          otherName = uiState.savedOtherName,
+          onSelect = onSelectStrengthOf,
+          onStrengthChange = onStrengthChange,
+          onClear = onClearStrength,
+          overall = uiState.overallFromBefore,
+          overallReplaced = uiState.isOverallReplaced,
+      )
       FormGroup(R.string.symptom_add_when) { WhenField(uiState, onDateChange, onTimeChange) }
       FormGroup(R.string.symptom_add_notes_title) { NotesField(uiState, onNotesChange) }
     }
@@ -489,270 +457,3 @@ private fun TypeChips(picked: List<SymptomType>, onToggleType: (SymptomType) -> 
     }
   }
 }
-
-/**
- * The optional intensity: "Not set" until the user moves the slider, then the value and its
- * severity in words with Clear to go back to "Not set". It only restates what the user picks.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun IntensitySlider(
-    intensity: Int?,
-    onIntensityChange: (Int) -> Unit,
-    onClear: () -> Unit,
-) {
-  val valueText =
-      if (intensity == null) stringResource(R.string.symptom_add_intensity_not_set)
-      else
-          stringResource(
-              R.string.symptom_add_intensity_value,
-              intensity,
-              stringResource(Severity.of(intensity).label),
-          )
-
-  // The value in words, and Clear once there is one
-  Row(
-      modifier = Modifier.fillMaxWidth().heightIn(min = TOUCH_TARGET),
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Text(
-        text = valueText,
-        style = MaterialTheme.typography.titleLarge,
-        color =
-            if (intensity == null) MaterialTheme.colorScheme.onSurfaceVariant
-            else MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.weight(1f).testTag(C.Tag.symptom_add_intensity_value),
-    )
-    if (intensity != null) {
-      LakeButton(
-          text = stringResource(R.string.symptom_add_intensity_clear),
-          onClick = onClear,
-          style = LakeButtonStyle.Text,
-          modifier = Modifier.testTag(C.Tag.symptom_add_intensity_clear),
-      )
-    }
-  }
-
-  // The track is light teal where it isn't picked; "Not set" shows all of it so, without a handle
-  // or the gap around it
-  val inactive = MaterialTheme.colorScheme.primaryContainer
-  val colors =
-      if (intensity == null)
-          SliderDefaults.colors(
-              thumbColor = Color.Transparent,
-              activeTrackColor = inactive,
-              inactiveTrackColor = inactive,
-          )
-      else SliderDefaults.colors(inactiveTrackColor = inactive)
-  // While "Not set" the slider sits on 1 and ignores a touch there, as nothing changes for it: a
-  // touch closest to 1 sets it here. The touch isn't taken away, so the slider still follows a
-  // drag,
-  // and it handles every other touch itself
-  val currentIntensity by rememberUpdatedState(intensity)
-  val currentOnIntensityChange by rememberUpdatedState(onIntensityChange)
-  Box(
-      Modifier.pointerInput(Unit) {
-            awaitEachGesture {
-              val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-              val touched = intensityAt(down.position.x, size.width, SliderStopInset.toPx())
-              if (currentIntensity == null && touched == MIN_INTENSITY) {
-                currentOnIntensityChange(MIN_INTENSITY)
-              }
-            }
-          }
-          .testTag(C.Tag.symptom_add_intensity_track)
-  ) {
-    Slider(
-        value = (intensity ?: MIN_INTENSITY).toFloat(),
-        onValueChange = { onIntensityChange(it.roundToInt()) },
-        valueRange = MIN_INTENSITY.toFloat()..MAX_INTENSITY.toFloat(),
-        steps = MAX_INTENSITY - MIN_INTENSITY - 1,
-        colors = colors,
-        // No dots on the track: the value above says what is picked
-        track = { state ->
-          SliderDefaults.Track(
-              sliderState = state,
-              colors = colors,
-              drawStopIndicator = null,
-              drawTick = { _, _ -> },
-              thumbTrackGapSize = if (intensity == null) 0.dp else THUMB_TRACK_GAP,
-          )
-        },
-        modifier =
-            Modifier.fillMaxWidth()
-                .semantics {
-                  stateDescription = valueText
-                  // Screen readers can set 1 too, which the slider would ignore while "Not set"
-                  if (intensity == null) {
-                    setProgress { target ->
-                      onIntensityChange(target.roundToInt().coerceIn(MIN_INTENSITY, MAX_INTENSITY))
-                      true
-                    }
-                  }
-                }
-                .testTag(C.Tag.symptom_add_intensity),
-    )
-  }
-
-  // The words at the start, middle and end of the track, each in its own third so they never
-  // overlap (a word too long for it wraps); the slider already says the value
-  Row(Modifier.fillMaxWidth().clearAndSetSemantics {}) {
-    ScaleLabel(Severity.MILD, Alignment.Start, TextAlign.Start)
-    ScaleLabel(Severity.MODERATE, Alignment.CenterHorizontally, TextAlign.Center)
-    ScaleLabel(Severity.SEVERE, Alignment.End, TextAlign.End)
-  }
-}
-
-/** A word of the scale under the slider, put at [alignment] in its third of the width. */
-@Composable
-private fun RowScope.ScaleLabel(
-    severity: Severity,
-    alignment: Alignment.Horizontal,
-    textAlign: TextAlign,
-) {
-  Text(
-      text = stringResource(severity.label),
-      style = MaterialTheme.typography.bodySmall,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-      textAlign = textAlign,
-      modifier = Modifier.weight(1f).wrapContentWidth(alignment),
-  )
-}
-
-/** The intensity of the stop closest to [x] on a slider [width] wide. */
-private fun intensityAt(x: Float, width: Int, inset: Float): Int {
-  val fraction = ((x - inset) / (width - 2 * inset)).coerceIn(0f, 1f)
-  return (MIN_INTENSITY + fraction * (MAX_INTENSITY - MIN_INTENSITY)).roundToInt()
-}
-
-/**
- * The day and time, "Today" and the current time until the user changes them. Tapping it picks a
- * day, then a time.
- */
-@Composable
-private fun WhenField(
-    uiState: AddSymptomUiState,
-    onDateChange: (LocalDate) -> Unit,
-    onTimeChange: (LocalTime) -> Unit,
-) {
-  var picker by rememberSaveable { mutableStateOf(WhenPicker.NONE) }
-  val today = uiState.now.toLocalDate()
-  val date = uiState.date ?: today
-  val time = uiState.time ?: uiState.now.toLocalTime()
-
-  ClickableReadOnlyField(
-      value =
-          stringResource(
-              R.string.symptom_add_date_time_value,
-              dayLabel(date, today),
-              time.format(symptomTimeFormatter),
-          ),
-      label = stringResource(R.string.symptom_add_date_time),
-      onClick = { picker = WhenPicker.DATE },
-      onClickLabel = stringResource(R.string.symptom_add_change_date_time),
-      trailingIcon = { Icon(painterResource(R.drawable.ic_schedule), contentDescription = null) },
-      // The error if the time is later than now, else the hint while the time is still "now"
-      supportingText =
-          when {
-            uiState.isInFuture -> {
-              { Text(stringResource(R.string.symptom_add_in_future)) }
-            }
-            uiState.isNow -> {
-              { Text(stringResource(R.string.symptom_add_date_time_hint)) }
-            }
-            else -> null
-          },
-      isError = uiState.isInFuture,
-      modifier = Modifier.testTag(C.Tag.symptom_add_when),
-  )
-
-  // The day first, then the time; cancelling the time keeps the confirmed day
-  when (picker) {
-    WhenPicker.DATE ->
-        DayPickerDialog(
-            date = date,
-            onConfirm = {
-              onDateChange(it)
-              picker = WhenPicker.TIME
-            },
-            onDismiss = { picker = WhenPicker.NONE },
-            confirmLabel = stringResource(R.string.symptom_add_picker_confirm),
-            cancelLabel = stringResource(R.string.symptom_add_picker_cancel),
-            testTags =
-                PickerTestTags(
-                    picker = C.Tag.symptom_add_date_picker,
-                    confirm = C.Tag.symptom_add_picker_confirm,
-                    cancel = C.Tag.symptom_add_picker_cancel,
-                ),
-            // A symptom can't be logged in advance
-            latestDate = today,
-        )
-    WhenPicker.TIME ->
-        TimePickerDialog(
-            time = time,
-            onConfirm = {
-              onTimeChange(it)
-              picker = WhenPicker.NONE
-            },
-            onDismiss = { picker = WhenPicker.NONE },
-            confirmLabel = stringResource(R.string.symptom_add_picker_confirm),
-            cancelLabel = stringResource(R.string.symptom_add_picker_cancel),
-            // As the symptom screens show times (HH:mm), whatever the phone's setting
-            is24Hour = true,
-            testTags =
-                PickerTestTags(
-                    picker = C.Tag.symptom_add_time_picker,
-                    confirm = C.Tag.symptom_add_picker_confirm,
-                    cancel = C.Tag.symptom_add_picker_cancel,
-                ),
-        )
-    WhenPicker.NONE -> {}
-  }
-}
-
-/**
- * "Which symptom?", the name of the "Other" symptom, required to save it (Figma: "Check-in · Other,
- * not named yet"). A name of the list says to pick that symptom instead.
- */
-@Composable
-private fun OtherNameField(uiState: AddSymptomUiState, onOtherNameChange: (String) -> Unit) {
-  val listedAs = uiState.otherNameListedAs
-  LakeTextField(
-      value = uiState.otherName,
-      onValueChange = onOtherNameChange,
-      placeholder = { Text(stringResource(R.string.symptom_add_other_name_placeholder)) },
-      supportingText =
-          listedAs?.let {
-            {
-              Text(stringResource(R.string.symptom_add_other_name_listed, stringResource(it.label)))
-            }
-          },
-      isError = listedAs != null,
-      singleLine = true,
-      keyboardOptions =
-          KeyboardOptions(
-              capitalization = KeyboardCapitalization.Sentences,
-              imeAction = ImeAction.Done,
-          ),
-      modifier = Modifier.fillMaxWidth().testTag(C.Tag.symptom_add_other_name),
-  )
-}
-
-/** Free text. */
-@Composable
-private fun NotesField(uiState: AddSymptomUiState, onNotesChange: (String) -> Unit) {
-  LakeTextField(
-      value = uiState.notes,
-      onValueChange = onNotesChange,
-      label = { Text(stringResource(R.string.symptom_add_notes)) },
-      maxLines = 6,
-      modifier = Modifier.fillMaxWidth().testTag(C.Tag.symptom_add_notes),
-  )
-}
-
-/** The message shown in the snackbar for each saving error. */
-private fun AddSymptomError.messageRes(): Int =
-    when (this) {
-      AddSymptomError.NOT_SIGNED_IN -> R.string.symptom_add_error_not_signed_in
-      AddSymptomError.SAVE_FAILED -> R.string.symptom_add_error_save_failed
-    }

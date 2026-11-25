@@ -1,4 +1,5 @@
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.prescription
 
@@ -23,6 +24,7 @@ import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
 import java.io.File
 import java.time.LocalDate
+import java.time.LocalTime
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -36,7 +38,17 @@ import org.robolectric.annotation.GraphicsMode
 class MedicationDetailScreenTest {
   @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
   private val day = LocalDate.of(2026, 11, 10)
-  private val medication = Medication("m", "p", "Medication A", "1 tablet", "As recorded", day, 5)
+  private val medication =
+      Medication(
+          "m",
+          "p",
+          "Medication A",
+          "1 tablet",
+          "As recorded",
+          day,
+          5,
+          reminderTimes = listOf(LocalTime.of(9, 0), LocalTime.of(18, 0)),
+      )
   private val prescription = Prescription("p", "Dr. Example", day, listOf(medication))
   private val loaded = MedicationDetailUiState.Loaded(medication, prescription)
 
@@ -62,6 +74,8 @@ class MedicationDetailScreenTest {
             "Start date",
             "Duration",
             "Prescription date",
+            "Reminders",
+            "09:00 · 18:00",
         )) {
       compose.onNodeWithText(text).performScrollTo().assertIsDisplayed()
     }
@@ -81,11 +95,16 @@ class MedicationDetailScreenTest {
       compose.runOnIdle {
         current.value =
             MedicationDetailUiState.Loaded(
-                medication.copy(dosage = missing, frequency = missing, durationDays = null),
+                medication.copy(
+                    dosage = missing,
+                    frequency = missing,
+                    durationDays = null,
+                    reminderTimes = emptyList(),
+                ),
                 prescription.copy(prescribedBy = missing),
             )
       }
-      for (label in listOf("Dosage", "Frequency", "Duration", "Prescribed by")) compose
+      for (label in listOf("Dosage", "Frequency", "Duration", "Prescribed by", "Reminders")) compose
           .onNodeWithText(label)
           .assertDoesNotExist()
       compose.onNodeWithText("Start date").assertExists()

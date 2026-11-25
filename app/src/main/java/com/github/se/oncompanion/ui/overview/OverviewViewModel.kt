@@ -9,7 +9,6 @@ import androidx.lifecycle.viewModelScope
 import com.github.se.oncompanion.domain.carecircle.CareAccess
 import com.github.se.oncompanion.domain.carecircle.ResolveCareCircleAccess
 import com.github.se.oncompanion.domain.medication.DailyDoses
-import com.github.se.oncompanion.domain.medication.DoseCount
 import com.github.se.oncompanion.domain.planning.CarePlanning
 import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
 import com.github.se.oncompanion.model.auth.AuthRepository
@@ -21,6 +20,8 @@ import com.github.se.oncompanion.model.medication.TakenDosesRepositoryProvider
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningSource
 import com.github.se.oncompanion.model.planning.PlanningTiming
+import com.github.se.oncompanion.model.speech.SpeechRecognizer
+import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
 import com.github.se.oncompanion.model.user.UserProfileRepository
 import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import java.time.Clock
@@ -161,6 +162,7 @@ data class DosesSheet(val medication: TodayMedication, val doses: Int, val draft
  * @property isNotShared in caregiver mode, the patient doesn't share their planning: no entries
  * @property sharedSections in caregiver mode, the sections behind the shortcuts the patient shares
  * @property dosesSheet the sheet correcting a medication's doses, or `null` when it is closed
+ * @property canSpeak the phone can listen, so the check-in offers to speak a symptom (US-73)
  */
 data class OverviewUiState(
     val now: LocalDateTime,
@@ -174,6 +176,7 @@ data class OverviewUiState(
     val isNotShared: Boolean = false,
     val sharedSections: Set<CarePermission> = emptySet(),
     val dosesSheet: DosesSheet? = null,
+    val canSpeak: Boolean = false,
 )
 
 /**
@@ -189,6 +192,8 @@ data class OverviewUiState(
  * @param patientUid in caregiver mode, the patient whose day is shown; null for the user's own
  * @param resolveAccess which sections the patient shares, for the shortcuts
  * @param takenDosesRepository the doses the patient ticks on their medications (US-28)
+ * @param speechRecognizer the phone's recognizer, for whether the patient can speak a symptom;
+ *   `null` before the app installed it, so the check-in doesn't offer to speak
  */
 class OverviewViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
@@ -201,9 +206,13 @@ class OverviewViewModel(
         ResolveCareCircleAccess(auth = authRepository),
     private val takenDosesRepository: TakenDosesRepository =
         TakenDosesRepositoryProvider.repository,
+    speechRecognizer: SpeechRecognizer? = SpeechRecognizerProvider.installed,
 ) : ViewModel() {
 
-  private val _uiState = MutableStateFlow(OverviewUiState(now = now()))
+  private val _uiState =
+      MutableStateFlow(
+          OverviewUiState(now = now(), canSpeak = speechRecognizer?.isAvailable() == true)
+      )
   val uiState: StateFlow<OverviewUiState> = _uiState.asStateFlow()
 
   private var dayObservation: Job? = null
@@ -318,7 +327,7 @@ class OverviewViewModel(
               nextUp = nextUpOf(planned, now, zoneId),
               todayEntries = entriesOf(planned, now),
           )
-          .withMedications(medicationsOf(planned, now))
+          .withMedications(todayMedicationsOf(planned, now, zoneId, takenToday))
 
   /**
    * [medications] shown, and the sheet kept only while its medication is still there with several
@@ -349,31 +358,6 @@ class OverviewViewModel(
   }
 
   /**
-   * Today's medications, with their dosage after their name and the doses ticked. One a caregiver
-   * added stays off the Overview until the patient confirms its prescription: it isn't part of
-   * their treatment before (Planning still lists it).
-   */
-  private fun medicationsOf(planned: List<PlanningItem>, now: LocalDateTime) =
-      planned
-          .filter { it.isConfirmed && it.timing.dateIn(zoneId) == now.toLocalDate() }
-          .mapNotNull { item ->
-            val source = item.source as? PlanningSource.Medication ?: return@mapNotNull null
-            val frequency = item.frequency?.takeIf { it.isNotBlank() }
-            val doses = DoseCount.of(frequency).takeIf { takenToday != null }
-            TodayMedication(
-                key = item.key,
-                medicationId = source.medicationId,
-                name =
-                    listOfNotNull(item.title, item.dosage?.takeIf { it.isNotBlank() })
-                        .joinToString(" "),
-                frequency = frequency,
-                dailyDoses = DoseCount.describe(frequency),
-                dosesPerDay = doses,
-                taken = doses?.let { takenToday?.get(source.medicationId)?.coerceIn(0, it) } ?: 0,
-            )
-          }
-
-  /**
    * Follows the doses the patient ticked on [day], in patient mode. If they can't be read, nothing
    * can be ticked until the day is loaded again (Retry, or the next day).
    */
@@ -397,7 +381,9 @@ class OverviewViewModel(
   }
 
   private fun refreshMedications() {
-    _uiState.update { it.withMedications(medicationsOf(items.value, it.now)) }
+    _uiState.update {
+      it.withMedications(todayMedicationsOf(items.value, it.now, zoneId, takenToday))
+    }
   }
 
   /**

@@ -3,6 +3,9 @@
 package com.github.se.oncompanion.model.notification
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.se.oncompanion.domain.medication.ManageMedicationSchedule
+import com.github.se.oncompanion.domain.medication.MedicationDraft
+import com.github.se.oncompanion.domain.medication.PrescriptionDraft
 import com.github.se.oncompanion.model.carecircle.CareCircleRepositoryFirestore
 import com.github.se.oncompanion.model.medication.MedicationRepositoryFirestore
 import com.github.se.oncompanion.utils.EmulatorTestData
@@ -13,6 +16,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Source
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.flow.Flow
@@ -324,6 +328,36 @@ class NotificationRepositoryFirestoreTest {
     EmulatorTestData.signIn("alice")
     assertEquals(false, serverSeen("presc-1"))
   }
+
+  @Test
+  fun caregiversPrescriptionSavedOffline_reachesThePatient_withItsNotification(): Unit =
+      runBlocking {
+        val carolUid = carolMayAddAlicesPrescriptions()
+        val medications = MedicationRepositoryFirestore(db)
+        // What carol's form does when she saves (US-43, US-50)
+        val schedule = ManageMedicationSchedule(medications, repository)
+        val today = LocalDate.now()
+        val draft =
+            PrescriptionDraft(
+                prescribedOn = today,
+                medications = listOf(MedicationDraft(name = "Ondansetron 8 mg", startDate = today)),
+            )
+        db.disableNetwork().await()
+
+        withTimeout(2.seconds) {
+          schedule.add(aliceUid, draft, addedBy = carolUid, addedByName = "Carol")
+        }
+
+        // Back online, the server applies the prescription, then accepts its notification
+        db.enableNetwork().await()
+        awaitServerAck()
+        EmulatorTestData.signIn("alice")
+        val received = repository.observeRecent(aliceUid).awaitFirst { it.isNotEmpty() }.single()
+        val prescription = medications.observePrescriptions(aliceUid).first().single()
+        assertEquals(prescription.id, received.itemId)
+        assertEquals(carolUid to "Carol", received.actorUid to received.actorFirstName)
+        assertFalse(received.seen)
+      }
 
   @Test
   fun notify_again_isRefusedQuietly_andCantMakeItUnseen(): Unit = runBlocking {

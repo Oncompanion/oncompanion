@@ -71,13 +71,17 @@ private val RIGHT_HALF_SIDES =
  * its form while [voice] isn't null; stateless, so each state can be tested on its own.
  *
  * @param today the day it is, for when a symptom was felt ("Yesterday · 21:00")
- * @param onClose goes back to the form without what was said (close, Type instead, system Back)
+ * @param onClose leaves without what was said (close, system Back): back to the form, or out of it
+ *   when [leavesOnClose]
  * @param onAllowMicrophone asks Android for the microphone, after the app said why
  * @param onOpenSettings opens this app's page in the phone's settings, to allow the microphone
  * @param onDone fills the form with what was heard
  * @param onStartOver drops what was heard and listens again
  * @param onDownloadForOffline downloads the language for use without a connection, then listens
  * @param onNotNow listens without downloading the language
+ * @param onTypeInstead goes back to the form without what was said
+ * @param leavesOnClose the close button leaves the form (opened from "Speak how you feel" on the
+ *   Overview, US-73) instead of going back to it, which screen readers say
  */
 @Composable
 fun VoiceSymptomContent(
@@ -91,10 +95,12 @@ fun VoiceSymptomContent(
     onDownloadForOffline: () -> Unit,
     onNotNow: () -> Unit,
     modifier: Modifier = Modifier,
+    onTypeInstead: () -> Unit = onClose,
+    leavesOnClose: Boolean = false,
 ) {
   val actions =
       VoiceActionHandlers(
-          onClose,
+          onTypeInstead,
           onAllowMicrophone,
           onOpenSettings,
           onDone,
@@ -111,7 +117,7 @@ fun VoiceSymptomContent(
       Row(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxHeight()) {
           VoiceLake(sun, level, Modifier.fillMaxSize().testTag(C.Tag.symptom_voice_lake))
-          VoiceTopBar(onClose)
+          VoiceTopBar(onClose, leavesOnClose)
         }
         // Clear of the status bar, the navigation bar and a camera cutout on this side
         Column(
@@ -134,7 +140,7 @@ fun VoiceSymptomContent(
               level,
               Modifier.fillMaxWidth().aspectRatio(LAKE_RATIO).testTag(C.Tag.symptom_voice_lake),
           )
-          VoiceTopBar(onClose)
+          VoiceTopBar(onClose, leavesOnClose)
         }
         Column(
             Modifier.weight(1f)
@@ -192,7 +198,7 @@ private fun VoiceUiState.said(): Pair<String, SymptomDraft> =
 
 /** What the voice screen's buttons do, passed down as one. */
 private class VoiceActionHandlers(
-    val onClose: () -> Unit,
+    val onTypeInstead: () -> Unit,
     val onAllowMicrophone: () -> Unit,
     val onOpenSettings: () -> Unit,
     val onDone: () -> Unit,
@@ -222,17 +228,22 @@ private fun VoiceUiState.sun(): VoiceSun =
       is VoiceUiState.Failed -> VoiceSun.HIDDEN
     }
 
-/** The title on the sky, with the button back to the form. */
+/** The title on the sky, with the button back to the form (or out of it, when [leaves]). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun VoiceTopBar(onClose: () -> Unit) {
+private fun VoiceTopBar(onClose: () -> Unit, leaves: Boolean) {
   val onHorizon = MaterialTheme.lakeColors.onHorizon
   // Transparent, so the sky shows behind the title
   TopAppBar(
       title = { Text(stringResource(R.string.symptom_voice_title)) },
       navigationIcon = {
         IconButton(onClick = onClose, modifier = Modifier.testTag(C.Tag.symptom_voice_close)) {
-          Icon(painterResource(R.drawable.ic_close), stringResource(R.string.symptom_voice_close))
+          Icon(
+              painterResource(R.drawable.ic_close),
+              stringResource(
+                  if (leaves) R.string.symptom_voice_leave else R.string.symptom_voice_close
+              ),
+          )
         }
       },
       colors =
@@ -410,7 +421,8 @@ private fun Transcript(text: String) {
 private fun PickedUp(draft: SymptomDraft, today: LocalDate) {
   val labels = buildList {
     draft.types.forEach { add(stringResource(it.label)) }
-    draft.intensity?.let { add(stringResource(R.string.symptom_voice_intensity, it)) }
+    // Only a strength the form will fill in
+    draft.saidStrength?.let { add(stringResource(R.string.symptom_voice_intensity, it.second)) }
     if (draft.date != null || draft.time != null) {
       val day = dayLabel(draft.date ?: today, today)
       add(draft.time?.let { "$day · ${it.format(symptomTimeFormatter)}" } ?: day)
@@ -450,7 +462,7 @@ private fun PickedUp(draft: SymptomDraft, today: LocalDate) {
 /** The buttons of each state: one filled main action, then the ways out. */
 @Composable
 private fun VoiceActions(voice: VoiceUiState, actions: VoiceActionHandlers) {
-  val onClose = actions.onClose
+  val onTypeInstead = actions.onTypeInstead
   val onDone = actions.onDone
   val onStartOver = actions.onStartOver
   val typeInstead = stringResource(R.string.symptom_voice_type_instead)
@@ -522,12 +534,12 @@ private fun VoiceActions(voice: VoiceUiState, actions: VoiceActionHandlers) {
             onStartOver,
             Modifier.weight(1f),
         )
-        Quiet(typeInstead, C.Tag.symptom_voice_type_instead, onClose, Modifier.weight(1f))
+        Quiet(typeInstead, C.Tag.symptom_voice_type_instead, onTypeInstead, Modifier.weight(1f))
       }
     } else if (onlyTyping) {
-      Main(typeInstead, C.Tag.symptom_voice_type_instead, onClose)
+      Main(typeInstead, C.Tag.symptom_voice_type_instead, onTypeInstead)
     } else {
-      Quiet(typeInstead, C.Tag.symptom_voice_type_instead, onClose)
+      Quiet(typeInstead, C.Tag.symptom_voice_type_instead, onTypeInstead)
     }
   }
 }

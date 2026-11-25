@@ -14,9 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.ui.theme.Spacing
 
@@ -29,8 +29,8 @@ import com.github.se.oncompanion.ui.theme.Spacing
  *   detail): the same colours, but it can't be tapped nor is it announced as a checkbox
  * @param role what screen readers call it: a checkbox when several chips can be picked, as on
  *   Material's chip, or [Role.RadioButton] when only one can
- * @param singleLine keeps a long label (a name the user typed) on one line, cut with "…", instead
- *   of wrapping it
+ * @param widestLabel the longest [label] the chip can show, if it changes: the chip is always as
+ *   wide as it, so a longer label doesn't push the chips after it along or onto another line
  */
 @Composable
 fun LakeFilterChip(
@@ -40,7 +40,7 @@ fun LakeFilterChip(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     role: Role = Role.Checkbox,
-    singleLine: Boolean = false,
+    widestLabel: String? = null,
 ) {
   val colors = MaterialTheme.colorScheme
   val color = if (selected) colors.secondaryContainer else colors.surfaceContainerLowest
@@ -54,7 +54,7 @@ fun LakeFilterChip(
         border = border,
         modifier = modifier,
     ) {
-      ChipLabel(label, singleLine)
+      ChipLabel(label, widestLabel)
     }
     return
   }
@@ -71,22 +71,27 @@ fun LakeFilterChip(
               .semantics { this.role = role }
               .alpha(if (enabled) 1f else LakeButtonDefaults.DISABLED_ALPHA),
   ) {
-    ChipLabel(label, singleLine)
+    ChipLabel(label, widestLabel)
   }
 }
 
-/** The label, 16 dp from each side whether or not the chip is picked. */
+/**
+ * The label, 16 dp from each side whether or not the chip is picked, and as wide as [widestLabel]
+ * laid out unseen and unread beside it.
+ */
 @Composable
-private fun ChipLabel(label: String, singleLine: Boolean) {
+private fun ChipLabel(label: String, widestLabel: String?) {
   Box(
       Modifier.heightIn(min = 48.dp).padding(horizontal = Spacing.lg),
       contentAlignment = Alignment.Center,
   ) {
-    Text(
-        label,
-        style = MaterialTheme.typography.labelLarge,
-        maxLines = if (singleLine) 1 else Int.MAX_VALUE,
-        overflow = TextOverflow.Ellipsis,
-    )
+    if (widestLabel != null) {
+      Text(
+          widestLabel,
+          style = MaterialTheme.typography.labelLarge,
+          modifier = Modifier.alpha(0f).clearAndSetSemantics {},
+      )
+    }
+    Text(label, style = MaterialTheme.typography.labelLarge)
   }
 }

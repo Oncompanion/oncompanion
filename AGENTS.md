@@ -113,6 +113,7 @@ com.github.se.oncompanion/
 - Tests worth their lines: cases that differ only by their input go in one test that runs through a list of cases (`for ((input, expected) in cases)`), not one test each. A fake is never tested on its own: test the code that uses it (cleanup in #296).
 - A feature that works with others extends `M1EndToEndTest` (`app/src/androidTest`).
 - Coroutines: use `StandardTestDispatcher` with `runTest` and virtual time (`advanceTimeBy`, `advanceUntilIdle`). Never `Thread.sleep` or real delays.
+- To prove a write is saved on the device first, run it with the network off (`assertReturnsOffline`, or `assertReturnsWithoutServer` in a test that's already offline, both in `utils/OfflineAssertions.kt`), never with a time limit.
 - While working, run only the tests you touch (`./gradlew testDebugUnitTest --tests '*Symptom*'`). The full checks below take about 10 minutes; run them before pushing.
 
 ## Build, format, test
@@ -168,7 +169,7 @@ Run these before every push and make sure they pass:
 - Never push to `main`. Work on a branch and open a pull request. Merge only with one approving review and a green CI (tests + SonarCloud): a team rule, since `main`'s branch protection doesn't require the checks.
 - Branch names: `feature/<short-name>`, `fix/<short-name>`, `chore/<short-name>`, `ci/<short-name>`, `docs/<short-name>`. Never rename the branch of an open PR: GitHub closes the PR.
 - PR titles follow the same convention as commit titles.
-- Fill in the [PR template](.github/PULL_REQUEST_TEMPLATE.md). Put `Closes #<issue>` in the description so the issue closes on merge. GitHub doesn't close a parent when its last sub-issue closes: if the PR finishes a story's last task, also write `Closes #<story>` after ticking its acceptance criteria.
+- Fill in the [PR template](.github/PULL_REQUEST_TEMPLATE.md). Put `Closes #<issue>` in the description so the issue closes on merge. When a task takes several PRs, the earlier ones write `Part of #<issue>` instead, and the issue stays In Development until the last one, which writes `Closes #<issue>` and moves it to In review. GitHub doesn't close a parent when its last sub-issue closes: if the PR finishes a story's last task, also write `Closes #<story>` after ticking its acceptance criteria.
 - Keep PRs small and focused on one task from the Scrum board: about **400 lines of production code** at most, and about **1,000 changed lines in total**, tests included. Generated files (lock files, diagram SVGs) and test data (fixtures) don't count. Split the data layer (model, repository, rules) from the UI when a task needs both.
   - A PR over these limits says why in its description: a mechanical refactor, a rename, code moved without change, a dependency update.
 - Keep at most 2 to 3 of your own PRs waiting for review; get them merged before opening more.
