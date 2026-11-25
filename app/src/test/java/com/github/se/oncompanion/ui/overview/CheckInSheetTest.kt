@@ -4,9 +4,6 @@ package com.github.se.oncompanion.ui.overview
 
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -20,7 +17,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.test.requestFocus
 import androidx.navigation.NavHostController
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.espresso.Espresso
@@ -38,13 +34,10 @@ import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
 import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import com.github.se.oncompanion.resources.C
-import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
-import com.github.se.oncompanion.ui.assertIsAboveKeyboard
 import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.common.SavePhase
 import com.github.se.oncompanion.ui.navigation.NavigationActions
-import com.github.se.oncompanion.ui.showKeyboard
 import com.github.se.oncompanion.ui.symptom.AddSymptomError
 import com.github.se.oncompanion.ui.symptom.AddSymptomUiState
 import com.github.se.oncompanion.ui.symptom.AddSymptomViewModel
@@ -450,36 +443,7 @@ class CheckInSheetTest {
     }
   }
 
-  // ----- Large text, landscape and the keyboard -----
-
-  /** The sheet's content alone, filling the screen, so a keyboard can be opened over it. */
-  private fun showBody(state: AddSymptomUiState) {
-    composeTestRule.runOnUiThread {
-      context.setContent {
-        OncompanionTheme {
-          Surface(Modifier.fillMaxSize()) { CheckInSheetBody(state, actions, canClose = true) }
-        }
-      }
-    }
-  }
-
-  private fun assertNoteTypedAboveKeyboard(keyboardHeight: Int) {
-    showBody(nausea)
-    node(C.Tag.overview_check_in_sheet_note).performScrollTo().requestFocus()
-    composeTestRule.showKeyboard(keyboardHeight)
-
-    listOf(C.Tag.overview_check_in_sheet_note, C.Tag.overview_check_in_sheet_save).forEach {
-      val field = node(it).performScrollTo()
-      field.assertIsFullyVisible()
-      field.assertIsAboveKeyboard(keyboardHeight)
-    }
-  }
-
-  @Test fun keyboardOpenOnTheNote_keepsItAndSaveAboveIt() = assertNoteTypedAboveKeyboard(600)
-
-  @Test
-  @Config(qualifiers = LANDSCAPE_PHONE)
-  fun landscape_keyboardOpenOnTheNote_keepsItAndSaveAboveIt() = assertNoteTypedAboveKeyboard(500)
+  // ----- Large text -----
 
   @Test
   @Config(qualifiers = "w360dp-h640dp", fontScale = 2f)

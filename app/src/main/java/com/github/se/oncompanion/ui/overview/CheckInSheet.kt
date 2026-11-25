@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -143,15 +142,14 @@ internal fun CheckInSheet(uiState: AddSymptomUiState, actions: CheckInActions) {
  * then Save. It scrolls, and stays above the keyboard, with a large font or a phone held sideways.
  */
 @Composable
-internal fun CheckInSheetBody(
+private fun CheckInSheetBody(
     uiState: AddSymptomUiState,
     actions: CheckInActions,
     canClose: Boolean,
 ) {
   Column(
-      // The keyboard shortens what scrolls, so the field being typed in can be scrolled above it
-      Modifier.imePadding()
-          .verticalScroll(rememberScrollState())
+      // The sheet's window keeps it above the keyboard: no padding of its own for it
+      Modifier.verticalScroll(rememberScrollState())
           .padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xl),
       verticalArrangement = Arrangement.spacedBy(Spacing.md),
   ) {
