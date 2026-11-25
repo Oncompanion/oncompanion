@@ -700,7 +700,8 @@ and a hash of its text (never the medication's name). After a change, an unchang
 scheduled again, a removed one is cancelled, and one that already rang keeps its notification.
 Unreadable entries are forgotten: scheduling again replaces the alarm with the same key. Like the
 appointment one, the collector, the tap that opens the prescription and the sign-out cleanup (#454)
-come later.
+come later. Android drops every alarm when the phone restarts, but the plans still list them, so
+they wouldn't be scheduled again: restoring them after a restart is #454 too.
 
 ## Device settings (#507)
 
