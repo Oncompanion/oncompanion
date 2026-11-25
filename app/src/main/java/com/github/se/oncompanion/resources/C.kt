@@ -662,7 +662,10 @@ object C {
     // Shared message state: its round info tile
     const val message_state_icon = "message_state_icon"
 
-    // The "Your circle" sheet (US-50, #457)
+    // The "Your circle" sheet and the sailboat that opens it (US-50, #457)
+    const val circle_button = "circle_button"
+    const val circle_button_dot = "circle_button_dot"
+    const val circle_button_add = "circle_button_add"
     const val circle_sheet = "circle_sheet"
     const val circle_sheet_loading = "circle_sheet_loading"
     const val circle_sheet_error = "circle_sheet_error"

@@ -270,6 +270,29 @@ class CircleSheetViewModelTest {
   }
 
   @Test
+  fun theSailboat_offersToAddSomeone_untilSomethingArrives_thenSaysWhenItIsNew() =
+      runViewModelTest {
+        circle.setMembers(uid, emptyList())
+        val vm = viewModel()
+        runCurrent()
+        assertEquals(SailboatBadge.ADD, vm.uiState.value.sailboatBadge)
+
+        notifications.deliver(uid, added("p1", at(today, 8, 5)))
+        runCurrent()
+        assertEquals(SailboatBadge.NEW, vm.uiState.value.sailboatBadge)
+
+        notifications.markSeen(
+            uid,
+            listOf(CircleNotification.idOf(NotificationKind.PRESCRIPTION_ADDED, "p1")),
+        )
+        runCurrent()
+        assertEquals(SailboatBadge.NONE, vm.uiState.value.sailboatBadge)
+        // Nothing to point out while loading or after an error
+        assertEquals(SailboatBadge.NONE, CircleSheetUiState.Loading.sailboatBadge)
+        assertEquals(SailboatBadge.NONE, CircleSheetUiState.Error.sailboatBadge)
+      }
+
+  @Test
   fun hasUnseen_whileOneNotificationIsUnseen() = runViewModelTest {
     notifications.deliver(uid, added("p1", at(today, 8, 5), seen = true))
     val vm = viewModel()

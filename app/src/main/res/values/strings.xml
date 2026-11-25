@@ -1014,4 +1014,10 @@
     <string name="circle_sheet_yesterday">Yesterday</string>
     <string name="circle_sheet_nobody_message">Add a relative, friend or nurse so they can follow your care. You choose what each person can see.</string>
     <string name="circle_sheet_add_someone">Add someone you trust</string>
+    <!-- The sailboat in the Overview header that opens the "Your circle" sheet: what screen readers say -->
+    <string name="circle_button">Your circle</string>
+    <!-- … while something in the sheet is unseen (a dot on the sailboat) -->
+    <string name="circle_button_new">Your circle, something new</string>
+    <!-- … while nobody is in the circle yet (a "+" on the sailboat) -->
+    <string name="circle_button_add">Your circle, add someone</string>
 </resources>

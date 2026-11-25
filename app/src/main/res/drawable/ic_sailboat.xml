@@ -1,0 +1,14 @@
+<!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
+<!-- The sailboat of the "Your circle" button, from the Figma (M3, "Logo/Care circle"). Tinted in code. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="42dp"
+    android:height="42dp"
+    android:viewportWidth="42"
+    android:viewportHeight="42">
+    <path
+        android:fillColor="@android:color/black"
+        android:pathData="M18.55,24.85H27.3L19.95,11.9L18.55,24.85Z" />
+    <path
+        android:fillColor="@android:color/black"
+        android:pathData="M11.9,26.95H30.1L27.3,31.5H14.7L11.9,26.95Z" />
+</vector>
