@@ -170,7 +170,7 @@ private fun Circle(
         modifier = Modifier.testTag(C.Tag.circle_sheet_members),
     )
   }
-  if (circle.days.none { it.date == circle.today }) {
+  if (circle.nothingToday) {
     Text(
         text = stringResource(R.string.circle_sheet_nothing_today),
         style = MaterialTheme.typography.bodyMedium,

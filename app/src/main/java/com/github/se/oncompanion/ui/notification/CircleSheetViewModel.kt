@@ -77,15 +77,18 @@ sealed interface CircleSheetUiState {
    * @property joined the first names of the members, by name
    * @property invited the first names of the people invited who haven't joined yet
    * @property today the day the sheet calls "Today"
-   * @property days the last week's notifications by day, newest first; none today means "Nothing
-   *   new"
+   * @property days the last week's notifications by day, newest first
    */
   data class Circle(
       val joined: List<String>,
       val invited: List<String>,
       val today: LocalDate,
       val days: List<CircleDay>,
-  ) : CircleSheetUiState
+  ) : CircleSheetUiState {
+    /** Nothing arrived [today]: the sheet says "Nothing new from your circle today". */
+    val nothingToday: Boolean
+      get() = days.none { it.date == today }
+  }
 }
 
 /** Whether something in the sheet is unseen: the sailboat then shows its dot. */
