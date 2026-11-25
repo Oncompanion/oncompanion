@@ -167,7 +167,6 @@
     <string name="symptom_voice_what_you_said">Ce que vous avez dit</string>
     <string name="symptom_voice_transcript">« %1$s »</string>
     <string name="symptom_voice_picked_up">Informations relevées</string>
-    <string name="symptom_voice_intensity">%1$d/10</string>
     <string name="symptom_voice_done">Terminé</string>
     <string name="symptom_voice_start_over">Recommencer</string>
     <string name="symptom_voice_try_again">Réessayer</string>

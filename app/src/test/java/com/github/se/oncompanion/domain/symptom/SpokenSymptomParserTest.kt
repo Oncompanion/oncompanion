@@ -30,14 +30,14 @@ class SpokenSymptomParserTest {
   private data class Case(
       val transcript: String,
       val types: List<SymptomType> = emptyList(),
-      val intensity: Int? = null,
+      val strengths: Map<SymptomType, Int> = emptyMap(),
       val date: LocalDate? = null,
       val time: LocalTime? = null,
   )
 
   private fun check(locale: Locale, cases: List<Case>) {
     for (case in cases) {
-      val expected = SymptomDraft(case.types, case.intensity, case.date, case.time, case.transcript)
+      val expected = SymptomDraft(case.types, case.strengths, case.date, case.time, case.transcript)
       assertEquals(case.transcript, expected, parseSpokenSymptom(case.transcript, locale, now))
     }
   }
@@ -48,19 +48,23 @@ class SpokenSymptomParserTest {
         Locale.ENGLISH,
         listOf(
             // Symptom words, synonyms and several symptoms at once
-            Case("i'm really tired about 7 out of 10 since this morning", listOf(FATIGUE), 7),
+            Case(
+                "i'm really tired about 7 out of 10 since this morning",
+                listOf(FATIGUE),
+                mapOf(FATIGUE to 7),
+            ),
             Case("exhausted today no appetite", listOf(FATIGUE, APPETITE_LOSS)),
             Case("my head hurts and I have a fever", listOf(HEADACHE, FEVER)),
-            Case("pain in my back eight out of ten", listOf(PAIN), 8),
+            Case("pain in my back eight out of ten", listOf(PAIN), mapOf(PAIN to 8)),
             Case("I'm not hungry", listOf(APPETITE_LOSS)),
             Case("I couldn't sleep last night", listOf(SLEEP_PROBLEMS)),
-            Case("I feel sick 7/10", listOf(NAUSEA), 7),
+            Case("I feel sick 7/10", listOf(NAUSEA), mapOf(NAUSEA to 7)),
             Case("I felt tired, tired, so tired", listOf(FATIGUE)),
             // Negation, up to the end of the clause
             Case(
                 "I felt nauseous two hours ago but no headache",
                 listOf(NAUSEA),
-                null,
+                emptyMap(),
                 today,
                 at(12),
             ),
@@ -69,8 +73,8 @@ class SpokenSymptomParserTest {
             Case("Not tired, nauseous.", listOf(NAUSEA)),
             Case("I don't know, I'm tired", listOf(FATIGUE)),
             // When it was felt
-            Case("short of breath since yesterday", listOf(BREATHLESSNESS), null, yesterday),
-            Case("half an hour ago I threw up", listOf(NAUSEA), null, today, at(13, 30)),
+            Case("short of breath since yesterday", listOf(BREATHLESSNESS), emptyMap(), yesterday),
+            Case("half an hour ago I threw up", listOf(NAUSEA), emptyMap(), today, at(13, 30)),
             Case("an hour ago", date = today, time = at(13)),
             Case("20 minutes ago", date = today, time = at(13, 40)),
             Case("at 0:30", time = at(0, 30)),
@@ -90,7 +94,7 @@ class SpokenSymptomParserTest {
             Case("headache the day after tomorrow at 9 am", listOf(HEADACHE)),
             Case("headache Monday at 9 am", listOf(HEADACHE)),
             Case("headache next week", listOf(HEADACHE)),
-            Case("headache yesterday at 9 am", listOf(HEADACHE), null, yesterday, at(9)),
+            Case("headache yesterday at 9 am", listOf(HEADACHE), emptyMap(), yesterday, at(9)),
             // Contradicting times or intensities: not guessed
             Case("yesterday, no, 2 hours ago"),
             Case("2 hours ago or 3 hours ago"),
@@ -124,20 +128,24 @@ class SpokenSymptomParserTest {
     check(
         Locale.FRENCH,
         listOf(
-            Case("je suis épuisé sept sur dix depuis ce matin", listOf(FATIGUE), 7),
+            Case(
+                "je suis épuisé sept sur dix depuis ce matin",
+                listOf(FATIGUE),
+                mapOf(FATIGUE to 7),
+            ),
             Case(
                 "j'ai eu des nausées il y a deux heures, pas de mal de tête",
                 listOf(NAUSEA),
-                null,
+                emptyMap(),
                 today,
                 at(12),
             ),
-            Case("mal à la tête 8 sur 10", listOf(HEADACHE), 8),
+            Case("mal à la tête 8 sur 10", listOf(HEADACHE), mapOf(HEADACHE to 8)),
             Case("je n'ai pas faim", listOf(APPETITE_LOSS)),
             Case("je n'ai plus de fièvre mais j'ai mal au ventre", listOf(PAIN)),
             Case("j'ai mal dormi cette nuit", listOf(SLEEP_PROBLEMS)),
             Case("j'ai du mal à respirer", listOf(BREATHLESSNESS)),
-            Case("Envie de vomir, 6/10.", listOf(NAUSEA), 6),
+            Case("Envie de vomir, 6/10.", listOf(NAUSEA), mapOf(NAUSEA to 6)),
             // "pain" is bread in French, and "pas mal" isn't pain
             Case("j'ai mangé du pain"),
             Case("je me sens pas mal"),
@@ -163,21 +171,121 @@ class SpokenSymptomParserTest {
             // "il y a" without a duration is "there is"
             Case("il y a des nausées", listOf(NAUSEA)),
             // When it was felt
-            Case("essoufflée depuis hier", listOf(BREATHLESSNESS), null, yesterday),
-            Case("avant-hier j'avais de la fièvre", listOf(FEVER), null, today.minusDays(2)),
-            Case("fatiguée il y a une demi-heure", listOf(FATIGUE), null, today, at(13, 30)),
-            Case("nausées il y a 3h", listOf(NAUSEA), null, today, at(11)),
+            Case("essoufflée depuis hier", listOf(BREATHLESSNESS), emptyMap(), yesterday),
+            Case("avant-hier j'avais de la fièvre", listOf(FEVER), emptyMap(), today.minusDays(2)),
+            Case("fatiguée il y a une demi-heure", listOf(FATIGUE), emptyMap(), today, at(13, 30)),
+            Case("nausées il y a 3h", listOf(NAUSEA), emptyMap(), today, at(11)),
             Case("nausées à 9h", listOf(NAUSEA), time = at(9)),
             Case("nausées à 13h30", listOf(NAUSEA), time = at(13, 30)),
-            Case("nausées à 8 heures du soir hier", listOf(NAUSEA), null, yesterday, at(20)),
+            Case("nausées à 8 heures du soir hier", listOf(NAUSEA), emptyMap(), yesterday, at(20)),
             Case("nausées à 15h", listOf(NAUSEA)),
             // A day that can't be placed: no time on today either
             Case("nausées demain à 9h", listOf(NAUSEA)),
             Case("nausées après-demain à 9h", listOf(NAUSEA)),
             Case("nausées lundi à 9h", listOf(NAUSEA)),
             Case("nausées la semaine dernière", listOf(NAUSEA)),
-            Case("nausées hier à 9h", listOf(NAUSEA), null, yesterday),
+            Case("nausées hier à 9h", listOf(NAUSEA), emptyMap(), yesterday),
             Case("je ne me sens pas très bien"),
+        ),
+    )
+  }
+
+  @Test
+  fun eachSymptom_getsTheStrengthSaidForIt() {
+    check(
+        Locale.ENGLISH,
+        listOf(
+            // A number alone right after its symptom, or "N out of 10" before or after it
+            Case("my nausea is about 6", listOf(NAUSEA), mapOf(NAUSEA to 6)),
+            Case("nausea's around 5", listOf(NAUSEA), mapOf(NAUSEA to 5)),
+            Case(
+                "nausea 6 out of 10 and headache 3 out of 10",
+                listOf(NAUSEA, HEADACHE),
+                mapOf(NAUSEA to 6, HEADACHE to 3),
+            ),
+            Case(
+                "nausea 6, headache 3",
+                listOf(NAUSEA, HEADACHE),
+                mapOf(NAUSEA to 6, HEADACHE to 3),
+            ),
+            Case("my pain is at a 7 and I'm tired", listOf(PAIN, FATIGUE), mapOf(PAIN to 7)),
+            Case("7 out of 10 for the nausea", listOf(NAUSEA), mapOf(NAUSEA to 7)),
+            Case(
+                "headache this morning, 7 out of 10 for the nausea now",
+                listOf(HEADACHE, NAUSEA),
+                mapOf(NAUSEA to 7),
+            ),
+            Case("no nausea, headache 6 out of 10", listOf(HEADACHE), mapOf(HEADACHE to 6)),
+            // One strength for symptoms said together, or two for one symptom: not guessed
+            Case("nausea and headache, 6 out of 10", listOf(NAUSEA, HEADACHE)),
+            Case("tired and nauseous 7", listOf(FATIGUE, NAUSEA)),
+            Case("nausea 6 out of 10 then nausea 8 out of 10", listOf(NAUSEA)),
+            // Far from the last symptom, "N out of 10" may be for something not understood
+            Case(
+                "nausea this morning then I went for a long walk and now 7 out of 10",
+                listOf(NAUSEA),
+            ),
+            Case("nausea is about 6 now okay", listOf(NAUSEA), mapOf(NAUSEA to 6)),
+            Case(
+                "I have a headache 7 I have pain in my back 4",
+                listOf(HEADACHE, PAIN),
+                mapOf(HEADACHE to 7, PAIN to 4),
+            ),
+            // A number alone that could be a time, a count or a temperature
+            Case("headache 6 this morning", listOf(HEADACHE)),
+            Case("headache at 6", listOf(HEADACHE)),
+            Case("headache since 6", listOf(HEADACHE)),
+            Case("I threw up 3 times", listOf(NAUSEA)),
+            Case("fever 38", listOf(FEVER)),
+            Case("nausea 2 hours ago", listOf(NAUSEA), emptyMap(), today, at(12)),
+            // Words aren't turned into a number
+            Case("a lot of pain", listOf(PAIN)),
+            Case("a mild headache", listOf(HEADACHE)),
+        ),
+    )
+    check(
+        Locale.FRENCH,
+        listOf(
+            Case("ma nausée est à 6", listOf(NAUSEA), mapOf(NAUSEA to 6)),
+            Case(
+                "nausée à 6 sur 10 et mal de tête à 3 sur 10",
+                listOf(NAUSEA, HEADACHE),
+                mapOf(NAUSEA to 6, HEADACHE to 3),
+            ),
+            Case("douleur de 7, fatigue 4", listOf(PAIN, FATIGUE), mapOf(PAIN to 7, FATIGUE to 4)),
+            Case("6 sur 10 pour la nausée", listOf(NAUSEA), mapOf(NAUSEA to 6)),
+            Case("nausées et maux de tête, 6 sur 10", listOf(NAUSEA, HEADACHE)),
+            // Heard on a phone: "la tête" alone isn't a symptom, so its "3 sur 10" isn't given to
+            // the nausea said long before, which keeps its own 6; the headache said at the end
+            // gets its 3
+            Case(
+                "j'ai la nausée à 6 sur 10 la tête à trois la tête à trois ça marche jamais la " +
+                    "tête à 3 sur 10 c'est la folie franchement il est en train j'ai mal à la " +
+                    "tête à trois voilà merci très bien",
+                listOf(NAUSEA, HEADACHE),
+                mapOf(NAUSEA to 6, HEADACHE to 3),
+            ),
+            // What people add after a strength doesn't make it a time or a count
+            Case("j'ai mal à la tête à 6 ok voilà", listOf(HEADACHE), mapOf(HEADACHE to 6)),
+            Case("nausée à 4 je pense", listOf(NAUSEA), mapOf(NAUSEA to 4)),
+            // Two sentences, with or without the recognizer's punctuation, and where it hurts
+            // between the pain and its strength
+            Case(
+                "j'ai mal à la tête à 10 j'ai mal au dos à 9",
+                listOf(HEADACHE, PAIN),
+                mapOf(HEADACHE to 10, PAIN to 9),
+            ),
+            Case(
+                "J'ai mal à la tête à 10. J'ai mal au dos à 9.",
+                listOf(HEADACHE, PAIN),
+                mapOf(HEADACHE to 10, PAIN to 9),
+            ),
+            // "à 6 heures" and "à 6 ce matin" are times, not strengths
+            Case("mal à la tête à 6 ce matin", listOf(HEADACHE)),
+            Case("mal à la tête à 6 heures", listOf(HEADACHE), time = at(6)),
+            Case("j'ai vomi 3 fois", listOf(NAUSEA)),
+            Case("fièvre à 38", listOf(FEVER)),
+            Case("un peu nauséeuse", listOf(NAUSEA)),
         ),
     )
   }
@@ -247,8 +355,8 @@ class SpokenSymptomParserTest {
             Case("aucune envie de manger", listOf(APPETITE_LOSS)),
             // "j'ai mal" is pain, unless it starts a longer phrase
             Case("j'ai mal", listOf(PAIN)),
-            Case("j'ai mal, 6 sur 10", listOf(PAIN), 6),
-            Case("j'ai très mal depuis hier", listOf(PAIN), null, yesterday),
+            Case("j'ai mal, 6 sur 10", listOf(PAIN), mapOf(PAIN to 6)),
+            Case("j'ai très mal depuis hier", listOf(PAIN), emptyMap(), yesterday),
             Case("j'ai encore mal", listOf(PAIN)),
             Case("j'ai mal à la tête", listOf(HEADACHE)),
             Case("j'ai mal au cœur", listOf(NAUSEA)),
@@ -319,7 +427,7 @@ class SpokenSymptomParserTest {
 
   @Test
   fun anotherLanguage_isParsedAsEnglish() {
-    check(Locale.GERMAN, listOf(Case("tired 4 out of 10", listOf(FATIGUE), 4)))
+    check(Locale.GERMAN, listOf(Case("tired 4 out of 10", listOf(FATIGUE), mapOf(FATIGUE to 4))))
   }
 
   @Test

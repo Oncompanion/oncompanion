@@ -732,17 +732,17 @@ class AddSymptomViewModel(
 
   /**
    * The form with [draft] in the fields still empty: its symptoms after those picked, the strength
-   * of the one symptom said if it has none (see [SymptomDraft.saidStrength]), its day and time if
-   * the symptom is still "now", and the transcript after the notes.
+   * said for each symptom that has none yet, its day and time if the symptom is still "now", and
+   * the transcript after the notes. The slider shows the first strength filled.
    */
   private fun AddSymptomUiState.filledFrom(draft: SymptomDraft): AddSymptomUiState {
     val saysWhen = isNow && (draft.date != null || draft.time != null)
     val types = types + (draft.types - types.toSet())
-    val said = draft.saidStrength?.takeIf { it.first !in strengths }
-    return withStrengths(said?.let { strengths + it } ?: strengths)
+    val said = draft.strengths.filterKeys { it !in strengths }
+    return withStrengths(strengths + said)
         .copy(
             types = types,
-            strengthOf = said?.first ?: strengthOf ?: types.firstOrNull(),
+            strengthOf = said.keys.firstOrNull() ?: strengthOf ?: types.firstOrNull(),
             // A time said without a day is today, as when the patient picks only a time
             date = if (saysWhen) draft.date ?: LocalDate.now(clock) else date,
             time = if (saysWhen) draft.time else time,

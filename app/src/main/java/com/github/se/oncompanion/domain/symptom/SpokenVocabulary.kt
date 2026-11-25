@@ -33,6 +33,12 @@ internal typealias Phrase = List<String>
  *   bit sick", "pas très faim") without changing what it says
  * @property numbers numbers said as words; digits are always understood
  * @property outOf what joins an intensity and its scale ("7 out of 10")
+ * @property strengthLinks what may come between a symptom and a strength said as a number alone
+ *   ("nausea is about 6"); never "at", which says a time ("headache at 6")
+ * @property strengthFor what says a strength is for the symptom said after it ("7 out of 10 for the
+ *   nausea")
+ * @property strengthEnds what may follow a strength said as a number alone ("nausée à 6, voilà"),
+ *   besides the end, a clause break or another symptom; never a unit ("à 6 heures", "3 fois")
  * @property articles words that mean "one" before a duration ("an hour ago")
  * @property agoBefore what comes before a duration in the past ("il y a 2 heures")
  * @property agoAfter what comes after a duration in the past ("2 hours ago")
@@ -60,6 +66,9 @@ internal class SpokenVocabulary(
     fillers: List<String>,
     val numbers: Map<String, Int>,
     outOf: List<String>,
+    strengthLinks: List<String>,
+    strengthFor: List<String>,
+    strengthEnds: List<String>,
     val articles: Set<String>,
     agoBefore: List<String>,
     agoAfter: List<String>,
@@ -82,6 +91,9 @@ internal class SpokenVocabulary(
   val pronounEndings: List<Phrase> = phrases(pronounEndings)
   val fillers: List<Phrase> = phrases(fillers)
   val outOf: List<Phrase> = phrases(outOf)
+  val strengthLinks: List<Phrase> = phrases(strengthLinks)
+  val strengthFor: List<Phrase> = phrases(strengthFor)
+  val strengthEnds: List<Phrase> = phrases(strengthEnds)
   val agoBefore: List<Phrase> = phrases(agoBefore)
   val agoAfter: List<Phrase> = phrases(agoAfter)
   val halfHour: List<Phrase> = phrases(halfHour)
@@ -224,6 +236,26 @@ internal class SpokenVocabulary(
                     "ten" to 10,
                 ),
             outOf = listOf("out of", "on", "over", "/"),
+            strengthLinks =
+                phraseList(
+                    """
+                // "s" is what is left of "'s" ("nausea's about 6")
+                is, s, was, about, around, roughly, approximately, maybe, like, a, at a, level
+                // Where it hurts ("pain in my back 8")
+                in, my, the, back, stomach, belly, head, leg, legs, arm, arms, knee, knees, foot,
+                feet, neck, shoulder, shoulders, chest, throat, joints, muscles, hip, hips, hand,
+                hands, tooth, teeth, ear, ears
+                """
+                ),
+            strengthFor = listOf("for"),
+            // A new sentence ("I", "it's") ends it too. Not "this morning": "headache 6 this
+            // morning" could be a time
+            strengthEnds =
+                phraseList(
+                    """
+                ok, okay, now, today, right, thanks, thank you, i think, i guess, i, it, it's, my
+                """
+                ),
             articles = setOf("a", "an"),
             agoBefore = emptyList(),
             agoAfter = listOf("ago"),
@@ -332,6 +364,27 @@ internal class SpokenVocabulary(
                     "dix" to 10,
                 ),
             outOf = listOf("sur", "/"),
+            // "à 6" says a strength, but "à 6 heures" a time: a strength ends what is said of it
+            strengthLinks =
+                phraseList(
+                    """
+                est, était, à, de, environ, à peu près, autour de, genre, peut-être
+                // Where it hurts ("mal au dos à 9")
+                dos, ventre, bras, jambe, jambes, genou, genoux, pied, pieds, cou, nuque, épaule,
+                épaules, poitrine, gorge, estomac, hanche, hanches, main, mains, dent, dents,
+                oreille, oreilles, articulations, muscles
+                """
+                ),
+            strengthFor = listOf("pour"),
+            // A new sentence ("j'ai", "c'est") ends it too. Not "ce matin": "mal à la tête à 6 ce
+            // matin" is a time
+            strengthEnds =
+                phraseList(
+                    """
+                ok, d'accord, voilà, quoi, hein, bon, merci, maintenant, je pense, je crois, j', je,
+                c'est, ça, il, elle
+                """
+                ),
             articles = emptySet(),
             agoBefore = listOf("il y a"),
             agoAfter = emptyList(),

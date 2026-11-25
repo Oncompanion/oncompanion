@@ -472,23 +472,22 @@ class M1EndToEndTest {
   private fun speakHowYouFeelFromOverview() {
     ui.open(C.Tag.overview_speak, hasTestTag(C.Tag.symptom_voice_screen))
     val tired = "I'm really tired, about 7 out of 10"
-    // The intensity said is picked up too
+    // The strength said is picked up with its symptom
+    val fatigue = string(R.string.symptom_type_fatigue)
     ui.waitFor(
         hasTestTag(C.Tag.symptom_voice_picked_up) and
-            hasAnyDescendant(hasText(string(R.string.symptom_voice_intensity, 7)))
+            hasAnyDescendant(hasText(string(R.string.symptom_strength_chip, fatigue, 7)))
     )
     reviewWhatWasHeard(tired, type = "FATIGUE", pickedUp = R.string.symptom_type_fatigue)
-    // The intensity reached the form, not only the preview
-    ui.tag(C.Tag.symptom_add_intensity_value)
-        .reveal()
-        .assertTextContains(string(R.string.symptom_voice_intensity, 7), substring = true)
+    // The strength reached the form, not only the preview
+    ui.tag(C.Tag.symptom_add_intensity_value).reveal().assertTextContains("7/10", substring = true)
     ui.open(C.Tag.symptom_add_save, hasTestTag(C.Tag.overview_greeting))
   }
 
   /**
    * On the voice screen, once the patient stopped speaking: the [transcript] is shown with the
-   * symptom picked up from it ([pickedUp]); Done fills the form, which says it was drafted and has
-   * [type] picked, for the patient to check before saving.
+   * symptom picked up from it ([pickedUp], with its strength if one was said); Done fills the form,
+   * which says it was drafted and has [type] picked, for the patient to check before saving.
    */
   private fun reviewWhatWasHeard(transcript: String, type: String, pickedUp: Int) {
     // Heard, not still listening: the phone sent the whole text
@@ -501,7 +500,8 @@ class M1EndToEndTest {
             hasAnyDescendant(hasText(transcript, substring = true))
     )
     ui.waitFor(
-        hasTestTag(C.Tag.symptom_voice_picked_up) and hasAnyDescendant(hasText(string(pickedUp)))
+        hasTestTag(C.Tag.symptom_voice_picked_up) and
+            hasAnyDescendant(hasText(string(pickedUp), substring = true))
     )
     ui.open(C.Tag.symptom_voice_done, hasTestTag(C.Tag.symptom_add_drafted))
     ui.tag(C.Tag.symptomAddType(type)).reveal().assertIsSelected()

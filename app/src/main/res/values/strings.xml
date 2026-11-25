@@ -280,8 +280,6 @@
     <!-- What the patient said, between quotes -->
     <string name="symptom_voice_transcript">“%1$s”</string>
     <string name="symptom_voice_picked_up">We picked up</string>
-    <!-- An intensity picked up from what was said, e.g. "5/10" -->
-    <string name="symptom_voice_intensity">%1$d/10</string>
     <string name="symptom_voice_done">Done</string>
     <string name="symptom_voice_start_over">Start over</string>
     <string name="symptom_voice_try_again">Try again</string>

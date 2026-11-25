@@ -1413,7 +1413,7 @@ class AddSymptomViewModelTest {
         val heard = viewModel.state.voice as VoiceUiState.Heard
         assertEquals("I feel sick 7/10", heard.transcript)
         assertEquals(listOf(SymptomType.NAUSEA), heard.draft.types)
-        assertEquals(7, heard.draft.intensity)
+        assertEquals(mapOf(SymptomType.NAUSEA to 7), heard.draft.strengths)
         // Nothing reaches the form before the patient uses it
         assertEquals(emptyList<SymptomType>(), viewModel.state.types)
       }
@@ -1570,6 +1570,13 @@ class AddSymptomViewModelTest {
                 ),
                 // Nothing understood: only the notes keep what was said
                 DraftCase("hello there", types = emptyList(), strengthOf = null),
+                // Each symptom gets its own strength; the slider is on the first one filled
+                DraftCase(
+                    "nausea is about 6 and headache 3 out of 10",
+                    types = listOf(SymptomType.NAUSEA, SymptomType.HEADACHE),
+                    strengthOf = SymptomType.NAUSEA,
+                    strengths = mapOf(SymptomType.NAUSEA to 6, SymptomType.HEADACHE to 3),
+                ),
                 // A strength said for several symptoms isn't given to any of them; the slider is
                 // on the first one said
                 DraftCase(
