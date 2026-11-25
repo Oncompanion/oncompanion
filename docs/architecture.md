@@ -763,7 +763,8 @@ AppCompat persists the locale on older Android versions
 and delegates to Android's app locale service where available. Follow device clears the
 override. The Activity and Compose read Android's localized resources, and the authenticated
 navigation stack is restored during a language change. The Account diagram shows the locale
-handoff. The French resource rollout across the rest of the app is tracked in #560.
+handoff. The French catalog (#560) covers the existing screens and uses the app locale for
+textual dates, including the date in care circle invitation messages.
 
 ### Date and time formats (#557)
 

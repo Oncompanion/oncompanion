@@ -40,6 +40,7 @@ import com.github.se.oncompanion.ui.common.AddedBy
 import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.NotSharedMessage
+import com.github.se.oncompanion.ui.common.formatDateHeading
 import com.github.se.oncompanion.ui.common.isCompactHeight
 import com.github.se.oncompanion.ui.navigation.BottomBarUiState
 import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
@@ -220,7 +221,7 @@ private fun PlanningHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
       Text(
-          state.selectedDate.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale)),
+          DateTimeFormatter.ofPattern("MMMM yyyy", locale).formatDateHeading(state.selectedDate),
           Modifier.weight(1f),
           style = MaterialTheme.typography.titleMedium,
       )

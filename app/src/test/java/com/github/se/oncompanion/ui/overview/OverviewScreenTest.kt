@@ -279,6 +279,13 @@ class OverviewScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.overview_date).assertTextEquals("Saturday 3 October")
   }
 
+  @Test
+  @Config(qualifiers = "fr-rCH")
+  fun dateHeadingStartsWithACapitalInFrench() {
+    setContent(loaded.copy(now = morning))
+    composeTestRule.onNodeWithTag(C.Tag.overview_date).assertTextEquals("Samedi 3 octobre")
+  }
+
   // ----- Each state -----
 
   @Test

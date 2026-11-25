@@ -67,7 +67,9 @@ import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.NotSharedMessage
 import com.github.se.oncompanion.ui.common.PaperLakeHeader
 import com.github.se.oncompanion.ui.common.PaperLakeStatusBar
+import com.github.se.oncompanion.ui.common.formatDateHeading
 import com.github.se.oncompanion.ui.common.isPaperLakeHeaderBand
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.navigation.BottomBarUiState
 import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
 import com.github.se.oncompanion.ui.navigation.NavigationActions
@@ -81,8 +83,6 @@ import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.elevation1
 import com.github.se.oncompanion.ui.theme.lakeColors
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /**
  * A section the patient can open from the Overview with a single tap.
@@ -136,8 +136,9 @@ private val tileShortcuts =
  */
 private val patientTileShortcuts = listOf(OverviewShortcut.CARE_CIRCLE)
 
-/** "Saturday 3 October", as in the mockup. The app's UI is in English. */
-private val todayFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.ENGLISH)
+/** "Saturday 3 October", as in the mockup. Day and month names follow the app language. */
+private val todayFormatter
+  @Composable get() = rememberAppDateFormatter("EEEE d MMMM")
 
 /**
  * The home screen after signing in (US-23 "See my day at a glance"), following the Figma "US-23 ·
@@ -493,7 +494,7 @@ internal fun Greeting(firstName: String?, now: LocalDateTime, titleStyle: TextSt
 @Composable
 private fun TodayDate(now: LocalDateTime) {
   Text(
-      text = now.format(todayFormatter),
+      text = todayFormatter.formatDateHeading(now),
       style = MaterialTheme.typography.bodyLarge,
       modifier = Modifier.testTag(C.Tag.overview_date),
   )

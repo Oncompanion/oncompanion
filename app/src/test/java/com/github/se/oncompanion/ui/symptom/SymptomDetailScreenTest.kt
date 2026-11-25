@@ -217,6 +217,13 @@ class SymptomDetailScreenTest {
   }
 
   @Test
+  @Config(qualifiers = "fr-rCH")
+  fun detailDateStartsWithACapitalInFrench() {
+    setContent(loaded.copy(entry = fatigue))
+    assertTextInside("Lundi 5 octobre 2026, 14:30", C.Tag.symptom_detail_when)
+  }
+
+  @Test
   @GraphicsMode(GraphicsMode.Mode.NATIVE)
   fun intensity_showsItsSeverityInWords_onTheSameBadgeWhateverTheValue() {
     var intensity by mutableStateOf(1)

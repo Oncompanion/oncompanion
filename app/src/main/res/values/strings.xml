@@ -1,9 +1,7 @@
 <!-- Co-authored-by: ChatGPT <noreply@openai.com> -->
 <!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
 <!-- Co-authored-by: Codex <noreply@openai.com> -->
-<!-- #559 translates the picker first. Remove the incomplete-catalog allowance in #560. -->
-<resources xmlns:tools="http://schemas.android.com/tools"
-    tools:ignore="MissingTranslation">
+<resources>
     <string name="app_name">oncompanion</string>
     <!-- Planning -->
     <string name="planning_today">Today</string>

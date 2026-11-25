@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.overview
@@ -32,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.CardLink
+import com.github.se.oncompanion.ui.common.formatDateHeading
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.cardChip
 import com.github.se.oncompanion.ui.theme.cardDetail
@@ -46,8 +49,9 @@ import java.util.Locale
 /** "10:00" */
 private val nextUpTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)
 
-/** "Thu 8 Oct · 10:00", for a later day. The app's UI is in English. */
-private val nextUpDayFormatter = DateTimeFormatter.ofPattern("EEE d MMM · HH:mm", Locale.ENGLISH)
+/** "Thu 8 Oct · 10:00", for a later day. Day and month names follow the app language. */
+private val nextUpDayFormatter
+  @Composable get() = rememberAppDateFormatter("EEE d MMM · HH:mm")
 
 /** How many medications the card lists before "N more ›", so the cards under it never move. */
 internal const val MEDICATIONS_SHOWN = 2
@@ -228,7 +232,7 @@ private fun nextUpWhen(nextUp: NextUp, today: LocalDate): String {
         today -> start.format(nextUpTimeFormatter)
         today.plusDays(1) ->
             stringResource(R.string.overview_tomorrow_at, start.format(nextUpDayFormatter))
-        else -> start.format(nextUpDayFormatter)
+        else -> nextUpDayFormatter.formatDateHeading(start)
       }
   val place = nextUp.place?.takeIf { it.isNotBlank() } ?: return time
   return stringResource(R.string.overview_with_place, time, place)

@@ -203,7 +203,7 @@ class AppointmentDetailScreenTest {
     }
   }
 
-  /** English dates remain consistent on a French phone using a 12-hour clock. */
+  /** French date names follow the app locale with the device set to a 12-hour clock. */
   @Test
   fun twelveHourClockAndFrenchLocale() {
     val context = ApplicationProvider.getApplicationContext<Context>()
@@ -222,7 +222,7 @@ class AppointmentDetailScreenTest {
           )
         }
       }
-      compose.onNodeWithText("Fri 23 Oct 2026 · 1:00 AM").assertIsDisplayed()
+      compose.onNodeWithText("Ven. 23 oct. 2026 · 1:00 AM").assertIsDisplayed()
     } finally {
       Settings.System.putString(context.contentResolver, Settings.System.TIME_12_24, previous)
     }

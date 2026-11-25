@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 // Co-authored-by: Codex <noreply@openai.com>
 
@@ -12,6 +13,8 @@ import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.symptom.Severity
 import com.github.se.oncompanion.model.symptom.SymptomEntry
 import com.github.se.oncompanion.model.symptom.SymptomType
+import com.github.se.oncompanion.ui.common.formatDateHeading
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -61,11 +64,13 @@ val Severity.label: Int
         Severity.SEVERE -> R.string.symptom_severity_severe
       }
 
-/** "Mon 28 Sep", as in the mockups. The app's UI is in English. */
-private val dayFormatter = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH)
+/** "Mon 28 Sep", as in the mockups. Day and month names follow the app language. */
+private val dayFormatter
+  @Composable get() = rememberAppDateFormatter("EEE d MMM")
 
 /** "Mon 28 Sep 2025", for a day of another year. */
-private val dayWithYearFormatter = DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.ENGLISH)
+private val dayWithYearFormatter
+  @Composable get() = rememberAppDateFormatter("EEE d MMM yyyy")
 
 /** "14:30", the time of day shown by the symptom screens. */
 internal val symptomTimeFormatter: DateTimeFormatter =
@@ -79,8 +84,8 @@ fun dayLabel(date: LocalDate, today: LocalDate): String =
     when {
       date == today -> stringResource(R.string.symptom_journal_today)
       date == today.minusDays(1) -> stringResource(R.string.symptom_journal_yesterday)
-      date.year == today.year -> date.format(dayFormatter)
-      else -> date.format(dayWithYearFormatter)
+      date.year == today.year -> dayFormatter.formatDateHeading(date)
+      else -> dayWithYearFormatter.formatDateHeading(date)
     }
 
 /**

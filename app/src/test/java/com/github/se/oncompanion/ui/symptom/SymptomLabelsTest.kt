@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -18,6 +19,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 
 @RunWith(AndroidJUnit4::class)
 class SymptomLabelsTest {
@@ -118,5 +120,14 @@ class SymptomLabelsTest {
     composeTestRule.runOnIdle {
       assertEquals(listOf("Today", "Yesterday", "Sat 3 Oct", "Sat 4 Oct 2025"), labels.take(4))
     }
+  }
+
+  @Test
+  @Config(qualifiers = "fr-rCH")
+  fun dateLabelUsesFrenchWeekdayAndMonthNames() {
+    val saturday = LocalDate.of(2026, 10, 3)
+    val today = saturday.plusDays(4)
+    composeTestRule.setContent { Text(dayLabel(saturday, today)) }
+    composeTestRule.onNodeWithText("Sam. 3 oct.").assertExists()
   }
 }
