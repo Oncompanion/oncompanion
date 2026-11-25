@@ -491,14 +491,38 @@ class AndroidSpeechRecognizerTest {
   }
 
   @Test
-  fun leavingBeforeThePhoneAnswersReleasesTheRecognizer() = runTest {
+  fun leavingBeforeThePhoneAnswers_theRecognizerIsReleasedByTheNextCheck() = runTest {
+    // Like an answer the patient doesn't listen after
     ShadowSpeechRecognizer.setIsOnDeviceRecognitionAvailable(true)
-    val answer = askOffline()
+    val recognizer = AndroidSpeechRecognizer(context, UnconfinedTestDispatcher(testScheduler))
+    val answer = askOffline(recognizer = recognizer)
+    val unanswered = android
 
     answer.cancel()
     runCurrent()
+    assertFalse("kept after leaving", unanswered.isDestroyed)
+    askOffline(recognizer = recognizer)
 
-    assertTrue(android.isDestroyed)
+    assertTrue("released by the next check", unanswered.isDestroyed)
+    assertFalse("the next check keeps its own", android.isDestroyed)
+  }
+
+  @Test
+  fun aCheckTheAppStoppedWaitingFor_isKeptUntilTheSessionAfterItIsReady() = runTest {
+    // The form stops waiting after 2 s and listens at once: the #675 case, on a slow phone
+    ShadowSpeechRecognizer.setIsOnDeviceRecognitionAvailable(true)
+    val recognizer = AndroidSpeechRecognizer(context, UnconfinedTestDispatcher(testScheduler))
+    val answer = askOffline(recognizer = recognizer)
+    val checker = android
+
+    answer.cancel()
+    runCurrent()
+    val listening = startListening(recognizer = recognizer)
+
+    assertFalse("kept while the session starts", checker.isDestroyed)
+    android.triggerOnReadyForSpeech(Bundle())
+    assertTrue("released once ready", checker.isDestroyed)
+    listening.job.cancel()
   }
 
   @Test

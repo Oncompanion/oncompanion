@@ -120,10 +120,11 @@ class AndroidSpeechRecognizer(
   }
 
   /**
-   * The recognizer that answered the last [offlineSupport], kept until the next session is ready to
-   * listen, or until the next [offlineSupport] if the patient didn't listen. Destroying it as soon
-   * as it answered shut the phone's speech service down under the session starting right after,
-   * which then failed, or found the service busy with what was left of it (#675).
+   * The recognizer asked by the last [offlineSupport], answered or not, kept until the next session
+   * is ready to listen, or until the next [offlineSupport] if the patient didn't listen. Destroying
+   * it as soon as it answered, or when the app stopped waiting for a slow phone, shut the phone's
+   * speech service down under the session starting right after, which then failed, or found the
+   * service busy with what was left of it (#675).
    */
   private var checker: AndroidRecognizer? = null
 
@@ -140,37 +141,30 @@ class AndroidSpeechRecognizer(
     }
     releaseChecker()
     val recognizer = AndroidRecognizer.createOnDeviceSpeechRecognizer(appContext)
-    var kept = false
-    try {
-      val support = suspendCancellableCoroutine { answer ->
-        fun reply(support: OfflineSpeech) {
-          if (answer.isActive) answer.resume(support)
-        }
-        recognizer.checkRecognitionSupport(
-            recognizerIntent(language, appContext.packageName),
-            Runnable::run,
-            object : RecognitionSupportCallback {
-              override fun onSupportResult(support: RecognitionSupport) =
-                  reply(
-                      offlineSpeechOf(
-                          language,
-                          installed = support.installedOnDeviceLanguages,
-                          pending = support.pendingOnDeviceLanguages,
-                          downloadable = support.supportedOnDeviceLanguages,
-                      )
-                  )
-
-              // The phone couldn't answer: listening still works as before
-              override fun onError(error: Int) = reply(OfflineSpeech.UNKNOWN)
-            },
-        )
+    // Kept even if the app stops waiting for the answer: it listens right after
+    checker = recognizer
+    return suspendCancellableCoroutine { answer ->
+      fun reply(support: OfflineSpeech) {
+        if (answer.isActive) answer.resume(support)
       }
-      checker = recognizer
-      kept = true
-      return support
-    } finally {
-      // Left before the phone answered: nothing will listen after it
-      if (!kept) recognizer.destroy()
+      recognizer.checkRecognitionSupport(
+          recognizerIntent(language, appContext.packageName),
+          Runnable::run,
+          object : RecognitionSupportCallback {
+            override fun onSupportResult(support: RecognitionSupport) =
+                reply(
+                    offlineSpeechOf(
+                        language,
+                        installed = support.installedOnDeviceLanguages,
+                        pending = support.pendingOnDeviceLanguages,
+                        downloadable = support.supportedOnDeviceLanguages,
+                    )
+                )
+
+            // The phone couldn't answer: listening still works as before
+            override fun onError(error: Int) = reply(OfflineSpeech.UNKNOWN)
+          },
+      )
     }
   }
 
