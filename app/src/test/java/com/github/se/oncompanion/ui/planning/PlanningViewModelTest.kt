@@ -1006,8 +1006,7 @@ class PlanningViewModelTest {
         repository.items.value = repository.items.value + item("later", "2027-06-20T08:00:00Z")
         drain()
         // Back from the grid to a day of the List
-        vm.selectView(PlanningView.LIST)
-        vm.selectDate(LocalDate.of(2026, 10, 5))
+        vm.openInList(LocalDate.of(2026, 10, 5), emptySet())
         drain()
         vm.retry()
         drain()
@@ -1244,6 +1243,67 @@ class PlanningViewModelTest {
         )
         assertFalse(state.hasError)
         assertFalse(state.isLoading)
+      }
+
+  /**
+   * From a grid, openInList switches to List on the day, with a window around it, and asks the List
+   * to show those entries once: the List gets it when it starts listening, a later listener (after
+   * a rotation) doesn't, and nothing is saved.
+   */
+  @Test
+  fun openInListSwitchesToListAndAsksOnce() =
+      runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val repository = FakePlanningRepository()
+        val vm = PlanningViewModel(ownPlanning(repository), clock, zone, saved)
+        vm.selectView(PlanningView.MONTH)
+        drain()
+        val day = LocalDate.of(2027, 6, 15)
+        val keys =
+            setOf(item("a", "2027-06-15T08:00:00Z").key, item("b", "2027-06-15T08:00:00Z").key)
+        fun listen(into: MutableList<PlanningListJump>) =
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+              vm.listJumps.collect { into += it }
+            }
+
+        // The grid asks before the List is on screen
+        vm.openInList(day, keys)
+        drain()
+        val state = vm.uiState.value
+        assertEquals(PlanningView.LIST, state.view)
+        assertEquals(day, state.selectedDate)
+        assertEquals(PlanningListWindow.around(day), state.listWindow)
+        assertEquals(PlanningListWindow.around(day).range(zone), repository.ranges.last())
+        val first = mutableListOf<PlanningListJump>()
+        val list = listen(first)
+        drain()
+        assertEquals(listOf(PlanningListJump(day, keys)), first)
+
+        // The List is recreated: the jump isn't played again
+        list.cancel()
+        val second = mutableListOf<PlanningListJump>()
+        listen(second)
+        drain()
+        assertTrue(second.isEmpty())
+
+        // A day already in the window: no new read, and one more jump
+        val reads = repository.ranges.size
+        val inside = day.plusWeeks(2)
+        vm.openInList(inside, setOf("x"))
+        drain()
+        assertEquals(reads, repository.ranges.size)
+        assertEquals(PlanningListWindow.around(day), vm.uiState.value.listWindow)
+        assertEquals(listOf(PlanningListJump(inside, setOf("x"))), second)
+        assertEquals(1, first.size)
+        // Only the selection is saved
+        assertEquals(
+            setOf("planning_selected_date", "planning_view", "planning_period_start"),
+            saved.keys(),
+        )
+        assertEquals("LIST", saved.get<String>("planning_view"))
+        assertThrows(IllegalArgumentException::class.java) {
+          vm.openInList(LocalDate.of(0, 12, 31), keys)
+        }
       }
 
   /** After a rotation or process death, the List opens on the saved day, in a new window. */

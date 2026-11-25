@@ -18,9 +18,12 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -84,6 +87,21 @@ data class PlanningUiState(
 }
 
 /**
+ * A one-shot request to the List: scroll to [date] and flash the entries with [keys], once. It is
+ * never kept in the state or saved, so a rotation doesn't play it again.
+ *
+ * What the List can rely on when it receives one:
+ * - [PlanningViewModel.uiState] already shows List on [date], in a window that holds it.
+ * - The entries may not be loaded yet (a new window is read after the request): wait for [keys] to
+ *   appear under [date] in [PlanningUiState.itemsByDay]; if the read ends without one of them (it
+ *   was deleted meanwhile), show the day without flashing it.
+ *
+ * @property keys the [PlanningItem.key]s of entries listed under [date] (their start day); empty to
+ *   only scroll to the day
+ */
+data class PlanningListJump(val date: LocalDate, val keys: Set<String>)
+
+/**
  * Owns calendar selection: the selected day, the period of the chosen view, and the List's window
  * of days; it loads the window in List and the period in the grids. Presentation and date labels
  * belong to the view.
@@ -113,6 +131,16 @@ class PlanningViewModel(
   // The days the entries on screen were last read for; null before any entries or after a change of
   // account or access
   private var answeredRange: PlanningRange? = null
+  // Conflated: only the latest jump matters, and it is received once
+  private val listJumpRequests = Channel<PlanningListJump>(Channel.CONFLATED)
+
+  /**
+   * The List's jumps requested by [openInList]. Each is received once, by one collector, and waits
+   * until one collects; of several sent before that, only the latest is kept. A jump a collector
+   * received is gone even if it was cancelled before acting on it, so the List collects in a
+   * `LaunchedEffect` and acts in the same step.
+   */
+  val listJumps: Flow<PlanningListJump> = listJumpRequests.receiveAsFlow()
 
   init {
     save(mutableState.value)
@@ -148,6 +176,16 @@ class PlanningViewModel(
    * happens in the grids, which load their period.
    */
   fun showLater() = growListWindow(PlanningListWindow::later)
+
+  /**
+   * Shows [date] in the List, from a grid (#555, #556), and asks the List once, through
+   * [listJumps], to scroll to it and flash the entries with [keys].
+   */
+  fun openInList(date: LocalDate, keys: Set<String>) {
+    require(PlanningDates.isSupported(date)) { "Date must have a four-digit positive year" }
+    select(date, PlanningPeriod.of(PlanningView.LIST, date))
+    listJumpRequests.trySend(PlanningListJump(date, keys))
+  }
 
   /** Moves to the previous period, if it is within the supported years. */
   fun previousPeriod() = move(-1)
