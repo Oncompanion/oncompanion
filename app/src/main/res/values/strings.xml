@@ -163,7 +163,6 @@
     <!-- A day and time the patient chose, e.g. "Yesterday, 21:00 · Change" -->
     <string name="overview_check_in_sheet_when">%1$s, %2$s · Change</string>
     <string name="overview_check_in_sheet_note">Add a note (optional)</string>
-    <string name="overview_check_in_sheet_speak">Speak how you feel instead</string>
     <string name="overview_check_in_sheet_save">Save to my journal</string>
     <!-- The check-in once the patient saved a symptom today (Figma M3: Check-in · After saving) -->
     <string name="overview_saved_title">Saved to your journal</string>

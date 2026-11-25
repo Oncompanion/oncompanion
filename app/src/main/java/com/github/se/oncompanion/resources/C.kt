@@ -144,7 +144,6 @@ object C {
     const val overview_check_in_sheet_close = "overview_check_in_sheet_close"
     const val overview_check_in_sheet_when = "overview_check_in_sheet_when"
     const val overview_check_in_sheet_note = "overview_check_in_sheet_note"
-    const val overview_check_in_sheet_speak = "overview_check_in_sheet_speak"
     const val overview_check_in_sheet_error = "overview_check_in_sheet_error"
     const val overview_check_in_sheet_save = "overview_check_in_sheet_save"
     const val overview_check_in_sheet_saving = "overview_check_in_sheet_saving"

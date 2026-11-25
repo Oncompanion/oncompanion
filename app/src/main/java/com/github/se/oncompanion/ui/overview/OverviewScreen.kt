@@ -236,10 +236,6 @@ fun OverviewScreen(
         checkIn(),
         onSaved = { isCheckInOpen = false },
         onClose = { isCheckInOpen = false },
-        onSpeak = {
-          isCheckInOpen = false
-          navigationActions.navigateTo(Screen.symptomSpeak())
-        },
     )
   }
 }

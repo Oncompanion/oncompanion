@@ -4,9 +4,6 @@ package com.github.se.oncompanion.ui.overview
 
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -20,37 +17,38 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.test.requestFocus
 import androidx.navigation.NavHostController
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.domain.planning.ownPlanning
+import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.AuthUser
 import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.speech.FakeSpeechRecognizer
+import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
 import com.github.se.oncompanion.model.symptom.FakeSymptomRepository
+import com.github.se.oncompanion.model.symptom.SymptomRepositoryProvider
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
+import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import com.github.se.oncompanion.resources.C
-import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
-import com.github.se.oncompanion.ui.assertIsAboveKeyboard
 import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.common.SavePhase
 import com.github.se.oncompanion.ui.navigation.NavigationActions
-import com.github.se.oncompanion.ui.navigation.Screen
-import com.github.se.oncompanion.ui.showKeyboard
 import com.github.se.oncompanion.ui.symptom.AddSymptomError
 import com.github.se.oncompanion.ui.symptom.AddSymptomUiState
 import com.github.se.oncompanion.ui.symptom.AddSymptomViewModel
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
 import java.io.IOException
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -88,7 +86,6 @@ class CheckInSheetTest {
           onNotesChange = { calls += "notes $it" },
           onSave = { calls += "save" },
           onClose = { calls += "close" },
-          onSpeak = { calls += "speak" },
       )
 
   private val nausea =
@@ -97,7 +94,6 @@ class CheckInSheetTest {
           types = listOf(SymptomType.NAUSEA),
           strengths = mapOf(SymptomType.NAUSEA to 4),
           strengthOf = SymptomType.NAUSEA,
-          canDictate = true,
       )
 
   /** Shows the sheet in [state], replacing what was shown, so a test can show another state. */
@@ -130,7 +126,6 @@ class CheckInSheetTest {
     tile(SymptomType.FEVER).performScrollTo().performClick()
     tile(SymptomType.NAUSEA).performScrollTo().performClick()
     node(C.Tag.overview_check_in_sheet_note).performScrollTo().performTextInput("After lunch")
-    node(C.Tag.overview_check_in_sheet_speak).performClick()
     node(C.Tag.overview_check_in_sheet_save).performScrollTo().performClick()
     node(C.Tag.overview_check_in_sheet_close).performClick()
 
@@ -140,7 +135,6 @@ class CheckInSheetTest {
               "toggle FEVER",
               "toggle NAUSEA",
               "notes After lunch",
-              "speak",
               "save",
               "close",
           ),
@@ -211,20 +205,11 @@ class CheckInSheetTest {
   }
 
   @Test
-  fun withoutASpeechRecognizer_theNoteHasNoMicrophone() {
-    showSheet(nausea.copy(canDictate = false))
-
-    node(C.Tag.overview_check_in_sheet_note).performScrollTo().assertIsDisplayed()
-    node(C.Tag.overview_check_in_sheet_speak).assertDoesNotExist()
-  }
-
-  @Test
   fun whileSaving_nothingClosesTheSheet_andItSaysItIsSaving() {
     showSheet(nausea.copy(save = SavePhase.SAVING))
 
     node(C.Tag.overview_check_in_sheet_saving).performScrollTo().assertIsDisplayed()
     node(C.Tag.overview_check_in_sheet_close).assertIsNotEnabled()
-    node(C.Tag.overview_check_in_sheet_speak).assertIsNotEnabled()
     Espresso.pressBack()
     composeTestRule.runOnIdle { assertEquals(emptyList<String>(), calls) }
     node(C.Tag.overview_check_in_sheet).assertExists()
@@ -273,12 +258,22 @@ class CheckInSheetTest {
     lateinit var navigationActions: RecordingNavigationActions
   }
 
-  private fun overview(): Overview {
+  /** A clock a test moves forward by hand. */
+  private class MovingClock(var now: Instant) : Clock() {
+    override fun getZone(): ZoneId = ZoneOffset.UTC
+
+    override fun withZone(zone: ZoneId): Clock = this
+
+    override fun instant(): Instant = now
+  }
+
+  private fun overview(
+      clock: Clock = Clock.fixed(morning.toInstant(ZoneOffset.UTC), ZoneOffset.UTC)
+  ): Overview {
     val auth =
         FakeAuthRepository(onSignIn = { AuthUser(uid = "patient", displayName = "Alex") }).also {
           runBlocking { it.signInWithGoogle("token") }
         }
-    val clock = Clock.fixed(morning.toInstant(ZoneOffset.UTC), ZoneOffset.UTC)
     val symptoms = FakeSymptomRepository(clock = { clock.instant() })
     val viewModel =
         OverviewViewModel(
@@ -384,63 +379,78 @@ class CheckInSheetTest {
   }
 
   @Test
-  fun phoneRotated_theSheetStaysOpen_withWhatWasPicked() {
-    val overview = overview()
+  fun whileOpen_theTimeFollowsTheClock_andATimeItPassesCanBeSaved() {
+    val clock = MovingClock(morning.toInstant(ZoneOffset.UTC))
+    val overview = overview(clock)
     tapCheckInTile(SymptomType.NAUSEA)
-    tile(SymptomType.OTHER).performScrollTo().performClick()
-    node(C.Tag.symptom_add_other_name).performScrollTo().performTextInput("Hiccups")
+    val whenRow = node(C.Tag.overview_check_in_sheet_when).performScrollTo()
+    whenRow.assertTextContains(context.getString(R.string.overview_check_in_sheet_now, "09:30"))
 
-    // Rotating recreates the activity; the ViewModels survive it
-    composeTestRule.activityRule.scenario.recreate()
-    composeTestRule.runOnUiThread(overview.show)
+    // Ten minutes later, at the next tick
+    clock.now = morning.plusMinutes(10).toInstant(ZoneOffset.UTC)
+    composeTestRule.mainClock.advanceTimeBy(60_000)
+    whenRow.assertTextContains(context.getString(R.string.overview_check_in_sheet_now, "09:40"))
 
-    tile(SymptomType.NAUSEA).performScrollTo().assertIsOn()
-    tile(SymptomType.OTHER).performScrollTo().assertIsOn()
-    node(C.Tag.symptom_add_other_name).performScrollTo().assertTextContains("Hiccups")
+    // A time still to come can't be saved, until the clock passes it
+    composeTestRule.runOnIdle { overview.checkIn.onTimeChange(LocalTime.of(9, 45)) }
+    node(C.Tag.overview_check_in_sheet_save).performScrollTo().assertIsNotEnabled()
+    clock.now = morning.plusMinutes(20).toInstant(ZoneOffset.UTC)
+    composeTestRule.mainClock.advanceTimeBy(60_000)
+    node(C.Tag.overview_check_in_sheet_save).performScrollTo().assertIsEnabled()
   }
 
   @Test
-  fun theMicrophone_closesTheSheet_andOpensTheVoicePage() {
-    val overview = overview()
-    tapCheckInTile(SymptomType.NAUSEA)
-
-    node(C.Tag.overview_check_in_sheet_speak).performScrollTo().performClick()
-    composeTestRule.waitForIdle()
-
-    node(C.Tag.overview_check_in_sheet).assertDoesNotExist()
-    assertEquals(listOf(Screen.symptomSpeak()), overview.navigationActions.openedRoutes)
-  }
-
-  // ----- Large text, landscape and the keyboard -----
-
-  /** The sheet's content alone, filling the screen, so a keyboard can be opened over it. */
-  private fun showBody(state: AddSymptomUiState) {
-    composeTestRule.runOnUiThread {
-      context.setContent {
-        OncompanionTheme {
-          Surface(Modifier.fillMaxSize()) { CheckInSheetBody(state, actions, canClose = true) }
+  fun phoneRotated_theSheetStaysOpen_withWhatWasPicked() {
+    val auth =
+        FakeAuthRepository(onSignIn = { AuthUser(uid = "patient", displayName = "Alex") }).also {
+          runBlocking { it.signInWithGoogle("token") }
+        }
+    val originalAuth = AuthRepositoryProvider.repository
+    val originalSymptoms = SymptomRepositoryProvider.repository
+    val originalProfiles = UserProfileRepositoryProvider.repository
+    AuthRepositoryProvider.repository = auth
+    SymptomRepositoryProvider.repository = FakeSymptomRepository()
+    UserProfileRepositoryProvider.repository = FakeUserProfileRepository()
+    SpeechRecognizerProvider.recognizer = FakeSpeechRecognizer()
+    try {
+      val clock = Clock.fixed(morning.toInstant(ZoneOffset.UTC), ZoneOffset.UTC)
+      val viewModel =
+          OverviewViewModel(
+              authRepository = auth,
+              profileRepository = FakeUserProfileRepository(),
+              observePlanning = ownPlanning(FakePlanningRepository()),
+              clock = clock,
+              zoneId = ZoneOffset.UTC,
+          )
+      // The check-in's ViewModel as the app makes it, kept by the activity across a rotation
+      val show = {
+        context.setContent {
+          OverviewScreen(
+              RecordingNavigationActions(TestNavHostController(LocalContext.current)),
+              viewModel = viewModel,
+          )
         }
       }
+      composeTestRule.runOnUiThread(show)
+      tapCheckInTile(SymptomType.NAUSEA)
+      tile(SymptomType.OTHER).performScrollTo().performClick()
+      node(C.Tag.symptom_add_other_name).performScrollTo().performTextInput("Hiccups")
+
+      composeTestRule.activityRule.scenario.recreate()
+      composeTestRule.runOnUiThread(show)
+
+      tile(SymptomType.NAUSEA).performScrollTo().assertIsOn()
+      tile(SymptomType.OTHER).performScrollTo().assertIsOn()
+      node(C.Tag.symptom_add_other_name).performScrollTo().assertTextContains("Hiccups")
+    } finally {
+      AuthRepositoryProvider.repository = originalAuth
+      SymptomRepositoryProvider.repository = originalSymptoms
+      UserProfileRepositoryProvider.repository = originalProfiles
+      SpeechRecognizerProvider.reset()
     }
   }
 
-  private fun assertNoteTypedAboveKeyboard(keyboardHeight: Int) {
-    showBody(nausea)
-    node(C.Tag.overview_check_in_sheet_note).performScrollTo().requestFocus()
-    composeTestRule.showKeyboard(keyboardHeight)
-
-    listOf(C.Tag.overview_check_in_sheet_note, C.Tag.overview_check_in_sheet_save).forEach {
-      val field = node(it).performScrollTo()
-      field.assertIsFullyVisible()
-      field.assertIsAboveKeyboard(keyboardHeight)
-    }
-  }
-
-  @Test fun keyboardOpenOnTheNote_keepsItAndSaveAboveIt() = assertNoteTypedAboveKeyboard(600)
-
-  @Test
-  @Config(qualifiers = LANDSCAPE_PHONE)
-  fun landscape_keyboardOpenOnTheNote_keepsItAndSaveAboveIt() = assertNoteTypedAboveKeyboard(500)
+  // ----- Large text -----
 
   @Test
   @Config(qualifiers = "w360dp-h640dp", fontScale = 2f)
