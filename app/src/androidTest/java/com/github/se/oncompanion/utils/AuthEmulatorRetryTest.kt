@@ -147,6 +147,30 @@ class AuthEmulatorRetryTest {
   }
 
   @Test
+  fun recoverySignInRetriesWithoutAnotherSignup(): Unit = runTest {
+    var creates = 0
+    var signIns = 0
+    val uid =
+        createEmulatorAccount(
+            create = {
+              if (++creates == 1) throw FirebaseNetworkException("Response lost")
+              throw FirebaseAuthUserCollisionException(
+                  "ERROR_EMAIL_ALREADY_IN_USE",
+                  "Already exists",
+              )
+            },
+            signIn = {
+              if (++signIns == 1) throw FirebaseNetworkException("Recovery response lost")
+              "original-uid"
+            },
+        )
+    assertEquals("original-uid", uid)
+    assertEquals(2, creates)
+    assertEquals(2, signIns)
+    assertEquals(500L, currentTime)
+  }
+
+  @Test
   fun freshCreateDoesNotSignInAndFirstCollisionFails(): Unit = runTest {
     assertEquals(
         "fresh-uid",

@@ -18,16 +18,24 @@ private const val AUTH_RETRY_DELAY_MS = 250L
 internal suspend fun createEmulatorAccount(
     create: suspend () -> String,
     signIn: suspend () -> String,
-): String =
-    retryAuthEmulator("Create account") { attempt ->
+): String {
+  var recovering = false
+  return retryAuthEmulator("Create account") { attempt ->
+    if (recovering) {
+      signIn()
+    } else {
       try {
         create()
       } catch (error: FirebaseAuthUserCollisionException) {
         // Only a retry may recover an account: a collision on the first call is a real failure.
         if (attempt == 1) throw error
+        // Once existence is confirmed, further attempts only need to recover the sign-in.
+        recovering = true
         signIn()
       }
     }
+  }
+}
 
 /** Retries only transient Auth transport failures, within one deadline shared by all attempts. */
 internal suspend fun <T> retryAuthEmulator(
