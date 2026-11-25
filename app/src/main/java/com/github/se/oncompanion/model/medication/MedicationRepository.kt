@@ -79,6 +79,13 @@ interface MedicationRepository {
   fun observeRejectedPrescriptions(uid: String, addedBy: String): Flow<List<Prescription>>
 
   /**
+   * Emits the prescriptions of [uid] followed by the ones [uid] rejected, now and every time either
+   * changes, always in step: a prescription being rejected moves from one to the other in a single
+   * write, and is never emitted as in neither (US-50). Only [uid] may read them.
+   */
+  fun observePrescriptionsWithRejected(uid: String): Flow<List<Prescription>>
+
+  /**
    * Deletes the rejected prescription [id] of [uid], once the caregiver who added it saw it. Does
    * nothing if it doesn't exist.
    */

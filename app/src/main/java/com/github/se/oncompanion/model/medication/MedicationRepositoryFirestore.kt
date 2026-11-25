@@ -21,6 +21,7 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 
@@ -64,13 +65,7 @@ class MedicationRepositoryFirestore(
 
   override fun observePrescriptions(uid: String): Flow<List<Prescription>> =
       snapshots(uid).map { documents ->
-        documents
-            .mapNotNull(::toPrescription)
-            .sortedWith(
-                compareByDescending<Prescription> { it.prescribedOn }
-                    // Not confirmed by the server yet: counts as the most recently saved
-                    .thenByDescending { it.createdAt ?: Instant.MAX }
-            )
+        documents.mapNotNull(::toPrescription).sortedWith(NEWEST_FIRST)
       }
 
   override fun observePrescription(uid: String, id: String): Flow<Prescription?> =
@@ -167,6 +162,39 @@ class MedicationRepositoryFirestore(
         }
     awaitClose { registration.remove() }
   }
+
+  override fun observePrescriptionsWithRejected(uid: String): Flow<List<Prescription>> =
+      SessionAccess.snapshots {
+            // Each list as last received; sent only once Firestore says every listener has
+            // caught up, so a rejection (one write to two collections) never shows as in neither
+            var kept: List<Prescription>? = null
+            var rejected: List<Prescription>? = null
+            val keptListener =
+                prescriptions(uid).addSnapshotListener { snapshot, error ->
+                  if (error != null) close(error)
+                  else if (snapshot != null) {
+                    kept = snapshot.documents.mapNotNull(::toPrescription).sortedWith(NEWEST_FIRST)
+                  }
+                }
+            val rejectedListener =
+                rejectedPrescriptions(uid).addSnapshotListener { snapshot, error ->
+                  if (error != null) close(error)
+                  else if (snapshot != null) {
+                    rejected = snapshot.documents.mapNotNull(::toPrescription)
+                  }
+                }
+            val inSync = db.addSnapshotsInSyncListener {
+              val both = kept?.let { k -> rejected?.let { r -> k + r } }
+              if (both != null) trySend(both)
+            }
+            awaitClose {
+              keptListener.remove()
+              rejectedListener.remove()
+              inSync.remove()
+            }
+          }
+          // In sync also follows other screens' listeners: only send what changed
+          .distinctUntilChanged()
 
   override suspend fun deleteRejectedPrescription(uid: String, id: String): Unit =
       SessionAccess.operation {
@@ -371,6 +399,12 @@ class MedicationRepositoryFirestore(
     const val FIELD_DURATION_DAYS = "durationDays"
 
     private const val TAG = "MedicationRepository"
+
+    /** Most recently prescribed first; one not confirmed by the server yet counts as the newest. */
+    private val NEWEST_FIRST =
+        compareByDescending<Prescription> { it.prescribedOn }
+            .thenByDescending { it.createdAt ?: Instant.MAX }
+
     /** How a reminder time is stored: always two digits, so "09:00" and not "9:00". */
     private val TIME = DateTimeFormatter.ofPattern("HH:mm")
   }
