@@ -240,6 +240,35 @@ class AddSymptomScreenTest {
   }
 
   @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = SMALL_PHONE)
+  fun settingStrengths_movesNeitherTheChipsNorTheSlider() {
+    val types =
+        listOf(
+            SymptomType.FATIGUE,
+            SymptomType.BREATHLESSNESS,
+            SymptomType.SLEEP_PROBLEMS,
+            SymptomType.HEADACHE,
+        )
+    setContent(empty.copy(types = types, strengthOf = SymptomType.FATIGUE))
+    val chips = types.map { C.Tag.symptomAddStrengthChip(it.name) }
+    scrolledTo(chips.first())
+    fun bounds() = (chips + C.Tag.symptom_add_intensity).map { node(it).getBoundsInRoot() }
+    val before = bounds()
+
+    // The strongest strength makes the longest labels, e.g. "Fatigue · 10/10"
+    types.forEach { type ->
+      node(C.Tag.symptomAddStrengthChip(type.name)).performClick()
+      node(C.Tag.symptom_add_intensity).performSemanticsAction(SemanticsActions.SetProgress) {
+        it(10f)
+      }
+    }
+
+    node(chips.first()).assert(hasText("Fatigue · 10/10"))
+    assertEquals(before, bounds())
+  }
+
+  @Test
   fun aRenamedOther_isCalledByItsName_inTheChipAndTheQuestion() {
     setContent(
         empty.copy(
@@ -686,14 +715,30 @@ class AddSymptomScreenTest {
         .assert(hasText(string(R.string.symptom_edit_save)))
         .assertIsNotEnabled()
 
-    // The first strength replaces the overall intensity
-    scrolledTo(C.Tag.symptom_add_intensity).performSemanticsAction(SemanticsActions.SetProgress) {
-      it(7f)
-    }
-    node(C.Tag.symptom_add_overall).assertDoesNotExist()
+    // The first strength replaces the overall intensity, which says so where it was
+    assertTheFirstStrengthReplacesTheOverall_withoutMovingTheSlider()
 
     node(C.Tag.symptom_add_save).assertIsEnabled().performClick()
     assertEquals(listOf("strength=7", "save"), events)
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = SMALL_PHONE, fontScale = 2f)
+  fun editing_largeText_replacingTheOverallKeepsTheSliderInPlace() {
+    setContent(editingForm)
+    assertTheFirstStrengthReplacesTheOverall_withoutMovingTheSlider()
+  }
+
+  /** Sets a first strength on [editingForm]: its overall says it is replaced, on as many lines. */
+  private fun assertTheFirstStrengthReplacesTheOverall_withoutMovingTheSlider() {
+    val slider = scrolledTo(C.Tag.symptom_add_intensity)
+    val before = slider.getBoundsInRoot()
+    slider.performSemanticsAction(SemanticsActions.SetProgress) { it(7f) }
+    node(C.Tag.symptom_add_overall)
+        .assertTextEquals(string(R.string.symptom_add_overall_replaced, 4))
+    // The slider stays under the finger
+    assertEquals(before, node(C.Tag.symptom_add_intensity).getBoundsInRoot())
   }
 
   // ----- Keyboard -----

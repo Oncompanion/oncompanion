@@ -674,12 +674,16 @@ class AppNavHostTest {
     )
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
-          .onAllNodesWithTag(OverviewShortcut.SYMPTOMS.testTag)
+          .onAllNodesWithTag(C.Tag.caregiver_overview_full_journal)
           .fetchSemanticsNodes()
           .isNotEmpty()
     }
 
-    composeTestRule.onNodeWithTag(OverviewShortcut.SYMPTOMS.testTag).performClick()
+    // The journal card on Anne's day opens her journal
+    composeTestRule
+        .onNodeWithTag(C.Tag.caregiver_overview_full_journal)
+        .performScrollTo()
+        .performClick()
 
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
@@ -705,11 +709,15 @@ class AppNavHostTest {
     )
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
-          .onAllNodesWithTag(OverviewShortcut.SYMPTOMS.testTag)
+          .onAllNodesWithTag(C.Tag.caregiver_overview_full_journal)
           .fetchSemanticsNodes()
           .isNotEmpty()
     }
-    composeTestRule.onNodeWithTag(OverviewShortcut.SYMPTOMS.testTag).performClick()
+    // The journal card on Anne's day opens her journal
+    composeTestRule
+        .onNodeWithTag(C.Tag.caregiver_overview_full_journal)
+        .performScrollTo()
+        .performClick()
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
       composeTestRule
           .onAllNodesWithTag(C.Tag.symptom_journal_add)
@@ -861,9 +869,10 @@ class AppNavHostTest {
         authRepository = auth,
         medicationRepository = medications,
     )
-    waitForTag(OverviewShortcut.PRESCRIPTIONS.testTag)
+    // Anne takes Ondansetron today: her medications card opens her prescriptions
+    waitForTag(C.Tag.caregiver_overview_prescriptions_link)
     composeTestRule
-        .onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag)
+        .onNodeWithTag(C.Tag.caregiver_overview_prescriptions_link)
         .performScrollTo()
         .performClick()
     waitForTag(C.Tag.prescriptionsItem("chemo"))

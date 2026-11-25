@@ -151,6 +151,13 @@ fun PrescriptionFormScreen(
       onConfirmRejection = viewModel::reject,
       onCancelRejection = viewModel::cancelRejection,
       caregiverOf = caregiverOf,
+      reminderActions =
+          ReminderActions(
+              onRemindChange = viewModel::onRemindChange,
+              onTimeChange = viewModel::onReminderTimeChange,
+              onAddTime = viewModel::addReminderTime,
+              onRemoveTime = viewModel::removeReminderTime,
+          ),
   )
 }
 
@@ -167,6 +174,7 @@ fun PrescriptionFormScreen(
  * @param onCancelRejection keeps reviewing it
  * @param caregiverOf the patient's first name when a caregiver adds for them: the title says whose
  *   prescriptions it goes to
+ * @param reminderActions what the patient does with the open medication's reminders (US-32)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -193,6 +201,7 @@ fun PrescriptionFormContent(
     onConfirmRejection: () -> Unit = {},
     onCancelRejection: () -> Unit = {},
     caregiverOf: String? = null,
+    reminderActions: ReminderActions = ReminderActions(),
 ) {
   // Asks before saving a prescription already saved (US-39)
   uiState.alreadySaved?.let { AlreadySavedDialog(it, onKeepEditing, onSaveAnyway, caregiverOf) }
@@ -295,6 +304,7 @@ fun PrescriptionFormContent(
                 onStartDateChange = onStartDateChange,
                 onDurationChange = onDurationChange,
                 onRemove = { onRemoveMedication(position) },
+                reminders = { MedicationReminders(medication, reminderActions, caregiverOf) },
             )
           } else {
             ClosedMedication(
@@ -505,6 +515,7 @@ private fun OpenMedication(
     onStartDateChange: (LocalDate) -> Unit,
     onDurationChange: (String) -> Unit,
     onRemove: () -> Unit,
+    reminders: @Composable () -> Unit,
 ) {
   FormCard(Modifier.testTag(C.Tag.prescription_form_medication_card)) {
     // Title, with Remove at the end of the line when there is another medication
@@ -597,6 +608,8 @@ private fun OpenMedication(
           DurationField(medication, durationInvalid, durationCheck, onDurationChange, it)
         },
     )
+    // When the patient is reminded of it (US-32), after what was prescribed
+    reminders()
   }
 }
 
@@ -658,7 +671,10 @@ private fun ClosedMedication(
   }
 }
 
-/** "1 tablet · Twice a day · from 29 Sep · 5 days", without the fields left empty. */
+/**
+ * "1 tablet · Twice a day · from 29 Sep · 5 days · Reminders 09:00, 18:00", without the fields left
+ * empty.
+ */
 @Composable
 private fun MedicationDraft.summary(): String {
   val duration = durationDays?.let {
@@ -666,7 +682,16 @@ private fun MedicationDraft.summary(): String {
   }
   val start =
       stringResource(R.string.prescription_form_from_date, startDate.format(shortDateFormatter))
-  return listOfNotNull(dosage.trim(), frequency.trim(), start, duration)
+  val reminders =
+      reminderTimes
+          .takeIf { it.isNotEmpty() }
+          ?.let { times ->
+            stringResource(
+                R.string.medication_reminders_summary,
+                times.joinToString(", ") { it.format(reminderTimeFormatter) },
+            )
+          }
+  return listOfNotNull(dosage.trim(), frequency.trim(), start, duration, reminders)
       .filter { it.isNotEmpty() }
       .joinToString(" · ")
 }

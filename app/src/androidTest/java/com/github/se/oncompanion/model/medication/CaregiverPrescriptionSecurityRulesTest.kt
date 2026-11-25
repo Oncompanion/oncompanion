@@ -9,6 +9,7 @@ import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.allowed
 import com.github.se.oncompanion.utils.denied
+import com.github.se.oncompanion.utils.forgedTime
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
@@ -386,7 +387,7 @@ class CaregiverPrescriptionSecurityRulesTest {
             carolsEdit("editedByName" to 7),
             carolsEdit("addedBy" to daveUid),
             carolsEdit("addedByName" to "Dave"),
-            carolsEdit("createdAt" to Timestamp.now()),
+            carolsEdit("createdAt" to forgedTime),
             carolsEdit("prescribedOn" to null),
             carolsEdit("prescribedOn" to "tomorrow"),
             carolsEdit("prescribedBy" to "a".repeat(101)),
@@ -394,7 +395,7 @@ class CaregiverPrescriptionSecurityRulesTest {
             carolsEdit("medications" to List(21) { mapOf("id" to "m$it") }),
             carolsEdit("extraField" to "unexpected"),
         )
-    for (fields in invalid) denied(doc.update(fields))
+    for (fields in invalid) denied(doc.update(fields), "the edit $fields")
   }
 
   @Test

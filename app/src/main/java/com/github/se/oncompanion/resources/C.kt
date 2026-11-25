@@ -156,6 +156,9 @@ object C {
     const val caregiver_overview_loading = "caregiver_overview_loading"
     const val caregiver_overview_error = "caregiver_overview_error"
     const val caregiver_overview_retry = "caregiver_overview_retry"
+    const val caregiver_overview_journal = "caregiver_overview_journal"
+    const val caregiver_overview_full_journal = "caregiver_overview_full_journal"
+    const val caregiver_overview_prescriptions_link = "caregiver_overview_prescriptions_link"
 
     const val bottom_navigation_bar = "bottom_navigation_bar"
     const val bottom_navigation_tab_overview = "bottom_navigation_tab_overview"
@@ -280,6 +283,25 @@ object C {
     const val settings_screen = "settings_screen"
     const val settings_back = "settings_back"
     const val profile_settings = "profile_settings"
+    const val settings_language = "settings_language"
+    const val language_screen = "language_screen"
+    const val language_device = "language_device"
+    const val language_english = "language_english"
+    const val language_french = "language_french"
+    const val settings_date_time = "settings_date_time"
+    const val settings_date_time_screen = "settings_date_time_screen"
+    const val settings_time_format = "settings_time_format"
+    const val settings_time_format_screen = "settings_time_format_screen"
+    const val settings_date_format = "settings_date_format"
+    const val settings_date_format_screen = "settings_date_format_screen"
+    const val settings_format_preview = "settings_format_preview"
+    const val settings_text_size = "settings_text_size"
+
+    /** Identifies a clock-format option by its stable preference name. */
+    fun settingsTimeChoice(name: String) = "settings_time_choice_$name"
+
+    /** Identifies a date-format option by its stable preference name. */
+    fun settingsDateChoice(name: String) = "settings_date_choice_$name"
 
     // Profile
     const val profile_edit = "profile_edit"
@@ -641,10 +663,28 @@ object C {
     // A change the server rejected and was undone
     const val rejected_write_snackbar = "rejected_write_snackbar"
 
+    // Local reminder permissions
+    const val reminder_permission_notice = "reminder_permission_notice"
+    const val reminder_permission_action = "reminder_permission_action"
+
     // Shared dialog: the spinner while its action is on its way
     const val dialog_progress = "dialog_progress"
 
     // Shared message state: its round info tile
     const val message_state_icon = "message_state_icon"
+
+    // Medication reminders in the prescription form (US-32)
+    const val medication_reminders = "medication_reminders"
+    const val medication_reminders_switch = "medication_reminders_switch"
+    const val medication_reminders_add_time = "medication_reminders_add_time"
+    const val medication_reminders_picker = "medication_reminders_picker"
+    const val medication_reminders_picker_confirm = "medication_reminders_picker_confirm"
+    const val medication_reminders_picker_cancel = "medication_reminders_picker_cancel"
+
+    /** The field of the reminder at [index] of the open medication. */
+    fun medicationReminderTime(index: Int) = "medication_reminder_time_$index"
+
+    /** The button that removes the reminder at [index]. */
+    fun medicationReminderRemove(index: Int) = "medication_reminder_remove_$index"
   }
 }

@@ -1,7 +1,9 @@
 <!-- Co-authored-by: ChatGPT <noreply@openai.com> -->
 <!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
 <!-- Co-authored-by: Codex <noreply@openai.com> -->
-<resources>
+<!-- #559 translates the picker first. Remove the incomplete-catalog allowance in #560. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="MissingTranslation">
     <string name="app_name">oncompanion</string>
     <!-- Planning -->
     <string name="planning_today">Today</string>
@@ -146,6 +148,11 @@
     <string name="overview_care_of">%1$s\'s care</string>
     <string name="overview_switch_patient">Choose whose care to follow</string>
     <string name="overview_error_hint_caregiver">Please try again.</string>
+    <!-- The same count on the caregiver's read-only card, for TalkBack: no button says it there -->
+    <plurals name="overview_doses_taken_read_only">
+        <item quantity="one">%1$d of %2$d dose taken today</item>
+        <item quantity="other">%1$d of %2$d doses taken today</item>
+    </plurals>
     <!-- US-73: the check-in's button to say how you feel instead of tapping a tile -->
     <string name="overview_speak">Speak how you feel</string>
     <!-- The check-in's sheet (#544), opened by a tile: what was felt, how strong, when, a note -->
@@ -163,8 +170,20 @@
     <string name="caregiver_overview_day">%1$s\'s day</string>
     <string name="caregiver_overview_shared_only">You see what %1$s chose to share. Only %1$s can change it.</string>
     <!-- On the locked card of a section the patient doesn't share, under its name -->
+    <string name="caregiver_overview_journal">Journal</string>
+    <string name="caregiver_overview_full_journal">Full journal</string>
+    <string name="caregiver_overview_journal_empty">No entries yet</string>
+    <!-- When the patient last logged a symptom, e.g. "Yesterday at 18:10" -->
+    <string name="caregiver_overview_journal_at">%1$s at %2$s</string>
+    <!-- A symptom and its strength out of 10, e.g. "Nausea 7/10" -->
+    <string name="caregiver_overview_journal_strength">%1$s %2$d/10</string>
+    <!-- The symptoms of an entry and its one intensity, e.g. "Nausea, Fatigue · 6/10" -->
+    <string name="caregiver_overview_journal_overall">%1$s · %2$d/10</string>
     <string name="caregiver_overview_private">%1$s keeps this private</string>
     <string name="caregiver_overview_error_title">Couldn\'t load %1$s\'s day</string>
+    <!-- The caregiver's read-only medications card (Figma M3): "Medications today · 4" -->
+    <string name="caregiver_overview_medications">Medications today</string>
+    <string name="caregiver_overview_medications_count">Medications today · %1$d</string>
 
     <!-- Symptoms -->
     <string name="symptom_type_fatigue">Fatigue</string>
@@ -319,6 +338,10 @@
     </plurals>
     <!-- The question over the slider for "Other" before it is named -->
     <string name="symptom_add_strength_question_other">How strong is it? (optional)</string>
+    <!-- The question for a symptom whose name is a plural, e.g. "How strong are your sleep problems? (optional)" -->
+    <string name="symptom_add_strength_question_plural">How strong are your %1$s? (optional)</string>
+    <!-- The same line once a strength is set: saving drops the single intensity -->
+    <string name="symptom_add_overall_replaced">Overall: %1$d/10 (from before) · replaced by the strengths</string>
 
     <!-- Sign-in -->
     <string name="sign_in_welcome">Welcome to oncompanion</string>
@@ -917,4 +940,64 @@
     <string name="settings_title">Settings</string>
     <string name="settings_back">Back</string>
     <string name="settings_profile_summary">Appearance, language and more</string>
+    <string name="settings_language">Language</string>
+    <string name="language_intro">Choose the language used by oncompanion.</string>
+    <string name="language_device">Follow device</string>
+    <string name="language_device_hint">French on French phones; English otherwise</string>
+    <string name="language_english" translatable="false">English</string>
+    <string name="language_french" translatable="false">Français</string>
+    <string name="language_user_data_scope">Your notes, prescriptions and names stay as you entered them.</string>
+    <string name="language_preview">Preview</string>
+    <string name="language_preview_appointment">Appointment</string>
+    <string name="settings_date_time">Date and time</string>
+    <string name="settings_date_time_intro">Choose how dates and times appear.</string>
+    <string name="settings_time_format">Time format</string>
+    <string name="settings_date_format">Date format</string>
+    <string name="settings_format_summary">%1$s · %2$s</string>
+    <string name="settings_format_preview">Preview</string>
+    <string name="settings_preview_appointment">Appointment</string>
+    <string name="settings_preview_date_time">%1$s, %2$s</string>
+    <string name="settings_date_time_scope">Your choices are saved on this phone. This preview uses your phone\'s time zone.</string>
+    <string name="settings_time_format_hint">Times are shown in your phone\'s time zone.</string>
+    <string name="settings_date_format_hint">Each option shows the same example date.</string>
+    <string name="settings_phone_format_example">%1$s · current phone format</string>
+    <string name="settings_date_language_hint">Month and weekday names follow the app language.</string>
+    <string name="settings_time_12">12-hour</string>
+    <string name="settings_time_24">24-hour</string>
+    <string name="settings_date_text">Day month year</string>
+    <string name="settings_date_dmy">Day / month / year</string>
+    <string name="settings_date_ymd">Year–month–day</string>
+    <!-- Local reminders -->
+    <string name="reminder_channel_name">Care reminders</string>
+    <string name="reminder_permission_offer">Enable notifications for your appointment reminders.</string>
+    <string name="reminder_permission_blocked">Notifications are blocked for oncompanion. You won\'t receive appointment reminders.</string>
+    <string name="reminder_permission_channel">Care reminders are blocked in Android settings. You won\'t receive appointment reminders.</string>
+    <string name="reminder_permission_exact">Allow alarms and reminders in Android settings so appointment reminders can arrive at the chosen time.</string>
+    <string name="reminder_permission_enable">Enable</string>
+    <string name="reminder_permission_settings">Open Android settings</string>
+    <string name="settings_accessibility">Accessibility</string>
+    <string name="settings_text_size">Text size</string>
+    <string name="settings_text_size_percent">%1$d%% · Phone setting</string>
+    <string name="settings_text_size_unavailable">Couldn\'t open your phone\'s text size settings.</string>
+
+    <!-- Medication reminders in the prescription form (US-32) -->
+    <string name="medication_reminders_section">Reminders</string>
+    <string name="medication_reminders_remind_me">Remind me</string>
+    <string name="medication_reminders_off">Off</string>
+    <plurals name="medication_reminders_a_day">
+        <item quantity="one">%1$d a day</item>
+        <item quantity="other">%1$d a day</item>
+    </plurals>
+    <string name="medication_reminders_time">Reminder %1$d</string>
+    <string name="medication_reminders_change_time">Change the time</string>
+    <string name="medication_reminders_remove_time">Remove %1$s</string>
+    <string name="medication_reminders_add_time">Add a time</string>
+    <string name="medication_reminders_repeated">Already at %1$s. Choose another time.</string>
+    <string name="medication_reminders_only_help">Reminders only help you remember. They don\'t change your prescription.</string>
+    <string name="medication_reminders_by_patient">%1$s chooses the reminders after checking this prescription.</string>
+    <string name="medication_reminders_picker_confirm">OK</string>
+    <string name="medication_reminders_picker_cancel">Cancel</string>
+    <string name="medication_reminders_summary">Reminders %1$s</string>
+    <!-- What a caregiver sees of the patient's reminders: "Anne's reminders: 09:00 · 18:00…" -->
+    <string name="medication_reminders_of_patient">%1$s\'s reminders: %2$s. Only %1$s can change them.</string>
 </resources>

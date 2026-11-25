@@ -9,6 +9,7 @@ import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.allowed
 import com.github.se.oncompanion.utils.denied
+import com.github.se.oncompanion.utils.forgedTime
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
@@ -132,7 +133,7 @@ class CaregiverNotificationSecurityRulesTest {
             "actorFirstName" to "  ",
             "actorFirstName" to "a".repeat(51),
             "actorFirstName" to null,
-            "createdAt" to Timestamp.now(),
+            "createdAt" to forgedTime,
             "createdAt" to null,
             "expiresAt" to inDays(10),
             "expiresAt" to "next week",

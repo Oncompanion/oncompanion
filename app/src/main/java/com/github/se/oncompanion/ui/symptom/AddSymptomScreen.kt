@@ -415,7 +415,8 @@ private fun SymptomFields(
           onSelect = onSelectStrengthOf,
           onStrengthChange = onStrengthChange,
           onClear = onClearStrength,
-          overall = uiState.intensity,
+          overall = uiState.overallFromBefore,
+          overallReplaced = uiState.isOverallReplaced,
       )
       FormGroup(R.string.symptom_add_when) { WhenField(uiState, onDateChange, onTimeChange) }
       FormGroup(R.string.symptom_add_notes_title) { NotesField(uiState, onNotesChange) }

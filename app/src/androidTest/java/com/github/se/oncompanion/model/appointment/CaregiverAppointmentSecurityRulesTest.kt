@@ -9,6 +9,7 @@ import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.allowed
 import com.github.se.oncompanion.utils.denied
+import com.github.se.oncompanion.utils.forgedTime
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FieldValue
@@ -143,7 +144,7 @@ class CaregiverAppointmentSecurityRulesTest {
             carolsAppointment("title" to "  "),
             carolsAppointment("type" to "SURGERY"),
             carolsAppointment("notes" to "a".repeat(1001)),
-            carolsAppointment("createdAt" to Timestamp.now()),
+            carolsAppointment("createdAt" to forgedTime),
         )
     for (fields in invalid) denied(planning(aliceUid).document().set(fields))
   }
@@ -267,7 +268,7 @@ class CaregiverAppointmentSecurityRulesTest {
             carolsEdit("editedByName" to "a".repeat(51)),
             carolsEdit("addedBy" to carolUid, "addedByName" to "Carol"),
             carolsEdit("title" to "  "),
-            carolsEdit("createdAt" to Timestamp.now()),
+            carolsEdit("createdAt" to forgedTime),
         )
     for (fields in invalid) denied(alices.update(fields))
   }

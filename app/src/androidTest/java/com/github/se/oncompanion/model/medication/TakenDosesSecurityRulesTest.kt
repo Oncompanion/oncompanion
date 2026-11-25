@@ -8,8 +8,8 @@ import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.allowed
 import com.github.se.oncompanion.utils.denied
+import com.github.se.oncompanion.utils.forgedTime
 import com.google.android.gms.tasks.Task
-import com.google.firebase.Timestamp
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
@@ -112,7 +112,7 @@ class TakenDosesSecurityRulesTest {
             day(extra = mapOf("note" to "late")),
             mapOf("taken" to mapOf("med" to 1)),
             mapOf("updatedAt" to FieldValue.serverTimestamp()),
-            day(extra = mapOf("updatedAt" to Timestamp.now())),
+            day(extra = mapOf("updatedAt" to forgedTime)),
             mapOf("taken" to listOf(1), "updatedAt" to FieldValue.serverTimestamp()),
             day((1..101).associate { "m$it" to 1 }),
         )

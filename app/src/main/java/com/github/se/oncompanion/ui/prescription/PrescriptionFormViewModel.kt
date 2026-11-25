@@ -14,6 +14,7 @@ import com.github.se.oncompanion.domain.carecircle.ResolveSectionAccess
 import com.github.se.oncompanion.domain.medication.ManageMedicationSchedule
 import com.github.se.oncompanion.domain.medication.MedicationDraft
 import com.github.se.oncompanion.domain.medication.PrescriptionDraft
+import com.github.se.oncompanion.domain.medication.ReminderTimes
 import com.github.se.oncompanion.domain.medication.SimilarPrescription
 import com.github.se.oncompanion.domain.medication.scan.MedicationDetail
 import com.github.se.oncompanion.domain.medication.scan.ScannedField
@@ -35,6 +36,8 @@ import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import com.github.se.oncompanion.ui.common.SavePhase
 import java.time.Clock
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
@@ -501,10 +504,60 @@ class PrescriptionFormViewModel(
     }
   }
 
-  /** Text longer than a medication can store is cut. */
+  /**
+   * Text longer than a medication can store is cut. Reminders already on follow the new frequency:
+   * one per dose it says, from the times the patient chose (US-32), so a frequency typed letter by
+   * letter or changed and back keeps them. A caregiver's change leaves them as they are: only the
+   * patient chooses them.
+   */
   fun onFrequencyChange(value: String) {
     editOpenMedication(MedicationDetail.FREQUENCY) {
-      it.copy(frequency = value.take(Medication.MAX_TEXT_LENGTH))
+      val frequency = value.take(Medication.MAX_TEXT_LENGTH)
+      if (patientUid != null) it.copy(frequency = frequency)
+      else
+          it.copy(
+              frequency = frequency,
+              reminderTimes = ReminderTimes.fit(it.chosenReminderTimes, frequency),
+          )
+    }
+  }
+
+  /**
+   * Turns the open medication's reminders on, at the times suggested by its frequency, or off
+   * (US-32). A frequency the app can't read suggests none: the patient chooses the first time
+   * ([onReminderTimeChange]). Nothing is scheduled before the prescription is saved.
+   */
+  fun onRemindChange(on: Boolean) {
+    editReminders { if (on) ReminderTimes.suggested(it.frequency) else emptyList() }
+  }
+
+  /**
+   * Moves the open medication's reminder at [index] to [time], to the minute. With reminders off,
+   * [time] is the first one the patient chose, for a frequency that suggests none.
+   */
+  fun onReminderTimeChange(index: Int, time: LocalTime) {
+    val minute = time.truncatedTo(ChronoUnit.MINUTES)
+    editReminders { medication ->
+      if (medication.reminderTimes.isEmpty()) listOf(minute)
+      else medication.reminderTimes.mapIndexed { i, old -> if (i == index) minute else old }
+    }
+  }
+
+  /**
+   * Adds a reminder to the open medication, when its frequency lets the patient choose how many.
+   */
+  fun addReminderTime() {
+    editReminders {
+      if (!ReminderTimes.canAdd(it.reminderTimes, it.frequency)) it.reminderTimes
+      else it.reminderTimes + ReminderTimes.added(it.reminderTimes)
+    }
+  }
+
+  /** Removes the open medication's reminder at [index], keeping one at least. */
+  fun removeReminderTime(index: Int) {
+    editReminders {
+      if (!ReminderTimes.canRemove(it.reminderTimes, it.frequency)) it.reminderTimes
+      else it.reminderTimes.filterIndexed { i, _ -> i != index }
     }
   }
 
@@ -832,6 +885,20 @@ class PrescriptionFormViewModel(
       transform: (MedicationDraft) -> MedicationDraft,
   ) {
     edit { it.withOpenMedication(transform).openChecked(detail) }
+  }
+
+  /**
+   * Changes the reminder times of the open medication. Only the patient chooses them: a caregiver's
+   * form leaves them as they are (US-32, US-43).
+   */
+  private fun editReminders(times: (MedicationDraft) -> List<LocalTime>) {
+    if (patientUid != null) return
+    edit { state ->
+      state.withOpenMedication {
+        val chosen = times(it)
+        it.copy(reminderTimes = chosen, chosenReminderTimes = chosen)
+      }
+    }
   }
 
   /**

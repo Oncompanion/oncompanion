@@ -54,6 +54,8 @@ data class PrescriptionDraft(
  * @property startDate first day of intake
  * @property durationDays number of days of intake; `null` if there is no end
  * @property reminderTimes the times the patient chose to be reminded at; empty for no reminder
+ * @property chosenReminderTimes the times as the patient last set them, before the frequency cut or
+ *   filled them: changing the frequency and back gives them back. Only [reminderTimes] is saved.
  */
 data class MedicationDraft(
     val id: String? = null,
@@ -63,6 +65,7 @@ data class MedicationDraft(
     val startDate: LocalDate,
     val durationDays: Int? = null,
     val reminderTimes: List<LocalTime> = emptyList(),
+    val chosenReminderTimes: List<LocalTime> = reminderTimes,
 ) {
   /**
    * Whether the medication can be saved: the medication it makes must be valid. The rules live only

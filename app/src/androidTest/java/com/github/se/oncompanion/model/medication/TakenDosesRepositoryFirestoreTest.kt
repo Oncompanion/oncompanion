@@ -207,6 +207,39 @@ class TakenDosesRepositoryFirestoreTest {
   }
 
   @Test
+  fun aDayThisPhoneHasNoCopyOf_isUnknownOffline_andEmptyOnceTheServerSaysSo(): Unit = runBlocking {
+    db.disableNetwork().await()
+    try {
+      // A caregiver's phone never downloaded the day: offline, it can't say nothing was ticked
+      assertEquals(
+          null,
+          withTimeout(10_000) { repository.observeDayIfKnown(aliceUid, today).first() },
+      )
+    } finally {
+      db.enableNetwork().await()
+    }
+    assertEquals(
+        emptyMap<String, Int>(),
+        withTimeout(10_000) { repository.observeDayIfKnown(aliceUid, today).first { it != null } },
+    )
+  }
+
+  @Test
+  fun aDayWithTicks_isKnown_evenOffline_onceThePhoneHasACopy(): Unit = runBlocking {
+    repository.setTaken(aliceUid, today, "ondansetron", 2)
+    awaitServerAck()
+    db.disableNetwork().await()
+    try {
+      assertEquals(
+          mapOf("ondansetron" to 2),
+          withTimeout(10_000) { repository.observeDayIfKnown(aliceUid, today).first() },
+      )
+    } finally {
+      db.enableNetwork().await()
+    }
+  }
+
+  @Test
   fun readingAnotherUsersDoses_failsWithPermissionDenied(): Unit = runBlocking {
     val bobUid = EmulatorTestData.createUser("doses-repo-bob")
     EmulatorTestData.signIn("doses-repo-alice")

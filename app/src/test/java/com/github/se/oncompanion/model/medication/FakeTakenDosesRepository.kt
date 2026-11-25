@@ -6,6 +6,7 @@ import com.github.se.oncompanion.model.medication.TakenDosesRepository.Companion
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -18,9 +19,13 @@ import kotlinx.coroutines.flow.update
  * medication on that day; [observeDay] emits the day's counts at once and after each change, an
  * empty map for a day without ticks.
  *
- * @property readFailure if set, [observeDay] fails with it, like a read the rules refuse
+ * @property readFailure if set, [observeDay] and [observeDayIfKnown] fail with it, like a read the
+ *   rules refuse
  */
 class FakeTakenDosesRepository(var readFailure: Exception? = null) : TakenDosesRepository {
+
+  /** Whether [observeDayIfKnown] has no copy of the days yet (`null`), as a caregiver offline. */
+  val isUnknown = MutableStateFlow(false)
 
   /** One recorded call to [setTaken]. */
   data class Write(val uid: String, val date: LocalDate, val medicationId: String, val count: Int)
@@ -34,6 +39,16 @@ class FakeTakenDosesRepository(var readFailure: Exception? = null) : TakenDosesR
   override fun observeDay(uid: String, date: LocalDate): Flow<Map<String, Int>> = flow {
     readFailure?.let { throw it }
     emitAll(days.map { it[uid to date].orEmpty() }.distinctUntilChanged())
+  }
+
+  override fun observeDayIfKnown(uid: String, date: LocalDate): Flow<Map<String, Int>?> = flow {
+    readFailure?.let { throw it }
+    emitAll(
+        combine(days, isUnknown) { saved, unknown ->
+              if (unknown) null else saved[uid to date].orEmpty()
+            }
+            .distinctUntilChanged()
+    )
   }
 
   override suspend fun setTaken(uid: String, date: LocalDate, medicationId: String, count: Int) {
