@@ -11,6 +11,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -88,6 +89,40 @@ class MainActivityTest {
       assertEquals(null, model.uiState.value.appointmentId)
     }
     composeTestRule.onNodeWithTag(C.Tag.sign_in_screen).assertIsDisplayed()
+  }
+
+  @Test
+  fun warmReminderIntent_reusesTheActivityModel_andCannotBypassSignIn() {
+    val activity = composeTestRule.activity
+    val originalIntent = activity.intent
+    val model = ViewModelProvider(activity)[AppointmentRemindersViewModel::class.java]
+    val incoming =
+        android.content.Intent(
+            android.content.Intent.ACTION_VIEW,
+            "oncompanion-reminder://local/patient/appointment/visit".toUri(),
+        )
+    try {
+      composeTestRule.runOnIdle {
+        org.robolectric.util.ReflectionHelpers.callInstanceMethod<Unit>(
+            activity,
+            "onNewIntent",
+            org.robolectric.util.ReflectionHelpers.ClassParameter.from(
+                android.content.Intent::class.java,
+                incoming,
+            ),
+        )
+        assertSame(incoming, activity.intent)
+      }
+      composeTestRule.waitForIdle()
+      composeTestRule.runOnIdle {
+        assertSame(model, ViewModelProvider(activity)[AppointmentRemindersViewModel::class.java])
+        assertEquals(null, model.uiState.value.appointmentId)
+      }
+      composeTestRule.onNodeWithTag(C.Tag.sign_in_screen).assertIsDisplayed()
+    } finally {
+      // ActivityScenario identifies lifecycle callbacks using its original launch intent.
+      composeTestRule.runOnUiThread { activity.intent = originalIntent }
+    }
   }
 
   @Test

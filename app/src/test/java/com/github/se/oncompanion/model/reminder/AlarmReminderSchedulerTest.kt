@@ -256,12 +256,15 @@ class AlarmReminderSchedulerTest {
 
   @Test
   fun failedVersionCommitsThrowWithoutAnAsynchronousFallback() {
-    for (invalidate in listOf(false, true)) {
+    for (operation in listOf("replace", "invalidate", "delivered")) {
       val failed = FailedCommitContext(context)
       val deliveries = ReminderDeliveries(failed)
       assertThrows(IllegalStateException::class.java) {
-        if (invalidate) deliveries.invalidate("fictional-key")
-        else deliveries.replace("fictional-key")
+        when (operation) {
+          "replace" -> deliveries.replace("fictional-key")
+          "invalidate" -> deliveries.invalidate("fictional-key")
+          else -> deliveries.delivered("fictional-key")
+        }
       }
       assertFalse(failed.applied)
     }

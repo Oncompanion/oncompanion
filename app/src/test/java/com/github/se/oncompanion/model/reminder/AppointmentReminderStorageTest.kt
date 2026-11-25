@@ -35,6 +35,7 @@ class AppointmentReminderStorageTest {
   fun tearDown() {
     SessionAccess.reopen()
     AppointmentReminderPlansProvider.reset()
+    com.github.se.oncompanion.domain.reminder.AppointmentRemindersProvider.reset()
   }
 
   @Test
@@ -68,6 +69,18 @@ class AppointmentReminderStorageTest {
     }
     assertFalse(failed.applied)
     assertTrue(AppointmentReminderPlansPreferences(context).read("patient").isEmpty())
+  }
+
+  @Test
+  fun uninstalledCoordinatorFailsExplicitly_thenInstallationIsStable() {
+    val provider = com.github.se.oncompanion.domain.reminder.AppointmentRemindersProvider
+    provider.reset()
+    ReminderSchedulerProvider.install(context)
+    assertThrows(IllegalStateException::class.java) { provider.coordinator }
+    provider.install(context)
+    val installed = provider.coordinator
+    provider.install(context)
+    assertSame(installed, provider.coordinator)
   }
 
   @Test

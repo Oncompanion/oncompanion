@@ -9,6 +9,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
@@ -23,33 +24,45 @@ class ReminderReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     val uri = intent.data ?: return
     if (uri.scheme != "oncompanion-reminder" || uri.authority != "local") return
-    val parts = uri.pathSegments
+    val parts = uri.pathSegments.toList()
     if (parts.size != 3) return
     val title = intent.getStringExtra(AlarmReminderScheduler.TITLE) ?: return
     val text = intent.getStringExtra(AlarmReminderScheduler.TEXT) ?: return
     val version = intent.getStringExtra(AlarmReminderScheduler.VERSION) ?: return
     try {
-      SessionAccess.immediate {
-        synchronized(ReminderDeliveries.lock) {
-          // Alarms can cold-start the process without MainActivity restoring the cleanup gate.
-          val journal =
-              PreferencesCleanupJournal(
-                  context.getSharedPreferences("session_cleanup", Context.MODE_PRIVATE)
-              )
-          if (journal.pending) return@immediate
-          val deliveries = ReminderDeliveries(context)
-          if (!deliveries.isCurrent(uri.toString(), version)) return@immediate
-          if (AuthRepositoryProvider.repository.currentUser?.uid != parts[0]) return@immediate
-          val notifications = ReminderNotifications(context)
-          notifications.createChannel()
-          // Consume only after an accepted post; permission loss must remain retryable.
-          if (notifications.show(uri.toString(), title, text)) deliveries.delivered(uri.toString())
-        }
-      }
+      deliver(context, uri, parts[0], title, text, version)
     } catch (_: IllegalStateException) {
       // Session cleanup or unavailable authentication must not reveal appointment content.
     } catch (_: SecurityException) {
       // Android can revoke notification access between the check and notify.
+    }
+  }
+
+  // Keep every privacy check and the accepted post inside the same session and delivery locks.
+  private fun deliver(
+      context: Context,
+      uri: Uri,
+      owner: String,
+      title: String,
+      text: String,
+      version: String,
+  ) {
+    SessionAccess.immediate {
+      synchronized(ReminderDeliveries.lock) {
+        // Alarms can cold-start the process without MainActivity restoring the cleanup gate.
+        val journal =
+            PreferencesCleanupJournal(
+                context.getSharedPreferences("session_cleanup", Context.MODE_PRIVATE)
+            )
+        if (journal.pending) return@immediate
+        val deliveries = ReminderDeliveries(context)
+        if (!deliveries.isCurrent(uri.toString(), version)) return@immediate
+        if (AuthRepositoryProvider.repository.currentUser?.uid != owner) return@immediate
+        val notifications = ReminderNotifications(context)
+        notifications.createChannel()
+        // Consume only after an accepted post; permission loss must remain retryable.
+        if (notifications.show(uri.toString(), title, text)) deliveries.delivered(uri.toString())
+      }
     }
   }
 }

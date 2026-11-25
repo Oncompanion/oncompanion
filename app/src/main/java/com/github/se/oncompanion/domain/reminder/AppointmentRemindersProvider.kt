@@ -3,6 +3,7 @@
 package com.github.se.oncompanion.domain.reminder
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import com.github.se.oncompanion.model.reminder.*
 
 /** Builds the app-scoped coordinator only after device adapters are installed; preserves fakes. */
@@ -14,6 +15,12 @@ object AppointmentRemindersProvider {
     set(value) {
       installed = value
     }
+
+  /** Restores the uninstalled boundary between provider tests. */
+  @VisibleForTesting
+  internal fun reset() {
+    installed = null
+  }
 
   /** Installs the persistent receipt store and formatting boundary once per process. */
   @Synchronized

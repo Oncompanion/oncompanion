@@ -23,7 +23,6 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -195,14 +194,12 @@ private fun SessionNavHost(
   val currentEntry by navController.currentBackStackEntryAsState()
   LaunchedEffect(reminderAppointment, currentEntry) {
     // Wait until sign-in/onboarding/account resolution has installed the patient's graph.
-    val destination = currentEntry?.destination
-    val blocked =
-        destination?.hierarchy?.any {
-          it.route in setOf(Route.AUTH, Route.ONBOARDING, Route.ACCOUNT_CHECK)
-        } ?: true
-    if (!blocked && reminderAppointment != null) {
-      if (onReminderHandled())
-          navigationActions.navigateTo(Screen.appointmentDetail(reminderAppointment))
+    if (
+        canOpenAppointmentReminder(currentEntry?.destination) &&
+            reminderAppointment != null &&
+            onReminderHandled()
+    ) {
+      navigationActions.navigateTo(Screen.appointmentDetail(reminderAppointment))
     }
   }
 

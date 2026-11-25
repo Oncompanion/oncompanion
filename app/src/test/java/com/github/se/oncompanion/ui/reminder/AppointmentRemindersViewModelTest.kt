@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModelStore
 import com.github.se.oncompanion.domain.auth.SignOut
 import com.github.se.oncompanion.domain.reminder.ReconcileAppointmentReminders
 import com.github.se.oncompanion.model.appointment.*
+import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthUser
 import com.github.se.oncompanion.model.reminder.*
 import com.github.se.oncompanion.model.session.*
@@ -69,13 +70,24 @@ class AppointmentRemindersViewModelTest {
     SessionAccess.reopen()
   }
 
-  private fun model(saved: SavedStateHandle = SavedStateHandle()): AppointmentRemindersViewModel {
+  private fun model(
+      saved: SavedStateHandle = SavedStateHandle(),
+      account: AuthRepository = auth,
+  ): AppointmentRemindersViewModel {
     val text = AppointmentReminderText { appointment, _ ->
       ReminderText(appointment.title, "Fictional date")
     }
     val coordinator =
-        ReconcileAppointmentReminders(text, appointments, auth, profiles, alarms, receipts, clock)
-    return AppointmentRemindersViewModel(saved, coordinator, auth, profiles, signOut).also {
+        ReconcileAppointmentReminders(
+            text,
+            appointments,
+            account,
+            profiles,
+            alarms,
+            receipts,
+            clock,
+        )
+    return AppointmentRemindersViewModel(saved, coordinator, account, profiles, signOut).also {
       store.put("reminders", it)
     }
   }
@@ -161,6 +173,33 @@ class AppointmentRemindersViewModelTest {
         runCurrent()
         assertNull(vm.uiState.value.appointmentId)
         assertNull(saved.get<List<String>>("appointment_reminder_request"))
+      }
+
+  @Test
+  fun accountLostBeforeItsCallback_cannotResolveOrConsumeTheOldTap() =
+      runTest(dispatcher) {
+        var current: AuthUser? = AuthUser("patient")
+        val account =
+            object : AuthRepository by auth {
+              override val currentUser
+                get() = current
+            }
+        val vm = model(account = account)
+        for (next in listOf(null, AuthUser("other"))) {
+          current = next
+          vm.open("patient", "visit")
+          vm.refresh()
+          runCurrent()
+          assertNull(vm.uiState.value.appointmentId)
+          assertFalse(vm.consume())
+          runCurrent()
+        }
+        current = AuthUser("patient")
+        vm.open("patient", "visit")
+        runCurrent()
+        assertEquals("visit", vm.uiState.value.appointmentId)
+        current = null // No observable callback before navigation consumes the request.
+        assertFalse(vm.consume())
       }
 
   @Test

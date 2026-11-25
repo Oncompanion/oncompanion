@@ -13,7 +13,7 @@ internal fun Intent.appointmentReminder(): Pair<String, String>? {
           uri.authority != "local"
   )
       return null
-  val parts = uri.pathSegments
+  val parts = uri.pathSegments.toList()
   if (parts.size != 3 || parts[1] != "appointment" || parts.any { it.isBlank() }) return null
   return parts[0] to parts[2]
 }
