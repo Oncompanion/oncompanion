@@ -85,6 +85,27 @@ class SymptomLabelsTest {
   }
 
   @Test
+  fun strengthQuestion_namesTheSymptom_withAreForAPlural() {
+    val cases =
+        listOf(
+            Triple(SymptomType.FATIGUE, null, "How strong is your fatigue? (optional)"),
+            Triple(
+                SymptomType.SLEEP_PROBLEMS,
+                null,
+                "How strong are your sleep problems? (optional)",
+            ),
+            Triple(SymptomType.OTHER, "Hiccups", "How strong is your Hiccups? (optional)"),
+            Triple(SymptomType.OTHER, null, "How strong is it? (optional)"),
+        )
+    var questions = emptyList<String>()
+    composeTestRule.setContent {
+      questions = cases.map { (type, otherName, _) -> strengthQuestion(type, otherName) }
+    }
+    composeTestRule.waitForIdle()
+    assertEquals(cases.map { it.third }, questions)
+  }
+
+  @Test
   fun dayLabel_isTodayYesterday_orTheDay_withTheYearOnlyForAnotherYear() {
     val today = LocalDate.of(2026, 10, 5)
     val labels = mutableListOf<String>()

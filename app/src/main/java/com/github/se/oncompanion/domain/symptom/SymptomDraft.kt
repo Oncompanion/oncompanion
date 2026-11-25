@@ -23,4 +23,11 @@ data class SymptomDraft(
     val date: LocalDate? = null,
     val time: LocalTime? = null,
     val notes: String = "",
-)
+) {
+  /**
+   * The symptom said with the [intensity], when exactly one symptom was said: one number said for
+   * several symptoms doesn't say which one it was, so it fills none of them. `null` otherwise.
+   */
+  val saidStrength: Pair<SymptomType, Int>?
+    get() = types.singleOrNull()?.let { type -> intensity?.let { type to it } }
+}

@@ -216,6 +216,8 @@ object C {
     const val symptom_add_intensity_value = "symptom_add_intensity_value"
     const val symptom_add_intensity_clear = "symptom_add_intensity_clear"
     const val symptom_add_intensity_track = "symptom_add_intensity_track"
+    const val symptom_add_strengths = "symptom_add_strengths"
+    const val symptom_add_overall = "symptom_add_overall"
     const val symptom_add_when = "symptom_add_when"
     const val symptom_add_notes = "symptom_add_notes"
     const val symptom_add_other_name = "symptom_add_other_name"
@@ -364,6 +366,9 @@ object C {
 
     /** The chip of a symptom type on the add screen; [type] is its enum name, e.g. `FATIGUE`. */
     fun symptomAddType(type: String) = "symptom_add_type_$type"
+
+    /** The chip choosing which picked symptom the slider sets; [type] is its enum name. */
+    fun symptomAddStrengthChip(type: String) = "symptom_add_strength_chip_$type"
 
     /**
      * The strength bar of a symptom on its detail, by

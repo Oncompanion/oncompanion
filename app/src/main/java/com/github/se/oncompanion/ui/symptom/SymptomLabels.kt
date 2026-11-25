@@ -65,9 +65,43 @@ fun dayLabel(date: LocalDate, today: LocalDate): String =
  * What [type] is called in this entry: for "Other", the name the user gave it ("Hiccups"), or
  * "Other" in entries saved before it could be named; otherwise its label.
  */
+@Composable fun SymptomEntry.nameOf(type: SymptomType): String = symptomName(type, otherName)
+
+/** What [type] is called: for "Other", the name the user gave it, if any; otherwise its label. */
 @Composable
-fun SymptomEntry.nameOf(type: SymptomType): String =
+fun symptomName(type: SymptomType, otherName: String?): String =
     otherName?.takeIf { type == SymptomType.OTHER } ?: stringResource(type.label)
+
+/**
+ * What [type] is called inside a sentence: the label in lower case ("fatigue"), but the name of
+ * "Other" kept as the user typed it ("Hiccups").
+ */
+@Composable
+fun nameInSentence(type: SymptomType, otherName: String?): String =
+    otherName?.takeIf { type == SymptomType.OTHER }
+        ?: stringResource(type.label).lowercase(Locale.ENGLISH)
+
+/**
+ * The question over the slider for [type]: "How strong is your fatigue? (optional)", "How strong
+ * are your sleep problems? (optional)", or "How strong is it? (optional)" for "Other" not named yet
+ * (Figma: "Check-in · Other, not named yet"). A name the user gave "Other" takes "is".
+ */
+@Composable
+fun strengthQuestion(type: SymptomType, otherName: String?): String =
+    when {
+      type == SymptomType.OTHER && otherName == null ->
+          stringResource(R.string.symptom_add_strength_question_other)
+      type in PLURAL_LABELS ->
+          stringResource(
+              R.string.symptom_add_strength_question_plural,
+              nameInSentence(type, otherName),
+          )
+      else ->
+          stringResource(R.string.symptom_add_strength_question, nameInSentence(type, otherName))
+    }
+
+/** The symptoms whose label is a plural ("Sleep problems"), so a sentence says "are" about them. */
+private val PLURAL_LABELS = setOf(SymptomType.SLEEP_PROBLEMS)
 
 /** What the entry is about: the names of its symptoms, e.g. "Fatigue, Hiccups". */
 @Composable fun SymptomEntry.title(): String = types.map { nameOf(it) }.joinToString(", ")
@@ -81,9 +115,7 @@ fun SymptomEntry.nameOf(type: SymptomType): String =
 fun SymptomEntry.strengthsInWords(): String? {
   val phrases =
       strengthsInOrder().map { (type, strength) ->
-        val name =
-            otherName?.takeIf { type == SymptomType.OTHER }
-                ?: stringResource(type.label).lowercase(Locale.ENGLISH)
+        val name = nameInSentence(type, otherName)
         val severity = stringResource(Severity.of(strength).label).lowercase(Locale.ENGLISH)
         stringResource(R.string.symptom_strength_in_words, severity, name)
       }
