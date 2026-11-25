@@ -523,8 +523,9 @@ class OverviewViewModel(
 
   /**
    * The entry the patient saved last among those they felt on [day], or `null`. One a caregiver
-   * added for them (US-46) isn't theirs to undo. One still being saved has no creation time yet: it
-   * is the newest.
+   * added for them (US-46) isn't theirs to undo. One still being saved has the time the device
+   * saved it, so several saved offline keep their order; one without any creation time is the
+   * newest.
    */
   private fun savedOn(day: LocalDate): LatestEntry? =
       journal

@@ -9,6 +9,7 @@ import com.github.se.oncompanion.model.session.RejectedWritesProvider
 import com.github.se.oncompanion.model.session.SessionAccess
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -170,8 +171,9 @@ class SymptomRepositoryFirestore(
           occurredAt = doc.getTimestamp(FIELD_OCCURRED_AT)!!.toInstant(),
           notes = doc.getString(FIELD_NOTES),
           otherName = otherNameIn(doc, types),
-          // Pending server timestamps read as null until the write reaches the server
-          createdAt = doc.getTimestamp(FIELD_CREATED_AT)?.toInstant(),
+          // Until the server sets it, the time the device saved it: entries saved offline keep
+          // the order they were saved in
+          createdAt = doc.getTimestamp(FIELD_CREATED_AT, ESTIMATE)?.toInstant(),
           addedBy = doc.getString(FIELD_ADDED_BY),
           addedByName = doc.getString(FIELD_ADDED_BY_NAME),
           editedBy = doc.getString(FIELD_EDITED_BY),
