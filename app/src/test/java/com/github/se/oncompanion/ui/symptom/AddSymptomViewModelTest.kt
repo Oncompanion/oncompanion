@@ -988,11 +988,16 @@ class AddSymptomViewModelTest {
         val viewModel = editing()
         advanceUntilIdle()
 
+        assertFalse(viewModel.state.isOverallReplaced)
         viewModel.onStrengthChange(6)
         assertNull(viewModel.state.intensity)
+        // The form still says the old overall, now replaced
+        assertEquals(4, viewModel.state.overallFromBefore)
+        assertTrue(viewModel.state.isOverallReplaced)
         // Clearing the strength undoes it: the overall is back and nothing changed
         viewModel.clearStrength()
         assertEquals(4, viewModel.state.intensity)
+        assertFalse(viewModel.state.isOverallReplaced)
         assertFalse(viewModel.state.canSave)
         // Unpicking the only symptom with a strength undoes it too
         viewModel.toggleType(SymptomType.NAUSEA)

@@ -73,9 +73,10 @@ data class EditedSymptom(val entry: SymptomEntry, val date: LocalDate, val time:
  * @property strengthOf the picked symptom the slider sets: the last one picked, or another the user
  *   chose; `null` when none is picked
  * @property intensity the single intensity of an entry logged before strengths, while it is edited:
- *   shown as it was until a symptom is given a strength, then hidden, never copied onto the
- *   symptoms (it said how bad the whole entry felt). It comes back once no symptom has a strength
- *   again, so clearing a strength undoes it. `null` otherwise
+ *   kept as it was until a symptom is given a strength, then dropped (the form says it is replaced,
+ *   see [isOverallReplaced]), never copied onto the symptoms (it said how bad the whole entry
+ *   felt). It comes back once no symptom has a strength again, so clearing a strength undoes it.
+ *   `null` otherwise
  * @property date the day the user chose, or `null` for today. Choosing only a time sets it to the
  *   day the time was chosen, so the entry doesn't move a day ahead if the form stays open past
  *   midnight
@@ -143,6 +144,17 @@ data class AddSymptomUiState(
             intensity != edited.entry.overallIntensity() ||
             savedOtherName != edited.entry.otherName ||
             notes.trim().ifEmpty { null } != edited.entry.notes
+
+  /**
+   * The single intensity of the entry being edited, if it was logged before strengths: the form
+   * keeps saying it while the user sets strengths, so its line doesn't vanish under their finger.
+   */
+  val overallFromBefore: Int?
+    get() = edited?.entry?.overallIntensity()
+
+  /** The strengths now set replace [overallFromBefore]: saving drops it. */
+  val isOverallReplaced: Boolean
+    get() = overallFromBefore != null && intensity == null
 
   /** "Other" is picked, so the user names it: the form asks "Which symptom?". */
   val isOtherPicked: Boolean

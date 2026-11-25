@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -45,13 +46,11 @@ import com.github.se.oncompanion.model.symptom.SymptomEntry
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeButton
+import com.github.se.oncompanion.ui.common.LakeButtonDefaults
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.LakeFilterChip
 import com.github.se.oncompanion.ui.theme.Spacing
 import kotlin.math.roundToInt
-
-// The smallest touch target, for the row of the intensity value and Clear
-private val TOUCH_TARGET = 48.dp
 
 private const val MIN_INTENSITY = SymptomEntry.MIN_INTENSITY
 private const val MAX_INTENSITY = SymptomEntry.MAX_INTENSITY
@@ -80,8 +79,9 @@ private val THUMB_TRACK_GAP = 6.dp
  * @param onSelect lets the slider set the strength of another picked symptom
  * @param onStrengthChange sets the strength of [strengthOf]
  * @param onClear takes the strength off [strengthOf]
- * @param overall the single intensity of an entry logged before strengths, shown as it was until a
- *   symptom is given a strength
+ * @param overall the single intensity of an entry logged before strengths, shown as it was
+ * @param overallReplaced the strengths set replace [overall]: its line says so, in the same place
+ *   so the chips and the slider under it don't move as the user sets the first strength
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -95,20 +95,14 @@ fun SymptomStrengths(
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
     overall: Int? = null,
+    overallReplaced: Boolean = false,
 ) {
   if (strengthOf == null) return
   Column(
       modifier = modifier.testTag(C.Tag.symptom_add_strengths),
       verticalArrangement = Arrangement.spacedBy(Spacing.sm),
   ) {
-    if (overall != null) {
-      Text(
-          text = stringResource(R.string.symptom_add_overall_from_before, overall),
-          style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-          modifier = Modifier.testTag(C.Tag.symptom_add_overall),
-      )
-    }
+    if (overall != null) OverallFromBefore(overall, overallReplaced)
     // One symptom needs no choice: the question names it
     if (types.size > 1) {
       FlowRow(
@@ -138,6 +132,29 @@ fun SymptomStrengths(
 }
 
 /**
+ * "Overall: 6/10 (from before)", then "… · replaced by the strengths" once a strength is set. Both
+ * are laid out, the other one unseen and unread, so the line keeps its height either way.
+ */
+@Composable
+private fun OverallFromBefore(overall: Int, replaced: Boolean) {
+  val kept = stringResource(R.string.symptom_add_overall_from_before, overall)
+  val dropped = stringResource(R.string.symptom_add_overall_replaced, overall)
+  Box {
+    Text(
+        text = if (replaced) kept else dropped,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.alpha(0f).clearAndSetSemantics {},
+    )
+    Text(
+        text = if (replaced) dropped else kept,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.testTag(C.Tag.symptom_add_overall),
+    )
+  }
+}
+
+/**
  * A picked symptom, with its strength once it has one ("Nausea · 4/10"), filled when the slider
  * sets it. Read out as "Nausea, intensity 4 out of 10", one of several to choose from.
  */
@@ -159,6 +176,8 @@ private fun StrengthChip(
       onClick = { onSelect(type) },
       label = strength?.let { stringResource(R.string.symptom_strength_chip, name, it) } ?: name,
       role = Role.RadioButton,
+      // As wide as with the strongest strength, so setting one doesn't move the chips
+      widestLabel = stringResource(R.string.symptom_strength_chip, name, MAX_INTENSITY),
       modifier =
           Modifier.semantics { contentDescription = description }
               .testTag(C.Tag.symptomAddStrengthChip(type.name)),
@@ -186,27 +205,39 @@ private fun StrengthSlider(
               stringResource(Severity.of(strength).label),
           )
 
-  // The value in words, and Clear once there is one
+  // The value in words, and Clear once there is one: as tall as Clear from the start, so the slider
+  // doesn't move down when the first value is set
   Row(
-      modifier = Modifier.fillMaxWidth().heightIn(min = TOUCH_TARGET),
+      modifier = Modifier.fillMaxWidth().heightIn(min = LakeButtonDefaults.MinHeight),
       verticalAlignment = Alignment.CenterVertically,
   ) {
-    Text(
-        text = valueText,
-        style = MaterialTheme.typography.titleLarge,
-        color =
-            if (strength == null) MaterialTheme.colorScheme.onSurfaceVariant
-            else MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.weight(1f).testTag(C.Tag.symptom_add_intensity_value),
-    )
-    if (strength != null) {
-      LakeButton(
-          text = stringResource(R.string.symptom_add_intensity_clear),
-          onClick = onClear,
-          style = LakeButtonStyle.Text,
-          modifier = Modifier.testTag(C.Tag.symptom_add_intensity_clear),
+    // The longest value is laid out unseen, so a value on more lines than "Not set" (large text)
+    // doesn't push the slider down
+    Box(Modifier.weight(1f)) {
+      Text(
+          text = longestValue(),
+          style = MaterialTheme.typography.titleLarge,
+          modifier = Modifier.alpha(0f).clearAndSetSemantics {},
+      )
+      Text(
+          text = valueText,
+          style = MaterialTheme.typography.titleLarge,
+          color =
+              if (strength == null) MaterialTheme.colorScheme.onSurfaceVariant
+              else MaterialTheme.colorScheme.onSurface,
+          modifier = Modifier.testTag(C.Tag.symptom_add_intensity_value),
       )
     }
+    // Clear takes its room before there is a value too, unseen and unread
+    LakeButton(
+        text = stringResource(R.string.symptom_add_intensity_clear),
+        onClick = onClear,
+        style = LakeButtonStyle.Text,
+        enabled = strength != null,
+        modifier =
+            if (strength != null) Modifier.testTag(C.Tag.symptom_add_intensity_clear)
+            else Modifier.alpha(0f).clearAndSetSemantics {},
+    )
   }
 
   // The track is light teal where it isn't picked; "Not set" shows all of it so, without a handle
@@ -277,6 +308,19 @@ private fun StrengthSlider(
     ScaleLabel(Severity.SEVERE, Alignment.End, TextAlign.End)
   }
 }
+
+/** The longest value the slider can say, e.g. "10/10 · Moderate", to keep its room. */
+@Composable
+private fun longestValue(): String =
+    Severity.entries
+        .map {
+          stringResource(
+              R.string.symptom_add_intensity_value,
+              MAX_INTENSITY,
+              stringResource(it.label),
+          )
+        }
+        .maxBy { it.length }
 
 /** A word of the scale under the slider, put at [alignment] in its third of the width. */
 @Composable
