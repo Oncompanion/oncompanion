@@ -8,6 +8,7 @@ import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.allowed
 import com.github.se.oncompanion.utils.denied
+import com.github.se.oncompanion.utils.forgedTime
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FieldValue
@@ -234,7 +235,7 @@ class CaregiverSymptomSecurityRulesTest {
             carolsEdit("editedByName" to "a".repeat(51)),
             carolsEdit("addedBy" to carolUid, "addedByName" to "Carol"),
             carolsEdit("types" to emptyList<String>()),
-            carolsEdit("createdAt" to Timestamp.now()),
+            carolsEdit("createdAt" to forgedTime),
         )
     for (fields in invalid) denied(alices.update(fields))
   }
