@@ -16,10 +16,12 @@ import com.github.se.oncompanion.ui.*
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.common.SavePhase
 import java.time.*
+import java.util.Locale
 import kotlinx.coroutines.test.runTest
 import org.junit.*
 import org.junit.Assert.*
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 
 /** Form states and confirmed manual appointment creation. */
 @RunWith(AndroidJUnit4::class)
@@ -54,6 +56,19 @@ class AppointmentFormScreenTest {
           back,
           caregiverOf = caregiverOf,
       )
+    }
+  }
+
+  @Test
+  @Config(qualifiers = "fr-rCH")
+  fun dateFieldUsesFrenchEvenWithAnEnglishFormattingDefault() {
+    val previous = Locale.getDefault(Locale.Category.FORMAT)
+    Locale.setDefault(Locale.Category.FORMAT, Locale.ENGLISH)
+    try {
+      show(state())
+      compose.onNodeWithTag(C.Tag.appointment_date).assertTextContains("15 oct. 2026")
+    } finally {
+      Locale.setDefault(Locale.Category.FORMAT, previous)
     }
   }
 
