@@ -27,15 +27,15 @@ import com.github.se.oncompanion.model.symptom.SymptomRepository
 import com.github.se.oncompanion.model.symptom.SymptomRepositoryProvider
 import com.github.se.oncompanion.model.user.UserProfileRepository
 import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
+import com.github.se.oncompanion.ui.common.TodayMedication
+import com.github.se.oncompanion.ui.common.todayMedicationsOf
 import com.github.se.oncompanion.ui.overview.LatestEntry
 import com.github.se.oncompanion.ui.overview.NextUp
-import com.github.se.oncompanion.ui.overview.TodayMedication
 import com.github.se.oncompanion.ui.overview.followDay
 import com.github.se.oncompanion.ui.overview.nextUpOf
 import com.github.se.oncompanion.ui.overview.overviewRange
 import com.github.se.oncompanion.ui.overview.startedToday
 import com.github.se.oncompanion.ui.overview.toLatestEntry
-import com.github.se.oncompanion.ui.overview.todayMedicationsOf
 import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime

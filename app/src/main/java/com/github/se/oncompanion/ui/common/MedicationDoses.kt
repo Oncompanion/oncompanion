@@ -1,6 +1,6 @@
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
-package com.github.se.oncompanion.ui.overview
+package com.github.se.oncompanion.ui.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,9 +11,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,15 +36,15 @@ import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.domain.medication.DoseCondition
 import com.github.se.oncompanion.resources.C
-import com.github.se.oncompanion.ui.common.CHEVRON_SIZE
-import com.github.se.oncompanion.ui.common.LINK_HEIGHT
 import com.github.se.oncompanion.ui.theme.Spacing
+import com.github.se.oncompanion.ui.theme.cardChip
 import com.github.se.oncompanion.ui.theme.cardItem
 import com.github.se.oncompanion.ui.theme.full
 import com.github.se.oncompanion.ui.theme.lakeColors
 
 /**
- * What the patient can do with the doses on their medications card; a caregiver's card has none.
+ * What the patient can do with the doses on their medications (e.g. the Overview's card); a
+ * caregiver's rows have none.
  *
  * @property onTickDose ticks the next dose of a medication, by its ID, or unticks one taken once a
  *   day
@@ -214,6 +215,19 @@ private fun DoseButton(medication: TodayMedication, label: String, onClick: () -
   }
 }
 
+/** The recorded frequency ("Twice a day"), as a neutral chip. */
+@Composable
+private fun FrequencyChip(text: String) {
+  Text(
+      text,
+      style = MaterialTheme.typography.cardChip,
+      color = MaterialTheme.colorScheme.onSurface,
+      modifier =
+          Modifier.background(MaterialTheme.lakeColors.stone.chip, CHIP_SHAPE)
+              .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+  )
+}
+
 /**
  * The medication's frequency in the card's own words ("Once a day" for "1-0-0", "3 times a day if
  * nauseous" for "1-1-1 si nausées"), or as written when it can't be reworded without losing
@@ -270,35 +284,6 @@ private fun doseButtonLabel(medication: TodayMedication): String {
   }
 }
 
-/**
- * "2 more ›" under the list, opening where every medication of the day is listed: Planning for the
- * patient, the prescriptions for a caregiver. It looks like the card's link and keeps a 48 dp touch
- * target.
- */
-@Composable
-internal fun MoreLink(count: Int, onOpen: () -> Unit) {
-  Row(
-      Modifier.heightIn(min = LINK_HEIGHT)
-          .clip(MaterialTheme.shapes.medium)
-          .clickable(role = Role.Button, onClick = onOpen)
-          .testTag(C.Tag.overview_more_medications),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.spacedBy(Spacing.xxs),
-  ) {
-    Text(
-        pluralStringResource(R.plurals.overview_more_medications, count, count),
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.lakeColors.primaryText,
-    )
-    Icon(
-        painterResource(R.drawable.ic_chevron_right),
-        contentDescription = null,
-        tint = MaterialTheme.lakeColors.primaryText,
-        modifier = Modifier.size(CHEVRON_SIZE),
-    )
-  }
-}
-
 /** From this font scale, the bar and the count go under the frequency chip (Figma M3, 200%). */
 private const val LARGE_TEXT_SCALE = 1.5f
 
@@ -312,3 +297,6 @@ private val DOSE_ICON_SIZE = 20.dp
 
 /** The outline of the "+" disc. */
 private val DOSE_DISC_BORDER = 1.5.dp
+
+/** The Figma's frequency chip: 14 dp corners. */
+private val CHIP_SHAPE = RoundedCornerShape(14.dp)

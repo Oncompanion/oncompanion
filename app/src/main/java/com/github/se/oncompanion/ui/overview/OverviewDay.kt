@@ -2,7 +2,6 @@
 
 package com.github.se.oncompanion.ui.overview
 
-import com.github.se.oncompanion.domain.medication.DoseCount
 import com.github.se.oncompanion.domain.planning.endOrDefault
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningRange
@@ -114,40 +113,6 @@ internal fun startedToday(planned: List<PlanningItem>, now: LocalDateTime, zoneI
       item.startIn(zoneId)?.let { it.toLocalDate() == now.toLocalDate() && !it.isAfter(now) } ==
           true
     }
-
-/**
- * The medications of [planned] to take on [now]'s day, with their dosage after their name and the
- * doses ticked, the same on the patient's and the caregiver's Overviews. One a caregiver added
- * stays off until the patient confirms its prescription: it isn't part of their treatment before
- * (Planning still lists it).
- *
- * @param taken the doses ticked that day, by medication ID; `null` if they couldn't be read, so
- *   nothing shows as ticked or to tick
- */
-internal fun todayMedicationsOf(
-    planned: List<PlanningItem>,
-    now: LocalDateTime,
-    zoneId: ZoneId,
-    taken: Map<String, Int>?,
-): List<TodayMedication> =
-    planned
-        .filter { it.isConfirmed && it.timing.dateIn(zoneId) == now.toLocalDate() }
-        .mapNotNull { item ->
-          val source = item.source as? PlanningSource.Medication ?: return@mapNotNull null
-          val frequency = item.frequency?.takeIf { it.isNotBlank() }
-          val doses = DoseCount.of(frequency).takeIf { taken != null }
-          TodayMedication(
-              key = item.key,
-              medicationId = source.medicationId,
-              name =
-                  listOfNotNull(item.title, item.dosage?.takeIf { it.isNotBlank() })
-                      .joinToString(" "),
-              frequency = frequency,
-              dailyDoses = DoseCount.describe(frequency),
-              dosesPerDay = doses,
-              taken = doses?.let { taken?.get(source.medicationId)?.coerceIn(0, it) } ?: 0,
-          )
-        }
 
 /** When a timed entry ends, in [zoneId]. */
 internal fun PlanningItem.endIn(zoneId: ZoneId): LocalDateTime =

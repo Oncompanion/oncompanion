@@ -68,6 +68,7 @@ import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.LakeSnackbarHost
+import com.github.se.oncompanion.ui.common.MedicationDosesSheet
 import com.github.se.oncompanion.ui.common.NotSharedMessage
 import com.github.se.oncompanion.ui.common.PaperLakeHeader
 import com.github.se.oncompanion.ui.common.PaperLakeStatusBar
@@ -227,7 +228,7 @@ fun OverviewScreen(
       onOpenCircle = { isCircleOpen = true },
   )
   uiState.dosesSheet?.let { sheet ->
-    OverviewDosesSheet(
+    MedicationDosesSheet(
         sheet,
         onLess = viewModel::lessDoses,
         onMore = viewModel::moreDoses,
