@@ -9,11 +9,17 @@ import java.time.ZoneId
 /**
  * A display occurrence derived from an owning feature; never a separate stored record.
  *
+ * @property source the feature the entry comes from, and its ID there
+ * @property timing when it happens: a start time, or only a day for a medication
+ * @property title the main line: an appointment's title, a medication's name or an event's name
+ * @property subtitle the line below the title, such as an appointment's or an event's place
+ * @property frequency a medication's frequency (e.g. "Twice a day"), if recorded; `null` for other
+ *   entries
  * @property dosage a medication's dosage (e.g. "8 mg"), if recorded; `null` for other entries
- * @property addedBy the uid of the caregiver who added it for the patient (US-41), or `null`
+ * @property addedBy the uid of the caregiver who added it for the patient, or `null`
  * @property addedByName who added it, shown as "Added by Sam"
  * @property isConfirmed false for a medication of a prescription a caregiver added that the patient
- *   hasn't confirmed yet (US-43): it shows as not confirmed
+ *   hasn't confirmed yet: it shows as not confirmed
  */
 data class PlanningItem(
     val source: PlanningSource,

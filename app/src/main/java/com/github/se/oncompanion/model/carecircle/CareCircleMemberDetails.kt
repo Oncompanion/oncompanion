@@ -14,8 +14,8 @@ package com.github.se.oncompanion.model.carecircle
  * @property canAdd the sections the person can also add to, e.g. log a symptom for the patient;
  *   only sections they see, and none for members saved before it existed
  * @property canEditAndDelete the sections the person can also edit and delete in, the patient's own
- *   entries included (US-46); only sections they can add to. Only a member has it: the patient
- *   grants it when editing them, never on an invite, and members saved before it existed have none
+ *   entries included; only sections they can add to. Only a member has it: the patient grants it
+ *   when editing them, never on an invite, and members saved before it existed have none
  */
 data class CareCircleMemberDetails(
     val firstName: String,
@@ -55,9 +55,8 @@ data class CareCircleMemberDetails(
     const val MAX_NAME_LENGTH = 50
 
     /**
-     * The sections the patient can let a member add to: one per story that lets a caregiver write
-     * (US-22 for symptoms, US-41 for appointments, US-42 for confirming events, US-43 for
-     * prescriptions). The forms only offer these.
+     * The sections the patient can let a member add to, one per kind of entry a caregiver can add:
+     * symptoms, appointments, event confirmations and prescriptions. The forms only offer these.
      */
     val ADDABLE_SECTIONS: Set<CarePermission> =
         setOf(

@@ -18,11 +18,12 @@ sealed interface SectionAccess {
   /**
    * [ownerUid]'s data of the section may be read.
    *
+   * @property ownerUid the user whose data it is: the signed-in user, or the patient they follow
    * @property canEdit whether edit and delete may be offered: only for the user's own data
    * @property canAdd whether adding may be offered: for the user's own data, or when the patient
-   *   lets the caregiver add to this section (US-22)
+   *   lets the caregiver add to this section
    * @property canEditEntries whether its entries may be edited and deleted: the user's own, or when
-   *   the patient lets the caregiver edit and delete in this section (US-46)
+   *   the patient lets the caregiver edit and delete in this section
    */
   data class Readable(
       val ownerUid: String,
@@ -40,8 +41,8 @@ sealed interface SectionAccess {
 
 /**
  * Decides whose data of a [CarePermission] section a screen reads: the user's own, or that of the
- * patient they follow when the patient shares the section (US-20). Every screen that shows a
- * section asks it, so caregiver mode is the same code path everywhere.
+ * patient they follow when the patient shares the section. Every screen that shows a section asks
+ * it, so caregiver mode is the same code path everywhere.
  *
  * The user's own data needs no role, only to be signed in: anyone sees their own data, also offline
  * before their profile is on the device. A followed patient's data goes through [resolveAccess].
@@ -106,6 +107,9 @@ class ResolveSectionAccess(
 /**
  * The [access] to one section, and the [shared] sections of the same data that may be read: every
  * section of the user's own data, the ones the patient shares for a caregiver, none without access.
+ *
+ * @property access whose data of the section may be read, if any
+ * @property shared the sections of the same data that may also be read
  */
 data class SharedSectionAccess(
     val access: SectionAccess,

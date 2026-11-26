@@ -116,7 +116,7 @@ class CareCircleRepositoryFirestore(
   ): Unit = SessionAccess.operation {
     require(details.isValid()) { "Invalid care circle member details" }
     // update, never set: a member removed on another device must not come back. Editing and
-    // deleting is only stored on a member, never on an invite (US-46)
+    // deleting is only stored on a member, never on an invite
     val fields =
         detailFields(details) + (FIELD_CAN_EDIT_AND_DELETE to names(details.canEditAndDelete))
     circle(ownerUid).document(memberUid).update(fields).addOnFailureListener { e ->
