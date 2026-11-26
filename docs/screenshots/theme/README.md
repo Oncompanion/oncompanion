@@ -1,10 +1,10 @@
 <!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
 
-# Morning on the lake theme (#343)
+# Morning on the lake theme
 
 These images compare `main` at `e40f1e7a` with the new theme (colors, Figtree, shapes), using the
 same fictional data on a 412 × 915 dp phone. Only the theme changes: the layouts are the same, and
-each area's own UI task (#346–#355) restyles them.
+each area's own UI task restyles them.
 
 | Screen | Light and dark, before and after |
 | --- | --- |

@@ -1,5 +1,6 @@
 <!-- Co-authored-by: ChatGPT <noreply@openai.com> -->
-# Medication detail (US-35)
+<!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
+# Medication detail
 
 Synthetic recorded data rendered by `MedicationDetailScreenTest` in light and dark themes,
 and in landscape at 200% font scale after scrolling to the action. These use the current M2
