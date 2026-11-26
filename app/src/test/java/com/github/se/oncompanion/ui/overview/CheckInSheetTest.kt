@@ -301,6 +301,7 @@ class CheckInSheetTest {
         FakeAuthRepository(onSignIn = { AuthUser(uid = "patient", displayName = "Alex") }).also {
           runBlocking { it.signInWithGoogle("token") }
         }
+    val symptoms = FakeSymptomRepository(clock = { clock.instant() })
     val viewModel =
         OverviewViewModel(
             authRepository = auth,
@@ -308,8 +309,8 @@ class CheckInSheetTest {
             observePlanning = ownPlanning(FakePlanningRepository()),
             clock = clock,
             zoneId = ZoneOffset.UTC,
+            symptomRepository = symptoms,
         )
-    val symptoms = FakeSymptomRepository(clock = { clock.instant() })
     val checkIn =
         AddSymptomViewModel(
             auth,
@@ -352,6 +353,12 @@ class CheckInSheetTest {
     assertEquals(listOf(SymptomType.NAUSEA, SymptomType.FATIGUE), entry.types)
     assertEquals(mapOf(SymptomType.NAUSEA to 4, SymptomType.FATIGUE to 6), entry.strengths)
     assertTrue(overview.navigationActions.openedRoutes.isEmpty())
+    // The check-in now says what was saved, instead of its tiles
+    composeTestRule
+        .onNodeWithText("Nausea\u00A04/10 · Fatigue\u00A06/10")
+        .performScrollTo()
+        .assertIsDisplayed()
+    node(C.Tag.overview_check_in).assertDoesNotExist()
   }
 
   @Test

@@ -162,6 +162,17 @@
     <string name="overview_check_in_sheet_when">%1$s, %2$s · Change</string>
     <string name="overview_check_in_sheet_note">Add a note (optional)</string>
     <string name="overview_check_in_sheet_save">Save to my journal</string>
+    <!-- The check-in once the patient saved a symptom today (Figma M3: Check-in · After saving) -->
+    <string name="overview_saved_title">Saved to your journal</string>
+    <string name="overview_saved_subtitle">Your notes today</string>
+    <string name="overview_saved_undo">Undo</string>
+    <string name="overview_saved_edit">Edit</string>
+    <string name="overview_saved_log_another">Log another symptom or note</string>
+    <string name="overview_saved_undo_failed">Couldn\'t undo this entry. Please try again.</string>
+    <!-- A symptom and its strength out of 10, e.g. "Nausea 7/10" -->
+    <string name="overview_entry_strength">%1$s\u00A0%2$d/10</string>
+    <!-- The symptoms of an entry and its one intensity, e.g. "Nausea, Fatigue · 6/10" -->
+    <string name="overview_entry_overall">%1$s\u00A0·\u00A0%2$d/10</string>
 
     <!-- Caregiver Overview: the caregiver's own home, with the day of the patient they follow -->
     <string name="caregiver_overview_day">%1$s\'s day</string>
@@ -172,10 +183,6 @@
     <string name="caregiver_overview_journal_empty">No entries yet</string>
     <!-- When the patient last logged a symptom, e.g. "Yesterday at 18:10" -->
     <string name="caregiver_overview_journal_at">%1$s at %2$s</string>
-    <!-- A symptom and its strength out of 10, e.g. "Nausea 7/10" -->
-    <string name="caregiver_overview_journal_strength">%1$s %2$d/10</string>
-    <!-- The symptoms of an entry and its one intensity, e.g. "Nausea, Fatigue · 6/10" -->
-    <string name="caregiver_overview_journal_overall">%1$s · %2$d/10</string>
     <string name="caregiver_overview_private">%1$s keeps this private</string>
     <string name="caregiver_overview_error_title">Couldn\'t load %1$s\'s day</string>
     <!-- The caregiver's read-only medications card (Figma M3): "Medications today · 4" -->
@@ -287,8 +294,6 @@
     <!-- What the patient said, between quotes -->
     <string name="symptom_voice_transcript">“%1$s”</string>
     <string name="symptom_voice_picked_up">We picked up</string>
-    <!-- An intensity picked up from what was said, e.g. "5/10" -->
-    <string name="symptom_voice_intensity">%1$d/10</string>
     <string name="symptom_voice_done">Done</string>
     <string name="symptom_voice_start_over">Start over</string>
     <string name="symptom_voice_try_again">Try again</string>
@@ -1021,4 +1026,10 @@
     <string name="circle_sheet_yesterday">Yesterday</string>
     <string name="circle_sheet_nobody_message">Add a relative, friend or nurse so they can follow your care. You choose what each person can see.</string>
     <string name="circle_sheet_add_someone">Add someone you trust</string>
+    <!-- The sailboat in the Overview header that opens the "Your circle" sheet: what screen readers say -->
+    <string name="circle_button">Your circle</string>
+    <!-- … while something in the sheet is unseen (a dot on the sailboat) -->
+    <string name="circle_button_new">Your circle, something new</string>
+    <!-- … while nobody is in the circle yet (a "+" on the sailboat) -->
+    <string name="circle_button_add">Your circle, add someone</string>
 </resources>

@@ -106,7 +106,6 @@ object C {
     const val overview_screen = "overview_screen"
     const val overview_shortcut_symptoms = "overview_shortcut_symptoms"
     const val overview_shortcut_prescriptions = "overview_shortcut_prescriptions"
-    const val overview_shortcut_care_circle = "overview_shortcut_care_circle"
     const val overview_shortcut_profile = "overview_shortcut_profile"
     const val overview_header = "overview_header"
     const val overview_status_bar = "overview_status_bar"
@@ -147,6 +146,11 @@ object C {
     const val overview_check_in_sheet_error = "overview_check_in_sheet_error"
     const val overview_check_in_sheet_save = "overview_check_in_sheet_save"
     const val overview_check_in_sheet_saving = "overview_check_in_sheet_saving"
+    const val overview_saved = "overview_saved"
+    const val overview_saved_entry = "overview_saved_entry"
+    const val overview_saved_undo = "overview_saved_undo"
+    const val overview_saved_edit = "overview_saved_edit"
+    const val overview_saved_log_another = "overview_saved_log_another"
 
     // Caregiver Overview
     const val caregiver_overview_screen = "caregiver_overview_screen"
@@ -672,7 +676,10 @@ object C {
     // Shared message state: its round info tile
     const val message_state_icon = "message_state_icon"
 
-    // The "Your circle" sheet (US-50, #457)
+    // The "Your circle" sheet and the sailboat that opens it (US-50, #457)
+    const val circle_button = "circle_button"
+    const val circle_button_dot = "circle_button_dot"
+    const val circle_button_add = "circle_button_add"
     const val circle_sheet = "circle_sheet"
     const val circle_sheet_loading = "circle_sheet_loading"
     const val circle_sheet_error = "circle_sheet_error"

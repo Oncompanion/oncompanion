@@ -82,6 +82,14 @@ class AlarmReminderSchedulerTest {
     assertEquals("Changed title", notification.extras.getString(Notification.EXTRA_TITLE))
     assertEquals(reminder.text, notification.extras.getString(Notification.EXTRA_TEXT))
     assertEquals(Notification.VISIBILITY_PRIVATE, notification.visibility)
+    assertTrue(scheduler.wasDelivered(key))
+    val tap = shadowOf(notification.contentIntent).savedIntent
+    assertEquals(key.uri(), tap.data)
+    assertEquals(Intent.ACTION_VIEW, tap.action)
+    assertEquals("com.github.se.oncompanion.MainActivity", tap.component?.className)
+    assertTrue(tap.extras == null || tap.extras!!.isEmpty)
+    scheduler.cancel(key)
+    assertFalse(scheduler.wasDelivered(key))
   }
 
   @Test
@@ -185,6 +193,23 @@ class AlarmReminderSchedulerTest {
   }
 
   @Test
+  fun permissionLossAtDelivery_doesNotConsumeIt_andAGrantedRetryPostsOnlyOnce() {
+    scheduler.schedule(reminder)
+    val intent = Intent(shadowOf(shadowOf(alarms).scheduledAlarms.single().operation).savedIntent)
+    shadowOf(notifications).setNotificationsEnabled(false)
+    ReminderReceiver().onReceive(context, intent)
+    assertFalse(scheduler.wasDelivered(key))
+    assertTrue(notifications.activeNotifications.isEmpty())
+    shadowOf(notifications).setNotificationsEnabled(true)
+    ReminderReceiver().onReceive(context, intent)
+    assertTrue(scheduler.wasDelivered(key))
+    assertEquals(1, notifications.activeNotifications.size)
+    notifications.cancelAll()
+    ReminderReceiver().onReceive(context, intent)
+    assertTrue(notifications.activeNotifications.isEmpty())
+  }
+
+  @Test
   fun blockedNotificationsCancelOldAlarmAndNeverDeliver() {
     scheduler.schedule(reminder)
     val intent = shadowOf(shadowOf(alarms).scheduledAlarms.single().operation).savedIntent
@@ -231,12 +256,15 @@ class AlarmReminderSchedulerTest {
 
   @Test
   fun failedVersionCommitsThrowWithoutAnAsynchronousFallback() {
-    for (invalidate in listOf(false, true)) {
+    for (operation in listOf("replace", "invalidate", "delivered")) {
       val failed = FailedCommitContext(context)
       val deliveries = ReminderDeliveries(failed)
       assertThrows(IllegalStateException::class.java) {
-        if (invalidate) deliveries.invalidate("fictional-key")
-        else deliveries.replace("fictional-key")
+        when (operation) {
+          "replace" -> deliveries.replace("fictional-key")
+          "invalidate" -> deliveries.invalidate("fictional-key")
+          else -> deliveries.delivered("fictional-key")
+        }
       }
       assertFalse(failed.applied)
     }

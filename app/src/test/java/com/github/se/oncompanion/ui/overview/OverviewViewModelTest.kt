@@ -25,6 +25,10 @@ import com.github.se.oncompanion.model.planning.PlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningSource
 import com.github.se.oncompanion.model.planning.PlanningTiming
 import com.github.se.oncompanion.model.speech.FakeSpeechRecognizer
+import com.github.se.oncompanion.model.symptom.FakeSymptomRepository
+import com.github.se.oncompanion.model.symptom.SymptomEntry
+import com.github.se.oncompanion.model.symptom.SymptomRepository
+import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
 import com.github.se.oncompanion.model.user.Role
 import com.github.se.oncompanion.model.user.UserProfile
@@ -116,6 +120,7 @@ class OverviewViewModelTest {
       planning: PlanningRepository = FakePlanningRepository(),
       clock: Clock = TestClock(now),
       doses: TakenDosesRepository = FakeTakenDosesRepository(),
+      symptoms: SymptomRepository = FakeSymptomRepository(),
   ) =
       OverviewViewModel(
           auth,
@@ -124,6 +129,7 @@ class OverviewViewModelTest {
           clock,
           zone,
           takenDosesRepository = doses,
+          symptomRepository = symptoms,
       )
 
   @Test
@@ -1389,5 +1395,267 @@ class OverviewViewModelTest {
             .value
             .sharedSections,
     )
+  }
+
+  // ----- The entry saved today, on the check-in (#544) -----
+
+  /** An entry felt at [felt] and saved at [saved] (`null` while it is still being saved). */
+  private fun entry(
+      id: String,
+      felt: LocalDateTime,
+      saved: LocalDateTime? = felt,
+      addedBy: String? = null,
+  ) =
+      SymptomEntry(
+          id = id,
+          types = listOf(SymptomType.NAUSEA),
+          occurredAt = felt.toInstant(zone),
+          strengths = mapOf(SymptomType.NAUSEA to 7),
+          createdAt = saved?.toInstant(zone),
+          addedBy = addedBy,
+      )
+
+  private fun journalViewModel(
+      symptoms: SymptomRepository,
+      clock: Clock = TestClock(now),
+      auth: AuthRepository = signedIn(patient),
+  ) = viewModel(auth, clock = clock, symptoms = symptoms)
+
+  private fun OverviewViewModel.savedId() = uiState.value.savedToday?.entry?.id
+
+  @Test
+  fun savedToday_isTheEntrySavedLastAmongThoseFeltToday() {
+    val at8 = now.withHour(8)
+    // The entries in the journal to the one the check-in shows
+    listOf(
+            emptyList<SymptomEntry>() to null,
+            listOf(entry("yesterday", now.minusDays(1))) to null,
+            // Saved last, although felt earlier
+            listOf(
+                entry("a", at8),
+                entry("b", at8.minusHours(1), saved = at8.plusMinutes(5)),
+            ) to "b",
+            // A caregiver's entry isn't the patient's to undo
+            listOf(entry("own", at8), entry("sam's", at8.plusMinutes(5), addedBy = "sam")) to "own",
+            listOf(entry("sam's", at8, addedBy = "sam")) to null,
+            // Still being saved: no creation time yet, but the newest
+            listOf(entry("a", at8), entry("pending", now.withHour(6), saved = null)) to "pending",
+        )
+        .forEach { (entries, expected) ->
+          val symptoms = FakeSymptomRepository().apply { seed("patient", *entries.toTypedArray()) }
+          val vm = journalViewModel(symptoms)
+          ShadowLooper.idleMainLooper()
+
+          assertEquals("$entries", expected, vm.savedId())
+        }
+  }
+
+  @Test
+  fun savedToday_isTodayInThePatientsZone_notInUtc() {
+    val zurich = ZoneId.of("Europe/Zurich")
+    val today = now.toLocalDate()
+    fun felt(time: LocalDateTime) =
+        entry("", now)
+            .copy(
+                occurredAt = time.atZone(zurich).toInstant(),
+                createdAt = time.atZone(zurich).toInstant(),
+            )
+    // 00:30 in Zurich is 22:30 UTC the day before; 23:30 the day before is yesterday there
+    val symptoms =
+        FakeSymptomRepository().apply {
+          seed(
+              "patient",
+              felt(today.atTime(0, 30)).copy(id = "after midnight"),
+              felt(today.minusDays(1).atTime(23, 30)).copy(id = "yesterday"),
+          )
+        }
+    val vm =
+        OverviewViewModel(
+            signedIn(patient),
+            FakeUserProfileRepository(),
+            ownPlanning(FakePlanningRepository()),
+            Clock.fixed(now.atZone(zurich).toInstant(), zurich),
+            zurich,
+            symptomRepository = symptoms,
+        )
+    ShadowLooper.idleMainLooper()
+    assertEquals("after midnight", vm.savedId())
+    assertEquals(LocalTime.of(0, 30), vm.uiState.value.savedToday?.at?.toLocalTime())
+
+    runBlocking { symptoms.deleteSymptom("patient", "after midnight") }
+    ShadowLooper.idleMainLooper()
+    assertNull(vm.savedId())
+  }
+
+  private suspend fun FakeSymptomRepository.feltAt(time: LocalDateTime) {
+    updateSymptom("patient", symptoms("patient").single().copy(occurredAt = time.toInstant(zone)))
+  }
+
+  @Test
+  fun savedToday_followsTheJournal_andANewDayStartsWithTheTiles() = runBlocking {
+    val clock = TestClock(now)
+    val symptoms = FakeSymptomRepository(clock = { clock.instant() })
+    val vm = journalViewModel(symptoms, clock)
+    ShadowLooper.idleMainLooper()
+    assertNull(vm.savedId())
+
+    val id = symptoms.addSymptom("patient", entry("", now.minusMinutes(5), saved = null))
+    ShadowLooper.idleMainLooper()
+    assertEquals(id, vm.savedId())
+    assertEquals(listOf(SymptomType.NAUSEA to 7), vm.uiState.value.savedToday?.symptoms)
+
+    // Moved to yesterday in the form: not today's anymore, then back
+    symptoms.feltAt(now.minusDays(1))
+    ShadowLooper.idleMainLooper()
+    assertNull(vm.savedId())
+    symptoms.feltAt(now.minusHours(1))
+    ShadowLooper.idleMainLooper()
+    assertEquals(id, vm.savedId())
+
+    clock.time = now.toLocalDate().plusDays(1).atTime(0, 1)
+    vm.refreshNow()
+    ShadowLooper.idleMainLooper()
+    assertNull(vm.savedId())
+  }
+
+  @Test
+  fun savedToday_isNull_whenTheJournalCantBeRead_nobodyIsSignedIn_orForACaregiver() {
+    val unreadable =
+        FakeSymptomRepository().apply {
+          seed("patient", entry("a", now))
+          observeError = IllegalStateException("offline")
+        }
+    val failed = journalViewModel(unreadable)
+    ShadowLooper.idleMainLooper()
+    assertNull(failed.savedId())
+
+    val symptoms = FakeSymptomRepository().apply { seed("patient", entry("a", now)) }
+    val signedOut = journalViewModel(symptoms, auth = FakeAuthRepository())
+    ShadowLooper.idleMainLooper()
+    assertNull(signedOut.savedId())
+
+    // The caregiver's Overview has no check-in: their own journal isn't read
+    val followed = FollowedPatient(CarePermission.SYMPTOMS)
+    val caregiverUid = checkNotNull(followed.auth.currentUser).uid
+    val own = FakeSymptomRepository().apply { seed(caregiverUid, entry("a", now)) }
+    val caregiver =
+        OverviewViewModel(
+            authRepository = followed.auth,
+            observePlanning = followedPlanning(planning(), setOf(CarePermission.PLANNING)),
+            clock = TestClock(now),
+            zoneId = zone,
+            patientUid = "patient",
+            resolveAccess = followed.careAccess,
+            symptomRepository = own,
+        )
+    ShadowLooper.idleMainLooper()
+    assertNull(caregiver.savedId())
+  }
+
+  /** A journal whose deletions wait for [gate], as on a slow network. */
+  private class SlowDeletes(val fake: FakeSymptomRepository) : SymptomRepository by fake {
+    val gate = CompletableDeferred<Unit>()
+
+    override suspend fun deleteSymptom(uid: String, id: String) {
+      gate.await()
+      fake.deleteSymptom(uid, id)
+    }
+  }
+
+  @Test
+  fun undoSaved_hidesTheEntryAtOnce_deletesIt_andAQuickSecondTapDoesntDeleteThePreviousOne() {
+    val fake =
+        FakeSymptomRepository().apply {
+          seed("patient", entry("earlier", now.withHour(7)), entry("last", now.withHour(8)))
+        }
+    val symptoms = SlowDeletes(fake)
+    val vm = journalViewModel(symptoms)
+    ShadowLooper.idleMainLooper()
+    assertEquals("last", vm.savedId())
+
+    vm.undoSaved("last")
+    ShadowLooper.idleMainLooper()
+    // The previous entry of the day shows before the deletion is confirmed
+    assertEquals("earlier", vm.savedId())
+
+    // The second tap of a double tap still names the entry undone
+    vm.undoSaved("last")
+    symptoms.gate.complete(Unit)
+    ShadowLooper.idleMainLooper()
+
+    assertEquals(listOf("earlier"), fake.symptoms("patient").map { it.id })
+    assertEquals("earlier", vm.savedId())
+    assertFalse(vm.uiState.value.undoFailed)
+  }
+
+  @Test
+  fun undoSaved_again_andAgain_undoesEachEntryOfTheDay_untilTheTiles() {
+    val symptoms =
+        FakeSymptomRepository().apply {
+          seed(
+              "patient",
+              entry("first", now.withHour(7)),
+              entry("second", now.withHour(8)),
+              entry("third", now.withHour(9)),
+          )
+        }
+    val vm = journalViewModel(symptoms)
+    ShadowLooper.idleMainLooper()
+
+    // Each Undo deletes the entry shown, and the one saved before it takes its place
+    for ((undone, next) in listOf("third" to "second", "second" to "first", "first" to null)) {
+      assertEquals(undone, vm.savedId())
+      vm.undoSaved(undone)
+      ShadowLooper.idleMainLooper()
+      assertEquals("after undoing $undone", next, vm.savedId())
+    }
+    assertTrue(symptoms.symptoms("patient").isEmpty())
+    assertFalse(vm.uiState.value.undoFailed)
+  }
+
+  @Test
+  fun undoSaved_failing_bringsTheEntryBack_andSaysSoOnce() {
+    val symptoms = FakeSymptomRepository().apply { seed("patient", entry("last", now)) }
+    val auth = signedIn(patient)
+    val vm = journalViewModel(symptoms, auth = auth)
+    ShadowLooper.idleMainLooper()
+
+    symptoms.writeError = IllegalStateException("offline")
+    vm.undoSaved("last")
+    ShadowLooper.idleMainLooper()
+    assertEquals("last", vm.savedId())
+    assertTrue(vm.uiState.value.undoFailed)
+
+    vm.undoFailureShown()
+    assertFalse(vm.uiState.value.undoFailed)
+
+    // Signed out meanwhile: nothing can be deleted, and the patient is told
+    symptoms.writeError = null
+    auth.signOut()
+    vm.undoSaved("last")
+    ShadowLooper.idleMainLooper()
+    assertTrue(vm.uiState.value.undoFailed)
+    assertEquals(listOf("last"), symptoms.symptoms("patient").map { it.id })
+  }
+
+  @Test
+  fun undoSaved_rejectedByTheServerLater_showsTheEntryAgain() {
+    val symptoms =
+        FakeSymptomRepository().apply {
+          seed("patient", entry("earlier", now.withHour(7)), entry("last", now.withHour(8)))
+          serverRejectsWrites = true
+        }
+    val vm = journalViewModel(symptoms)
+    ShadowLooper.idleMainLooper()
+
+    // Deleted on the device: the previous entry shows
+    vm.undoSaved("last")
+    ShadowLooper.idleMainLooper()
+    assertEquals("earlier", vm.savedId())
+
+    // The server rejects it after the delete returned: Firestore puts it back, and so does the card
+    symptoms.rejectPendingWrites()
+    ShadowLooper.idleMainLooper()
+    assertEquals("last", vm.savedId())
   }
 }

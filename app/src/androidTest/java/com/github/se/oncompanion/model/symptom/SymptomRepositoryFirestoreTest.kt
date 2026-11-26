@@ -649,7 +649,7 @@ class SymptomRepositoryFirestoreTest {
       val offline = observed.await().single()
       assertSameContent(fatigue(), offline)
       assertEquals(id, offline.id)
-      assertNull("createdAt is null until the server confirms", offline.createdAt)
+      assertNotNull("the device's time until the server confirms", offline.createdAt)
     } finally {
       db.enableNetwork().await()
     }
@@ -658,6 +658,25 @@ class SymptomRepositoryFirestoreTest {
     val synced = observeOnce(id)
     assertSameContent(fatigue(), synced)
     assertNotNull(synced!!.createdAt)
+  }
+
+  @Test
+  fun entriesSavedOffline_keepTheOrderTheyWereSavedIn(): Unit = runBlocking {
+    db.disableNetwork().await()
+    try {
+      // Saved last but felt earlier: the order comes from when each was saved
+      val first = repository.addSymptom(aliceUid, fatigue("2026-10-05T10:00:00Z"))
+      delay(20)
+      val second = repository.addSymptom(aliceUid, fatigue("2026-10-05T09:00:00Z"))
+      val entries =
+          withTimeout(10_000) { repository.observeSymptoms(aliceUid).first { it.size == 2 } }
+              .associateBy { it.id }
+      val firstSaved = checkNotNull(entries.getValue(first).createdAt)
+      val secondSaved = checkNotNull(entries.getValue(second).createdAt)
+      assertTrue("$firstSaved, then $secondSaved", secondSaved > firstSaved)
+    } finally {
+      db.enableNetwork().await()
+    }
   }
 
   @Test

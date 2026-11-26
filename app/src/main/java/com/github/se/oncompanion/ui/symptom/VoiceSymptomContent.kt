@@ -420,9 +420,14 @@ private fun Transcript(text: String) {
 @Composable
 private fun PickedUp(draft: SymptomDraft, today: LocalDate) {
   val labels = buildList {
-    draft.types.forEach { add(stringResource(it.label)) }
-    // Only a strength the form will fill in
-    draft.saidStrength?.let { add(stringResource(R.string.symptom_voice_intensity, it.second)) }
+    // Each symptom with the strength said for it, as on the form's strength chips
+    draft.types.forEach { type ->
+      val name = stringResource(type.label)
+      add(
+          draft.strengths[type]?.let { stringResource(R.string.symptom_strength_chip, name, it) }
+              ?: name
+      )
+    }
     if (draft.date != null || draft.time != null) {
       val day = dayLabel(draft.date ?: today, today)
       add(draft.time?.let { "$day · ${it.format(symptomTimeFormatter)}" } ?: day)

@@ -12,22 +12,16 @@ import java.time.LocalTime
  * patient to fill in; nothing here is stored.
  *
  * @property types the symptoms said, in the order they were first said
- * @property intensity the intensity said on a scale of 10, or `null`
+ * @property strengths the strength said for each of [types] that has one, on a scale of 10, in the
+ *   order of [types]
  * @property date the day it was felt, or `null` for today (as in the form)
  * @property time the time it was felt, or `null` for the current time (as in the form)
  * @property notes everything that was said, so nothing is lost
  */
 data class SymptomDraft(
     val types: List<SymptomType> = emptyList(),
-    val intensity: Int? = null,
+    val strengths: Map<SymptomType, Int> = emptyMap(),
     val date: LocalDate? = null,
     val time: LocalTime? = null,
     val notes: String = "",
-) {
-  /**
-   * The symptom said with the [intensity], when exactly one symptom was said: one number said for
-   * several symptoms doesn't say which one it was, so it fills none of them. `null` otherwise.
-   */
-  val saidStrength: Pair<SymptomType, Int>?
-    get() = types.singleOrNull()?.let { type -> intensity?.let { type to it } }
-}
+)

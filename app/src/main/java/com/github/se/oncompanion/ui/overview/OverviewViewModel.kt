@@ -21,6 +21,9 @@ import com.github.se.oncompanion.model.planning.PlanningSource
 import com.github.se.oncompanion.model.planning.PlanningTiming
 import com.github.se.oncompanion.model.speech.SpeechRecognizer
 import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
+import com.github.se.oncompanion.model.symptom.SymptomEntry
+import com.github.se.oncompanion.model.symptom.SymptomRepository
+import com.github.se.oncompanion.model.symptom.SymptomRepositoryProvider
 import com.github.se.oncompanion.model.user.UserProfileRepository
 import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import com.github.se.oncompanion.ui.common.DoseTicks
@@ -28,6 +31,8 @@ import com.github.se.oncompanion.ui.common.DosesSheet
 import com.github.se.oncompanion.ui.common.TodayMedication
 import com.github.se.oncompanion.ui.common.todayMedicationsOf
 import java.time.Clock
+import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
@@ -128,6 +133,10 @@ data class NextUp(
  * @property sharedSections in caregiver mode, the sections behind the shortcuts the patient shares
  * @property dosesSheet the sheet correcting a medication's doses, or `null` when it is closed
  * @property canSpeak the phone can listen, so the check-in offers to speak a symptom (US-73)
+ * @property savedToday the entry the patient saved last among those of today, shown by the check-in
+ *   instead of its tiles until the day ends (#544); `null` when there is none
+ * @property undoFailed undoing [savedToday] failed: the screen says so once, then calls
+ *   [OverviewViewModel.undoFailureShown]
  */
 data class OverviewUiState(
     val now: LocalDateTime,
@@ -142,6 +151,8 @@ data class OverviewUiState(
     val sharedSections: Set<CarePermission> = emptySet(),
     val dosesSheet: DosesSheet? = null,
     val canSpeak: Boolean = false,
+    val savedToday: LatestEntry? = null,
+    val undoFailed: Boolean = false,
 )
 
 /**
@@ -159,6 +170,7 @@ data class OverviewUiState(
  * @param takenDosesRepository the doses the patient ticks on their medications (US-28)
  * @param speechRecognizer the phone's recognizer, for whether the patient can speak a symptom;
  *   `null` before the app installed it, so the check-in doesn't offer to speak
+ * @param symptomRepository the patient's journal, for the entry they saved today and its Undo
  */
 class OverviewViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
@@ -172,6 +184,7 @@ class OverviewViewModel(
     private val takenDosesRepository: TakenDosesRepository =
         TakenDosesRepositoryProvider.repository,
     speechRecognizer: SpeechRecognizer? = SpeechRecognizerProvider.installed,
+    private val symptomRepository: SymptomRepository = SymptomRepositoryProvider.repository,
 ) : ViewModel() {
 
   private val _uiState =
@@ -188,6 +201,18 @@ class OverviewViewModel(
    */
   private val doseTicks =
       DoseTicks(viewModelScope, takenDosesRepository, authRepository, ::refreshMedications)
+
+  /** Follows the patient's journal for the entry they saved today, in patient mode. */
+  private var journalObservation: Job? = null
+
+  /** The patient's journal as last read; empty until it is, or if it can't be. */
+  private var journal: List<SymptomEntry> = emptyList()
+
+  /**
+   * The entries the patient undid, hidden at once, until the journal confirms they are gone (then
+   * forgotten, so one the server puts back shows again).
+   */
+  private val undone = mutableSetOf<String>()
 
   /** Follows which sections the patient shares, in caregiver mode. */
   private var sharedObservation: Job? = null
@@ -233,8 +258,12 @@ class OverviewViewModel(
     dayObservation?.cancel()
     val now = now()
     val today = now.toLocalDate()
-    if (patientUid != null) followSharedSections(patientUid)
-    else doseTicks.follow(authRepository.signedInUid(TAG), today)
+    if (patientUid != null) {
+      followSharedSections(patientUid)
+    } else {
+      doseTicks.follow(authRepository.signedInUid(TAG), today)
+      followJournal()
+    }
     // Following the day closes the sheet: a draft was for the day it was opened on
     _uiState.update { it.copy(now = now, isLoading = true, hasError = false) }
     val range = overviewRange(today, zoneId)
@@ -332,6 +361,91 @@ class OverviewViewModel(
 
   /** Closes the sheet without saving: swiped down, Back, or a tap outside it. */
   fun closeDoses() = doseTicks.closeSheet()
+
+  /**
+   * Follows the patient's journal, for the entry they saved today. If it can't be read, the
+   * check-in shows its tiles: logging another symptom matters more than seeing the last one.
+   */
+  private fun followJournal() {
+    journalObservation?.cancel()
+    journal = emptyList()
+    val uid = authRepository.signedInUid(TAG)
+    if (uid != null) {
+      journalObservation = viewModelScope.launch {
+        // Built inside the flow, so even a failure to start reaches the catch
+        flow { emitAll(symptomRepository.observeSymptoms(uid)) }
+            .catch { e ->
+              // The type only: a message can name the entry's path
+              Log.w(TAG, "Couldn't read the journal: ${e.javaClass.simpleName}")
+              emit(emptyList())
+            }
+            .collect { entries ->
+              journal = entries
+              // An undone entry stays hidden only until the journal drops it: if the server
+              // rejects the deletion later, Firestore puts it back and it shows again
+              val ids = entries.mapTo(HashSet()) { it.id }
+              undone.retainAll(ids)
+              refreshSaved()
+            }
+      }
+    }
+    refreshSaved()
+  }
+
+  /** Shows the entry saved on the day shown, so a new day starts with the check-in's tiles. */
+  private fun refreshSaved() {
+    _uiState.update { state -> state.copy(savedToday = savedOn(state.now.toLocalDate())) }
+  }
+
+  /**
+   * The entry the patient saved last among those they felt on [day], or `null`. One a caregiver
+   * added for them (US-46) isn't theirs to undo. One still being saved has the time the device
+   * saved it, so several saved offline keep their order; one without any creation time is the
+   * newest.
+   */
+  private fun savedOn(day: LocalDate): LatestEntry? =
+      journal
+          .filter {
+            it.id !in undone &&
+                it.addedBy == null &&
+                it.occurredAt.atZone(zoneId).toLocalDate() == day
+          }
+          .maxByOrNull { it.createdAt ?: Instant.MAX }
+          ?.toLatestEntry(zoneId)
+
+  /**
+   * Undo: deletes the entry saved today, [id]. It is hidden at once, so the previous one of the day
+   * (or the tiles) shows even before the journal confirms it; if the deletion fails, it comes back
+   * and [OverviewUiState.undoFailed] says so. Only the entry shown can be undone: a second quick
+   * tap on Undo doesn't delete the previous entry that has just replaced it.
+   */
+  fun undoSaved(id: String) {
+    if (_uiState.value.savedToday?.entry?.id != id) return
+    val uid = authRepository.signedInUid(TAG)
+    if (uid == null) {
+      _uiState.update { it.copy(undoFailed = true) }
+      return
+    }
+    undone += id
+    refreshSaved()
+    viewModelScope.launch {
+      try {
+        symptomRepository.deleteSymptom(uid, id)
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Log.e(TAG, "Couldn't undo the entry saved: ${e.javaClass.simpleName}")
+        undone -= id
+        refreshSaved()
+        _uiState.update { it.copy(undoFailed = true) }
+      }
+    }
+  }
+
+  /** The screen said that Undo failed. */
+  fun undoFailureShown() {
+    _uiState.update { it.copy(undoFailed = false) }
+  }
 
   /** The first appointment that hasn't started yet. */
   private fun nextAppointmentOf(planned: List<PlanningItem>, now: LocalDateTime): NextAppointment? =

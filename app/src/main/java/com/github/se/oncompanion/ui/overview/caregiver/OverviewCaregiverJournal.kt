@@ -19,8 +19,9 @@ import com.github.se.oncompanion.ui.common.CardLink
 import com.github.se.oncompanion.ui.overview.CardBadge
 import com.github.se.oncompanion.ui.overview.DayCard
 import com.github.se.oncompanion.ui.overview.Eyebrow
+import com.github.se.oncompanion.ui.overview.LatestEntry
+import com.github.se.oncompanion.ui.overview.entrySummary
 import com.github.se.oncompanion.ui.symptom.dayLabel
-import com.github.se.oncompanion.ui.symptom.nameOf
 import com.github.se.oncompanion.ui.symptom.symptomTimeFormatter
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.cardDetail
@@ -66,7 +67,7 @@ internal fun JournalCard(latest: LatestEntry?, today: LocalDate, onOpenJournal: 
         )
         latest?.let {
           Text(
-              summary(it),
+              entrySummary(it),
               style = MaterialTheme.typography.cardDetail,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
           )
@@ -84,27 +85,3 @@ private fun loggedAt(latest: LatestEntry, today: LocalDate): String =
         dayLabel(latest.at.toLocalDate(), today),
         latest.at.format(symptomTimeFormatter),
     )
-
-/**
- * "Nausea 7/10 · Fatigue 6/10" with a strength per symptom, "Nausea, Fatigue · 6/10" with one
- * intensity for the entry, "Nausea, Fatigue" without any; "Other" goes by the name it was given.
- */
-@Composable
-private fun summary(latest: LatestEntry): String {
-  val symptoms =
-      latest.symptoms.map { (type, strength) ->
-        val name = latest.entry.nameOf(type)
-        strength?.let { stringResource(R.string.caregiver_overview_journal_strength, name, it) }
-            ?: name
-      }
-  val withStrengths = latest.symptoms.any { it.second != null }
-  val list = symptoms.joinToString(if (withStrengths) STRENGTH_SEPARATOR else NAME_SEPARATOR)
-  val overall = latest.overall ?: return list
-  return stringResource(R.string.caregiver_overview_journal_overall, list, overall)
-}
-
-/** Between symptoms that each have a strength, as in the Figma. */
-private const val STRENGTH_SEPARATOR = " · "
-
-/** Between the names alone, as in the journal's titles. */
-private const val NAME_SEPARATOR = ", "

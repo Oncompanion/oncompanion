@@ -97,6 +97,25 @@ val CircleSheetUiState.hasUnseen: Boolean
       this is CircleSheetUiState.Circle &&
           days.any { day -> day.cards.any { !it.notification.seen } }
 
+/** What the sailboat in the Overview header points out (Figma: "Header care circle button"). */
+enum class SailboatBadge {
+  /** Nothing: the sailboat in its ring. */
+  NONE,
+  /** Something in the sheet is unseen: a dot on the ring. */
+  NEW,
+  /** Nobody is in the circle yet: a "+", without the ring. */
+  ADD,
+}
+
+/** What the sailboat points out in this state; nothing while loading or after an error. */
+val CircleSheetUiState.sailboatBadge: SailboatBadge
+  get() =
+      when {
+        this is CircleSheetUiState.NobodyYet -> SailboatBadge.ADD
+        hasUnseen -> SailboatBadge.NEW
+        else -> SailboatBadge.NONE
+      }
+
 /**
  * Tells the patient what their care circle did for them (US-50, #457): the "Your circle" sheet and
  * the dot on the sailboat button that opens it. It follows the signed-in account, so another

@@ -41,6 +41,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -59,8 +60,14 @@ import com.github.se.oncompanion.domain.medication.DailyDoses
 import com.github.se.oncompanion.domain.medication.DoseCondition
 import com.github.se.oncompanion.domain.planning.ownPlanning
 import com.github.se.oncompanion.model.auth.AuthUser
+import com.github.se.oncompanion.model.carecircle.CareCircleMember
 import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.medication.FakeTakenDosesRepository
+import com.github.se.oncompanion.model.medication.Medication
+import com.github.se.oncompanion.model.medication.Prescription
+import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
+import com.github.se.oncompanion.model.notification.CircleNotification
+import com.github.se.oncompanion.model.notification.NotificationKind
 import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningSource
@@ -83,6 +90,9 @@ import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Route
 import com.github.se.oncompanion.ui.navigation.Screen
 import com.github.se.oncompanion.ui.navigation.Tab
+import com.github.se.oncompanion.ui.notification.CircleSheetViewModel
+import com.github.se.oncompanion.ui.notification.SailboatBadge
+import com.github.se.oncompanion.ui.notification.circleSheetViewModel
 import com.github.se.oncompanion.ui.symptom.AddSymptomViewModel
 import com.github.se.oncompanion.ui.symptom.label
 import com.github.se.oncompanion.ui.theme.DarkLakeColors
@@ -202,6 +212,17 @@ class OverviewScreenTest {
   /** The caregiver's day, which keeps the appointment card and the "Today" list for now. */
   private fun setCaregiverDay(state: OverviewUiState) = setContent(state, caregiverOf = "Anne")
 
+  /** The patient's circle at [morning]: Marc in it, and the prescriptions he [added]. */
+  private fun circle(
+      added: List<Prescription> = emptyList(),
+      members: List<CareCircleMember>? = null,
+  ) =
+      circleSheetViewModel(
+          now = morning.toInstant(ZoneOffset.UTC),
+          added = added,
+          members = members ?: listOf(CareCircleMember("marc", "Marc")),
+      )
+
   private fun setOverviewScreen(
       planning: FakePlanningRepository = FakePlanningRepository(),
       caregiverOf: String? = null,
@@ -214,6 +235,7 @@ class OverviewScreenTest {
               speechRecognizer = FakeSpeechRecognizer(),
               symptomName = { it.name },
           ),
+      circle: CircleSheetViewModel = circle(),
   ): RecordingNavigationActions {
     val viewModel =
         OverviewViewModel(
@@ -233,6 +255,7 @@ class OverviewScreenTest {
           caregiverOf = caregiverOf,
           onSwitchPatient = onSwitchPatient,
           checkIn = { checkIn },
+          circle = circle,
       )
     }
     return navigationActions
@@ -290,23 +313,21 @@ class OverviewScreenTest {
   // ----- Each state -----
 
   @Test
-  fun loadingState_showsTheIndicator_theCheckIn_andTheShortcuts() {
+  fun loadingState_showsTheIndicator_andTheCheckIn() {
     setContent(OverviewUiState(now = morning))
     composeTestRule.onNodeWithTag(C.Tag.overview_loading).assertIsDisplayed()
     composeTestRule.onNodeWithTag(C.Tag.overview_next_appointment).assertDoesNotExist()
     composeTestRule.onNodeWithTag(C.Tag.overview_check_in).assertExists()
-    composeTestRule.onNodeWithTag(OverviewShortcut.CARE_CIRCLE.testTag).assertExists()
   }
 
   @Test
-  fun errorState_showsRetry_andKeepsTheShortcuts() {
+  fun errorState_showsRetry_andKeepsTheCheckIn() {
     var retries = 0
     setContent(loaded.copy(hasError = true), onRetry = { retries++ })
 
     composeTestRule.onNodeWithTag(C.Tag.overview_error).assertIsDisplayed()
     composeTestRule.onNodeWithTag(C.Tag.overview_retry).performClick()
     composeTestRule.onNodeWithTag(C.Tag.overview_check_in).assertExists()
-    composeTestRule.onNodeWithTag(OverviewShortcut.CARE_CIRCLE.testTag).assertExists()
 
     composeTestRule.runOnIdle { assertEquals(1, retries) }
   }
@@ -764,7 +785,7 @@ class OverviewScreenTest {
   }
 
   @Test
-  fun journalLink_shortcutTiles_andProfileButton_openTheirSection() {
+  fun journalLink_andProfileButton_openTheirSection_andThereIsNoCareCircleTile() {
     val navigationActions = setOverviewScreen()
 
     // The check-in replaces the patient's Symptoms tile, and asks the question itself
@@ -775,14 +796,12 @@ class OverviewScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.overview_journal_link).performScrollTo().performClick()
     // Prescriptions is a tab of the patient's bottom bar instead
     composeTestRule.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).assertDoesNotExist()
+    // The sailboat in the header opens the care circle: the patient has no tiles left
+    composeTestRule.onNodeWithTag(C.Tag.overview_shortcuts).assertDoesNotExist()
     composeTestRule
-        .onNode(
-            hasTestTag(OverviewShortcut.CARE_CIRCLE.testTag) and
-                hasText(context.getString(OverviewShortcut.CARE_CIRCLE.label))
-        )
-        .performScrollTo()
-        .assertHasClickAction()
-        .performClick()
+        .onNodeWithText(context.getString(R.string.care_circle_title))
+        .assertDoesNotExist()
+    composeTestRule.onNodeWithTag(C.Tag.circle_button).assertExists()
     composeTestRule
         .onNode(
             hasTestTag(OverviewShortcut.PROFILE.testTag) and
@@ -794,7 +813,7 @@ class OverviewScreenTest {
 
     composeTestRule.runOnIdle {
       assertEquals(
-          listOf(Route.SYMPTOMS, Route.CARE_CIRCLE, Route.PROFILE),
+          listOf(Route.SYMPTOMS, Route.PROFILE),
           navigationActions.openedRoutes,
       )
     }
@@ -886,6 +905,7 @@ class OverviewScreenTest {
       OverviewScreen(
           navigationActions = NavigationActions(TestNavHostController(LocalContext.current)),
           viewModel = viewModel,
+          circle = circle(),
       )
     }
 
@@ -1084,7 +1104,6 @@ class OverviewScreenTest {
 
     composeTestRule.onNodeWithTag(OverviewShortcut.SYMPTOMS.testTag).assertIsDisplayed()
     composeTestRule.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(OverviewShortcut.CARE_CIRCLE.testTag).assertDoesNotExist()
   }
 
   @Test
@@ -1093,7 +1112,6 @@ class OverviewScreenTest {
 
     composeTestRule.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).assertIsDisplayed()
     composeTestRule.onNodeWithTag(OverviewShortcut.SYMPTOMS.testTag).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(OverviewShortcut.CARE_CIRCLE.testTag).assertDoesNotExist()
   }
 
   @Test
@@ -1102,7 +1120,9 @@ class OverviewScreenTest {
 
     composeTestRule.onNodeWithTag(OverviewShortcut.SYMPTOMS.testTag).assertIsDisplayed()
     composeTestRule.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(OverviewShortcut.CARE_CIRCLE.testTag).assertDoesNotExist()
+    composeTestRule
+        .onNodeWithText(context.getString(R.string.care_circle_title))
+        .assertDoesNotExist()
   }
 
   @Test
@@ -1499,7 +1519,6 @@ class OverviewScreenTest {
             C.Tag.overview_more_medications,
             C.Tag.overview_journal_link,
             *checkInTileTags.toTypedArray(),
-            C.Tag.overview_shortcut_care_circle,
         )
         .forEach { composeTestRule.onNodeWithTag(it).performScrollTo().assertIsFullyVisible() }
   }
@@ -1665,6 +1684,7 @@ class OverviewScreenTest {
             clock = clockAt(morning),
             zoneId = ZoneOffset.UTC,
             takenDosesRepository = FakeTakenDosesRepository(),
+            symptomRepository = FakeSymptomRepository(),
         )
     val show = {
       composeTestRule.activity.setContent {
@@ -1762,5 +1782,111 @@ class OverviewScreenTest {
                 }
               }
         }
+  }
+
+  // ----- "Your circle" sailboat (US-50, #457) -----
+
+  private val waitingPrescription =
+      Prescription(
+          id = "p1",
+          prescribedBy = "Dr. Martin",
+          prescribedOn = morning.toLocalDate(),
+          medications =
+              listOf(
+                  Medication(
+                      id = "p1-0",
+                      prescriptionId = "p1",
+                      name = "Ondansetron",
+                      startDate = morning.toLocalDate(),
+                  )
+              ),
+          confirmation = PrescriptionConfirmation.PENDING,
+      )
+
+  @Test
+  fun theSailboat_showsTheCirclesBadge_andAsksToOpenTheSheet_forThePatientOnly() {
+    var opened = 0
+    var caregiverOf by mutableStateOf<String?>(null)
+    composeTestRule.setContent {
+      OverviewContent(
+          uiState = loaded,
+          onShortcutClick = {},
+          onOpenPlanning = {},
+          onOpenAppointment = {},
+          onRetry = {},
+          caregiverOf = caregiverOf,
+          sailboatBadge = SailboatBadge.NEW,
+          onOpenCircle = { opened++ },
+      )
+    }
+    composeTestRule
+        .onNodeWithTag(C.Tag.circle_button)
+        .assertContentDescriptionEquals(context.getString(R.string.circle_button_new))
+        .performClick()
+    assertEquals(1, opened)
+
+    // A caregiver's Overview has no sailboat (it would open something else for them)
+    caregiverOf = "Anne"
+    composeTestRule.onNodeWithTag(C.Tag.circle_button).assertDoesNotExist()
+  }
+
+  @Test
+  fun tappingTheSailboat_opensTheSheet_whoseLinksOpenTheirScreens_andCloseIt() {
+    val navigation = setOverviewScreen(circle = circle(added = listOf(waitingPrescription)))
+    // Marc's prescription isn't seen yet: the dot
+    composeTestRule
+        .onNodeWithTag(C.Tag.circle_button)
+        .assertContentDescriptionEquals(context.getString(R.string.circle_button_new))
+        .performClick()
+
+    val card = CircleNotification.idOf(NotificationKind.PRESCRIPTION_ADDED, "p1")
+    composeTestRule.onNodeWithTag(C.Tag.circleSheetOpen(card)).performScrollTo().performClick()
+    assertEquals(listOf(Screen.prescriptionEdit("p1")), navigation.openedRoutes)
+    composeTestRule.onNodeWithTag(C.Tag.circle_sheet).assertDoesNotExist()
+
+    composeTestRule.onNodeWithTag(C.Tag.circle_button).performClick()
+    composeTestRule.onNodeWithTag(C.Tag.circle_sheet_manage).performClick()
+    assertEquals(Screen.CARE_CIRCLE, navigation.openedRoutes.last())
+    composeTestRule.onNodeWithTag(C.Tag.circle_sheet).assertDoesNotExist()
+  }
+
+  @Test
+  fun nobodyInTheCircle_theSailboatOffersToAdd_andAddSomeoneOpensTheFormOverTheCircle() {
+    val navigation = setOverviewScreen(circle = circle(members = emptyList()))
+    composeTestRule
+        .onNodeWithTag(C.Tag.circle_button)
+        .assertContentDescriptionEquals(context.getString(R.string.circle_button_add))
+        .performClick()
+
+    composeTestRule.onNodeWithTag(C.Tag.circle_sheet_add_someone).performScrollTo().performClick()
+    // Over the Care circle page, so Back from the invite code shows them waiting to join
+    assertEquals(listOf(Screen.CARE_CIRCLE, Screen.CARE_CIRCLE_ADD), navigation.openedRoutes)
+    composeTestRule.onNodeWithTag(C.Tag.circle_sheet).assertDoesNotExist()
+  }
+
+  @Test
+  fun anOpenSheet_staysOpen_whenTheScreenIsRecreated() {
+    val viewModel =
+        OverviewViewModel(
+            authRepository = FakeAuthRepository(),
+            profileRepository = FakeUserProfileRepository(),
+            observePlanning = ownPlanning(FakePlanningRepository()),
+            clock = clockAt(morning),
+            zoneId = ZoneOffset.UTC,
+        )
+    val circle = circle()
+    val restoration = StateRestorationTester(composeTestRule)
+    restoration.setContent {
+      OverviewScreen(
+          navigationActions = NavigationActions(TestNavHostController(LocalContext.current)),
+          viewModel = viewModel,
+          circle = circle,
+      )
+    }
+    composeTestRule.onNodeWithTag(C.Tag.circle_button).performClick()
+    composeTestRule.onNodeWithTag(C.Tag.circle_sheet).assertIsDisplayed()
+
+    restoration.emulateSavedInstanceStateRestore()
+    composeTestRule.onNodeWithTag(C.Tag.circle_sheet).assertIsDisplayed()
   }
 }

@@ -74,6 +74,9 @@ import com.github.se.oncompanion.model.medication.MedicationRepository
 import com.github.se.oncompanion.model.medication.MedicationRepositoryProvider
 import com.github.se.oncompanion.model.medication.Prescription
 import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
+import com.github.se.oncompanion.model.notification.FakeNotificationRepository
+import com.github.se.oncompanion.model.notification.NotificationRepository
+import com.github.se.oncompanion.model.notification.NotificationRepositoryProvider
 import com.github.se.oncompanion.model.planning.*
 import com.github.se.oncompanion.model.session.RejectedWrites
 import com.github.se.oncompanion.model.session.RejectedWritesProvider
@@ -141,6 +144,7 @@ class AppNavHostTest {
   private val appMedicationRepository = MedicationRepositoryProvider.repository
   private val appSymptomRepository = SymptomRepositoryProvider.repository
   private val appUserProfileRepository = UserProfileRepositoryProvider.repository
+  private val appNotificationRepository = NotificationRepositoryProvider.repository
 
   @After
   fun restoreProviders() {
@@ -153,6 +157,7 @@ class AppNavHostTest {
     MedicationRepositoryProvider.repository = appMedicationRepository
     SymptomRepositoryProvider.repository = appSymptomRepository
     UserProfileRepositoryProvider.repository = appUserProfileRepository
+    NotificationRepositoryProvider.repository = appNotificationRepository
     SpeechRecognizerProvider.reset()
   }
 
@@ -166,9 +171,12 @@ class AppNavHostTest {
       authRepository: AuthRepository = FakeAuthRepository(),
       medicationRepository: MedicationRepository = FakeMedicationRepository(),
       symptomRepository: SymptomRepository = FakeSymptomRepository(),
+      notificationRepository: NotificationRepository = FakeNotificationRepository(),
       credentialProvider: GoogleCredentialProvider = FakeGoogleCredentialProvider(),
       restoration: StateRestorationTester? = null,
       clock: Clock = Clock.systemDefaultZone(),
+      reminder: String? = null,
+      onReminderHandled: () -> Boolean = { true },
   ) {
     PlanningRepositoryProvider.repository = planningRepository
     // The Overview and Planning read the user's role: a test that sets no profiles gets a patient,
@@ -182,6 +190,8 @@ class AppNavHostTest {
     AuthRepositoryProvider.repository = authRepository
     MedicationRepositoryProvider.repository = medicationRepository
     SymptomRepositoryProvider.repository = symptomRepository
+    // The patient's Overview reads the care circle's notifications for its sailboat
+    NotificationRepositoryProvider.repository = notificationRepository
     // MainActivity installs the phone's recognizer, which this test doesn't start
     SpeechRecognizerProvider.recognizer = FakeSpeechRecognizer()
     // Restoring the state needs the app's own NavController, which saves where the user was
@@ -192,6 +202,8 @@ class AppNavHostTest {
             startRoute = startRoute ?: Route.AUTH,
             credentialProvider = credentialProvider,
             clock = clock,
+            reminderAppointment = reminder,
+            onReminderHandled = onReminderHandled,
         )
       }
       return
@@ -207,6 +219,8 @@ class AppNavHostTest {
             navController = navController,
             credentialProvider = credentialProvider,
             clock = clock,
+            reminderAppointment = reminder,
+            onReminderHandled = onReminderHandled,
         )
       } else {
         AppNavHost(
@@ -214,8 +228,65 @@ class AppNavHostTest {
             startRoute = startRoute,
             credentialProvider = credentialProvider,
             clock = clock,
+            reminderAppointment = reminder,
+            onReminderHandled = onReminderHandled,
         )
       }
+    }
+  }
+
+  @Test
+  fun reminderTap_opensMissingAppointmentDetailOnce_andBackReturnsToOverview() {
+    val auth = FakeAuthRepository { AuthUser("patient") }
+    runBlocking { auth.signInWithGoogle("token") }
+    var consumed = 0
+    setNavHost(
+        Route.OVERVIEW,
+        authRepository = auth,
+        reminder = "deleted-visit",
+        onReminderHandled = {
+          if (consumed > 0) false
+          else {
+            consumed++
+            true
+          }
+        },
+    )
+    composeTestRule.waitForIdle()
+    composeTestRule.runOnIdle {
+      assertEquals(Screen.APPOINTMENT_DETAIL, navController.currentDestination?.route)
+      assertEquals(
+          "deleted-visit",
+          navController.currentBackStackEntry?.arguments?.getString(Screen.APPOINTMENT_ID),
+      )
+      assertEquals(1, consumed)
+      NavigationActions(navController).goBack()
+    }
+    composeTestRule.waitForIdle()
+    composeTestRule.runOnIdle {
+      assertEquals(Screen.OVERVIEW, navController.currentDestination?.route)
+      assertEquals(1, consumed)
+    }
+  }
+
+  @Test
+  fun reminderTap_waitsOnSignIn_andDoesNotConsumeWhileBlocked() {
+    var consumed = 0
+    setNavHost(
+        Route.AUTH,
+        reminder = "visit",
+        onReminderHandled = {
+          if (consumed > 0) false
+          else {
+            consumed++
+            true
+          }
+        },
+    )
+    composeTestRule.waitForIdle()
+    composeTestRule.runOnIdle {
+      assertEquals(Screen.SIGN_IN, navController.currentDestination?.route)
+      assertEquals(0, consumed)
     }
   }
 
@@ -251,6 +322,28 @@ class AppNavHostTest {
     composeTestRule.runOnIdle {
       assertEquals(Screen.ONBOARDING_ROLE, NavigationActions(navController).currentRoute())
     }
+  }
+
+  @Test
+  fun theSailboat_opensYourCircle_whoseManageOpensTheCareCircle_andBackReturnsToTheOverview() {
+    val auth = FakeAuthRepository(onSignIn = { AuthUser(uid = "patient") })
+    runBlocking { auth.signInWithGoogle("token") }
+    val circle = FakeCareCircleRepository()
+    circle.setMembers("patient", listOf(CareCircleMember("marc", "Marc")))
+    setNavHost(Route.OVERVIEW, authRepository = auth, careCircleRepository = circle)
+
+    composeTestRule.onNodeWithTag(C.Tag.circle_button).performClick()
+    composeTestRule.onNodeWithTag(C.Tag.circle_sheet).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(C.Tag.circle_sheet_manage).performClick()
+    composeTestRule.onNodeWithTag(C.Tag.care_circle_screen).assertIsDisplayed()
+    composeTestRule.runOnIdle {
+      assertEquals(Screen.CARE_CIRCLE, NavigationActions(navController).currentRoute())
+    }
+
+    // Back returns to the Overview, the sheet closed behind the page it opened
+    composeTestRule.runOnIdle { navController.popBackStack() }
+    composeTestRule.onNodeWithTag(C.Tag.overview_screen).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(C.Tag.circle_sheet).assertDoesNotExist()
   }
 
   @Test
@@ -1291,13 +1384,10 @@ class AppNavHostTest {
         }
     setNavHost(Route.OVERVIEW, careCircleInviteRepository = invites, authRepository = auth)
 
-    // Two taps from Overview (#74): the shortcut, then "Add a member" in the empty circle
-    composeTestRule
-        .onNodeWithTag(OverviewShortcut.CARE_CIRCLE.testTag)
-        .performScrollTo()
-        .performClick()
-    composeTestRule.onNodeWithTag(C.Tag.care_circle_empty).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(C.Tag.care_circle_empty_add_button).performClick()
+    // Two taps from Overview (#74): the sailboat, then "Add someone you trust" in the empty circle
+    composeTestRule.onNodeWithTag(C.Tag.circle_button).performClick()
+    composeTestRule.onNodeWithTag(C.Tag.circle_sheet_nobody_yet).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(C.Tag.circle_sheet_add_someone).performScrollTo().performClick()
     composeTestRule.onNodeWithTag(C.Tag.care_circle_form_screen).assertIsDisplayed()
     composeTestRule.runOnIdle {
       assertEquals(Screen.CARE_CIRCLE_ADD, NavigationActions(navController).currentRoute())
