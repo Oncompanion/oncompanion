@@ -361,6 +361,19 @@ class SymptomJournalScreenTest {
   }
 
   @Test
+  @Config(qualifiers = "fr-rCH")
+  fun standaloneDayHeadingStartsWithACapitalInFrench() {
+    val saturday = LocalDate.of(2026, 10, 3)
+    setContent(loaded.copy(days = listOf(day(saturday, fatigue to "14:30"))))
+
+    composeTestRule
+        .onNodeWithTag(C.Tag.symptomJournalDay(saturday.toString()))
+        .performScrollTo()
+        .assertTextEquals("Sam. 3 oct.")
+        .assert(isHeading())
+  }
+
+  @Test
   fun days_areTodayYesterdayOrTheirDate_inTheGivenOrder() {
     val entries = (1..5).map { fatigue.copy(id = "s$it") }
     setContent(

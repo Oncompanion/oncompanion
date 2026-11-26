@@ -8,7 +8,7 @@
       "type": "rectangle",
       "x": 20,
       "y": -2,
-      "width": 1284,
+      "width": 1554,
       "height": 144,
       "angle": 0,
       "strokeColor": "transparent",
@@ -37,7 +37,7 @@
       "type": "rectangle",
       "x": 20,
       "y": 178,
-      "width": 1284,
+      "width": 1554,
       "height": 144,
       "angle": 0,
       "strokeColor": "transparent",
@@ -66,7 +66,7 @@
       "type": "rectangle",
       "x": 20,
       "y": 358,
-      "width": 1284,
+      "width": 1554,
       "height": 144,
       "angle": 0,
       "strokeColor": "transparent",
@@ -95,7 +95,7 @@
       "type": "rectangle",
       "x": 20,
       "y": 538,
-      "width": 1284,
+      "width": 1554,
       "height": 144,
       "angle": 0,
       "strokeColor": "transparent",
@@ -369,6 +369,10 @@
         {
           "type": "text",
           "id": "meds_t"
+        },
+        {
+          "type": "arrow",
+          "id": "meds_medication_plans"
         }
       ],
       "updated": 1794000000000,
@@ -378,10 +382,10 @@
     {
       "id": "meds_t",
       "type": "text",
-      "x": 751.2,
-      "y": 227.5,
-      "width": 237.60000000000002,
-      "height": 45.0,
+      "x": 760,
+      "y": 212.5,
+      "width": 220,
+      "height": 75,
       "angle": 0,
       "strokeColor": "#1e1e1e",
       "backgroundColor": "transparent",
@@ -401,9 +405,9 @@
       "updated": 1794000000000,
       "link": null,
       "locked": false,
-      "text": "ManageMedicationSchedule\n(see Medications)",
-      "originalText": "ManageMedicationSchedule\n(see Medications)",
-      "fontSize": 18,
+      "text": "ReconcileMedicationReminders\nMedications + ReminderScheduler\nCollector not installed",
+      "originalText": "ReconcileMedicationReminders\nMedications + ReminderScheduler\nCollector not installed",
+      "fontSize": 14,
       "fontFamily": 2,
       "textAlign": "center",
       "verticalAlign": "middle",
@@ -1626,7 +1630,7 @@
       "type": "arrow",
       "x": 600,
       "y": 20,
-      "width": 680,
+      "width": 950,
       "height": 590,
       "angle": 0,
       "strokeColor": "#868e96",
@@ -1657,11 +1661,11 @@
           -10
         ],
         [
-          680,
+          950,
           -10
         ],
         [
-          680,
+          950,
           590
         ],
         [
@@ -1811,6 +1815,134 @@
       },
       "endBinding": {
         "elementId": "appointment_plans",
+        "focus": 0,
+        "gap": 0
+      }
+    },
+    {
+      "id": "medication_plans",
+      "type": "rectangle",
+      "x": 1290,
+      "y": 380,
+      "width": 240,
+      "height": 100,
+      "angle": 0,
+      "strokeColor": "#2f9e44",
+      "backgroundColor": "#d3f9d8",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "seed": 811,
+      "version": 1,
+      "versionNonce": 1005808149,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "medication_plans_t"
+        },
+        {
+          "type": "arrow",
+          "id": "meds_medication_plans"
+        }
+      ],
+      "updated": 1794000000000,
+      "link": null,
+      "locked": false
+    },
+    {
+      "id": "medication_plans_t",
+      "type": "text",
+      "x": 1300,
+      "y": 392.5,
+      "width": 220,
+      "height": 75,
+      "angle": 0,
+      "strokeColor": "#2f9e44",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 812,
+      "version": 2,
+      "versionNonce": 939636682,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1794000000000,
+      "link": null,
+      "locked": false,
+      "text": "MedicationReminderPlans\nPreferences + provider\nDue time + content hash",
+      "originalText": "MedicationReminderPlans\nPreferences + provider\nDue time + content hash",
+      "fontSize": 15,
+      "fontFamily": 2,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "medication_plans",
+      "lineHeight": 1.25,
+      "autoResize": true
+    },
+    {
+      "id": "meds_medication_plans",
+      "type": "arrow",
+      "x": 990,
+      "y": 250,
+      "width": 420,
+      "height": 130,
+      "angle": 0,
+      "strokeColor": "#868e96",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 813,
+      "version": 1,
+      "versionNonce": 1911848522,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1794000000000,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          420,
+          0
+        ],
+        [
+          420,
+          130
+        ]
+      ],
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "meds",
+        "focus": 0,
+        "gap": 0
+      },
+      "endBinding": {
+        "elementId": "medication_plans",
         "focus": 0,
         "gap": 0
       }

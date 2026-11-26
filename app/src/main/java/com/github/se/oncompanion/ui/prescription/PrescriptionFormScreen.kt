@@ -85,16 +85,16 @@ import com.github.se.oncompanion.ui.common.SaveButton
 import com.github.se.oncompanion.ui.common.SavePhase
 import com.github.se.oncompanion.ui.common.StoneCard
 import com.github.se.oncompanion.ui.common.isCompactHeight
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.elevation1
 import com.github.se.oncompanion.ui.theme.lakeColors
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 // The start date in a medication's row, short like the rest of the row: "29 Sep"
-private val shortDateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
+private val shortDateFormatter
+  @Composable get() = rememberAppDateFormatter("d MMM")
 
 /**
  * The prescription form (US-24): the user types a prescription and its medications, then saves it.

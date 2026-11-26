@@ -22,6 +22,7 @@ import com.github.se.oncompanion.ui.profile.ProfileScreen
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
 import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
+import com.github.se.oncompanion.utils.createEmulatorAccount
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -119,12 +120,13 @@ class OfflineSavedDataTest {
           FirebaseAuth.getInstance(app).apply {
             useEmulator(FirebaseEmulator.HOST, FirebaseEmulator.AUTH_PORT)
           }
+      val email = "restart-${UUID.randomUUID()}@example.com"
+      val password = "secret1"
       val restartUid =
-          auth
-              .createUserWithEmailAndPassword("restart-${UUID.randomUUID()}@example.com", "secret1")
-              .await()
-              .user!!
-              .uid
+          createEmulatorAccount(
+              create = { auth.createUserWithEmailAndPassword(email, password).await().user!!.uid },
+              signIn = { auth.signInWithEmailAndPassword(email, password).await().user!!.uid },
+          )
       val before = connectedFirestore(app)
       UserProfileRepositoryFirestore(before).createProfile(savedProfile(restartUid))
       withTimeout(TIMEOUT_MS) { before.waitForPendingWrites().await() }

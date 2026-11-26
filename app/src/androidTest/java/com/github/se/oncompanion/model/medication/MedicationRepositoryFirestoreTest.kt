@@ -11,6 +11,7 @@ import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.assertReturnsOffline
 import com.github.se.oncompanion.utils.assertReturnsWithoutServer
+import com.github.se.oncompanion.utils.retryAuthEmulator
 import com.google.firebase.FirebaseApp
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -332,7 +333,9 @@ class MedicationRepositoryFirestoreTest {
     patientAuth.useEmulator(FirebaseEmulator.HOST, FirebaseEmulator.AUTH_PORT)
     patientDb.useEmulator(FirebaseEmulator.HOST, FirebaseEmulator.FIRESTORE_PORT)
     try {
-      patientAuth.signInWithEmailAndPassword(patientEmail, "password123").await()
+      retryAuthEmulator("Sign in") {
+        patientAuth.signInWithEmailAndPassword(patientEmail, "password123").await()
+      }
       val carolUid = EmulatorTestData.signIn("presc-repo-carol")
       val cached = repository.observePrescription(aliceUid, saved.id).awaitFirst { it != null }!!
       assertEquals(PrescriptionConfirmation.PENDING, cached.confirmation)
