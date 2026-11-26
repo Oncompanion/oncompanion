@@ -162,6 +162,17 @@
     <string name="overview_check_in_sheet_when">%1$s, %2$s · Change</string>
     <string name="overview_check_in_sheet_note">Add a note (optional)</string>
     <string name="overview_check_in_sheet_save">Save to my journal</string>
+    <!-- The check-in once the patient saved a symptom today (Figma M3: Check-in · After saving) -->
+    <string name="overview_saved_title">Saved to your journal</string>
+    <string name="overview_saved_subtitle">Your notes today</string>
+    <string name="overview_saved_undo">Undo</string>
+    <string name="overview_saved_edit">Edit</string>
+    <string name="overview_saved_log_another">Log another symptom or note</string>
+    <string name="overview_saved_undo_failed">Couldn\'t undo this entry. Please try again.</string>
+    <!-- A symptom and its strength out of 10, e.g. "Nausea 7/10" -->
+    <string name="overview_entry_strength">%1$s\u00A0%2$d/10</string>
+    <!-- The symptoms of an entry and its one intensity, e.g. "Nausea, Fatigue · 6/10" -->
+    <string name="overview_entry_overall">%1$s\u00A0·\u00A0%2$d/10</string>
 
     <!-- Caregiver Overview: the caregiver's own home, with the day of the patient they follow -->
     <string name="caregiver_overview_day">%1$s\'s day</string>
@@ -172,10 +183,6 @@
     <string name="caregiver_overview_journal_empty">No entries yet</string>
     <!-- When the patient last logged a symptom, e.g. "Yesterday at 18:10" -->
     <string name="caregiver_overview_journal_at">%1$s at %2$s</string>
-    <!-- A symptom and its strength out of 10, e.g. "Nausea 7/10" -->
-    <string name="caregiver_overview_journal_strength">%1$s %2$d/10</string>
-    <!-- The symptoms of an entry and its one intensity, e.g. "Nausea, Fatigue · 6/10" -->
-    <string name="caregiver_overview_journal_overall">%1$s · %2$d/10</string>
     <string name="caregiver_overview_private">%1$s keeps this private</string>
     <string name="caregiver_overview_error_title">Couldn\'t load %1$s\'s day</string>
     <!-- The caregiver's read-only medications card (Figma M3): "Medications today · 4" -->

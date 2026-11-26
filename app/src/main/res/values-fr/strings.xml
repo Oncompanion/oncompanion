@@ -301,8 +301,6 @@
     <string name="caregiver_overview_full_journal">Journal complet</string>
     <string name="caregiver_overview_journal_empty">Aucune entrée pour le moment</string>
     <string name="caregiver_overview_journal_at">%1$s à %2$s</string>
-    <string name="caregiver_overview_journal_strength">%1$s %2$d/10</string>
-    <string name="caregiver_overview_journal_overall">%1$s · %2$d/10</string>
     <string name="caregiver_overview_private">%1$s garde ces informations privées</string>
     <string name="caregiver_overview_error_title">Impossible de charger la journée de %1$s</string>
     <string name="caregiver_overview_medications">Médicaments du jour</string>
@@ -314,6 +312,14 @@
     <string name="overview_check_in_sheet_when">%1$s, %2$s · Modifier</string>
     <string name="overview_check_in_sheet_note">Ajouter une note (facultatif)</string>
     <string name="overview_check_in_sheet_save">Enregistrer dans mon journal</string>
+    <string name="overview_saved_title">Enregistré dans votre journal</string>
+    <string name="overview_saved_subtitle">Vos notes du jour</string>
+    <string name="overview_saved_undo">Annuler</string>
+    <string name="overview_saved_edit">Modifier</string>
+    <string name="overview_saved_log_another">Noter un autre symptôme ou une note</string>
+    <string name="overview_saved_undo_failed">Impossible d’annuler cette entrée. Veuillez réessayer.</string>
+    <string name="overview_entry_strength">%1$s\u00A0%2$d/10</string>
+    <string name="overview_entry_overall">%1$s\u00A0·\u00A0%2$d/10</string>
 
     <!-- Appointments -->
     <string name="appointment_detail_retry">Réessayer</string>

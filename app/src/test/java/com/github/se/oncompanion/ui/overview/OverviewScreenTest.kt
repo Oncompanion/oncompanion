@@ -1683,6 +1683,7 @@ class OverviewScreenTest {
             clock = clockAt(morning),
             zoneId = ZoneOffset.UTC,
             takenDosesRepository = FakeTakenDosesRepository(),
+            symptomRepository = FakeSymptomRepository(),
         )
     val show = {
       composeTestRule.activity.setContent {

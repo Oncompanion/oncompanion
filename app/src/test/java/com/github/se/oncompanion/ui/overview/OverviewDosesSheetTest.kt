@@ -34,6 +34,7 @@ import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningSource
 import com.github.se.oncompanion.model.planning.PlanningTiming
+import com.github.se.oncompanion.model.symptom.FakeSymptomRepository
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
@@ -224,6 +225,7 @@ class OverviewDosesSheetTest {
             clock = Clock.fixed(now.toInstant(ZoneOffset.UTC), ZoneOffset.UTC),
             zoneId = ZoneOffset.UTC,
             takenDosesRepository = doses,
+            symptomRepository = FakeSymptomRepository(),
         )
     val show = {
       composeTestRule.activity.setContent {

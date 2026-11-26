@@ -44,7 +44,8 @@ enum class SymptomType {
  *   [MAX_OTHER_NAME_LENGTH] characters; required with it. Entries saved before it existed have none
  *   and show "Other"; it is ignored without [SymptomType.OTHER]
  * @property notes free text
- * @property createdAt set by the server when the entry is saved; `null` before that
+ * @property createdAt set by the server when the entry is saved; until the server has it, the time
+ *   the device saved it. `null` only for an entry not read from the repository
  * @property addedBy the uid of the caregiver who logged it for the patient (US-22), or `null` when
  *   the patient did
  * @property addedByName that caregiver's first name, shown as "Added by Sam"

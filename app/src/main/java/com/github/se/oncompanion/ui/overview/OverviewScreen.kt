@@ -29,13 +29,16 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -64,6 +67,7 @@ import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeMessageState
+import com.github.se.oncompanion.ui.common.LakeSnackbarHost
 import com.github.se.oncompanion.ui.common.NotSharedMessage
 import com.github.se.oncompanion.ui.common.PaperLakeHeader
 import com.github.se.oncompanion.ui.common.PaperLakeStatusBar
@@ -88,6 +92,7 @@ import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.elevation1
 import com.github.se.oncompanion.ui.theme.lakeColors
 import java.time.LocalDateTime
+import kotlinx.coroutines.launch
 
 /**
  * A section the patient can open from the Overview with a single tap.
@@ -173,6 +178,16 @@ fun OverviewScreen(
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   // Stays open across a rotation; what was picked stays in the check-in's ViewModel
   var isCheckInOpen by rememberSaveable { mutableStateOf(false) }
+  val snackbarHostState = remember { SnackbarHostState() }
+  val snackbarScope = rememberCoroutineScope()
+  val undoFailed = stringResource(R.string.overview_saved_undo_failed)
+  LaunchedEffect(uiState.undoFailed) {
+    if (uiState.undoFailed) {
+      viewModel.undoFailureShown()
+      // In the screen's scope: marking it shown restarts this effect, which would cancel it
+      snackbarScope.launch { snackbarHostState.showSnackbar(undoFailed) }
+    }
+  }
   // The ViewModel outlives navigation and backgrounding: keep the date, greeting, Next up and
   // statuses current when the Overview comes back, and while it is on screen each time an entry
   // starts or ends and at midnight
@@ -192,6 +207,9 @@ fun OverviewScreen(
         isCheckInOpen = true
       },
       onSpeak = { navigationActions.navigateTo(Screen.symptomSpeak()) },
+      onUndoSaved = viewModel::undoSaved,
+      onEditSaved = { navigationActions.navigateTo(Screen.symptomEdit(it)) },
+      snackbarHostState = snackbarHostState,
       onTickDose = viewModel::tickDose,
       onOpenDoses = viewModel::openDoses,
       onRetry = viewModel::loadDay,
@@ -284,6 +302,9 @@ private const val CHECK_IN_KEY = "check_in"
  *   picked or empty for `null`
  * @param onSpeak opens the symptom form already listening, from the check-in's "Speak how you feel"
  *   (US-73), shown only when [OverviewUiState.canSpeak]
+ * @param onUndoSaved deletes the entry saved today, by its ID, from the check-in's Undo
+ * @param onEditSaved opens the entry saved today in the symptom form, by its ID
+ * @param snackbarHostState shows that Undo failed
  * @param onRetry reloads the day after an error
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
  * @param onSwitchPatient opens "Whose care?", in caregiver mode
@@ -302,6 +323,9 @@ fun OverviewContent(
     onOpenEvent: (String) -> Unit = {},
     onLogSymptom: (SymptomType?) -> Unit = {},
     onSpeak: () -> Unit = {},
+    onUndoSaved: (String) -> Unit = {},
+    onEditSaved: (String) -> Unit = {},
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onTickDose: (String) -> Unit = {},
     onOpenDoses: (String) -> Unit = {},
     caregiverOf: String? = null,
@@ -313,6 +337,7 @@ fun OverviewContent(
   Scaffold(
       modifier = modifier.testTag(C.Tag.overview_screen),
       bottomBar = bottomBar,
+      snackbarHost = { LakeSnackbarHost(snackbarHostState) },
       // The patient's day sits on the stone page; the caregiver's comes later
       containerColor =
           if (caregiverOf == null) MaterialTheme.lakeColors.stone.page
@@ -385,10 +410,13 @@ fun OverviewContent(
           // The patient's check-in, and the caregiver's shortcuts to the sections the patient
           // shares, stay available whatever happens to the day's data
           if (caregiverOf == null) {
-            CheckInDock(
-                onLogSymptom = onLogSymptom,
+            PatientCheckIn(
+                uiState,
+                onLogSymptom,
+                onSpeak,
+                onUndoSaved,
+                onEditSaved,
                 onOpenJournal = { onShortcutClick(OverviewShortcut.SYMPTOMS) },
-                onSpeak = onSpeak.takeIf { uiState.canSpeak },
             )
           } else {
             val tiles = tileShortcuts.filter { it.section in uiState.sharedSections }
