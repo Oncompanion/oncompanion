@@ -50,7 +50,7 @@ import com.github.se.oncompanion.ui.theme.Spacing
 import java.time.LocalTime
 
 /**
- * Sign-in screen (Figma "US-1 / Login"): the only way in is "Continue with Google". The first
+ * Sign-in screen (design: M2, "Login"): the only way in is "Continue with Google". The first
  * sign-in creates the account. Under the Paper lake scene in portrait, next to it in landscape.
  *
  * @param onSignedIn called once after a successful sign-in, with where to go next
@@ -137,7 +137,7 @@ fun SignInContent(
       },
   ) { innerPadding ->
     val layoutDirection = LocalLayoutDirection.current
-    // The lake goes under the status bar, as in the Figma; the rest keeps clear of the system bars
+    // The lake goes under the status bar; the rest keeps clear of the system bars
     // and of the button
     val clear =
         Modifier.padding(
@@ -181,9 +181,9 @@ fun SignInContent(
 }
 
 /**
- * The ribbon, the welcome and what signing in does (Figma "Welcome").
+ * The ribbon, the welcome and what signing in does (design: Brand & Theme, "Welcome").
  *
- * @param titleStyle the welcome's: Headline Large as in the Figma, Medium in landscape
+ * @param titleStyle the welcome's: Headline Large, Medium in landscape
  */
 @Composable
 private fun Welcome(modifier: Modifier, titleStyle: TextStyle) {
@@ -229,7 +229,7 @@ private fun SignInAction(
   }
 }
 
-// The Figma's ribbon on Sign in, and the spinner's room above the button
+// The ribbon on Sign in, and the spinner's room above the button
 private val LOGO_SIZE = 64.dp
 private val SPINNER_SIZE = 32.dp
 

@@ -33,19 +33,28 @@ import androidx.compose.ui.unit.sp
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.ui.theme.lakeColors
 
-/** The Empty lake (Figma "Illustration/Empty lake"), above the message of an empty state. */
+/**
+ * The Empty lake (design: Brand & Theme, "Illustration/Empty lake"), above the message of an empty
+ * state.
+ */
 @Composable
 fun EmptyLake(modifier: Modifier = Modifier) {
   Decoration(R.drawable.illustration_empty_lake, modifier.size(width = 72.dp, height = 58.dp))
 }
 
-/** Two boats on the lake (Figma "Illustration/Two boats"), when someone joins the care circle. */
+/**
+ * Two boats on the lake (design: Brand & Theme, "Illustration/Two boats"), when someone joins the
+ * care circle.
+ */
 @Composable
 fun TwoBoats(modifier: Modifier = Modifier) {
   Decoration(R.drawable.illustration_two_boats, modifier.size(width = 240.dp, height = 192.dp))
 }
 
-/** The oncompanion ribbon (Figma "Logo/Ribbon"). Unlike the illustrations, TalkBack reads it. */
+/**
+ * The oncompanion ribbon (design: Brand & Theme, "Logo/Ribbon"). Unlike the illustrations, TalkBack
+ * reads it.
+ */
 @Composable
 fun RibbonLogo(modifier: Modifier = Modifier, size: Dp = 20.dp) {
   Image(
@@ -56,7 +65,7 @@ fun RibbonLogo(modifier: Modifier = Modifier, size: Dp = 20.dp) {
 }
 
 /**
- * The colours of a member's boat: a dawn or dusk sail, or a dashed one while they haven't joined.
+ * The colors of a member's boat: a dawn or dusk sail, or a dashed one while they haven't joined.
  */
 enum class BoatTone {
   DAWN,
@@ -70,8 +79,8 @@ enum class BoatTone {
 data class CircleBoat(val name: String, val tone: BoatTone)
 
 /**
- * A member of the care circle as a boat with the first letter of their [name] on the sail (Figma
- * "Member boat"): pass the first name as it is. Decorative: the member's name is always written
+ * A member of the care circle as a boat with the first letter of their [name] on the sail (design:
+ * M3, "Member boat"): pass the first name as it is. Decorative: the member's name is always written
  * next to it.
  */
 @Composable
@@ -102,15 +111,15 @@ fun MemberBoat(name: String, tone: BoatTone, modifier: Modifier = Modifier, heig
 }
 
 /**
- * The care circle on the lake (Figma "Illustration/Circle on the lake"): the user's boat in the
- * middle of the ripples, and the first three [members] around it, left, right, then in front.
- * Decorative: the members are listed by name below it.
+ * The care circle on the lake (design: Brand & Theme, "Illustration/Circle on the lake"): the
+ * user's boat in the middle of the ripples, and the first three [members] around it, left, right,
+ * then in front. Decorative: the members are listed by name below it.
  */
 @Composable
 fun CircleOnTheLake(members: List<CircleBoat>, modifier: Modifier = Modifier) {
   BoxWithConstraints(modifier.fillMaxWidth().aspectRatio(CIRCLE_WIDTH / CIRCLE_HEIGHT)) {
     val unit = maxWidth / CIRCLE_WIDTH
-    // The Figma card's 20 dp corners, which the lake's bands would otherwise square off
+    // The card's 20 dp corners, which the lake's bands would otherwise square off
     Image(
         painterResource(R.drawable.illustration_circle_on_lake),
         contentDescription = null,
@@ -172,7 +181,7 @@ private fun boatColors(tone: BoatTone): BoatColors {
   }
 }
 
-/** The Figma's boat, in its 35 × 37.5 frame scaled by [scale]: the sail, then the hull. */
+/** The boat, in its 35 × 37.5 frame scaled by [scale]: the sail, then the hull. */
 private fun DrawScope.drawBoat(colors: BoatColors, scale: Float) {
   fun path(vararg points: Pair<Float, Float>) =
       Path().apply {
@@ -197,7 +206,7 @@ private fun DrawScope.drawBoat(colors: BoatColors, scale: Float) {
   drawPath(path(0f to 30.42f, 35f to 30.42f, 29.17f to 37.5f, 5.83f to 37.5f), colors.hull)
 }
 
-// The Figma's boat frame, where its initial sits on the sail, and the initial's size
+// The boat's frame, where its initial sits on the sail, and the initial's size
 private const val BOAT_WIDTH = 35f
 private const val BOAT_HEIGHT = 37.5f
 private val INITIAL_CENTER = Offset(11.2f, 22.5f)

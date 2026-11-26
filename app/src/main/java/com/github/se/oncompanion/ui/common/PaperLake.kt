@@ -50,10 +50,10 @@ fun timeOfDayAt(time: LocalTime): TimeOfDay =
     }
 
 /**
- * The Paper lake behind the title of a main screen (Figma "Paper lake header"): the Salève, the Jet
- * d'eau, the sun and three bands of water, with the sky and the far water in the colours of [time].
- * At least 210 dp tall and growing with [content]; in landscape or at a large font scale it becomes
- * the 100 dp [PaperLakeBand], as DESIGN.md asks, so the screen keeps room for its content.
+ * The Paper lake behind the title of a main screen (design: M3, "Paper lake header"): the Salève,
+ * the Jet d'eau, the sun and three bands of water, with the sky and the far water in the colors of
+ * [time]. At least 210 dp tall and growing with [content]; in landscape or at a large font scale it
+ * becomes the 100 dp [PaperLakeBand], as DESIGN.md asks, so the screen keeps room for its content.
  *
  * The illustration is decorative: TalkBack only reads [content].
  *
@@ -93,8 +93,8 @@ fun isPaperLakeHeaderBand(): Boolean =
     isCompactHeight() || LocalDensity.current.fontScale >= LARGE_FONT_SCALE
 
 /**
- * The 100 dp Paper lake band behind a top app bar (Figma "Paper lake band"): the sky in the colour
- * of [time], the Salève at the end and a waterline in its lake colour across the whole width.
+ * The 100 dp Paper lake band behind a top app bar (design: M3, "Paper lake band"): the sky in the
+ * color of [time], the Salève at the end and a waterline in its lake color across the whole width.
  * Decorative, like [PaperLakeHeader].
  *
  * @param time the time whose light the sky shows, e.g. `remember { LocalTime.now() }` on a screen
@@ -107,7 +107,7 @@ fun PaperLakeBand(
 ) {
   val horizon = MaterialTheme.lakeColors.horizonAt(time)
   Box(modifier.fillMaxWidth().heightIn(min = BAND_HEIGHT).background(horizon.top)) {
-    // Drawn at its own height and kept at the end, as in the Figma, whatever the width
+    // Drawn at its own height and kept at the end, whatever the width
     Image(
         painterResource(R.drawable.paper_lake_band),
         contentDescription = null,
@@ -126,7 +126,7 @@ fun PaperLakeBand(
 }
 
 /**
- * An opaque strip behind the status bar, in the sky's colour at [time], for a screen whose Paper
+ * An opaque strip behind the status bar, in the sky's color at [time], for a screen whose Paper
  * lake header scrolls away: drawn above the content, it keeps the content from passing under the
  * clock and icons. At rest it blends into the header. Decorative.
  *
@@ -147,10 +147,10 @@ fun PaperLakeStatusBar(
 }
 
 /**
- * The tall Paper lake of Sign in (Figma "Paper lake scene"): the same lake as [PaperLakeHeader],
- * with a boat, its sky and far water in the colours of [time]. Decorative.
+ * The tall Paper lake of Sign in (design: Brand & Theme, "Paper lake scene"): the same lake as
+ * [PaperLakeHeader], with a boat, its sky and far water in the colors of [time]. Decorative.
  *
- * At the Figma's proportions by default. Given another size (Sign in's free space, or half of the
+ * At its own proportions by default. Given another size (Sign in's free space, or half of the
  * screen in landscape), it covers it with the water kept on the bottom edge: a flatter space cuts
  * the top of the sky, a narrower one the sides.
  *
@@ -176,8 +176,8 @@ fun PaperLakeScene(
 
 /**
  * A Paper lake drawn in three layers with the same scaling: the shapes behind the far water, the
- * far water in [lake] (the time's lake colour, DESIGN.md's Horizon), then the nearer water, the
- * light and any boat in front. The drawables are split so only the far water changes colour.
+ * far water in [lake] (the time's lake color, DESIGN.md's Horizon), then the nearer water, the
+ * light and any boat in front. The drawables are split so only the far water changes color.
  */
 @Composable
 private fun BoxScope.LakeLayers(
@@ -196,7 +196,7 @@ private fun BoxScope.LakeLayers(
 
 /**
  * The scene's height: the one the caller sets (e.g. a weight or `fillMaxHeight`), otherwise the
- * Figma's proportions for the width. Unlike `aspectRatio`, a set height is kept rather than
+ * scene's own proportions for the width. Unlike `aspectRatio`, a set height is kept rather than
  * overflowed.
  */
 private fun Modifier.sceneHeight(): Modifier = layout { measurable, constraints ->
@@ -207,7 +207,7 @@ private fun Modifier.sceneHeight(): Modifier = layout { measurable, constraints 
   layout(placeable.width, placeable.height) { placeable.place(0, 0) }
 }
 
-/** The theme's sky and lake colours at [time]. */
+/** The theme's sky and lake colors at [time]. */
 internal fun LakeColors.horizonAt(time: LocalTime): Horizon =
     when (timeOfDayAt(time)) {
       TimeOfDay.DAWN -> dawn
@@ -219,7 +219,7 @@ private val DAWN_START = LocalTime.of(5, 0)
 private val DAY_START = LocalTime.of(11, 0)
 private val DUSK_START = LocalTime.of(18, 0)
 
-// The Figma's heights of the header and the band, and of the band's waterline
+// The heights of the header and the band, and of the band's waterline
 private val HEADER_HEIGHT = 210.dp
 private val BAND_HEIGHT = 100.dp
 private val WATERLINE_HEIGHT = 4.dp

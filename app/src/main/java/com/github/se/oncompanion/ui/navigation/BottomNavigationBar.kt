@@ -58,6 +58,12 @@ import com.github.se.oncompanion.ui.theme.full
  *
  * As recommended by Material 3, [icon] is outlined and [selectedIcon] is its filled version, so the
  * selected tab also stands out by its icon.
+ *
+ * @property route where the tab leads
+ * @property label the tab's text
+ * @property icon the tab's icon when it isn't selected
+ * @property selectedIcon the tab's icon when it is selected
+ * @property testTag the tab's test tag
  */
 enum class Tab(
     val route: String,
@@ -100,9 +106,9 @@ enum class Tab(
 /**
  * What the bar shows besides the selected tab, the same on every tab.
  *
- * @property caregiverMode a caregiver follows a patient: no Prescriptions tab (Figma M3)
- * @property prescriptionsToReview how many prescriptions a caregiver added wait for the patient
- *   (US-43), shown as a badge on the Prescriptions tab
+ * @property caregiverMode a caregiver follows a patient: no Prescriptions tab
+ * @property prescriptionsToReview how many prescriptions a caregiver added wait for the patient,
+ *   shown as a badge on the Prescriptions tab
  */
 data class BottomBarUiState(
     val caregiverMode: Boolean = false,
@@ -119,8 +125,9 @@ data class BottomBarUiState(
 }
 
 /**
- * The bottom navigation bar shown on the top-level screens (Figma M3: "Navigation bar (4 tabs)"):
- * 80 dp on Surface Container, equal tabs, the selected one with a dawn indicator and an ink label.
+ * The bottom navigation bar shown on the top-level screens (design: M3, "Navigation bar (4 tabs,
+ * Speak slot)"): 80 dp on Surface Container, equal tabs, the selected one with a dawn indicator and
+ * an ink label.
  *
  * Each screen passes its own [selectedTab], so the highlighted tab always matches the screen.
  */
@@ -182,8 +189,7 @@ private fun labelStyleFitting(tabs: List<Tab>, tabWidth: Dp): TextStyle {
 
 /**
  * One tab of the bar: its icon in the 64 x 32 indicator, then its label. Material's own item has a
- * 56 dp indicator, so the Figma's is drawn here. A [badge] shows on the icon, also read by screen
- * readers.
+ * 56 dp indicator, so ours is drawn here. A [badge] shows on the icon, also read by screen readers.
  */
 @Composable
 private fun TabItem(
@@ -231,8 +237,8 @@ private fun TabItem(
 }
 
 /**
- * The Figma's teal "Count badge", 20 dp across the indicator's top edge: read as "2 prescriptions
- * to confirm" rather than "2".
+ * The teal count badge (design: M3, "Count badge"), 20 dp across the indicator's top edge: read as
+ * "2 prescriptions to confirm" rather than "2".
  */
 @Composable
 private fun CountBadge(count: Int, modifier: Modifier) {
@@ -250,10 +256,11 @@ private fun CountBadge(count: Int, modifier: Modifier) {
   }
 }
 
-// The pill behind the selected tab's icon in the Figma
+// The pill behind the selected tab's icon
 private val INDICATOR_SIZE = DpSize(64.dp, 32.dp)
 
-// The Figma's "Tab badge": from the indicator's top left corner, half above its top edge
+// The tab badge (design: M3, "Tab badge"): from the indicator's top left corner, half above its
+// top edge
 private val BADGE_OFFSET = DpOffset(38.dp, (-6).dp)
 private val BADGE_SIZE = 20.dp
 

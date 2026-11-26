@@ -14,9 +14,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * "Use another account" on a screen the user is stuck on, like the account check (#204): signs out
- * so they can pick another Google account, asking before discarding local changes that may not be
- * saved online, as onboarding does (#281).
+ * "Use another account" on a screen the user is stuck on, like the account check: signs out so they
+ * can pick another Google account, asking before discarding local changes that may not be saved
+ * online, as onboarding does.
  */
 class AccountSwitchViewModel(private val signOut: SignOut = SignOutProvider.signOut) : ViewModel() {
 

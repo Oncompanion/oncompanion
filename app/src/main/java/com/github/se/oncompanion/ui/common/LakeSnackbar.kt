@@ -26,11 +26,11 @@ import com.github.se.oncompanion.R
 import com.github.se.oncompanion.ui.theme.Spacing
 
 /**
- * The Figma "Snackbar", for a [SnackbarHost]: flat (Material's snackbar always casts a shadow, the
- * Figma's doesn't), on Inverse Surface with Medium corners: the message, its action when it has one
- * (e.g. Retry, below the message when it doesn't fit beside it), then a close button when it asks
- * for one. A snackbar is never the only place to act on something important: it goes away on its
- * own.
+ * The snackbar (design: Brand & Theme, "Snackbar"), for a [SnackbarHost]: flat (Material's snackbar
+ * always casts a shadow, ours doesn't), on Inverse Surface with Medium corners: the message, its
+ * action when it has one (e.g. Retry, below the message when it doesn't fit beside it), then a
+ * close button when it asks for one. A snackbar is never the only place to act on something
+ * important: it goes away on its own.
  */
 @Composable
 fun LakeSnackbar(data: SnackbarData, modifier: Modifier = Modifier) {
@@ -47,7 +47,7 @@ fun LakeSnackbar(data: SnackbarData, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-      // The Figma's 4 dp above and below go around the message only, so the action keeps the
+      // The 4 dp above and below go around the message only, so the action keeps the
       // snackbar's whole 48 dp as its touch target
       MessageAndAction(
           message = {
@@ -77,9 +77,9 @@ fun LakeSnackbar(data: SnackbarData, modifier: Modifier = Modifier) {
 }
 
 /**
- * Material's [SnackbarHost] showing our [LakeSnackbar], 16 dp from the sides as in the Figma. Every
- * screen uses it, so their messages look the same. As Material's snackbar, it keeps 12 dp from the
- * button or bar below it, so it never touches an action, and stops at 600 dp wide in landscape.
+ * Material's [SnackbarHost] showing our [LakeSnackbar], 16 dp from the sides. Every screen uses it,
+ * so their messages look the same. As Material's snackbar, it keeps 12 dp from the button or bar
+ * below it, so it never touches an action, and stops at 600 dp wide in landscape.
  */
 @Composable
 fun LakeSnackbarHost(hostState: SnackbarHostState, modifier: Modifier = Modifier) {
@@ -91,7 +91,7 @@ fun LakeSnackbarHost(hostState: SnackbarHostState, modifier: Modifier = Modifier
   }
 }
 
-// The height of a one-line snackbar in the Figma
+// The height of a one-line snackbar
 private val MIN_HEIGHT = 48.dp
 
 // Material's widest snackbar

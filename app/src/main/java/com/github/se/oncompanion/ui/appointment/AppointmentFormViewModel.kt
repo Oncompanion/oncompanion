@@ -53,6 +53,25 @@ enum class AppointmentFormLoad {
 
 /**
  * Patient-entered values, including incomplete input that must never become a saved appointment.
+ *
+ * @property date the day of the appointment
+ * @property zoneId the time zone [date] and [time] are in
+ * @property title what the appointment is (e.g. "Oncology check-up")
+ * @property time when it starts, or `null` until the patient picks it
+ * @property location where it takes place, if the patient enters it
+ * @property type the kind of appointment
+ * @property notes the patient's notes, if any
+ * @property reminder how long before the appointment the patient is reminded
+ * @property titleTouched the title was ever changed: a blank title only shows as an error then
+ * @property chosenOffset the UTC offset the patient chose for a time that happens twice, when the
+ *   clocks go back; `null` when [time] has only one
+ * @property save where saving is
+ * @property savedAt when the saved appointment starts, once [save] is [SavePhase.SAVED]
+ * @property completionHandled the screen already reacted to the save, so it doesn't twice
+ * @property error why the last save failed, if it did
+ * @property isEditing the form corrects a saved appointment instead of adding one
+ * @property load where reading the appointment to correct is; [AppointmentFormLoad.READY] for a new
+ *   one
  */
 data class AppointmentFormUiState(
     val date: LocalDate,
@@ -103,11 +122,12 @@ data class AppointmentFormUiState(
 /**
  * Creates or corrects a confirmed appointment locally; navigation remains outside this ViewModel.
  *
- * In caregiver mode (US-41), it adds the appointment to the planning of [patientUid], signed with
- * the caregiver's uid and first name; the rules only accept it if the patient lets them add
+ * In caregiver mode, it adds the appointment to the planning of [patientUid], signed with the
+ * caregiver's uid and first name; the rules only accept it if the patient lets them add
  * appointments. It edits one of the patient's the same way, signed as its last editor, if the
- * patient lets them edit and delete in Planning (US-46).
+ * patient lets them edit and delete in Planning.
  *
+ * @property zoneId the time zone the form's days and times are in
  * @param patientUid in caregiver mode, the patient whose planning gets the new or edited
  *   appointment; null for the user's own
  * @param profileRepository the caregiver's profile, for the first name the appointment is signed

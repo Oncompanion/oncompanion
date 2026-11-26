@@ -45,14 +45,14 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * One thing a member of the care circle did for the patient, in the "Your circle" sheet
- * (US-50, #457; Figma: "Prescription states"): who and when, the prescription as it is now, and the
- * link to open it. A prescription still waiting for the patient is outlined in dawn, like the app's
- * other "look at this" content (DESIGN.md: check).
+ * One thing a member of the care circle did for the patient, in the "Your circle" sheet (design:
+ * M3, "Prescription states"): who and when, the prescription as it is now, and the link to open it.
+ * A prescription still waiting for the patient is outlined in dawn, like the app's other "look at
+ * this" content (DESIGN.md: check).
  *
  * @param onOpen opens this route, picked when the link is tapped by
- *   [com.github.se.oncompanion.ui.navigation.route] (#458): the review form while the prescription
- *   waits, its page otherwise
+ *   [com.github.se.oncompanion.ui.navigation.route]: the review form while the prescription waits,
+ *   its page otherwise
  */
 @Composable
 fun CircleNotificationCard(
@@ -171,8 +171,8 @@ private fun PrescriptionLines(card: CircleCard, onOpen: () -> Unit) {
 }
 
 /**
- * A member's initial on a small disc, as in the Figma's cards. Decorative: TalkBack skips it, as
- * the line next to it says the name.
+ * A member's initial on a small disc, as on the cards. Decorative: TalkBack skips it, as the line
+ * next to it says the name.
  */
 @Composable
 private fun Initial(name: String) {
@@ -204,10 +204,10 @@ private fun StatusChip(text: String, container: Color, content: Color) {
   )
 }
 
-// The time as the Overview writes it; #558 will make every screen follow the chosen format
+// The time as the Overview writes it, HH:mm whatever the chosen format
 private val TIME = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)
 
-// The Figma's sizes
+// The sizes of the card's parts
 private val BADGE = 40.dp
 private val INITIAL = 20.sp
 private val CARD_BORDER = 1.dp

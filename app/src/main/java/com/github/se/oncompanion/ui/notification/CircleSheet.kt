@@ -46,10 +46,10 @@ import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.lakeColors
 
 /**
- * The "Your circle" sheet over the Overview, opened from the sailboat in its header (US-50, #457).
+ * The "Your circle" sheet over the Overview, opened from the sailboat in its header.
  *
  * @param onManage opens the Care circle page
- * @param onAddSomeone invites someone, when nobody is in the circle yet (US-13)
+ * @param onAddSomeone invites someone, when nobody is in the circle yet
  * @param onOpen opens a card's route, picked by [CircleNotificationCard]
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -134,7 +134,10 @@ internal fun CircleSheetContent(
   }
 }
 
-/** The circle's members, then its notifications by day (Figma: "Note and prescription"). */
+/**
+ * The circle's members, then its notifications by day (design: M3, "Care circle · Note and
+ * prescription").
+ */
 @Composable
 private fun Circle(
     circle: CircleSheetUiState.Circle,
@@ -196,7 +199,10 @@ private fun Circle(
   }
 }
 
-/** "No one in your circle yet", and the way to invite someone (Figma: "Nobody yet"). */
+/**
+ * "No one in your circle yet", and the way to invite someone (design: M3, "Care circle · Nobody
+ * yet").
+ */
 @Composable
 private fun NobodyYet(onAddSomeone: () -> Unit) {
   Title()
@@ -241,7 +247,7 @@ private fun Title(modifier: Modifier = Modifier) {
 @Composable
 private fun EmptyCircles() {
   val color = MaterialTheme.colorScheme.outline
-  // Each seat starts a little past the middle of the one before, as in the Figma
+  // Each seat starts a little past the middle of the one before
   Canvas(
       Modifier.size(width = SEAT * (1 + SEAT_STEP * (SEATS - 1)), height = SEAT)
           .testTag(C.Tag.circle_sheet_seats)
@@ -259,7 +265,7 @@ private fun EmptyCircles() {
   }
 }
 
-// The Figma's sizes
+// The sizes of the sheet's parts
 private val PROGRESS = 48.dp
 private val SEAT = 36.dp
 private const val SEATS = 3

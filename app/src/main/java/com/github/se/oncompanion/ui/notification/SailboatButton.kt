@@ -31,10 +31,10 @@ import com.github.se.oncompanion.ui.theme.full
 import com.github.se.oncompanion.ui.theme.lakeColors
 
 /**
- * The sailboat in the patient's Overview header that opens the "Your circle" sheet (US-50, #457;
- * Figma: "Header care circle button"). While there is a circle it sits in a faint ring, with a dot
- * when something in the sheet is unseen; while nobody is in it, a "+" invites the patient to add
- * someone, without the ring. Screen readers say which.
+ * The sailboat in the patient's Overview header that opens the "Your circle" sheet (design: M3,
+ * "Boat button"). While there is a circle it sits in a faint ring, with a dot when something in the
+ * sheet is unseen; while nobody is in it, a "+" invites the patient to add someone, without the
+ * ring. Screen readers say which.
  */
 @Composable
 fun SailboatButton(badge: SailboatBadge, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -99,7 +99,7 @@ fun SailboatButton(badge: SailboatBadge, onClick: () -> Unit, modifier: Modifier
               contentAlignment = Alignment.Center,
               modifier =
                   Modifier.align(Alignment.BottomEnd)
-                      // The Figma puts it 2 dp past the touch target's corner
+                      // It sits 2 dp past the touch target's corner
                       .offset(x = ADD_OVERHANG, y = ADD_OVERHANG)
                       .size(ADD)
                       .border(BADGE_BORDER, colors.surface, MaterialTheme.shapes.full)
@@ -117,7 +117,7 @@ fun SailboatButton(badge: SailboatBadge, onClick: () -> Unit, modifier: Modifier
   }
 }
 
-// The Figma's sizes: a 48 dp touch target around a 44 dp disc, a 14 dp dot and a 20 dp "+"
+// The sizes: a 48 dp touch target around a 44 dp disc, a 14 dp dot and a 20 dp "+"
 private val TOUCH_TARGET = 48.dp
 private val DISC = 44.dp
 private val HALO_WIDTH = 5.dp

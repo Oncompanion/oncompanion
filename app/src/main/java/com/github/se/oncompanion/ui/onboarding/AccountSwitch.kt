@@ -23,9 +23,8 @@ import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
 
 /**
- * Below Continue on both onboarding steps (Figma "US-1 / Onboarding – Role (use another account)"):
- * which account is signed in, and a way to pick another one before any profile is saved for this
- * one.
+ * Below Continue on both onboarding steps (design: M3, "Use another account"): which account is
+ * signed in, and a way to pick another one before any profile is saved for this one.
  *
  * @param email the signed-in account's; not shown when unknown
  */

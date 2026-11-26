@@ -1,4 +1,5 @@
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.reminder
 
@@ -29,7 +30,13 @@ enum class ReminderAccess {
   READY,
 }
 
-/** The quiet Planning entry point; granting access never claims a reminder has been scheduled. */
+/**
+ * The quiet Planning entry point; granting access never claims a reminder has been scheduled.
+ *
+ * @property eligible the signed-in patient has an appointment still to come, so asking for access
+ *   makes sense
+ * @property access what Android allows the reminders, or `null` until it is checked
+ */
 data class ReminderPermissionUiState(
     val eligible: Boolean = false,
     val access: ReminderAccess? = null,

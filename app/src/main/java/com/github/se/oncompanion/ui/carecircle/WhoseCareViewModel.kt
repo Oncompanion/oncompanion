@@ -65,8 +65,8 @@ data class WhoseCareUiState(
 )
 
 /**
- * Lists the patients a caregiver follows, with what each one shares with them (US-20), so they can
- * choose whose care to look at. The sections come from the caregiver's own member document in each
+ * Lists the patients a caregiver follows, with what each one shares with them, so they can choose
+ * whose care to look at. The sections come from the caregiver's own member document in each
  * patient's circle, which a caregiver can read; a patient who removed them is left out.
  */
 class WhoseCareViewModel(

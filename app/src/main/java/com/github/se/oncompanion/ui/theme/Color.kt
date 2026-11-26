@@ -4,8 +4,7 @@ package com.github.se.oncompanion.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// "Morning on the lake" colors: the Light and Dark modes of the Figma variables (collection
-// "Oncompanion", Brand & Theme page), described in DESIGN.md.
+// "Morning on the lake" colors, in light and dark, described in DESIGN.md.
 
 // Lake teal
 val PrimaryLight = Color(0xFF2F6F7E)
@@ -41,6 +40,7 @@ val SurfaceContainerLight = Color(0xFFF2EDE7)
 val SurfaceContainerHighLight = Color(0xFFECE6DF)
 val SurfaceContainerHighestLight = Color(0xFFE6E0D8)
 
+// The same roles in the dark scheme
 val PrimaryDark = Color(0xFF9AD0DC)
 val OnPrimaryDark = Color(0xFF00363F)
 val PrimaryContainerDark = Color(0xFF134F5B)
@@ -90,12 +90,12 @@ val HorizonDuskTopDark = Color(0xFF2E2745)
 val HorizonDuskBottomDark = Color(0xFF1D1A2E)
 val OnHorizonDark = Color(0xFFE3E6E7)
 
-// The hull of the boats on the lake: dark ink by day, a grey that still reads on dark water
+// The hull of the boats on the lake: dark ink by day, a gray that still reads on dark water
 val LakeHullLight = Color(0xFF1F2A30)
 val LakeHullDark = Color(0xFF3B4448)
 
-// Stone: the patient's Overview of the Overview UX Refactor (Figma M3, Home · Dawn and Dusk). A
-// warm grey page under off-white cards by day; by night, black cards on a slate page and a lighter
+// Stone: the patient's Overview (design: M3, "Home · Dawn" and "Home · Dusk"). A
+// warm gray page under off-white cards by day; by night, black cards on a slate page and a lighter
 // check-in dock.
 val StonePageLight = Color(0xFFE2DDD5)
 val StoneCardLight = Color(0xFFFAF8F5)

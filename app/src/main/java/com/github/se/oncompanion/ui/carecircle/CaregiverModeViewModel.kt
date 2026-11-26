@@ -26,9 +26,9 @@ import kotlinx.coroutines.launch
 data class ChosenPatient(val uid: String, val firstName: String)
 
 /**
- * Caregiver mode (US-20): the patient chosen in "Whose care?", or `null` in patient mode. One
- * instance for the whole app, so every screen knows whose care it shows. Kept in [savedState], so
- * the choice survives Android stopping the app in the background.
+ * Caregiver mode: the patient chosen in "Whose care?", or `null` in patient mode. One instance for
+ * the whole app, so every screen knows whose care it shows. Kept in [savedState], so the choice
+ * survives Android stopping the app in the background.
  *
  * It also follows the caregiver's access to the chosen patient: once the patient removes them from
  * their circle, it leaves caregiver mode and raises [lostAccess] with their first name, so the app

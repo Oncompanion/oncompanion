@@ -20,7 +20,7 @@ import java.time.LocalTime
 /**
  * The top app bar of a screen that isn't a main screen (DESIGN.md, Layout: "Other screens"): the
  * title and its back or close button on the 100 dp [PaperLakeBand], which also fills the status bar
- * above them, as in the Figma.
+ * above them.
  *
  * @param navigationIcon the back arrow, or the close button of a form or a flow
  * @param time the time whose light the sky shows; now by default

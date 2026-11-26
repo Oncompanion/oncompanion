@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * Decides the first screen when the app starts (#30, US-2), while the splash screen is shown:
+ * Decides the first screen when the app starts, while the splash screen is shown:
  * - nobody signed in → sign-in ([Route.AUTH])
  * - signed in with a profile → the Overview ([Route.OVERVIEW]); for a caregiver, "Whose care?"
  *   ([Route.WHOSE_CARE]), or the join screen ([Route.JOIN_CIRCLE]) until they join a circle

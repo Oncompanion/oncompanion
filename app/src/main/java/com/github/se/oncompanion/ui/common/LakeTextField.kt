@@ -36,9 +36,9 @@ import com.github.se.oncompanion.R
 import kotlin.math.roundToInt
 
 /**
- * The Figma "Text field": the label inside the box, above the value once there is one, unlike
- * Material's outlined field that puts it on the border. Takes the same parameters as
- * `OutlinedTextField`, so a screen only swaps the call.
+ * The text field (design: Brand & Theme, "Text field"): the label inside the box, above the value
+ * once there is one, unlike Material's outlined field that puts it on the border. Takes the same
+ * parameters as `OutlinedTextField`, so a screen only swaps the call.
  *
  * Its box shows its state: a 1 dp outline, a 1.5 dp red border [isError], a dawn box with a 1.5 dp
  * secondary border for a value the app drafted that the user should check ([isCheck]), and a 2 dp
@@ -121,7 +121,7 @@ fun LakeTextField(
   }
 }
 
-/** How the box of a [LakeTextField] looks in one state (Figma: State=Empty, Error, Check). */
+/** How the box of a [LakeTextField] looks in one state. */
 private class BoxStyle(
     val fill: Color,
     val border: Color,
@@ -175,7 +175,7 @@ private fun fieldColors(style: BoxStyle) =
         unfocusedSupportingTextColor = style.supporting,
         disabledSupportingTextColor = style.supporting,
         errorSupportingTextColor = style.supporting,
-        // The Figma's trailing icons are in ink, whatever the state
+        // The trailing icons are in ink, whatever the state
         focusedTrailingIconColor = MaterialTheme.colorScheme.onSurface,
         unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurface,
         disabledTrailingIconColor = MaterialTheme.colorScheme.onSurface,
@@ -190,10 +190,10 @@ private fun fieldColors(style: BoxStyle) =
 /**
  * The [label], counted as no taller than the room Material keeps for it once it is small above the
  * value. Inside an empty field the label is as large as the value, and Material would make the box
- * taller for it (60 dp instead of the Figma's 58). This way the box is as tall empty as filled, at
- * any text size, so focusing a field never grows it out of a scrolled view. A label that wraps
- * (e.g. at a large text size) keeps its full height, so the box grows for it instead of the label
- * covering the value.
+ * taller for it (60 dp instead of 58). This way the box is as tall empty as filled, at any text
+ * size, so focusing a field never grows it out of a scrolled view. A label that wraps (e.g. at a
+ * large text size) keeps its full height, so the box grows for it instead of the label covering the
+ * value.
  */
 @Composable
 private fun NoTallerThanSmall(label: @Composable () -> Unit) {
