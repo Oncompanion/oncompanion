@@ -7,10 +7,9 @@ import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.signedInUid
 import com.github.se.oncompanion.model.medication.TakenDosesRepository
 import java.time.LocalDate
-import kotlinx.coroutines.CancellationException
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 /**
@@ -66,17 +65,18 @@ class DoseTicks(
     onChange()
     if (uid == null) return
     observation = scope.launch {
-      repository
-          .observeDay(uid, day)
-          .catch { e ->
-            Log.w(TAG, "Couldn't read the doses taken today", e)
-            taken = null
-            onChange()
-          }
-          .collect {
-            taken = it
-            onChange()
-          }
+      try {
+        repository.observeDay(uid, day).collect {
+          taken = it
+          onChange()
+        }
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Log.w(TAG, "Couldn't read the doses taken today", e)
+        taken = null
+        onChange()
+      }
     }
   }
 
