@@ -142,6 +142,25 @@ class DoseTicksTest {
     assertTrue(doses.writes.isEmpty())
   }
 
+  /** Midnight with the screen open: the same patient's next day starts from its own count. */
+  @Test
+  fun theNextDay_aTickBeforeItIsReadSavesNothing_thenOneSavesFromItsCount() = runTest {
+    doses.setTaken("alice", day, "m", 2)
+    val screen = screen()
+    // What the screen still shows from the day before: 2 of 3 doses
+    val yesterdays = screen.medication("m", perDay = 3)
+    doses.writes.clear()
+
+    screen.ticks.follow("alice", day.plusDays(1))
+    screen.ticks.tick(yesterdays)
+    runCurrent()
+    screen.ticks.tick(screen.medication("m", perDay = 3))
+    runCurrent()
+
+    // Not 3 (yesterday's 2 + 1) on the new day: only the tick after it was read, from its 0
+    assertEquals(listOf(Write("alice", day.plusDays(1), "m", 1)), doses.writes)
+  }
+
   @Test
   fun unknownCounts_signedOut_orARefusedSave_writeNothing() = runTest {
     // Unknown: nothing to tick, no sheet, and a count can't be built on a wrong 0
