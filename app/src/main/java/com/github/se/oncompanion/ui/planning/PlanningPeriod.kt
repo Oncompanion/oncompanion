@@ -3,6 +3,9 @@
 package com.github.se.oncompanion.ui.planning
 
 import com.github.se.oncompanion.model.planning.PlanningRange
+import com.github.se.oncompanion.ui.planning.PlanningDates.END_OF_MAX_DAY
+import com.github.se.oncompanion.ui.planning.PlanningDates.MAX_DAY
+import com.github.se.oncompanion.ui.planning.PlanningDates.MIN_DAY
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
@@ -59,7 +62,7 @@ data class PlanningPeriod(val view: PlanningView, val start: LocalDate) {
    * clamps the instants itself.
    */
   fun range(zoneId: ZoneId): PlanningRange =
-      PlanningRange(loadStart, minOf(loadEnd, END_OF_LAST_DAY), zoneId)
+      PlanningRange(loadStart, minOf(loadEnd, END_OF_MAX_DAY), zoneId)
 
   /**
    * The period [steps] periods away (-1 the previous one, 1 the next) with the day to select in it,
@@ -71,9 +74,9 @@ data class PlanningPeriod(val view: PlanningView, val start: LocalDate) {
   fun moved(selected: LocalDate, steps: Int): Moved? {
     var newStart = start.plusPeriods(view, steps)
     // Three days can start on any day, so they can stop on the first one
-    if (view == PlanningView.THREE_DAYS && newStart < FIRST_DAY) newStart = FIRST_DAY
+    if (view == PlanningView.THREE_DAYS && newStart < MIN_DAY) newStart = MIN_DAY
     if (newStart == start || !PlanningDates.isSupported(newStart)) return null
-    val newSelected = selected.plusPeriods(view, steps).coerceIn(FIRST_DAY, LAST_DAY)
+    val newSelected = selected.plusPeriods(view, steps).coerceIn(MIN_DAY, MAX_DAY)
     return Moved(PlanningPeriod(view, newStart), newSelected)
   }
 
@@ -81,10 +84,6 @@ data class PlanningPeriod(val view: PlanningView, val start: LocalDate) {
   data class Moved(val period: PlanningPeriod, val selectedDate: LocalDate)
 
   companion object {
-    private val FIRST_DAY = LocalDate.of(1, 1, 1)
-    private val LAST_DAY = LocalDate.of(9999, 12, 31)
-    private val END_OF_LAST_DAY = LAST_DAY.plusDays(1)
-
     /** The period of [view] that holds [date]; three days start on [date] itself. */
     fun of(view: PlanningView, date: LocalDate): PlanningPeriod =
         PlanningPeriod(view, alignedStart(view, date))

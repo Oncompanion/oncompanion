@@ -15,7 +15,9 @@ import com.github.se.oncompanion.model.appointment.AppointmentType
 import com.github.se.oncompanion.model.appointment.FakeAppointmentRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.AuthUser
+import com.github.se.oncompanion.model.carecircle.CareCircleMember
 import com.github.se.oncompanion.model.carecircle.CarePermission
+import com.github.se.oncompanion.model.carecircle.FakeCareCircleRepository
 import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningSource
@@ -32,6 +34,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
@@ -294,6 +297,7 @@ class PlanningViewModelTest {
                 zone,
                 SavedStateHandle(),
             )
+        vm.selectView(PlanningView.WEEK)
         vm.selectDate(LocalDate.of(2026, 10, 25))
         drain()
         val range = repository.ranges.last()
@@ -750,7 +754,7 @@ class PlanningViewModelTest {
 
   // ----- Loading the period of each view (#575) -----
 
-  /** Each view loads its own days, once; List and Week of the same week share one read. */
+  /** Each view loads its own days, once: List its window, the grids their period. */
   @Test
   fun eachViewLoadsItsPeriodOnce() =
       runTest(dispatcher) {
@@ -760,11 +764,11 @@ class PlanningViewModelTest {
         // view -> first and last loaded days, or null when no new read is needed
         val cases =
             listOf(
-                PlanningView.WEEK to null,
+                PlanningView.LIST to null,
+                PlanningView.WEEK to ("2026-09-28" to "2026-10-05"),
                 PlanningView.THREE_DAYS to ("2026-10-02" to "2026-10-05"),
                 PlanningView.MONTH to ("2026-09-28" to "2026-11-02"),
-                PlanningView.LIST to ("2026-09-28" to "2026-10-05"),
-                PlanningView.LIST to null,
+                PlanningView.LIST to ("2026-09-04" to "2026-11-28"),
             )
         for ((view, days) in cases) {
           val reads = repository.ranges.size
@@ -967,8 +971,9 @@ class PlanningViewModelTest {
       }
 
   /**
-   * Every state the screen gets is whole: the selected day's agenda comes from the loaded period's
-   * entries, never from the previous day or period, as the selection and the entries change.
+   * Every state the screen gets is whole: the selected day's agenda comes from the loaded days'
+   * entries, never from the previous day, period or window, as the selection, the window and the
+   * entries change.
    */
   @Test
   fun everyEmittedStateMatchesItsSelection() =
@@ -992,17 +997,27 @@ class PlanningViewModelTest {
         vm.selectDate(LocalDate.of(2026, 10, 3))
         vm.selectDate(LocalDate.of(2026, 10, 5))
         drain()
+        // The List's window grows both ways, then is rebuilt far away
+        vm.showLater()
+        drain()
+        vm.showEarlier()
+        drain()
+        vm.selectDate(LocalDate.of(2027, 6, 1))
+        drain()
         vm.selectView(PlanningView.MONTH)
         drain()
-        repository.items.value = repository.items.value + item("later", "2026-10-20T08:00:00Z")
+        repository.items.value = repository.items.value + item("later", "2027-06-20T08:00:00Z")
+        drain()
+        // Back from the grid to a day of the List
+        vm.openInList(LocalDate.of(2026, 10, 5), emptySet())
         drain()
         vm.retry()
         drain()
 
-        assertTrue(states.size > 5)
+        assertTrue(states.size > 10)
         for (state in states) {
           assertEquals("$state", state.itemsByDay[state.selectedDate].orEmpty(), state.items)
-          val range = state.period.range(zone)
+          val range = state.loadedRange(zone)
           assertTrue(
               "$state",
               state.itemsByDay.keys.all {
@@ -1014,5 +1029,411 @@ class PlanningViewModelTest {
             listOf("monday"),
             states.last().items.map { (it.source as PlanningSource.Appointment).appointmentId },
         )
+      }
+
+  // ----- The List's window (#660) -----
+
+  /**
+   * The List opens 4 weeks before the day and 8 after, grows by 4 weeks either way with one read
+   * each, keeps its window for a day inside it, builds a new one for a day outside it, and never
+   * goes before year 1.
+   */
+  @Test
+  fun listWindowOpensAroundTheDayAndGrowsFourWeeksAtATime() =
+      runTest(dispatcher) {
+        val repository = FakePlanningRepository()
+        val vm = PlanningViewModel(ownPlanning(repository), clock, zone, SavedStateHandle())
+        drain()
+        fun window() = vm.uiState.value.listWindow.let { "${it.start}..${it.end}" }
+        assertEquals("2026-09-04..2026-11-28", window())
+        assertEquals(vm.uiState.value.listWindow.range(zone), repository.ranges.single())
+        // action -> window after it, and whether it read again
+        val cases =
+            listOf<Triple<String, () -> Unit, Pair<String, Boolean>>>(
+                Triple("later", vm::showLater, "2026-09-04..2026-12-26" to true),
+                Triple("earlier", vm::showEarlier, "2026-08-07..2026-12-26" to true),
+                Triple(
+                    "pick inside",
+                    { vm.selectDate(LocalDate.of(2026, 12, 20)) },
+                    "2026-08-07..2026-12-26" to false,
+                ),
+                Triple(
+                    "pick outside",
+                    { vm.selectDate(LocalDate.of(2027, 3, 1)) },
+                    "2027-02-01..2027-04-27" to true,
+                ),
+                Triple(
+                    "first year",
+                    { vm.selectDate(LocalDate.of(1, 1, 3)) },
+                    "0001-01-01..0001-03-01" to true,
+                ),
+                Triple("nothing before year 1", vm::showEarlier, "0001-01-01..0001-03-01" to false),
+                Triple("today", vm::goToToday, "2026-09-04..2026-11-28" to true),
+            )
+        for ((name, action, expected) in cases) {
+          val reads = repository.ranges.size
+          action()
+          drain()
+          val (days, readsAgain) = expected
+          assertEquals(name, days, window())
+          assertEquals(name, if (readsAgain) reads + 1 else reads, repository.ranges.size)
+          assertEquals(name, vm.uiState.value.listWindow.range(zone), repository.ranges.last())
+          assertFalse(name, vm.uiState.value.isLoading)
+        }
+
+        // The grids load their period: growing the List there does nothing
+        vm.selectView(PlanningView.WEEK)
+        drain()
+        val window = vm.uiState.value.listWindow
+        val reads = repository.ranges.size
+        vm.showLater()
+        vm.showEarlier()
+        drain()
+        assertEquals(window, vm.uiState.value.listWindow)
+        assertEquals(reads, repository.ranges.size)
+      }
+
+  /**
+   * While other days load, the entries of the days that stay loaded are shown, as loading more:
+   * when the List grows, and when the view changes over days the List already has (S1 of #660).
+   */
+  @Test
+  fun entriesOfDaysStillLoadedStayWhileTheOthersLoad() =
+      runTest(dispatcher) {
+        val friday = item("friday", "2026-10-02T08:00:00Z")
+        val monday = item("monday", "2026-10-05T08:00:00Z")
+        val later = item("later", "2026-12-10T08:00:00Z")
+        val earlier = item("earlier", "2026-08-20T08:00:00Z")
+        var answer = CompletableDeferred<Unit>()
+        val repository =
+            FakePlanningRepository().apply {
+              // The first read answers at once; the next ones wait for the test
+              observation = {
+                flow {
+                  if (ranges.size > 1) answer.await()
+                  emit(listOf(earlier, friday, monday, later))
+                }
+              }
+            }
+        val vm = PlanningViewModel(ownPlanning(repository), clock, zone, SavedStateHandle())
+        drain()
+        assertEquals(listOf(friday, monday), vm.uiState.value.itemsByDay.values.flatten())
+        // step -> entries shown while it loads, then once it has answered
+        val cases =
+            listOf<Triple<String, () -> Unit, Pair<List<PlanningItem>, List<PlanningItem>>>>(
+                Triple(
+                    "later",
+                    vm::showLater,
+                    listOf(friday, monday) to listOf(friday, monday, later),
+                ),
+                Triple(
+                    "earlier",
+                    vm::showEarlier,
+                    listOf(friday, monday, later) to listOf(earlier, friday, monday, later),
+                ),
+                // The week is within the List's days: its entries stay, cut to the week
+                Triple(
+                    "list to week",
+                    { vm.selectView(PlanningView.WEEK) },
+                    listOf(friday) to listOf(friday),
+                ),
+                Triple(
+                    "week to list",
+                    { vm.selectView(PlanningView.LIST) },
+                    listOf(friday) to listOf(earlier, friday, monday, later),
+                ),
+            )
+        for ((name, step, expected) in cases) {
+          val (whileLoading, answered) = expected
+          answer = CompletableDeferred()
+          step()
+          drain()
+          var state = vm.uiState.value
+          assertTrue(name, state.isLoading && state.isLoadingMore)
+          assertEquals(name, whileLoading, state.itemsByDay.values.flatten())
+          assertEquals(name, listOf(friday), state.items)
+          answer.complete(Unit)
+          drain()
+          state = vm.uiState.value
+          assertFalse(name, state.isLoading || state.isLoadingMore)
+          assertEquals(name, answered, state.itemsByDay.values.flatten())
+        }
+      }
+
+  /**
+   * Loading more needs entries read for some of the same days ([PlanningUiState.readDays]);
+   * otherwise it is a first load, which shows no entries. An empty planning that grows is loading
+   * more too.
+   */
+  @Test
+  fun loadingMoreOnlyOverDaysAlreadyRead() =
+      runTest(dispatcher) {
+        var answer = CompletableDeferred<Unit>()
+        var fails = false
+        val repository =
+            FakePlanningRepository().apply {
+              observation = {
+                flow {
+                  answer.await()
+                  if (fails) throw IllegalStateException("Read failed")
+                  emit(emptyList())
+                }
+              }
+            }
+        val vm = PlanningViewModel(ownPlanning(repository), clock, zone, SavedStateHandle())
+        fun readDays() =
+            vm.uiState.value.readDays?.let { "${it.startDateInclusive}..${it.endDateExclusive}" }
+        drain()
+        // Nothing read yet
+        assertTrue(vm.uiState.value.isLoading)
+        assertFalse(vm.uiState.value.isLoadingMore)
+        // step, whether its read fails -> the days read while it loads (loading more if any)
+        val cases =
+            listOf<Triple<String, () -> Unit, Pair<Boolean, String?>>>(
+                Triple("first read fails", {}, true to null),
+                Triple("retry without anything read", vm::retry, false to null),
+                Triple("empty planning grows", vm::showLater, false to "2026-09-04..2026-11-28"),
+                Triple("loading more fails", vm::showLater, true to "2026-09-04..2026-12-26"),
+                Triple("retry after it", vm::retry, false to "2026-09-04..2026-12-26"),
+                Triple(
+                    "grows twice before an answer",
+                    {
+                      vm.showLater()
+                      vm.showLater()
+                    },
+                    false to "2026-09-04..2027-01-23",
+                ),
+                Triple(
+                    "new days only",
+                    { vm.selectDate(LocalDate.of(2027, 6, 1)) },
+                    false to null,
+                ),
+                // The jump to October dropped June's entries before its read answered
+                Triple(
+                    "back to days a jump dropped",
+                    {
+                      vm.selectDate(LocalDate.of(2026, 10, 2))
+                      vm.selectDate(LocalDate.of(2027, 6, 1))
+                    },
+                    false to null,
+                ),
+                Triple(
+                    "list to week",
+                    { vm.selectView(PlanningView.WEEK) },
+                    false to "2027-05-31..2027-06-07",
+                ),
+                Triple("next week", vm::nextPeriod, false to null),
+            )
+        for ((name, step, expected) in cases) {
+          val (failsNext, readWhileLoading) = expected
+          step()
+          drain()
+          assertTrue(name, vm.uiState.value.isLoading)
+          assertEquals(name, readWhileLoading, readDays())
+          assertEquals(name, readWhileLoading != null, vm.uiState.value.isLoadingMore)
+          fails = failsNext
+          answer.complete(Unit)
+          drain()
+          answer = CompletableDeferred()
+          assertFalse(name, vm.uiState.value.isLoading || vm.uiState.value.isLoadingMore)
+          // A failure keeps the days read; an answer reads all the days loaded
+          val read =
+              if (failsNext) readWhileLoading
+              else
+                  vm.uiState.value.loadedRange(zone).let {
+                    "${it.startDateInclusive}..${it.endDateExclusive}"
+                  }
+          assertEquals(name, read, readDays())
+        }
+      }
+
+  /**
+   * After another account signs in, or the patient stops sharing, nothing is read anymore: the next
+   * read is a first load, not loading more.
+   */
+  @Test
+  fun loadingMoreStartsOverAfterAnAccessChange() =
+      runTest(dispatcher) {
+        // Another account: its read doesn't answer yet
+        val auth = FakeAuthRepository { AuthUser(it) }
+        auth.signInWithGoogle("a")
+        val repository = FakePlanningRepository()
+        val own = PlanningViewModel(ownPlanning(repository, auth), clock, zone, SavedStateHandle())
+        drain()
+        assertNotNull(own.uiState.value.readDays)
+        repository.observation = { flow { awaitCancellation() } }
+        auth.signInWithGoogle("b")
+        drain()
+        own.showLater()
+        assertTrue(own.uiState.value.isLoading)
+        assertNull(own.uiState.value.readDays)
+        assertFalse(own.uiState.value.isLoadingMore)
+
+        // The patient stops sharing their planning with the caregiver
+        val circle = FakeCareCircleRepository()
+        val followed =
+            PlanningViewModel(
+                followedPlanning(
+                    FakePlanningRepository(),
+                    setOf(CarePermission.PLANNING),
+                    circle = circle,
+                ),
+                clock,
+                zone,
+                SavedStateHandle(),
+                patientUid = "patient",
+            )
+        drain()
+        assertNotNull(followed.uiState.value.readDays)
+        circle.setMembers(
+            "patient",
+            listOf(
+                CareCircleMember(
+                    uid = "caregiver",
+                    firstName = "Sam",
+                    permissions = setOf(CarePermission.SYMPTOMS),
+                )
+            ),
+        )
+        drain()
+        assertTrue(followed.uiState.value.isNotShared)
+        followed.showLater()
+        assertNull(followed.uiState.value.readDays)
+        assertFalse(followed.uiState.value.isLoadingMore)
+      }
+
+  /**
+   * Offline, appointments come from the phone's copy: one saved there ten weeks ahead shows once
+   * the window reaches it, without an error.
+   */
+  @Test
+  fun offlineTheWiderWindowShowsTheSavedAppointments() =
+      runTest(dispatcher) {
+        val appointments = FakeAppointmentRepository(clock)
+        val vm =
+            PlanningViewModel(
+                ownPlanning(AppointmentPlanningSource(appointments)),
+                clock,
+                zone,
+                SavedStateHandle(),
+            )
+        val scan =
+            Appointment(
+                "",
+                "Scan",
+                Instant.parse("2026-12-11T09:00:00Z"),
+                AppointmentType.CONSULTATION,
+            )
+        appointments.addAppointment("patient", scan)
+        drain()
+        assertTrue(vm.uiState.value.itemsByDay.isEmpty())
+
+        vm.showLater()
+        drain()
+
+        val state = vm.uiState.value
+        assertEquals(
+            listOf("Scan"),
+            state.itemsByDay[LocalDate.of(2026, 12, 11)].orEmpty().map { it.title },
+        )
+        assertFalse(state.hasError)
+        assertFalse(state.isLoading)
+      }
+
+  /**
+   * From a grid, openInList switches to List on the day, with a window around it, and keeps the
+   * jump in the state until the List plays it: a newer jump replaces it, the List rebuilt meanwhile
+   * still finds it, leaving the List drops it, and nothing about it is saved.
+   */
+  @Test
+  fun openInListKeepsTheJumpUntilTheListPlaysIt() =
+      runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val repository = FakePlanningRepository()
+        val vm = PlanningViewModel(ownPlanning(repository), clock, zone, saved)
+        vm.selectView(PlanningView.MONTH)
+        drain()
+        val states = mutableListOf<PlanningUiState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+          vm.uiState.collect { states += it }
+        }
+        val day = LocalDate.of(2027, 6, 15)
+        val keys =
+            setOf(item("a", "2027-06-15T08:00:00Z").key, item("b", "2027-06-15T08:00:00Z").key)
+        val first = PlanningListJump(day, keys)
+
+        // Every state holding the jump already shows List on its day
+        vm.openInList(day, keys)
+        drain()
+        val withJump = states.filter { it.pendingJump != null }
+        assertTrue(withJump.isNotEmpty())
+        for (state in withJump) {
+          assertEquals(PlanningView.LIST, state.view)
+          assertEquals(day, state.selectedDate)
+          assertTrue(day in state.listWindow)
+        }
+        assertEquals(first, vm.uiState.value.pendingJump)
+        assertEquals(PlanningListWindow.around(day), vm.uiState.value.listWindow)
+        assertEquals(PlanningListWindow.around(day).range(zone), repository.ranges.last())
+
+        // A second jump before the first is played: only the latest is kept, without a new read
+        val reads = repository.ranges.size
+        val latest = PlanningListJump(day.plusWeeks(2), setOf("x"))
+        vm.openInList(latest.date, latest.keys)
+        drain()
+        assertEquals(reads, repository.ranges.size)
+        assertEquals(latest, vm.uiState.value.pendingJump)
+        // The first one played late doesn't clear it
+        vm.jumpShown(first)
+        assertEquals(latest, vm.uiState.value.pendingJump)
+        // It stays while the List grows or another day is picked in it, until played once
+        vm.showLater()
+        vm.selectDate(day)
+        drain()
+        assertEquals(latest, vm.uiState.value.pendingJump)
+        vm.jumpShown(latest)
+        assertNull(vm.uiState.value.pendingJump)
+
+        // Leaving the List drops a jump not played
+        vm.openInList(day, keys)
+        vm.selectView(PlanningView.WEEK)
+        drain()
+        assertNull(vm.uiState.value.pendingJump)
+        // Only the selection is saved
+        assertEquals(
+            setOf("planning_selected_date", "planning_view", "planning_period_start"),
+            saved.keys(),
+        )
+        assertThrows(IllegalArgumentException::class.java) {
+          vm.openInList(LocalDate.of(0, 12, 31), keys)
+        }
+      }
+
+  /** After a rotation or process death, the List opens on the saved day, in a new window. */
+  @Test
+  fun restoredDayGetsANewWindowAroundIt() =
+      runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val original = PlanningViewModel(ownPlanning(FakePlanningRepository()), clock, zone, saved)
+        original.showLater()
+        original.showLater()
+        val day = LocalDate.of(2026, 12, 20)
+        original.selectDate(day)
+        drain()
+        assertEquals(LocalDate.of(2027, 1, 23), original.uiState.value.listWindow.end)
+
+        val repository = FakePlanningRepository()
+        val restored =
+            PlanningViewModel(
+                ownPlanning(repository),
+                clock,
+                zone,
+                SavedStateHandle(saved.keys().associateWith { saved.get<Any>(it) }),
+            )
+        drain()
+
+        assertEquals(day, restored.uiState.value.selectedDate)
+        assertEquals(PlanningListWindow.around(day), restored.uiState.value.listWindow)
+        assertEquals(PlanningListWindow.around(day).range(zone), repository.ranges.single())
       }
 }
