@@ -31,6 +31,10 @@ class FakeAuthRepository(
   override val currentUser: AuthUser?
     get() = user.value
 
+  /** How many [observeCurrentUser] collections are running, to check a screen follows it once. */
+  val userObservers: Int
+    get() = user.subscriptionCount.value
+
   /** Failure raised when a new authentication observation starts. */
   var observeError: Exception? = null
 

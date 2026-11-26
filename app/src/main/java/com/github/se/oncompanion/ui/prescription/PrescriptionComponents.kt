@@ -8,15 +8,15 @@ import androidx.compose.ui.res.stringResource
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.ui.common.LakeMessageState
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /**
  * How the prescription screens write a date: "29 Sep 2026". One formatter, so the list, the detail,
- * the form and the notices always agree. The app's UI is in English.
+ * the form and the notices always agree. The month follows the app language.
  */
-internal val prescriptionDateFormatter: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH)
+internal val prescriptionDateFormatter: DateTimeFormatter
+  @Composable get() = rememberAppDateFormatter("d MMM yyyy")
 
 /**
  * Where reading the prescriptions of the list or the detail is at, as one value, so two states can

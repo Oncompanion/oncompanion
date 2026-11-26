@@ -355,7 +355,10 @@ class CaregiverOverviewScreenTest {
     compose.onNodeWithTag(OverviewShortcut.SYMPTOMS.testTag).assertDoesNotExist()
     compose.onNodeWithTag(OverviewShortcut.PRESCRIPTIONS.testTag).performScrollTo().performClick()
     // Never the care circle, which only the patient manages
-    compose.onNodeWithTag(OverviewShortcut.CARE_CIRCLE.testTag).assertDoesNotExist()
+    compose
+        .onNodeWithText(compose.activity.getString(R.string.care_circle_title))
+        .assertDoesNotExist()
+    compose.onNodeWithTag(C.Tag.circle_button).assertDoesNotExist()
     assertEquals(listOf(OverviewShortcut.PRESCRIPTIONS), opened)
 
     state = shared.copy(sections = sections(PLANNING, PRESCRIPTIONS, SYMPTOMS))

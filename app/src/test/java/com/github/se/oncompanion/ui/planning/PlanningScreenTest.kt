@@ -92,6 +92,15 @@ class PlanningScreenTest {
       )
 
   @Test
+  @Config(qualifiers = "fr-rCH")
+  fun planningShowsFrenchLabelsWithoutChangingTheAppointmentTitle() {
+    render(state(items = listOf(item)))
+    compose.onNodeWithText("Octobre 2026").assertIsDisplayed()
+    compose.onNodeWithText("Planifié").assertIsDisplayed()
+    compose.onNodeWithText(item.title).assertIsDisplayed()
+  }
+
+  @Test
   fun emptyStateAndDates() {
     render(state())
     compose.onNodeWithText("Planning").assertIsDisplayed()
@@ -126,6 +135,25 @@ class PlanningScreenTest {
     val sunday = state().weekStart.plusDays(6)
     compose.onNodeWithTag(C.Tag.planningDay(sunday.toString())).performClick()
     assertEquals(sunday, selected)
+  }
+
+  /** The add button must leave the end of the week reachable at large text sizes. */
+  @Test
+  @Config(qualifiers = "fr-rCH-" + LANDSCAPE_PHONE)
+  fun compactFrenchCalendarKeepsSundayClearOfAddButton() {
+    var selected: LocalDate? = null
+    var added: LocalDate? = null
+    render(state(listOf(item)), onDate = { selected = it }, onAdd = { added = it }, fontScale = 2f)
+
+    val sunday = state().weekStart.plusDays(6)
+    val sundayButton = compose.onNodeWithTag(C.Tag.planningDay(sunday.toString()))
+    val addButton = compose.onNodeWithTag(C.Tag.planning_add)
+    sundayButton.performScrollTo().assertIsFullyVisible()
+    assertTrue(sundayButton.getBoundsInRoot().right <= addButton.getBoundsInRoot().left)
+    sundayButton.performClick()
+    addButton.performClick()
+    assertEquals(sunday, selected)
+    assertEquals(date, added)
   }
 
   @Test

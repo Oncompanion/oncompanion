@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.events
@@ -45,17 +46,18 @@ import com.github.se.oncompanion.model.event.Event
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeBanner
 import com.github.se.oncompanion.ui.common.LakeMessageState
+import com.github.se.oncompanion.ui.common.formatDateHeading
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.navigation.BottomBarUiState
 import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Screen
 import com.github.se.oncompanion.ui.navigation.Tab
 import com.github.se.oncompanion.ui.theme.Spacing
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
-/** "Sat 3 Oct · 10:00", as in the mockup. The app's UI is in English. */
-private val eventDateFormatter = DateTimeFormatter.ofPattern("EEE d MMM · HH:mm", Locale.ENGLISH)
+/** "Sat 3 Oct · 10:00", as in the mockup. Day and month names follow the app language. */
+private val eventDateFormatter
+  @Composable get() = rememberAppDateFormatter("EEE d MMM · HH:mm")
 
 /**
  * The Events tab (Figma: "US-03 / Events"): the Ligue's upcoming events.
@@ -170,7 +172,7 @@ private fun EventCard(event: Event, onClick: () -> Unit) {
       )
       Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = event.startDateTime.format(eventDateFormatter),
+            text = eventDateFormatter.formatDateHeading(event.startDateTime),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.primary,
         )

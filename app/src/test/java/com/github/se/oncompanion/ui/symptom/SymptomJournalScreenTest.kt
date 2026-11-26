@@ -244,6 +244,27 @@ class SymptomJournalScreenTest {
     assertTextInside("Severe · After the walk", C.Tag.symptomJournalItem("fatigue"))
   }
 
+  /** French strength adjectives agree with the intensity label and keep custom spelling. */
+  @Test
+  @Config(qualifiers = "fr-rCH")
+  fun frenchStrengthsAgreeWithIntensityAndKeepCustomSpelling() {
+    setSingleEntry(
+        fatigue.copy(
+            types = listOf(SymptomType.OTHER, SymptomType.NAUSEA, SymptomType.PAIN),
+            otherName = "mes crampes",
+            intensity = null,
+            strengths =
+                mapOf(SymptomType.OTHER to 1, SymptomType.NAUSEA to 8, SymptomType.PAIN to 5),
+            notes = null,
+        )
+    )
+
+    assertTextInside(
+        "mes crampes · intensité légère · Nausées · intensité forte · Douleur · intensité modérée",
+        C.Tag.symptomJournalItem("fatigue"),
+    )
+  }
+
   @Test
   fun eachStrength_isSaidInWords_inTheOrderPicked_beforeTheNotes() {
     val two = listOf(SymptomType.FATIGUE, SymptomType.NAUSEA)
@@ -337,6 +358,19 @@ class SymptomJournalScreenTest {
     setSingleEntry(fatigue.copy(notes = "   "))
 
     assertTextInside("Severe", C.Tag.symptomJournalItem("fatigue"))
+  }
+
+  @Test
+  @Config(qualifiers = "fr-rCH")
+  fun standaloneDayHeadingStartsWithACapitalInFrench() {
+    val saturday = LocalDate.of(2026, 10, 3)
+    setContent(loaded.copy(days = listOf(day(saturday, fatigue to "14:30"))))
+
+    composeTestRule
+        .onNodeWithTag(C.Tag.symptomJournalDay(saturday.toString()))
+        .performScrollTo()
+        .assertTextEquals("Sam. 3 oct.")
+        .assert(isHeading())
   }
 
   @Test

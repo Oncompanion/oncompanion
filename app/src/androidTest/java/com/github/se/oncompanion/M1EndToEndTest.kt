@@ -4,6 +4,7 @@
 
 package com.github.se.oncompanion
 
+import android.Manifest
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -30,19 +31,24 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToKey
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.oncompanion.model.settings.AppearancePreference
 import com.github.se.oncompanion.model.settings.DateFormatPreference
 import com.github.se.oncompanion.model.settings.SettingsRepositoryProvider
 import com.github.se.oncompanion.model.settings.TimeFormatPreference
+import com.github.se.oncompanion.model.speech.SpeechRecognizer
+import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.navigation.Tab
 import com.github.se.oncompanion.utils.EmulatorGoogleSignIn
 import com.github.se.oncompanion.utils.EmulatorTestData
 import com.github.se.oncompanion.utils.EndToEndTestDriver
 import com.github.se.oncompanion.utils.FirebaseEmulator
+import com.github.se.oncompanion.utils.ScriptedSpeechRecognizer
 import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -86,8 +92,16 @@ class M1EndToEndTest {
   // the collection is shared by every test run: its own id, deleted after the test
   private val ligueEvent = "m1-event-$run"
 
+  // The phone's recognizer the activity installed on launch, put back after a test sets a fake.
+  // Read in setUp: the activity isn't launched yet when the test class is built
+  private var phoneRecognizer: SpeechRecognizer? = null
+
+  // The phone's language, put back after a test that sets its own
+  private val deviceLocale = Locale.getDefault()
+
   @Before
   fun setUp(): Unit = runBlocking {
+    phoneRecognizer = SpeechRecognizerProvider.installed
     SettingsRepositoryProvider.install(compose.activity.applicationContext)
     SettingsRepositoryProvider.repository.setAppearance(AppearancePreference.FOLLOW_DEVICE)
     SettingsRepositoryProvider.repository.setDateFormat(DateFormatPreference.FOLLOW_DEVICE)
@@ -98,6 +112,8 @@ class M1EndToEndTest {
   @After
   fun tearDown(): Unit = runBlocking {
     AppHostActivity.content.value = {}
+    phoneRecognizer?.let { SpeechRecognizerProvider.recognizer = it }
+    Locale.setDefault(deviceLocale)
     SettingsRepositoryProvider.repository.setAppearance(AppearancePreference.FOLLOW_DEVICE)
     SettingsRepositoryProvider.repository.setDateFormat(DateFormatPreference.FOLLOW_DEVICE)
     SettingsRepositoryProvider.repository.setTimeFormat(TimeFormatPreference.FOLLOW_DEVICE)
@@ -140,6 +156,35 @@ class M1EndToEndTest {
 
     signInAndOnboard(firstName = "Sam")
     inviteToCareCircle(firstName = "Julie")
+  }
+
+  /**
+   * US-44 and US-73: the patient dictates a symptom from the journal's Add symptom, then from the
+   * Overview's "Speak how you feel", checks each draft and saves it; both are in the journal.
+   */
+  @Test
+  fun newPatient_logsSymptomsByVoice() {
+    // The phrases are English: the app parses what it hears in the phone's language, so a French
+    // emulator would draft nothing from them
+    Locale.setDefault(Locale.US)
+    // The emulator can't hear anyone: the fake recognizer "hears" one phrase per dictation
+    SpeechRecognizerProvider.recognizer =
+        ScriptedSpeechRecognizer("I feel nauseous", "I'm really tired, about 7 out of 10")
+    // Allowed beforehand: Android's own microphone dialog is outside the app
+    InstrumentationRegistry.getInstrumentation()
+        .uiAutomation
+        .grantRuntimePermission(compose.activity.packageName, Manifest.permission.RECORD_AUDIO)
+    ui.startApp(signIn)
+    signInAndOnboard(firstName = "Sam")
+
+    dictateSymptomFromJournal()
+    speakHowYouFeelFromOverview()
+
+    // Both dictated symptoms are in the journal
+    ui.open(C.Tag.overview_journal_link, hasTestTag(C.Tag.symptom_journal_list))
+    for (type in listOf(R.string.symptom_type_nausea, R.string.symptom_type_fatigue)) {
+      ui.waitFor(hasText(string(type), substring = true) and hasClickAction())
+    }
   }
 
   /** Every editable Profile field stays saved after visiting Settings and returning. */
@@ -403,6 +448,65 @@ class M1EndToEndTest {
     ui.open(C.Tag.symptom_back_button, hasTestTag(C.Tag.overview_greeting))
   }
 
+  /**
+   * From the journal's Add symptom (US-44): the patient speaks, sees what was heard, and the form
+   * comes back drafted with the symptom picked; saving returns to the journal with the entry.
+   */
+  private fun dictateSymptomFromJournal() {
+    ui.open(C.Tag.overview_journal_link, hasTestTag(C.Tag.symptom_journal_add))
+    ui.open(C.Tag.symptom_journal_add, hasTestTag(C.Tag.symptom_add_speak))
+    ui.open(C.Tag.symptom_add_speak, hasTestTag(C.Tag.symptom_voice_screen))
+    reviewWhatWasHeard("I feel nauseous", type = "NAUSEA", pickedUp = R.string.symptom_type_nausea)
+    ui.open(
+        C.Tag.symptom_add_save,
+        hasTestTag(C.Tag.symptom_journal_list) and
+            hasAnyDescendant(hasText(string(R.string.symptom_type_nausea))),
+    )
+    ui.open(C.Tag.symptom_back_button, hasTestTag(C.Tag.overview_greeting))
+  }
+
+  /**
+   * From the Overview's "Speak how you feel" (US-73): the form opens already listening; once the
+   * drafted symptom is saved, the patient is back on the Overview.
+   */
+  private fun speakHowYouFeelFromOverview() {
+    ui.open(C.Tag.overview_speak, hasTestTag(C.Tag.symptom_voice_screen))
+    val tired = "I'm really tired, about 7 out of 10"
+    // The intensity said is picked up too
+    ui.waitFor(
+        hasTestTag(C.Tag.symptom_voice_picked_up) and
+            hasAnyDescendant(hasText(string(R.string.symptom_voice_intensity, 7)))
+    )
+    reviewWhatWasHeard(tired, type = "FATIGUE", pickedUp = R.string.symptom_type_fatigue)
+    // The intensity reached the form, not only the preview
+    ui.tag(C.Tag.symptom_add_intensity_value)
+        .reveal()
+        .assertTextContains(string(R.string.symptom_voice_intensity, 7), substring = true)
+    ui.open(C.Tag.symptom_add_save, hasTestTag(C.Tag.overview_greeting))
+  }
+
+  /**
+   * On the voice screen, once the patient stopped speaking: the [transcript] is shown with the
+   * symptom picked up from it ([pickedUp]); Done fills the form, which says it was drafted and has
+   * [type] picked, for the patient to check before saving.
+   */
+  private fun reviewWhatWasHeard(transcript: String, type: String, pickedUp: Int) {
+    // Heard, not still listening: the phone sent the whole text
+    ui.waitFor(
+        hasTestTag(C.Tag.symptom_voice_headline) and hasText(string(R.string.symptom_voice_heard))
+    )
+    // The card's tag is on its Surface, the text in a child
+    ui.waitFor(
+        hasTestTag(C.Tag.symptom_voice_transcript) and
+            hasAnyDescendant(hasText(transcript, substring = true))
+    )
+    ui.waitFor(
+        hasTestTag(C.Tag.symptom_voice_picked_up) and hasAnyDescendant(hasText(string(pickedUp)))
+    )
+    ui.open(C.Tag.symptom_voice_done, hasTestTag(C.Tag.symptom_add_drafted))
+    ui.tag(C.Tag.symptomAddType(type)).reveal().assertIsSelected()
+  }
+
   /** The profile shows the onboarding first name; a hospital entered there is saved. */
   private fun seeProfileAndAddHospital(firstName: String, hospital: String) {
     ui.open(
@@ -492,9 +596,9 @@ class M1EndToEndTest {
    * waiting to join. Joining with the invite code on the caregiver's side has no screen yet (#137).
    */
   private fun inviteToCareCircle(firstName: String) {
-    // A new patient's circle is empty: its add button is in the page
-    ui.open(C.Tag.overview_shortcut_care_circle, hasTestTag(C.Tag.care_circle_empty_add_button))
-    ui.open(C.Tag.care_circle_empty_add_button, hasTestTag(C.Tag.care_circle_form_first_name))
+    // A new patient's circle is empty: the sailboat's sheet offers to add someone
+    ui.open(C.Tag.circle_button, hasTestTag(C.Tag.circle_sheet_add_someone))
+    ui.open(C.Tag.circle_sheet_add_someone, hasTestTag(C.Tag.care_circle_form_first_name))
         .typeText(firstName)
     ui.tag(C.Tag.care_circle_form_relationship).reveal().performClick()
     // On a short screen the menu scrolls, and an option below its visible part can't be tapped
@@ -572,5 +676,5 @@ class M1EndToEndTest {
 
   private fun SemanticsNodeInteraction.reveal() = ui.reveal(this)
 
-  private fun string(id: Int) = compose.activity.getString(id)
+  private fun string(id: Int, vararg args: Any) = compose.activity.getString(id, *args)
 }

@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.overview
@@ -120,6 +121,30 @@ class CheckInSheetTest {
     node(C.Tag.overview_check_in_sheet_when).assertTextContains("Now, 09:30 · Change")
     node(C.Tag.overview_check_in_sheet_save).performScrollTo().assertIsEnabled()
     node(C.Tag.overview_check_in_sheet_saving).assertDoesNotExist()
+  }
+
+  @Test
+  @Config(qualifiers = "fr-rCH")
+  fun checkInSheetShowsFrenchLabelsAndFormattedTime() {
+    showSheet(nausea)
+
+    composeTestRule.onNodeWithText("Comment vous sentez-vous ?").assertIsDisplayed()
+    composeTestRule.onNodeWithContentDescription("Fermer sans enregistrer").assertIsDisplayed()
+    node(C.Tag.overview_check_in_sheet_when)
+        .performScrollTo()
+        .assertTextContains("Maintenant, 09:30 · Modifier")
+    composeTestRule
+        .onNodeWithText("Ajouter une note (facultatif)")
+        .performScrollTo()
+        .assertIsDisplayed()
+    node(C.Tag.overview_check_in_sheet_save)
+        .performScrollTo()
+        .assertTextContains("Enregistrer dans mon journal")
+
+    showSheet(nausea.copy(date = morning.toLocalDate().minusDays(1), time = LocalTime.of(8, 15)))
+    node(C.Tag.overview_check_in_sheet_when)
+        .performScrollTo()
+        .assertTextContains("Hier, 08:15 · Modifier")
   }
 
   @Test

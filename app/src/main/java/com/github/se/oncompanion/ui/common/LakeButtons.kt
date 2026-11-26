@@ -135,7 +135,7 @@ internal fun LinkAction(
       contentAlignment = Alignment.Center,
       modifier =
           modifier
-              .heightIn(min = LINK_ACTION_HEIGHT)
+              .heightIn(min = LINK_HEIGHT)
               .clip(MaterialTheme.shapes.medium)
               .clickable(role = Role.Button, onClick = onClick)
               .padding(horizontal = Spacing.sm),
@@ -153,9 +153,6 @@ internal fun SmallSpinner(color: Color, modifier: Modifier = Modifier) {
       modifier = modifier.size(SMALL_SPINNER_SIZE),
   )
 }
-
-// The touch target of a banner's or snackbar's action
-private val LINK_ACTION_HEIGHT = 48.dp
 
 // The size of a button's leading icon in the Figma
 private val ICON_SIZE = 24.dp

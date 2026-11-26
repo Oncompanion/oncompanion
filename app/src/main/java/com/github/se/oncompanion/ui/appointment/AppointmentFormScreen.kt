@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -230,7 +231,10 @@ fun AppointmentFormContent(
           modifier = Modifier.fillMaxWidth().testTag(C.Tag.appointment_title),
       )
       ClickableReadOnlyField(
-          state.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
+          state.date.format(
+              DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+                  .withLocale(LocalConfiguration.current.locales[0])
+          ),
           stringResource(R.string.appointment_date),
           { if (state.editable) dateOpen = true },
           stringResource(R.string.appointment_pick_date),

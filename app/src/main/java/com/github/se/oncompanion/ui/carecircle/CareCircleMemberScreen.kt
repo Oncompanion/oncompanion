@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.carecircle
@@ -56,16 +57,16 @@ import com.github.se.oncompanion.ui.common.DialogTags
 import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.LakeDialog
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Screen
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
 import java.time.Instant
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /** "Aug 2026", like the profile's "Member since". */
-private val addedAtFormatter = DateTimeFormatter.ofPattern("MMM yyyy", Locale.ENGLISH)
+private val addedAtFormatter
+  @Composable get() = rememberAppDateFormatter("MMM yyyy")
 
 /**
  * One member of the signed-in user's care circle (US-14), following the "US-14 / Member detail"
