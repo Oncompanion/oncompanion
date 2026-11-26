@@ -58,7 +58,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filter
 
-/** The Figma lake's proportions (390 × 270). */
+/** The lake's proportions (390 × 270). */
 private const val LAKE_RATIO = 390f / 270f
 
 /** The window edges the right half touches when the phone is held sideways. */
@@ -66,9 +66,9 @@ private val RIGHT_HALF_SIDES =
     WindowInsetsSides.Top + WindowInsetsSides.End + WindowInsetsSides.Bottom
 
 /**
- * "Speak your symptoms" (US-44, Figma: Voice logging): the patient dictates the symptom, sees what
- * is picked up, then goes back to the form to check it. Shown by the add symptom screen instead of
- * its form while [voice] isn't null; stateless, so each state can be tested on its own.
+ * "Speak your symptoms" (design: M3, "Speak · Listening"): the patient dictates the symptom, sees
+ * what is picked up, then goes back to the form to check it. Shown by the add symptom screen
+ * instead of its form while [voice] isn't null; stateless, so each state can be tested on its own.
  *
  * @param today the day it is, for when a symptom was felt ("Yesterday · 21:00")
  * @param onClose leaves without what was said (close, system Back): back to the form, or out of it
@@ -81,7 +81,7 @@ private val RIGHT_HALF_SIDES =
  * @param onNotNow listens without downloading the language
  * @param onTypeInstead goes back to the form without what was said
  * @param leavesOnClose the close button leaves the form (opened from "Speak how you feel" on the
- *   Overview, US-73) instead of going back to it, which screen readers say
+ *   Overview) instead of going back to it, which screen readers say
  */
 @Composable
 fun VoiceSymptomContent(
@@ -168,10 +168,10 @@ fun VoiceSymptomContent(
 }
 
 /**
- * The scroll of the words, which follows them while the patient speaks (#568): each time what was
- * said or picked up changes, it scrolls to the end, so the last words and the chips stay in view.
- * Scrolled up to reread, it stays there until new words arrive or the layout changes (rotation, the
- * buttons once listening ends). A state with only a message keeps its headline in view.
+ * The scroll of the words, which follows them while the patient speaks: each time what was said or
+ * picked up changes, it scrolls to the end, so the last words and the chips stay in view. Scrolled
+ * up to reread, it stays there until new words arrive or the layout changes (rotation, the buttons
+ * once listening ends). A state with only a message keeps its headline in view.
  */
 @Composable
 private fun rememberFollowingScroll(voice: VoiceUiState): ScrollState {

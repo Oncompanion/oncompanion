@@ -195,22 +195,22 @@ data class AddSymptomUiState(
 }
 
 /**
- * The symptom form. Without [symptomId], it logs a new symptom (US-07 "Log a symptom"): the user
- * picks one or more symptoms and saves them, optionally with how bad they felt, when, and notes.
- * With [symptomId], it edits that symptom (US-09): the form starts from what was logged and every
- * field can be changed. Nothing is saved before the user taps Save.
+ * The symptom form. Without [symptomId], it logs a new symptom: the user picks one or more symptoms
+ * and saves them, optionally with how bad they felt, when, and notes. With [symptomId], it edits
+ * that symptom: the form starts from what was logged and every field can be changed. Nothing is
+ * saved before the user taps Save.
  *
- * In caregiver mode (US-22), it logs the symptom in the journal of [patientUid], signed with the
+ * In caregiver mode, it logs the symptom in the journal of [patientUid], signed with the
  * caregiver's uid and first name; the rules only accept it if the patient lets them add symptoms.
  * It edits one of the patient's the same way, signed as its last editor, if the patient lets them
- * edit and delete symptoms (US-46).
+ * edit and delete symptoms.
  *
  * @param clock the current time, and the time zone the day and time are chosen in
  * @param symptomId the symptom to edit, or `null` to log a new one
  * @param patientUid in caregiver mode, the patient whose journal gets the new or edited symptom;
  *   null for the user's own
  * @param profileRepository the caregiver's profile, for the first name the symptom is signed with
- * @param speechRecognizer listens when the symptom is dictated (US-44)
+ * @param speechRecognizer listens when the symptom is dictated
  * @param locale the phone's language: a symptom is dictated in French on a French phone, in English
  *   otherwise
  * @param symptomName the name of each symptom of the list, as the form shows it, so "Other" isn't
@@ -218,10 +218,10 @@ data class AddSymptomUiState(
  * @param picked a symptom already ticked when logging a new one (a check-in tile on the Overview);
  *   the user can still untick it. Ignored when editing
  * @param declinedDownloads the languages the patient said Not now to downloading for offline
- *   dictation (US-45), so they aren't offered again in the next forms
- * @param speakOnOpen the form is opened to speak (US-73, "Speak how you feel" on the Overview): it
- *   shows the voice screen at once and starts dictating in [onOpened]. Ignored when editing or when
- *   the phone can't listen
+ *   dictation, so they aren't offered again in the next forms
+ * @param speakOnOpen the form is opened to speak ("Speak how you feel" on the Overview): it shows
+ *   the voice screen at once and starts dictating in [onOpened]. Ignored when editing or when the
+ *   phone can't listen
  */
 class AddSymptomViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
@@ -318,9 +318,9 @@ class AddSymptomViewModel(
   }
 
   /**
-   * Starts a new check-in from the Overview's sheet (#544): an empty form with [picked] ticked, or
-   * nothing for "More…", whatever the last check-in left (saved, or closed without saving). Ignored
-   * when editing, and while a symptom is being saved, so a save in progress is never lost.
+   * Starts a new check-in from the Overview's sheet: an empty form with [picked] ticked, or nothing
+   * for "More…", whatever the last check-in left (saved, or closed without saving). Ignored when
+   * editing, and while a symptom is being saved, so a save in progress is never lost.
    */
   fun startCheckIn(picked: SymptomType?) {
     _uiState.update { state ->
@@ -635,7 +635,7 @@ class AddSymptomViewModel(
   private var phone: OfflineSpeech? = null
 
   /**
-   * Starts dictating (US-45): shows the voice screen at once while the phone is asked whether it
+   * Starts dictating: shows the voice screen at once while the phone is asked whether it
    * understands the patient's language offline, then offers the download when it could get it and
    * the patient hasn't declined it, or listens. A phone slow to answer isn't waited for: the
    * patient came to speak.

@@ -56,7 +56,7 @@ internal enum class VoiceSun {
   SETTLED,
 }
 
-// The Figma lake is 390 × 270; the sun's centre and the halos, in its units
+// The lake is 390 × 270; the sun's center and the halos, in its units
 private const val LAKE_WIDTH = 390f
 private const val LAKE_HEIGHT = 270f
 private const val SUN_X = 262f

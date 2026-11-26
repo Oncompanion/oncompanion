@@ -98,6 +98,10 @@ import kotlinx.coroutines.launch
 /**
  * A section the patient can open from the Overview with a single tap.
  *
+ * @property route where the tile leads
+ * @property label the tile's text
+ * @property icon the tile's icon
+ * @property testTag the tile's test tag
  * @property section the section a caregiver needs shared to get this tile, or `null` if they never
  *   get it
  */
@@ -137,26 +141,24 @@ enum class OverviewShortcut(
  */
 private val tileShortcuts = listOf(OverviewShortcut.SYMPTOMS, OverviewShortcut.PRESCRIPTIONS)
 
-/** "Saturday 3 October", as in the mockup. Day and month names follow the app language. */
+/** "Saturday 3 October". Day and month names follow the app language. */
 private val todayFormatter
   @Composable get() = rememberAppDateFormatter("EEEE d MMMM")
 
 /**
- * The home screen after signing in (US-23 "See my day at a glance"), following the Figma "US-23 ·
- * Overview dashboard (proposal)": a greeting, the next appointment, today's items and the shortcuts
- * to each section.
+ * The home screen after signing in (design: M3, "Overview · Patient · Home"): a greeting, the next
+ * appointment, today's items and the shortcuts to each section.
  *
- * A caregiver sees it in caregiver mode (US-20): "Anne's care ▾" opens "Whose care?" to switch
- * patient, and the shortcuts are only those of the sections the patient shares (Symptoms and
- * Prescriptions).
+ * A caregiver sees it in caregiver mode: "Anne's care ▾" opens "Whose care?" to switch patient, and
+ * the shortcuts are only those of the sections the patient shares (Symptoms and Prescriptions).
  *
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
  * @param onSwitchPatient opens "Whose care?", in caregiver mode
  * @param bottomBar what the bottom bar shows on every tab: its tabs and the Prescriptions badge
- * @param checkIn gives the ViewModel that logs what the patient feels from the check-in's sheet
- *   (#544), created on the first tile tapped
+ * @param checkIn gives the ViewModel that logs what the patient feels from the check-in's sheet,
+ *   created on the first tile tapped
  * @param circle reads the patient's care circle from the start, for the sailboat's dot, and fills
- *   the "Your circle" sheet it opens (US-50, #457)
+ *   the "Your circle" sheet it opens
  */
 @Composable
 fun OverviewScreen(
@@ -301,8 +303,8 @@ private const val CHECK_IN_KEY = "check_in"
  * @param onOpenDoses opens the sheet to correct the doses of one, by its ID
  * @param onLogSymptom opens the check-in's sheet from the patient's check-in, with that symptom
  *   picked or empty for `null`
- * @param onSpeak opens the symptom form already listening, from the check-in's "Speak how you feel"
- *   (US-73), shown only when [OverviewUiState.canSpeak]
+ * @param onSpeak opens the symptom form already listening, from the check-in's "Speak how you
+ *   feel", shown only when [OverviewUiState.canSpeak]
  * @param onUndoSaved deletes the entry saved today, by its ID, from the check-in's Undo
  * @param onEditSaved opens the entry saved today in the symptom form, by its ID
  * @param snackbarHostState shows that Undo failed
@@ -339,7 +341,7 @@ fun OverviewContent(
       modifier = modifier.testTag(C.Tag.overview_screen),
       bottomBar = bottomBar,
       snackbarHost = { LakeSnackbarHost(snackbarHostState) },
-      // The patient's day sits on the stone page; the caregiver's comes later
+      // The patient's day sits on the stone page; a caregiver's, on the default background
       containerColor =
           if (caregiverOf == null) MaterialTheme.lakeColors.stone.page
           else MaterialTheme.colorScheme.background,
@@ -386,7 +388,7 @@ fun OverviewContent(
             // show
             uiState.isNotShared && caregiverOf != null ->
                 NotSharedMessage(caregiverOf, CarePermission.PLANNING)
-            // The patient's day follows the Overview UX Refactor; the caregiver's comes later
+            // The patient's own day; a caregiver here gets the next appointment and today's list
             caregiverOf == null ->
                 PatientDay(
                     uiState,
@@ -431,7 +433,7 @@ fun OverviewContent(
   }
 }
 
-/** How far the first card reaches up over the header, as in the Figma (header 210, card at 168). */
+/** How far the first card reaches up over the header (header 210, card at 168). */
 private val HEADER_OVERLAP = 42.dp
 
 /**
@@ -482,7 +484,7 @@ private fun OverviewHeader(
         if (caregiverOf == null) Greeting(uiState.firstName, uiState.now, titleStyle)
         else CareTitle(caregiverOf, uiState.now, onSwitchPatient, titleStyle)
       }
-      // The sailboat opening "Your circle", just before the profile (Figma M3)
+      // The sailboat, just before the profile (design: M3, "Something from the circle")
       sailboat?.invoke()
       val profile = OverviewShortcut.PROFILE
       IconButton(onClick = onProfileClick, modifier = Modifier.testTag(profile.testTag)) {

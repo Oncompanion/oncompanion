@@ -81,8 +81,8 @@ private val detailDateFormatter
   @Composable get() = rememberAppDateFormatter("EEEE d MMMM yyyy, HH:mm")
 
 /**
- * The detail of one symptom of the journal (US-8), from which the user can edit or delete it
- * (US-9). Goes back to the journal once it is deleted.
+ * The detail of one symptom of the journal, from which the user can edit or delete it. Goes back to
+ * the journal once it is deleted.
  */
 @Composable
 fun SymptomDetailScreen(
@@ -170,7 +170,7 @@ fun SymptomDetailContent(
                   message = stringResource(R.string.symptom_detail_not_found_hint),
               )
             }
-        // Edit and Delete at the bottom, away from the back button, as in the Figma mockup
+        // Edit and Delete at the bottom, away from the back button
         else ->
             DetailWithActions(
                 showActions = uiState.canDelete,
@@ -192,7 +192,7 @@ fun SymptomDetailContent(
   }
 
   if (uiState.isDeleteDialogShown) {
-    // A caregiver deletes the patient's entry: the dialog says whose it is (US-46)
+    // A caregiver deletes the patient's entry: the dialog says whose it is
     DeleteConfirmationDialog(
         title =
             caregiverOf?.let { stringResource(R.string.symptom_delete_title_for, it) }
@@ -249,7 +249,7 @@ private fun EntryDetail(
         )
       }
     }
-    // A symptom a caregiver logged for the patient says who did, and who last edited it (US-46),
+    // A symptom a caregiver logged for the patient says who did, and who last edited it,
     // close together
     if (addedByName != null || editedByName != null) {
       Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -261,9 +261,9 @@ private fun EntryDetail(
 }
 
 /**
- * Every symptom of the entry on one white card (Figma: "Symptom detail"), each with its strength
- * when it was given one. An entry saved before strengths has names only: its single intensity is on
- * the [InfoCard].
+ * Every symptom of the entry on one white card (design: M2, "Symptom detail"), each with its
+ * strength when it was given one. An entry saved before strengths has names only: its single
+ * intensity is on the [InfoCard].
  */
 @Composable
 private fun SymptomsSection(entry: SymptomEntry) {
@@ -311,7 +311,7 @@ private fun StrengthRow(type: SymptomType, name: String, strength: Int?) {
 }
 
 /**
- * A bar filled to [strength] out of [SymptomEntry.MAX_INTENSITY], in one colour whatever the value
+ * A bar filled to [strength] out of [SymptomEntry.MAX_INTENSITY], in one color whatever the value
  * so it never judges it. Hidden from TalkBack: the text above says the value.
  */
 @Composable
@@ -400,7 +400,7 @@ private fun InfoRow(
 
 /**
  * "7/10", read out as "Intensity 7 out of 10". Shown as entered, on the same container whatever the
- * value, so its colour never judges it.
+ * value, so its color never judges it.
  */
 @Composable
 private fun IntensityBadge(intensity: Int, modifier: Modifier = Modifier) {
@@ -422,6 +422,6 @@ private fun IntensityBadge(intensity: Int, modifier: Modifier = Modifier) {
   }
 }
 
-// The intensity badge of the Figma's symptom detail, and the height of a symptom's strength bar
+// The intensity badge of the symptom detail, and the height of a symptom's strength bar
 private val BADGE_HEIGHT = 36.dp
 private val BAR_HEIGHT = 6.dp
