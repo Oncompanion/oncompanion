@@ -56,12 +56,15 @@ import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.LakeDialog
 import com.github.se.oncompanion.ui.common.LakeSnackbarHost
 import com.github.se.oncompanion.ui.common.NotSharedMessage
+import com.github.se.oncompanion.ui.common.formatDateHeading
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.launch
 
-/** "Sat 3 Oct · 10:00", as in the mockup. The app's UI is in English. */
-private val startFormatter = DateTimeFormatter.ofPattern("EEE d MMM · HH:mm", Locale.ENGLISH)
+/** "Sat 3 Oct · 10:00", as in the mockup. Day and month names follow the app language. */
+private val startFormatter
+  @Composable get() = rememberAppDateFormatter("EEE d MMM · HH:mm")
 
 /** "11:30", for an event that ends on the day it starts. */
 private val endTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)
@@ -501,8 +504,9 @@ private fun DetailMessage(
 }
 
 /** "Sat 3 Oct · 10:00 – 11:30", or the start alone when the end isn't known. */
+@Composable
 private fun Event.dateAndTime(): String {
-  val start = startDateTime.format(startFormatter)
+  val start = startFormatter.formatDateHeading(startDateTime)
   val end = endDateTime ?: return start
   val endText =
       if (end.toLocalDate() == startDateTime.toLocalDate()) end.format(endTimeFormatter)

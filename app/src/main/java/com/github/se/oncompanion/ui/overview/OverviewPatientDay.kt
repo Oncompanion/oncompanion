@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.overview
@@ -35,9 +36,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
+import com.github.se.oncompanion.ui.common.CHEVRON_SIZE
+import com.github.se.oncompanion.ui.common.CardLink
 import com.github.se.oncompanion.ui.common.DoseActions
+import com.github.se.oncompanion.ui.common.LINK_HEIGHT
 import com.github.se.oncompanion.ui.common.MedicationRow
 import com.github.se.oncompanion.ui.common.TodayMedication
+import com.github.se.oncompanion.ui.common.formatDateHeading
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.cardDetail
 import com.github.se.oncompanion.ui.theme.cardEyebrow
@@ -51,8 +57,9 @@ import java.util.Locale
 /** "10:00" */
 private val nextUpTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)
 
-/** "Thu 8 Oct · 10:00", for a later day. The app's UI is in English. */
-private val nextUpDayFormatter = DateTimeFormatter.ofPattern("EEE d MMM · HH:mm", Locale.ENGLISH)
+/** "Thu 8 Oct · 10:00", for a later day. Day and month names follow the app language. */
+private val nextUpDayFormatter
+  @Composable get() = rememberAppDateFormatter("EEE d MMM · HH:mm")
 
 /** How many medications the card lists before "N more ›", so the cards under it never move. */
 internal const val MEDICATIONS_SHOWN = 2
@@ -233,7 +240,7 @@ private fun nextUpWhen(nextUp: NextUp, today: LocalDate): String {
         today -> start.format(nextUpTimeFormatter)
         today.plusDays(1) ->
             stringResource(R.string.overview_tomorrow_at, start.format(nextUpDayFormatter))
-        else -> start.format(nextUpDayFormatter)
+        else -> nextUpDayFormatter.formatDateHeading(start)
       }
   val place = nextUp.place?.takeIf { it.isNotBlank() } ?: return time
   return stringResource(R.string.overview_with_place, time, place)
@@ -347,32 +354,6 @@ internal fun MoreLink(count: Int, onOpen: () -> Unit) {
 }
 
 /**
- * "Planning ›" at the top of the Next up and medications cards, so Planning is one tap away from
- * either, or "Full journal ›" on the caregiver's journal card. It keeps the Figma's 20 dp row:
- * Compose extends the touch target of a smaller clickable to 48 dp.
- */
-@Composable
-internal fun CardLink(label: String, onClick: () -> Unit, modifier: Modifier) {
-  Row(
-      modifier.clip(MaterialTheme.shapes.medium).clickable(role = Role.Button, onClick = onClick),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.spacedBy(Spacing.xxs),
-  ) {
-    Text(
-        label,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.lakeColors.primaryText,
-    )
-    Icon(
-        painterResource(R.drawable.ic_chevron_right),
-        contentDescription = null,
-        tint = MaterialTheme.lakeColors.primaryText,
-        modifier = Modifier.size(CHEVRON_SIZE),
-    )
-  }
-}
-
-/**
  * "Today · Nothing planned today", when there is neither a next event nor a medication, or "Nothing
  * else today" when the day's plans have all started ([dayStarted]). Tapping it opens Planning,
  * where the day is filled in.
@@ -422,9 +403,3 @@ private val BADGE_ICON_SIZE = 18.dp
 
 /** The heart is a little larger in its disc than the other icons. */
 private val HEART_ICON_SIZE = 20.dp
-
-/** The Figma's chevron after "Planning" and "N more". */
-internal val CHEVRON_SIZE = 18.dp
-
-/** A link or pill stays a 48 dp touch target, even where it looks smaller. */
-internal val LINK_HEIGHT = 48.dp

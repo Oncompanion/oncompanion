@@ -56,12 +56,13 @@ import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.LakeMessageState
 import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.isCompactHeight
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import com.github.se.oncompanion.ui.theme.Spacing
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val memberSinceFormatter = DateTimeFormatter.ofPattern("MMM yyyy", Locale.ENGLISH)
+private val memberSinceFormatter
+  @Composable get() = rememberAppDateFormatter("MMM yyyy")
 
 /** Profile screen backed by the currently signed-in user's profile. */
 @Composable

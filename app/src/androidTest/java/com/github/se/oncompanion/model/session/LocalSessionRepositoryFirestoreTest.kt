@@ -13,6 +13,8 @@ import com.github.se.oncompanion.model.user.Role
 import com.github.se.oncompanion.model.user.UserProfile
 import com.github.se.oncompanion.model.user.UserProfileRepositoryFirestore
 import com.github.se.oncompanion.utils.FirebaseEmulator
+import com.github.se.oncompanion.utils.createEmulatorAccount
+import com.github.se.oncompanion.utils.retryAuthEmulator
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -91,8 +93,17 @@ class LocalSessionRepositoryFirestoreTest {
     // Deleting a named app here makes the next useEmulator() fail with "FirebaseApp was deleted".
   }
 
+  /** Keeps this test's named Auth instance while sharing bounded sign-up and recovery retries. */
+  private suspend fun createAccount(accountEmail: String): String =
+      createEmulatorAccount(
+          create = {
+            auth.createUserWithEmailAndPassword(accountEmail, password).await().user!!.uid
+          },
+          signIn = { auth.signInWithEmailAndPassword(accountEmail, password).await().user!!.uid },
+      )
+
   private suspend fun seed(): String {
-    val uid = auth.createUserWithEmailAndPassword(email, password).await().user!!.uid
+    val uid = createAccount(email)
     profiles.createProfile(UserProfile(uid, Role.PATIENT, "Original"))
     withTimeout(10_000) { db.waitForPendingWrites().await() }
     assertEquals("Original", profiles.getCachedProfile(uid)?.firstName)
@@ -119,7 +130,7 @@ class LocalSessionRepositoryFirestoreTest {
         db.firestoreSettings.cacheSettings == null ||
             db.firestoreSettings.cacheSettings is PersistentCacheSettings
     )
-    val otherUid = auth.createUserWithEmailAndPassword("next-$email", password).await().user!!.uid
+    val otherUid = createAccount("next-$email")
     profiles.createProfile(UserProfile(otherUid, Role.PATIENT, "Next"))
     withTimeout(10_000) { db.waitForPendingWrites().await() }
     db.disableNetwork().await()
@@ -131,7 +142,7 @@ class LocalSessionRepositoryFirestoreTest {
     assertEquals("Next", profiles.getCachedProfile(otherUid)?.firstName)
     assertNull(profiles.getCachedProfile(uid))
     db.enableNetwork().await()
-    auth.signInWithEmailAndPassword(email, password).await()
+    retryAuthEmulator("Sign in") { auth.signInWithEmailAndPassword(email, password).await() }
     val remote = db.collection("users").document(uid).get(Source.SERVER).await()
     assertEquals("Original", remote.getString("firstName"))
   }
@@ -159,8 +170,7 @@ class LocalSessionRepositoryFirestoreTest {
     )
     restartDatabase()
     // No previous user's documents may remain accessible to the next account through the cache.
-    val otherUid =
-        auth.createUserWithEmailAndPassword("upgrade-next-$email", password).await().user!!.uid
+    val otherUid = createAccount("upgrade-next-$email")
     db.disableNetwork().await()
     assertNull(profiles.getCachedProfile(uid))
     profiles.createProfile(UserProfile(otherUid, Role.PATIENT, "Next offline"))
@@ -173,10 +183,10 @@ class LocalSessionRepositoryFirestoreTest {
   fun legacyOtherUserQueueNeedsConsentUntilItsOwnerSynchronizes() = runBlocking {
     val firstUid = seed()
     val nextEmail = "legacy-next-$email"
-    val nextUid = auth.createUserWithEmailAndPassword(nextEmail, password).await().user!!.uid
+    val nextUid = createAccount(nextEmail)
     profiles.createProfile(UserProfile(nextUid, Role.PATIENT, "Next"))
     withTimeout(10_000) { db.waitForPendingWrites().await() }
-    auth.signInWithEmailAndPassword(email, password).await()
+    retryAuthEmulator("Sign in") { auth.signInWithEmailAndPassword(email, password).await() }
     db.disableNetwork().await()
     db.collection("users").document(firstUid).update("firstName", "Legacy pending")
     assertTrue(
@@ -189,7 +199,7 @@ class LocalSessionRepositoryFirestoreTest {
     )
     // Older AuthRepository.signOut() did not clear Firestore or record which users owned mutations.
     auth.signOut()
-    auth.signInWithEmailAndPassword(nextEmail, password).await()
+    retryAuthEmulator("Sign in") { auth.signInWithEmailAndPassword(nextEmail, password).await() }
     restartAsUpgrade()
     db.disableNetwork().await()
     withTimeout(10_000) { db.waitForPendingWrites().await() }
@@ -205,7 +215,7 @@ class LocalSessionRepositoryFirestoreTest {
     signOut.staySignedIn()
     assertEquals(nextUid, auth.currentUser?.uid)
     // Returning to the owner proves the queue was not destroyed, and permits real acknowledgement.
-    auth.signInWithEmailAndPassword(email, password).await()
+    retryAuthEmulator("Sign in") { auth.signInWithEmailAndPassword(email, password).await() }
     assertEquals("Legacy pending", profiles.getCachedProfile(firstUid)?.firstName)
     db.enableNetwork().await()
     withTimeout(10_000) { db.waitForPendingWrites().await() }
@@ -273,7 +283,7 @@ class LocalSessionRepositoryFirestoreTest {
     assertTrue(credentialsCleared)
     assertNull(auth.currentUser)
     restartDatabase()
-    auth.signInWithEmailAndPassword(email, password).await()
+    retryAuthEmulator("Sign in") { auth.signInWithEmailAndPassword(email, password).await() }
     assertEquals(
         "Reconnected",
         db.collection("users").document(uid).get(Source.SERVER).await().getString("firstName"),
@@ -301,7 +311,7 @@ class LocalSessionRepositoryFirestoreTest {
     local.freeze()
     cleanup()
     assertNull(profiles.getCachedProfile(uid))
-    auth.signInWithEmailAndPassword(email, password).await()
+    retryAuthEmulator("Sign in") { auth.signInWithEmailAndPassword(email, password).await() }
     assertEquals(
         "Original",
         db.collection("users").document(uid).get(Source.SERVER).await().getString("firstName"),

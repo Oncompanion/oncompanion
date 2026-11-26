@@ -1,4 +1,5 @@
 // Co-authored-by: Claude Code <noreply@anthropic.com>
+// Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.utils
 
@@ -38,6 +39,9 @@ class FirebaseEmulatorSmokeTest {
     val uid = EmulatorTestData.createUser("smoke")
 
     assertTrue(uid.isNotBlank())
+    assertEquals(uid, FirebaseEmulator.auth.currentUser?.uid)
+    EmulatorTestData.signOut()
+    assertEquals(uid, EmulatorTestData.signIn("smoke"))
     assertEquals(uid, FirebaseEmulator.auth.currentUser?.uid)
   }
 

@@ -39,9 +39,9 @@ import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.MessageArea
 import com.github.se.oncompanion.ui.common.NotSharedMessage
+import com.github.se.oncompanion.ui.common.formatDateHeading
+import com.github.se.oncompanion.ui.common.rememberAppDateFormatter
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /** Connects appointment observation and confirmed deletion to the detail content. */
 @Composable
@@ -217,14 +217,12 @@ private fun AppointmentFields(
     // And who last edited it, if a caregiver did (US-46)
     editedByName?.let { EditedBy(it) }
   }
-  // Appointments record a start instant only; display it using the English UI language and the
-  // phone's clock format.
-  val locale = Locale.ENGLISH
+  // Appointments display the start instant in the app language and phone clock format.
   val pattern =
       if (DateFormat.is24HourFormat(LocalContext.current)) "EEE d MMM yyyy · HH:mm"
       else "EEE d MMM yyyy · h:mm a"
   val dateTime =
-      appointment.scheduledAt.atZone(zoneId).format(DateTimeFormatter.ofPattern(pattern, locale))
+      rememberAppDateFormatter(pattern).formatDateHeading(appointment.scheduledAt.atZone(zoneId))
   ListItem(
       headlineContent = { Text(dateTime) },
       supportingContent = { Text(stringResource(R.string.appointment_date_time)) },

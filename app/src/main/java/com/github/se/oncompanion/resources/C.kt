@@ -140,6 +140,13 @@ object C {
     const val overview_speak = "overview_speak"
     // The check or empty ring of a tile in the check-in's sheet
     const val overview_tile_mark = "overview_tile_mark"
+    const val overview_check_in_sheet = "overview_check_in_sheet"
+    const val overview_check_in_sheet_close = "overview_check_in_sheet_close"
+    const val overview_check_in_sheet_when = "overview_check_in_sheet_when"
+    const val overview_check_in_sheet_note = "overview_check_in_sheet_note"
+    const val overview_check_in_sheet_error = "overview_check_in_sheet_error"
+    const val overview_check_in_sheet_save = "overview_check_in_sheet_save"
+    const val overview_check_in_sheet_saving = "overview_check_in_sheet_saving"
 
     // Caregiver Overview
     const val caregiver_overview_screen = "caregiver_overview_screen"
@@ -351,6 +358,9 @@ object C {
 
     /** A check-in tile on the Overview, by its symptom type's name. */
     fun overviewCheckIn(type: String) = "overview_check_in_$type"
+
+    /** A symptom tile of the check-in's sheet, by its symptom type's name. */
+    fun overviewCheckInSheet(type: String) = "overview_check_in_sheet_$type"
 
     /** The locked card of a section the patient keeps private, by its [CarePermission] name. */
     fun caregiverOverviewPrivate(section: String) = "caregiver_overview_private_$section"
@@ -661,6 +671,24 @@ object C {
 
     // Shared message state: its round info tile
     const val message_state_icon = "message_state_icon"
+
+    // The "Your circle" sheet (US-50, #457)
+    const val circle_sheet = "circle_sheet"
+    const val circle_sheet_loading = "circle_sheet_loading"
+    const val circle_sheet_error = "circle_sheet_error"
+    const val circle_sheet_retry = "circle_sheet_retry"
+    const val circle_sheet_manage = "circle_sheet_manage"
+    const val circle_sheet_members = "circle_sheet_members"
+    const val circle_sheet_nobody_yet = "circle_sheet_nobody_yet"
+    const val circle_sheet_seats = "circle_sheet_seats"
+    const val circle_sheet_add_someone = "circle_sheet_add_someone"
+    const val circle_sheet_nothing_today = "circle_sheet_nothing_today"
+
+    /** The card of the "Your circle" notification with this ID (US-50, #457). */
+    fun circleSheetCard(notificationId: String) = "circle_sheet_card_$notificationId"
+
+    /** The "See prescription" link of the notification with this ID. */
+    fun circleSheetOpen(notificationId: String) = "circle_sheet_open_$notificationId"
 
     // Medication reminders in the prescription form (US-32)
     const val medication_reminders = "medication_reminders"
