@@ -89,13 +89,13 @@ class ReminderAccessTest {
     val original = ReminderPermissionHistoryProvider.history
     try {
       ReminderPermissionHistoryProvider.history = null
-      val stored = ReminderPermissionHistoryProvider.get(context)
-      assertSame(stored, ReminderPermissionHistoryProvider.get(context))
+      val stored = ReminderPermissionHistoryProvider.of(context)
+      assertSame(stored, ReminderPermissionHistoryProvider.of(context))
       stored.markRequested()
       ReminderPermissionHistoryProvider.history = null
-      assertTrue(ReminderPermissionHistoryProvider.get(context).requested)
+      assertTrue(ReminderPermissionHistoryProvider.of(context).requested)
       ReminderPermissionHistoryProvider.history = history
-      assertSame(history, ReminderPermissionHistoryProvider.get(context))
+      assertSame(history, ReminderPermissionHistoryProvider.of(context))
     } finally {
       ReminderPermissionHistoryProvider.history = original
     }

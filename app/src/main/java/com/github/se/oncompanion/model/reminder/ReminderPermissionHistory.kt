@@ -37,7 +37,7 @@ object ReminderPermissionHistoryProvider {
 
   /** Resolves the store using only the application context; sign-out does not reset OS history. */
   @Synchronized
-  fun get(context: Context): ReminderPermissionHistory =
+  fun of(context: Context): ReminderPermissionHistory =
       history
           ?: PreferencesReminderPermissionHistory(
                   context.applicationContext.getSharedPreferences(

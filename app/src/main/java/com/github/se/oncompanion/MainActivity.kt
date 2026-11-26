@@ -4,6 +4,7 @@
 
 package com.github.se.oncompanion
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -13,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.oncompanion.domain.auth.SignOutProvider
+import com.github.se.oncompanion.domain.reminder.AppointmentRemindersProvider
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.hospital.HospitalRepositoryProvider
 import com.github.se.oncompanion.model.medication.SeenPrescriptionsPreferences
@@ -23,6 +25,8 @@ import com.github.se.oncompanion.model.settings.SettingsRepositoryProvider
 import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
 import com.github.se.oncompanion.ui.navigation.AppNavHost
 import com.github.se.oncompanion.ui.navigation.StartViewModel
+import com.github.se.oncompanion.ui.reminder.AppointmentRemindersViewModel
+import com.github.se.oncompanion.ui.reminder.appointmentReminder
 import com.github.se.oncompanion.ui.theme.AppAppearanceRoot
 import com.github.se.oncompanion.ui.theme.AppAppearanceViewModel
 
@@ -31,6 +35,8 @@ class MainActivity : AppCompatActivity() {
 
   private val startViewModel: StartViewModel by viewModels()
   private val appearanceViewModel: AppAppearanceViewModel by viewModels()
+
+  private val reminders: AppointmentRemindersViewModel by viewModels()
 
   override fun onCreate(savedInstanceState: Bundle?) {
     // Android's splash screen stays until we know where to start (sign-in, onboarding or Overview)
@@ -49,8 +55,10 @@ class MainActivity : AppCompatActivity() {
             runCatching { AuthRepositoryProvider.repository.currentUser != null }
                 .getOrDefault(false)
     ReminderSchedulerProvider.install(applicationContext)
+    AppointmentRemindersProvider.install(applicationContext)
     SettingsRepositoryProvider.install(applicationContext)
     super.onCreate(if (restore) savedInstanceState else null)
+    if (savedInstanceState == null) acceptReminder(intent)
     // Install the shared search adapter before fields capture it; blank configuration stays manual.
     HospitalRepositoryProvider.configureAtStartup(getString(R.string.hospital_proxy_endpoint))
     splashScreen.setKeepOnScreenCondition {
@@ -63,8 +71,33 @@ class MainActivity : AppCompatActivity() {
     setContent {
       AppAppearanceRoot(this, appearanceViewModel) {
         val startRoute by startViewModel.startRoute.collectAsStateWithLifecycle()
-        startRoute?.let { AppNavHost(startRoute = it) }
+        val reminderState by reminders.uiState.collectAsStateWithLifecycle()
+        startRoute?.let {
+          AppNavHost(
+              startRoute = it,
+              reminderAppointment = reminderState.appointmentId,
+              onReminderHandled = reminders::consume,
+              onReminderAccessChanged = reminders::refresh,
+          )
+        }
       }
     }
+  }
+
+  override fun onResume() {
+    super.onResume()
+    reminders.refresh()
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    acceptReminder(intent)
+  }
+
+  private fun acceptReminder(intent: Intent) {
+    // Recents may reuse the original notification intent after Back finished the root Activity.
+    if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return
+    intent.appointmentReminder()?.let { (owner, item) -> reminders.open(owner, item) }
   }
 }

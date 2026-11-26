@@ -7,9 +7,14 @@ class FakeReminderScheduler : ReminderScheduler {
   val scheduled = mutableListOf<Reminder>()
   val cancelled = mutableListOf<ReminderKey>()
   val reminders = mutableMapOf<ReminderKey, Reminder>()
+  val delivered = mutableSetOf<ReminderKey>()
+
+  override fun wasDelivered(key: ReminderKey) = key in delivered
+
   var result = ReminderScheduleResult.SCHEDULED
 
   override fun schedule(reminder: Reminder): ReminderScheduleResult {
+    delivered.remove(reminder.key)
     scheduled += reminder
     reminders.remove(reminder.key)
     if (result == ReminderScheduleResult.SCHEDULED) reminders[reminder.key] = reminder
@@ -17,6 +22,7 @@ class FakeReminderScheduler : ReminderScheduler {
   }
 
   override fun cancel(key: ReminderKey) {
+    delivered.remove(key)
     cancelled += key
     reminders.remove(key)
   }

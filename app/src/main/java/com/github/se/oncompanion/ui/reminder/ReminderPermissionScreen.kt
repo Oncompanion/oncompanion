@@ -42,16 +42,18 @@ import com.github.se.oncompanion.ui.theme.Spacing
 fun rememberReminderPermissionNotice(
     viewModel: ReminderPermissionViewModel,
     history: ReminderPermissionHistory? = null,
+    onAccessChanged: () -> Unit = {},
 ): (@Composable () -> Unit)? {
   val context = LocalContext.current
   val requestHistory =
-      history ?: remember(context) { ReminderPermissionHistoryProvider.get(context) }
+      history ?: remember(context) { ReminderPermissionHistoryProvider.of(context) }
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   var opening by remember { mutableStateOf(false) }
   val launcher =
       rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         opening = false
         viewModel.refresh(reminderAccess(context, requestHistory))
+        onAccessChanged()
       }
   LifecycleResumeEffect(viewModel, requestHistory) {
     opening = false
@@ -74,6 +76,7 @@ fun rememberReminderPermissionNotice(
               if (access != ReminderAccess.READY) openReminderSettings(context, access)
               opening = false
               viewModel.refresh(reminderAccess(context, requestHistory))
+              onAccessChanged()
             }
           }
         },
@@ -110,7 +113,7 @@ internal const val CHANNEL = REMINDER_CHANNEL_ID
 
 internal fun reminderAccess(
     context: Context,
-    history: ReminderPermissionHistory = ReminderPermissionHistoryProvider.get(context),
+    history: ReminderPermissionHistory = ReminderPermissionHistoryProvider.of(context),
 ): ReminderAccess {
   val manager = context.getSystemService(NotificationManager::class.java)
   val permissionMissing =
