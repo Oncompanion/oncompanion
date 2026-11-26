@@ -89,17 +89,24 @@ internal fun CheckInDock(
       CheckInHeader(onOpenJournal)
       SymptomTiles(checkInTiles, onLogSymptom)
       // The card's last row, as wide as the tiles (Figma: Overview → Speak instead → Home)
-      if (onSpeak != null) {
-        LakeButton(
-            text = stringResource(R.string.overview_speak),
-            onClick = onSpeak,
-            style = LakeButtonStyle.Tonal,
-            icon = painterResource(R.drawable.ic_mic),
-            modifier = Modifier.fillMaxWidth().testTag(C.Tag.overview_speak),
-        )
-      }
+      if (onSpeak != null) SpeakButton(onSpeak)
     }
   }
+}
+
+/**
+ * "Speak how you feel" (US-73), the last row of the check-in, with its tiles or once something was
+ * saved today: it opens the symptom form already listening.
+ */
+@Composable
+internal fun SpeakButton(onSpeak: () -> Unit) {
+  LakeButton(
+      text = stringResource(R.string.overview_speak),
+      onClick = onSpeak,
+      style = LakeButtonStyle.Tonal,
+      icon = painterResource(R.drawable.ic_mic),
+      modifier = Modifier.fillMaxWidth().testTag(C.Tag.overview_speak),
+  )
 }
 
 /**

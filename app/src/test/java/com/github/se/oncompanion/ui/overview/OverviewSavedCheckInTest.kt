@@ -94,6 +94,7 @@ class OverviewSavedCheckInTest {
             onUndoSaved = { calls += "undo $it" },
             onEditSaved = { calls += "edit $it" },
             caregiverOf = caregiverOf,
+            onSpeak = { calls += "speak" },
         )
       }
     }
@@ -123,21 +124,40 @@ class OverviewSavedCheckInTest {
 
   @Test
   fun eachAction_callsItsCallback_withTheEntryShown() {
-    showContent(saved)
+    showContent(saved.copy(canSpeak = true))
     listOf(
             C.Tag.overview_saved_undo,
             C.Tag.overview_saved_edit,
             C.Tag.overview_saved_log_another,
+            C.Tag.overview_speak,
             C.Tag.overview_journal_link,
         )
         .forEach { node(it).performScrollTo().performClick() }
 
     composeTestRule.runOnIdle {
       assertEquals(
-          listOf("undo e1", "edit e1", "log null", "shortcut ${OverviewShortcut.SYMPTOMS}"),
+          listOf(
+              "undo e1",
+              "edit e1",
+              "log null",
+              "speak",
+              "shortcut ${OverviewShortcut.SYMPTOMS}",
+          ),
           calls,
       )
     }
+  }
+
+  @Test
+  fun speakHowYouFeel_staysUnderLogAnother_onlyWhenThePhoneCanListen() {
+    showContent(saved.copy(canSpeak = true))
+    val logAnother = bounds(C.Tag.overview_saved_log_another)
+    node(C.Tag.overview_speak).performScrollTo().assertIsDisplayed()
+    assertTrue(bounds(C.Tag.overview_speak).top >= logAnother.bottom)
+
+    showContent(saved)
+    node(C.Tag.overview_saved).assertExists()
+    node(C.Tag.overview_speak).assertDoesNotExist()
   }
 
   // ----- Layout (the rows depend on the measured text) -----
@@ -175,7 +195,7 @@ class OverviewSavedCheckInTest {
   @GraphicsMode(GraphicsMode.Mode.NATIVE)
   @Config(qualifiers = "w360dp-h640dp", fontScale = 2f)
   fun atLargeFont_undoAndEditGoUnderTheEntry_andEverythingCanBeReached() {
-    showContent(saved)
+    showContent(saved.copy(canSpeak = true))
     node(C.Tag.overview_saved_entry).performScrollTo()
     val summary = summaryBounds()
     val undo = bounds(C.Tag.overview_saved_undo)
@@ -187,16 +207,17 @@ class OverviewSavedCheckInTest {
   @GraphicsMode(GraphicsMode.Mode.NATIVE)
   @Config(qualifiers = LANDSCAPE_PHONE)
   fun inLandscape_everyActionCanBeReached_whole() {
-    showContent(saved)
+    showContent(saved.copy(canSpeak = true))
     assertEveryActionFullyVisible()
   }
 
-  /** Undo, Edit, "Log another" and Journal can each be scrolled to and are shown whole. */
+  /** Undo, Edit, "Log another", Speak and Journal can each be scrolled to and are shown whole. */
   private fun assertEveryActionFullyVisible() {
     listOf(
             C.Tag.overview_saved_undo,
             C.Tag.overview_saved_edit,
             C.Tag.overview_saved_log_another,
+            C.Tag.overview_speak,
             C.Tag.overview_journal_link,
         )
         .forEach { node(it).performScrollTo().assertIsFullyVisible() }

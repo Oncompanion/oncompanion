@@ -46,12 +46,10 @@ internal fun PatientCheckIn(
     onOpenJournal: () -> Unit,
 ) {
   val saved = uiState.savedToday
+  // Voice starts only from the Overview, so it stays once something was saved
+  val speak = onSpeak.takeIf { uiState.canSpeak }
   if (saved == null) {
-    CheckInDock(
-        onLogSymptom = onLogSymptom,
-        onOpenJournal = onOpenJournal,
-        onSpeak = onSpeak.takeIf { uiState.canSpeak },
-    )
+    CheckInDock(onLogSymptom = onLogSymptom, onOpenJournal = onOpenJournal, onSpeak = speak)
   } else {
     SavedCheckIn(
         saved,
@@ -59,6 +57,7 @@ internal fun PatientCheckIn(
         onEdit = { onEditSaved(saved.entry.id) },
         onLogAnother = { onLogSymptom(null) },
         onOpenJournal = onOpenJournal,
+        onSpeak = speak,
     )
   }
 }
@@ -66,14 +65,16 @@ internal fun PatientCheckIn(
 /**
  * The check-in once the patient saved how they feel today (Figma M3: Check-in · After saving):
  * "Saved to your journal" and the entry, e.g. "09:30 Nausea 7/10", which they can undo or edit,
- * then "Log another symptom or note". It stays until the day ends, the entry showing the last one
- * saved.
+ * then "Log another symptom or note" and "Speak how you feel". It stays until the day ends, the
+ * entry showing the last one saved.
  *
  * @param saved the entry saved last today
  * @param onUndo deletes it
  * @param onEdit opens it in the symptom form
  * @param onLogAnother opens the check-in's sheet, empty
  * @param onOpenJournal opens the journal, from "Journal ›"
+ * @param onSpeak opens the symptom form already listening; `null` when the phone can't listen, so
+ *   there is no button
  */
 @Composable
 internal fun SavedCheckIn(
@@ -83,6 +84,7 @@ internal fun SavedCheckIn(
     onLogAnother: () -> Unit,
     onOpenJournal: () -> Unit,
     modifier: Modifier = Modifier,
+    onSpeak: (() -> Unit)? = null,
 ) {
   val shape = MaterialTheme.shapes.extraLarge
   // With a large font, the rows stack instead of squeezing the words between the buttons
@@ -115,6 +117,8 @@ internal fun SavedCheckIn(
           icon = painterResource(R.drawable.ic_add),
           modifier = Modifier.fillMaxWidth().testTag(C.Tag.overview_saved_log_another),
       )
+      // Under "Log another", as under the tiles (Figma: Speak instead · After saving)
+      if (onSpeak != null) SpeakButton(onSpeak)
     }
   }
 }
