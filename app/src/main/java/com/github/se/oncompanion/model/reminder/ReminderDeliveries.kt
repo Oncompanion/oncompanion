@@ -34,6 +34,17 @@ internal class ReminderDeliveries(context: Context) {
   /** Whether this is the delivery most recently scheduled for this key. */
   fun isCurrent(tag: String, version: String): Boolean = preferences.getString(tag, null) == version
 
+  /** Records a consumed delivery without retaining its content. */
+  fun delivered(tag: String) {
+    preferences.edit {
+      putString(tag, "delivered")
+      check(commit()) { "Could not persist reminder delivery" }
+    }
+  }
+
+  /** Whether posting was accepted for this key; cancellation removes this marker too. */
+  fun wasDelivered(tag: String): Boolean = preferences.getString(tag, null) == "delivered"
+
   companion object {
     // Shared by every scheduler/receiver instance: checking and posting cannot straddle
     // cancellation.

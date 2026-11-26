@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -21,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -37,7 +39,6 @@ import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.full
 import java.time.format.TextStyle
-import java.util.Locale
 
 /**
  * The "This week" card at the top of the journal (Figma: "Symptoms – History"): how many symptoms
@@ -98,7 +99,8 @@ private fun WeekBars(days: List<WeekDay>, modifier: Modifier = Modifier) {
  */
 @Composable
 private fun DayBar(day: WeekDay, modifier: Modifier = Modifier) {
-  val dayName = day.date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+  val dayName =
+      day.date.dayOfWeek.getDisplayName(TextStyle.FULL, LocalConfiguration.current.locales[0])
   val description =
       when {
         day.intensity != null ->
@@ -147,7 +149,11 @@ private fun DayBar(day: WeekDay, modifier: Modifier = Modifier) {
     }
     Text(
         // The bar says it all to TalkBack through the column's description
-        text = day.date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH),
+        text =
+            day.date.dayOfWeek.getDisplayName(
+                TextStyle.SHORT,
+                LocalConfiguration.current.locales[0],
+            ),
         style = MaterialTheme.typography.labelSmall,
         // One line at any font size: a day name is never split, it may use its neighbours' room
         maxLines = 1,

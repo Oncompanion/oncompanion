@@ -14,17 +14,19 @@ import java.util.Locale
 /**
  * Drafts the add symptom form from what the patient said ([transcript], in [locale]'s language:
  * French or English), at [now]. Only what was said plainly is filled in: the symptoms named and not
- * negated, an intensity said on a scale of 10, and when it was felt. Anything unclear or
- * contradictory stays empty, and nothing is concluded from what was said: the app organizes, it
- * doesn't interpret (see AGENTS.md). The whole transcript goes into the notes.
+ * negated, the strength said for each of them as a number up to 10, and when it was felt. Anything
+ * unclear or contradictory stays empty, and nothing is concluded from what was said ("a lot of
+ * pain" isn't turned into a number): the app organizes, it doesn't interpret (see AGENTS.md). The
+ * whole transcript goes into the notes.
  */
 fun parseSpokenSymptom(transcript: String, locale: Locale, now: ZonedDateTime): SymptomDraft {
   val words = spokenWords(transcript)
   val vocabulary = SpokenVocabulary.of(locale.language)
   val (date, time) = SpokenWhen(words, vocabulary, now).resolve()
+  val (types, strengths) = SpokenSymptoms(words, vocabulary).read()
   return SymptomDraft(
-      types = SpokenSymptoms(words, vocabulary).read(),
-      intensity = intensitySaid(words, vocabulary),
+      types = types,
+      strengths = strengths,
       date = date,
       time = time,
       notes = transcript.trim().take(SymptomEntry.MAX_NOTES_LENGTH),
@@ -132,6 +134,12 @@ private fun symptomAt(
  */
 private const val NEGATION_REACH = 3
 
+/**
+ * "N out of 10" is for a symptom said at most this many words before it ("pain in my back, 8 out of
+ * 10"), not counting [SpokenVocabulary.strengthLinks] and fillers.
+ */
+private const val STRENGTH_REACH = 3
+
 /** Where the word just read stands to the symptoms said together before it. */
 private enum class GroupState {
   /** Not right after symptoms: "is gone" says nothing of them. */
@@ -143,9 +151,15 @@ private enum class GroupState {
 }
 
 /**
+ * A strength said, for the symptoms said together just before it ([before]), or else for those said
+ * together first after word [after] ("7 out of 10 for the nausea").
+ */
+private class SaidStrength(val value: Int, val before: List<SymptomType>, val after: Int? = null)
+
+/**
  * The symptoms in [words], in the order they were first said, without those negated or said to be
- * over. A symptom both said and negated ("headache this morning, no headache now") is left out: not
- * guessed.
+ * over, and the strength said for each of them. A symptom both said and negated ("headache this
+ * morning, no headache now") is left out: not guessed.
  */
 private class SpokenSymptoms(
     private val words: List<String>,
@@ -163,8 +177,14 @@ private class SpokenSymptoms(
   /** The symptoms said together last ("the nausea and pain"), which "are gone" says are over. */
   private var group = mutableListOf<SymptomType>()
   private var groupState = GroupState.NONE
+  /** Every group of symptoms said together, with the word it starts at. */
+  private val groups = mutableListOf<Pair<Int, List<SymptomType>>>()
+  /** Where the last symptom said ends, or -1: a number alone can only follow a symptom. */
+  private var symptomEnd = -1
+  private val strengths = mutableListOf<SaidStrength>()
 
-  fun read(): List<SymptomType> {
+  /** The symptoms said, and the strength said for each of those that have one. */
+  fun read(): Pair<List<SymptomType>, Map<SymptomType, Int>> {
     var i = 0
     while (i < words.size) {
       val state = groupState
@@ -174,11 +194,31 @@ private class SpokenSymptoms(
               ?: readIgnored(i).takeIf { it > 0 }
               ?: readClauseNegation(i).takeIf { it > 0 }
               ?: readEnding(i, state).takeIf { it > 0 }
+              ?: readStrength(i).takeIf { it > 0 }
               ?: readSymptom(i, state).takeIf { it > 0 }
               ?: readFiller(i, state).takeIf { it > 0 }
               ?: readWord(i, state)
     }
-    return said.distinct().filter { it !in negated }
+    val types = said.distinct().filter { it !in negated }
+    return types to strengthsOf(types)
+  }
+
+  /**
+   * The strength of each of [types] that was given exactly one. A strength said for several
+   * symptoms together ("nausea and headache, 6 out of 10") doesn't say which one it is for, and two
+   * strengths said for one symptom contradict each other: neither is guessed.
+   */
+  private fun strengthsOf(types: List<SymptomType>): Map<SymptomType, Int> {
+    val given = strengths.mapNotNull { strength ->
+      val symptoms =
+          strength.after?.let { after -> groups.firstOrNull { it.first >= after }?.second }
+              ?: strength.before
+      symptoms.filter { it in types }.distinct().singleOrNull()?.let { it to strength.value }
+    }
+    val said = given.groupBy({ it.first }, { it.second })
+    return types
+        .mapNotNull { type -> said[type]?.distinct()?.singleOrNull()?.let { type to it } }
+        .toMap()
   }
 
   private fun negationReaches() = reach > 0 || clauseNegated
@@ -258,13 +298,79 @@ private class SpokenSymptoms(
     val isNegated = !negatesItself && negationReaches()
     if (isNegated) negated += type else said += type
     clause += type
-    if (state == GroupState.AFTER_JOIN) group += type else group = mutableListOf(type)
+    if (state == GroupState.AFTER_JOIN) {
+      group += type
+    } else {
+      group = mutableListOf(type)
+      groups += i to group
+    }
     groupState = GroupState.AFTER_SYMPTOM
+    symptomEnd = i + length
     // A negated list reaches as far again after each of its symptoms ("no loss of appetite or
     // nausea"), however many words the symptom takes
     reach = if (isNegated && listGoesOn(i + length)) NEGATION_REACH else maxOf(0, reach - length)
     return length
   }
+
+  /**
+   * A strength: "N out of 10", or a number alone right after a symptom that ends what is said of it
+   * ("nausea is about 6", "nausée à 6"). Elsewhere a number alone could be a time, a temperature or
+   * a count ("headache at 6", "threw up 3 times"), so it is never a strength. "N out of 10" is for
+   * the symptoms said shortly before it (see [STRENGTH_REACH]), or for those said after it when it
+   * comes before any symptom or before "for" ("7 out of 10 for the nausea"). Returns how many words
+   * it takes, or 0.
+   */
+  private fun readStrength(i: Int): Int {
+    val value = numberAt(words, i, vocabulary) ?: return 0
+    val outOf = anyAt(words, i + 1, vocabulary.outOf)
+    val sinceSymptom = wordsSinceSymptom(i)
+    val length =
+        when {
+          outOf > 0 && numberAt(words, i + 1 + outOf, vocabulary) == 10 -> 2 + outOf
+          sinceSymptom == 0 && endsStrength(i + 1) -> 1
+          else -> return 0
+        }
+    reach = maxOf(0, reach - length)
+    if (value !in SymptomEntry.MIN_INTENSITY..SymptomEntry.MAX_INTENSITY) return length
+    val end = i + length
+    when {
+      length > 1 && (group.isEmpty() || anyAt(words, end, vocabulary.strengthFor) > 0) ->
+          strengths += SaidStrength(value, emptyList(), after = end)
+      // A strength far from the last symptom ("la nausée à 6 sur 10 … la tête à 3 sur 10")
+      // may be for something not understood: it isn't given to that symptom
+      sinceSymptom != null && sinceSymptom <= STRENGTH_REACH ->
+          strengths += SaidStrength(value, group.toList())
+    }
+    return length
+  }
+
+  /**
+   * How many words come between the last symptom said and [i], not counting
+   * [SpokenVocabulary.strengthLinks] and fillers ("nausea is really about 6" has none), or `null`
+   * if no symptom was said before.
+   */
+  private fun wordsSinceSymptom(i: Int): Int? {
+    if (symptomEnd < 0) return null
+    var at = symptomEnd
+    var count = 0
+    while (at < i) {
+      val link = anyAt(words, at, vocabulary.strengthLinks + vocabulary.fillers)
+      if (link == 0) count++
+      at += maxOf(link, 1)
+    }
+    return count
+  }
+
+  /**
+   * Whether what is said of a symptom ends at [i]: at the end, a clause break, another symptom or
+   * [SpokenVocabulary.strengthEnds] ("ok", "voilà").
+   */
+  private fun endsStrength(i: Int): Boolean =
+      i == words.size ||
+          words[i] in vocabulary.clauseBreaks ||
+          words[i] in vocabulary.listJoins ||
+          anyAt(words, i, vocabulary.strengthEnds) > 0 ||
+          symptomAt(words, i, vocabulary) != null
 
   /** "really", "vraiment": counts for neither a negation's reach nor "is gone". */
   private fun readFiller(i: Int, state: GroupState): Int =
@@ -297,23 +403,6 @@ private fun isNegation(word: String, vocabulary: SpokenVocabulary) =
 /** A number said in digits or in words, or `null`. */
 private fun numberAt(words: List<String>, i: Int, vocabulary: SpokenVocabulary): Int? =
     words.getOrNull(i)?.let { it.toIntOrNull() ?: vocabulary.numbers[it] }
-
-/**
- * The intensity said as "N out of 10" (or "N/10", "N sur dix"), if it is the only one said and from
- * [SymptomEntry.MIN_INTENSITY] to [SymptomEntry.MAX_INTENSITY]. A number alone is never an
- * intensity: it could be a time or a temperature.
- */
-private fun intensitySaid(words: List<String>, vocabulary: SpokenVocabulary): Int? {
-  val said =
-      words.indices.mapNotNull { i ->
-        val value = numberAt(words, i, vocabulary) ?: return@mapNotNull null
-        val outOf = anyAt(words, i + 1, vocabulary.outOf)
-        value.takeIf { outOf > 0 && numberAt(words, i + 1 + outOf, vocabulary) == 10 }
-      }
-  return said.distinct().singleOrNull()?.takeIf {
-    it in SymptomEntry.MIN_INTENSITY..SymptomEntry.MAX_INTENSITY
-  }
-}
 
 /**
  * When the symptom was felt, from [words] said at [now]: a duration ago ("2 hours ago"), a day

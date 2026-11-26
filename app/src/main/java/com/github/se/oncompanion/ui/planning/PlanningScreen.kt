@@ -40,6 +40,7 @@ import com.github.se.oncompanion.ui.common.AddedBy
 import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.NotSharedMessage
+import com.github.se.oncompanion.ui.common.formatDateHeading
 import com.github.se.oncompanion.ui.common.isCompactHeight
 import com.github.se.oncompanion.ui.navigation.BottomBarUiState
 import com.github.se.oncompanion.ui.navigation.BottomNavigationBar
@@ -82,9 +83,12 @@ fun PlanningScreen(
     onOpenMedication: (String, String) -> Unit,
     caregiverOf: String? = null,
     reminderPermissions: ReminderPermissionViewModel? = null,
+    onReminderAccessChanged: () -> Unit = {},
     bottomBar: BottomBarUiState = BottomBarUiState(),
 ) {
-  val reminderNotice = reminderPermissions?.let { rememberReminderPermissionNotice(it) }
+  val reminderNotice = reminderPermissions?.let {
+    rememberReminderPermissionNotice(it, onAccessChanged = onReminderAccessChanged)
+  }
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val openItem: (PlanningItem) -> Unit = {
     openPlanningItem(it, onOpenAppointment, onOpenEvent, onOpenMedication)
@@ -220,7 +224,7 @@ private fun PlanningHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
       Text(
-          state.selectedDate.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale)),
+          DateTimeFormatter.ofPattern("MMMM yyyy", locale).formatDateHeading(state.selectedDate),
           Modifier.weight(1f),
           style = MaterialTheme.typography.titleMedium,
       )

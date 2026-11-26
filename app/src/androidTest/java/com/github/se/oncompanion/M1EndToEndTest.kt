@@ -5,9 +5,11 @@
 package com.github.se.oncompanion
 
 import android.Manifest
+import android.app.NotificationManager
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.os.Build
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -32,6 +34,13 @@ import androidx.compose.ui.test.performScrollToKey
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
+import com.github.se.oncompanion.domain.reminder.AppointmentReminderSync
+import com.github.se.oncompanion.domain.reminder.ReconcileAppointmentReminders
+import com.github.se.oncompanion.model.appointment.*
+import com.github.se.oncompanion.model.reminder.*
 import com.github.se.oncompanion.model.settings.AppearancePreference
 import com.github.se.oncompanion.model.settings.DateFormatPreference
 import com.github.se.oncompanion.model.settings.SettingsRepositoryProvider
@@ -46,10 +55,12 @@ import com.github.se.oncompanion.utils.EndToEndTestDriver
 import com.github.se.oncompanion.utils.FirebaseEmulator
 import com.github.se.oncompanion.utils.ScriptedSpeechRecognizer
 import java.io.File
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
 import java.util.UUID
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertTrue
@@ -148,6 +159,85 @@ class M1EndToEndTest {
             (hasText(string(R.string.appearance_dark), substring = true) or
                 hasAnyDescendant(hasText(string(R.string.appearance_dark))))
     )
+  }
+
+  /** A cached appointment reaches Android's real notification service and its tap opens details. */
+  @Test
+  fun appointmentReminder_deliversAndOpensItsAppointment() {
+    ui.startApp(signIn)
+    signInAndOnboard(firstName = "Sam")
+    val context = compose.activity.applicationContext
+    val instrumentation = InstrumentationRegistry.getInstrumentation()
+    val device = UiDevice.getInstance(instrumentation)
+    if (Build.VERSION.SDK_INT >= 33) {
+      instrumentation.uiAutomation.grantRuntimePermission(
+          context.packageName,
+          Manifest.permission.POST_NOTIFICATIONS,
+      )
+    }
+    if (Build.VERSION.SDK_INT >= 31) {
+      instrumentation.uiAutomation
+          .executeShellCommand("appops set ${context.packageName} SCHEDULE_EXACT_ALARM allow")
+          .use { java.io.FileInputStream(it.fileDescriptor).readBytes() }
+    }
+    ReminderSchedulerProvider.install(context)
+    AppointmentReminderPlansProvider.install(context)
+    val scheduler = ReminderSchedulerProvider.scheduler
+    val owner = checkNotNull(FirebaseEmulator.auth.currentUser).uid
+    val id = runBlocking {
+      AppointmentRepositoryProvider.repository.addAppointment(
+          owner,
+          Appointment(
+              "",
+              "Fictional reminder visit",
+              Instant.now().plusSeconds(120),
+              AppointmentType.OTHER,
+          ),
+      )
+    }
+    val manager = context.getSystemService(NotificationManager::class.java)
+    val key = ReminderKey(owner, "appointment", id)
+    val monitor = instrumentation.addMonitor(MainActivity::class.java.name, null, false)
+    var opened: android.app.Activity? = null
+    try {
+      runBlocking {
+        val result =
+            kotlinx.coroutines.withTimeout(15_000) {
+              ReconcileAppointmentReminders(AndroidAppointmentReminderText(context))
+                  .observe()
+                  .first { it != AppointmentReminderSync.IDLE }
+            }
+        org.junit.Assert.assertEquals(AppointmentReminderSync.SYNCHRONIZED, result)
+      }
+      compose.waitUntil(timeoutMillis = 15_000) {
+        manager.activeNotifications.any {
+          it.notification.extras.getString(android.app.Notification.EXTRA_TITLE) ==
+              "Fictional reminder visit"
+        }
+      }
+      val posted =
+          manager.activeNotifications.first {
+            it.notification.extras.getString(android.app.Notification.EXTRA_TITLE) ==
+                "Fictional reminder visit"
+          }
+      posted.notification.contentIntent.send()
+      opened = instrumentation.waitForMonitorWithTimeout(monitor, 10_000)
+      assertTrue("Notification tap opens MainActivity", opened != null)
+      compose.waitForIdle()
+      val shown =
+          device.wait(
+              Until.hasObject(By.text(context.getString(R.string.appointment_detail))),
+              10_000,
+          ) && device.hasObject(By.textContains("Fictional reminder visit"))
+      val hierarchy = java.io.ByteArrayOutputStream()
+      if (!shown) device.dumpWindowHierarchy(hierarchy)
+      assertTrue("Appointment details are shown: $hierarchy", shown)
+      device.executeShellCommand("screencap -p /sdcard/Download/oncompanion-reminder-detail.png")
+    } finally {
+      scheduler.cancel(key)
+      opened?.let { activity -> instrumentation.runOnMainSync { activity.finish() } }
+      instrumentation.removeMonitor(monitor)
+    }
   }
 
   @Test
@@ -472,23 +562,22 @@ class M1EndToEndTest {
   private fun speakHowYouFeelFromOverview() {
     ui.open(C.Tag.overview_speak, hasTestTag(C.Tag.symptom_voice_screen))
     val tired = "I'm really tired, about 7 out of 10"
-    // The intensity said is picked up too
+    // The strength said is picked up with its symptom
+    val fatigue = string(R.string.symptom_type_fatigue)
     ui.waitFor(
         hasTestTag(C.Tag.symptom_voice_picked_up) and
-            hasAnyDescendant(hasText(string(R.string.symptom_voice_intensity, 7)))
+            hasAnyDescendant(hasText(string(R.string.symptom_strength_chip, fatigue, 7)))
     )
     reviewWhatWasHeard(tired, type = "FATIGUE", pickedUp = R.string.symptom_type_fatigue)
-    // The intensity reached the form, not only the preview
-    ui.tag(C.Tag.symptom_add_intensity_value)
-        .reveal()
-        .assertTextContains(string(R.string.symptom_voice_intensity, 7), substring = true)
+    // The strength reached the form, not only the preview
+    ui.tag(C.Tag.symptom_add_intensity_value).reveal().assertTextContains("7/10", substring = true)
     ui.open(C.Tag.symptom_add_save, hasTestTag(C.Tag.overview_greeting))
   }
 
   /**
    * On the voice screen, once the patient stopped speaking: the [transcript] is shown with the
-   * symptom picked up from it ([pickedUp]); Done fills the form, which says it was drafted and has
-   * [type] picked, for the patient to check before saving.
+   * symptom picked up from it ([pickedUp], with its strength if one was said); Done fills the form,
+   * which says it was drafted and has [type] picked, for the patient to check before saving.
    */
   private fun reviewWhatWasHeard(transcript: String, type: String, pickedUp: Int) {
     // Heard, not still listening: the phone sent the whole text
@@ -501,7 +590,8 @@ class M1EndToEndTest {
             hasAnyDescendant(hasText(transcript, substring = true))
     )
     ui.waitFor(
-        hasTestTag(C.Tag.symptom_voice_picked_up) and hasAnyDescendant(hasText(string(pickedUp)))
+        hasTestTag(C.Tag.symptom_voice_picked_up) and
+            hasAnyDescendant(hasText(string(pickedUp), substring = true))
     )
     ui.open(C.Tag.symptom_voice_done, hasTestTag(C.Tag.symptom_add_drafted))
     ui.tag(C.Tag.symptomAddType(type)).reveal().assertIsSelected()
@@ -596,9 +686,9 @@ class M1EndToEndTest {
    * waiting to join. Joining with the invite code on the caregiver's side has no screen yet (#137).
    */
   private fun inviteToCareCircle(firstName: String) {
-    // A new patient's circle is empty: its add button is in the page
-    ui.open(C.Tag.overview_shortcut_care_circle, hasTestTag(C.Tag.care_circle_empty_add_button))
-    ui.open(C.Tag.care_circle_empty_add_button, hasTestTag(C.Tag.care_circle_form_first_name))
+    // A new patient's circle is empty: the sailboat's sheet offers to add someone
+    ui.open(C.Tag.circle_button, hasTestTag(C.Tag.circle_sheet_add_someone))
+    ui.open(C.Tag.circle_sheet_add_someone, hasTestTag(C.Tag.care_circle_form_first_name))
         .typeText(firstName)
     ui.tag(C.Tag.care_circle_form_relationship).reveal().performClick()
     // On a short screen the menu scrolls, and an option below its visible part can't be tapped

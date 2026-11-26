@@ -29,6 +29,9 @@ interface ReminderScheduler {
   /** Replaces the alarm for this key, or cancels its old alarm when access is blocked. */
   fun schedule(reminder: Reminder): ReminderScheduleResult
 
+  /** Whether this installation consumed the last delivery for the key. */
+  fun wasDelivered(key: ReminderKey): Boolean
+
   /** Cancels the pending alarm and any displayed notification for this key; safe to repeat. */
   fun cancel(key: ReminderKey)
 }

@@ -28,6 +28,7 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.util.Locale
@@ -703,6 +704,72 @@ class AddSymptomViewModelTest {
             viewModel.state,
         )
         assertEquals(1, repository.symptoms(uid).size)
+      }
+
+  // ----- The Overview's check-in sheet (#544) -----
+
+  /** A new check-in at the current time with [picked] ticked, as the sheet opens. */
+  private fun freshCheckIn(picked: SymptomType?) =
+      AddSymptomUiState(
+          now = LocalDateTime.ofInstant(current, zurich),
+          types = listOfNotNull(picked),
+          strengthOf = picked,
+          canDictate = true,
+      )
+
+  @Test
+  fun startCheckIn_startsAFreshEntry_withTheTileTapped_whateverTheLastCheckInLeft() =
+      runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.startCheckIn(SymptomType.NAUSEA)
+        assertEquals(freshCheckIn(SymptomType.NAUSEA), viewModel.state)
+
+        // Closed mid-edit: "More…" starts empty, with nothing of what was typed
+        viewModel.toggleType(SymptomType.OTHER)
+        viewModel.onOtherNameChange("Hiccups")
+        viewModel.onStrengthChange(4)
+        viewModel.onNotesChange("After lunch")
+        viewModel.onTimeChange(LocalTime.of(9, 0))
+        viewModel.startCheckIn(null)
+        assertEquals(freshCheckIn(null), viewModel.state)
+
+        // A failed save leaves its error behind
+        viewModel.toggleType(SymptomType.FATIGUE)
+        repository.writeError = IOException("disk full")
+        viewModel.save()
+        advanceUntilIdle()
+        assertEquals(AddSymptomError.SAVE_FAILED, viewModel.state.error)
+        viewModel.startCheckIn(SymptomType.PAIN)
+        assertEquals(freshCheckIn(SymptomType.PAIN), viewModel.state)
+
+        // Saved: the next check-in, an hour later, is at its own time
+        repository.writeError = null
+        viewModel.save()
+        advanceUntilIdle()
+        assertEquals(SavePhase.SAVED, viewModel.state.save)
+        current = now.plusSeconds(3600)
+        viewModel.startCheckIn(SymptomType.HEADACHE)
+        assertEquals(freshCheckIn(SymptomType.HEADACHE), viewModel.state)
+        assertEquals(listOf(SymptomType.PAIN), savedEntry().types)
+      }
+
+  @Test
+  fun startCheckIn_isIgnored_whileSaving_andWhenEditing() =
+      runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.toggleType(SymptomType.FATIGUE)
+        viewModel.save()
+        viewModel.startCheckIn(SymptomType.PAIN)
+        assertEquals(SavePhase.SAVING, viewModel.state.save)
+        assertEquals(listOf(SymptomType.FATIGUE), viewModel.state.types)
+        advanceUntilIdle()
+        assertEquals(listOf(SymptomType.FATIGUE), savedEntry().types)
+
+        val edit = editing()
+        advanceUntilIdle()
+        val loaded = edit.state
+        edit.startCheckIn(SymptomType.PAIN)
+        assertEquals(loaded, edit.state)
       }
 
   @Test
@@ -1413,7 +1480,7 @@ class AddSymptomViewModelTest {
         val heard = viewModel.state.voice as VoiceUiState.Heard
         assertEquals("I feel sick 7/10", heard.transcript)
         assertEquals(listOf(SymptomType.NAUSEA), heard.draft.types)
-        assertEquals(7, heard.draft.intensity)
+        assertEquals(mapOf(SymptomType.NAUSEA to 7), heard.draft.strengths)
         // Nothing reaches the form before the patient uses it
         assertEquals(emptyList<SymptomType>(), viewModel.state.types)
       }
@@ -1570,6 +1637,13 @@ class AddSymptomViewModelTest {
                 ),
                 // Nothing understood: only the notes keep what was said
                 DraftCase("hello there", types = emptyList(), strengthOf = null),
+                // Each symptom gets its own strength; the slider is on the first one filled
+                DraftCase(
+                    "nausea is about 6 and headache 3 out of 10",
+                    types = listOf(SymptomType.NAUSEA, SymptomType.HEADACHE),
+                    strengthOf = SymptomType.NAUSEA,
+                    strengths = mapOf(SymptomType.NAUSEA to 6, SymptomType.HEADACHE to 3),
+                ),
                 // A strength said for several symptoms isn't given to any of them; the slider is
                 // on the first one said
                 DraftCase(

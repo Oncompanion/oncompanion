@@ -61,7 +61,10 @@ object EmulatorTestData {
     auth.signOut()
     val email = "$name-${UUID.randomUUID()}@example.com"
     emails[name] = email
-    return auth.createUserWithEmailAndPassword(email, PASSWORD).await().user!!.uid
+    return createEmulatorAccount(
+        create = { auth.createUserWithEmailAndPassword(email, PASSWORD).await().user!!.uid },
+        signIn = { auth.signInWithEmailAndPassword(email, PASSWORD).await().user!!.uid },
+    )
   }
 
   /**
@@ -82,7 +85,9 @@ object EmulatorTestData {
     val auth = FirebaseEmulator.auth
     auth.signOut()
     val email = checkNotNull(emails[name]) { "No user created for $name" }
-    return auth.signInWithEmailAndPassword(email, PASSWORD).await().user!!.uid
+    return retryAuthEmulator("Sign in") {
+      auth.signInWithEmailAndPassword(email, PASSWORD).await().user!!.uid
+    }
   }
 
   /**

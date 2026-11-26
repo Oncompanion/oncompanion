@@ -25,15 +25,16 @@ import com.github.se.oncompanion.model.planning.PlanningRepository
 import com.github.se.oncompanion.model.symptom.SymptomEntry
 import com.github.se.oncompanion.model.symptom.SymptomRepository
 import com.github.se.oncompanion.model.symptom.SymptomRepositoryProvider
-import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.model.user.UserProfileRepository
 import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
+import com.github.se.oncompanion.ui.overview.LatestEntry
 import com.github.se.oncompanion.ui.overview.NextUp
 import com.github.se.oncompanion.ui.overview.TodayMedication
 import com.github.se.oncompanion.ui.overview.followDay
 import com.github.se.oncompanion.ui.overview.nextUpOf
 import com.github.se.oncompanion.ui.overview.overviewRange
 import com.github.se.oncompanion.ui.overview.startedToday
+import com.github.se.oncompanion.ui.overview.toLatestEntry
 import com.github.se.oncompanion.ui.overview.todayMedicationsOf
 import java.time.Clock
 import java.time.LocalDate
@@ -60,22 +61,6 @@ enum class SectionVisibility {
   /** The patient keeps it private: a locked card shows instead, with none of its data. */
   PRIVATE,
 }
-
-/**
- * The patient's newest journal entry, as the Overview says it: "Nausea 7/10 · Fatigue 6/10".
- *
- * @property entry the entry itself, for the names of its symptoms ("Other" may have one)
- * @property at when the patient felt it, in the Overview's time zone
- * @property symptoms each symptom with its strength out of 10, when the entry has one per symptom
- * @property overall the entry's single intensity, for entries saved before a strength per symptom
- *   (#615); `null` when the symptoms have their own
- */
-data class LatestEntry(
-    val entry: SymptomEntry,
-    val at: LocalDateTime,
-    val symptoms: List<Pair<SymptomType, Int?>>,
-    val overall: Int?,
-)
 
 /**
  * What the caregiver's own Overview shows: their greeting, then the day of the patient they follow.
@@ -262,7 +247,7 @@ class CaregiverOverviewViewModel(
       it.copy(
               sections = sections,
               // Like the planning, both are dropped as soon as the patient stops sharing them
-              latestEntry = journal.dataIf(shown(CarePermission.SYMPTOMS))?.let(::latestEntryOf),
+              latestEntry = journal.dataIf(shown(CarePermission.SYMPTOMS))?.toLatestEntry(zoneId),
               todayMedications =
                   todayMedications.dataIf(shown(CarePermission.PRESCRIPTIONS)).orEmpty(),
               isLoading = day.isLoading(shown),
@@ -278,18 +263,6 @@ class CaregiverOverviewViewModel(
           now = now,
           nextUp = nextUpOf(items.value, now, zoneId),
           dayStarted = startedToday(items.value, now, zoneId),
-      )
-
-  /**
-   * [entry] as the Overview says it: a strength for each symptom when it has them, otherwise its
-   * single intensity once, for all of its symptoms.
-   */
-  private fun latestEntryOf(entry: SymptomEntry): LatestEntry =
-      LatestEntry(
-          entry = entry,
-          at = LocalDateTime.ofInstant(entry.occurredAt, zoneId),
-          symptoms = entry.types.map { it to entry.strengths[it] },
-          overall = entry.intensity.takeIf { entry.strengths.isEmpty() },
       )
 
   /** The caregiver's name for the greeting; without a name if it is not known. */

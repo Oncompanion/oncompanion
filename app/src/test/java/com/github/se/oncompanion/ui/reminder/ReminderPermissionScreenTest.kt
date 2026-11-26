@@ -225,9 +225,14 @@ class ReminderPermissionScreenTest {
     )
   }
 
+  private var accessChanges = 0
+
   private fun show(vm: ReminderPermissionViewModel) {
     compose.activity.setContent {
-      OncompanionTheme { rememberReminderPermissionNotice(vm, history)?.invoke() }
+      OncompanionTheme {
+        rememberReminderPermissionNotice(vm, history, onAccessChanged = { accessChanges++ })
+            ?.invoke()
+      }
     }
   }
 
@@ -261,6 +266,7 @@ class ReminderPermissionScreenTest {
         .assertTextEquals("Open Android settings")
     assertNull(shadowOf(compose.activity).lastRequestedPermission)
     assertTrue(vm.uiState.value.eligible)
+    assertEquals(1, accessChanges)
   }
 
   @Test
@@ -282,6 +288,7 @@ class ReminderPermissionScreenTest {
     compose.onNodeWithTag(C.Tag.reminder_permission_notice).assertDoesNotExist()
     assertNull(shadowOf(context).nextStartedActivity)
     assertNull(shadowOf(compose.activity).lastRequestedPermission)
+    assertEquals(2, accessChanges)
   }
 
   @Test
