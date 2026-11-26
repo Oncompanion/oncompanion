@@ -11,6 +11,10 @@ import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+/**
+ * Tests of where tapping a notification leads: the review of a prescription while it waits, its
+ * page otherwise.
+ */
 class NotificationRouteTest {
 
   private val added =

@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.flow
 /**
  * Hand-written fake [AuthRepository]. [onSignIn] decides what signInWithGoogle does (return a user,
  * throw, or suspend); every token it receives is recorded in [signInTokens].
+ *
+ * @property onSignIn what signInWithGoogle does with the token it gets
  */
 class FakeAuthRepository(
     var onSignIn: suspend (idToken: String) -> AuthUser = { AuthUser(uid = "uid-$it") },

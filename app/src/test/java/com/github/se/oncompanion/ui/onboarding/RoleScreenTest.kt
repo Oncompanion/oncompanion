@@ -58,6 +58,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [RoleScreen]. */
 @RunWith(AndroidJUnit4::class)
 class RoleScreenTest {
 
@@ -244,7 +245,7 @@ class RoleScreenTest {
     composeTestRule.runOnIdle { assertEquals(1, continueClicks) }
   }
 
-  // --- Use another account (#281) ---
+  // --- Use another account ---
 
   @Test
   fun content_showsTheAccount_andUseAnotherAccountWhenItCanBeUsed() {
@@ -378,7 +379,7 @@ class RoleScreenTest {
     assertEquals(0, signedOut)
   }
 
-  // --- Look (Figma "US-1 / Onboarding – Role") ---
+  // --- Look (design: M2, "Onboarding – Role") ---
 
   private fun bounds(tag: String) =
       composeTestRule.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()

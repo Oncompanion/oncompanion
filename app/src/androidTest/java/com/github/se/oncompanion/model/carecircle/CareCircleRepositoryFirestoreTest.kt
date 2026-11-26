@@ -547,7 +547,7 @@ class CareCircleRepositoryFirestoreTest {
   @Test
   fun updateMember_savesWhereTheyCanEditAndDelete_whichAMemberWithoutItCant(): Unit = runBlocking {
     addMember("marc", "Marc", permissions = listOf("SYMPTOMS"))
-    // Saved before US-46: no canEditAndDelete field
+    // Saved before a member could be allowed to edit and delete: no canEditAndDelete field
     assertTrue(firstMember("marc")!!.canEditAndDelete.isEmpty())
 
     val symptoms = setOf(CarePermission.SYMPTOMS)

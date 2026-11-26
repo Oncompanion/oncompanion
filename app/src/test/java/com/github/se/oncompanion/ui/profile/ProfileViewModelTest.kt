@@ -40,6 +40,7 @@ private class MutableAuthRepository(initialUser: AuthUser?) : AuthRepository {
   }
 }
 
+/** Tests of [ProfileViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProfileViewModelTest {
 

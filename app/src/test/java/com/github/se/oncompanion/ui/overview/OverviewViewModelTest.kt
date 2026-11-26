@@ -66,6 +66,7 @@ import org.junit.runner.RunWith
 import org.robolectric.shadows.ShadowLooper
 
 // Robolectric provides the main dispatcher used by viewModelScope
+/** Tests of [OverviewViewModel]. */
 @RunWith(AndroidJUnit4::class)
 class OverviewViewModelTest {
 
@@ -430,7 +431,7 @@ class OverviewViewModelTest {
     )
   }
 
-  // ----- Patient's day (Overview UX Refactor) -----
+  // ----- Patient's day -----
 
   @Test
   fun nextUp_isTheNextEventOrAppointment_todayOrLater() {
@@ -526,7 +527,7 @@ class OverviewViewModelTest {
     )
   }
 
-  // ----- Doses ticked on the Overview (US-28) -----
+  // ----- Doses ticked on the Overview -----
 
   private val patient = AuthUser(uid = "patient", displayName = "Alex Martin")
 
@@ -713,7 +714,7 @@ class OverviewViewModelTest {
     assertNull(caregiver.uiState.value.todayMedications.single().dosesPerDay)
   }
 
-  // ----- The sheet to correct the doses (#546) -----
+  // ----- The sheet to correct the doses -----
 
   private fun OverviewViewModel.sheetOf() = uiState.value.dosesSheet
 
@@ -1314,7 +1315,7 @@ class OverviewViewModelTest {
     following.cancel()
   }
 
-  // ----- Caregiver mode (US-20) -----
+  // ----- Caregiver mode -----
 
   private fun caregiverViewModel(planning: FakePlanningRepository, vararg shared: CarePermission) =
       caregiverViewModel(planning, FollowedPatient(*shared), shared.toSet())
@@ -1397,7 +1398,7 @@ class OverviewViewModelTest {
     )
   }
 
-  // ----- The entry saved today, on the check-in (#544) -----
+  // ----- The entry saved today, on the check-in -----
 
   /** An entry felt at [felt] and saved at [saved] (`null` while it is still being saved). */
   private fun entry(

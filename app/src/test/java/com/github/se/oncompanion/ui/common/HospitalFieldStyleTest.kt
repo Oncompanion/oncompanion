@@ -28,8 +28,8 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The hospital search as the Figma draws it (Brand & Theme, "Edit profile – Hospital results"): a
- * tonal Search, the results as rows of a white card, and the credit as a text button.
+ * The hospital search (design: Brand & Theme, "Edit profile – Hospital results"): a tonal Search,
+ * the results as rows of a white card, and the credit as a text button.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

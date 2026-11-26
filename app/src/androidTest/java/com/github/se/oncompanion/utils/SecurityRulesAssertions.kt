@@ -21,7 +21,7 @@ suspend fun <T> allowed(task: Task<T>): T = withTimeout(RULES_TIMEOUT) { task.aw
 /**
  * A creation time a client tries to choose instead of the server's, to check the rules refuse it.
  * Never the current time: the emulator keeps milliseconds and the device's clock is off by some, so
- * `Timestamp.now()` can be exactly the server's time and the write is then rightly accepted (#522).
+ * `Timestamp.now()` can be exactly the server's time and the write is then rightly accepted.
  */
 val forgedTime = Timestamp(Instant.parse("2000-01-01T00:00:00Z"))
 

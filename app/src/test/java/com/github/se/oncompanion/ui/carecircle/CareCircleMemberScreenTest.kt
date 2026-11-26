@@ -47,6 +47,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
+/** Tests of [CareCircleMemberScreen]. */
 @RunWith(AndroidJUnit4::class)
 class CareCircleMemberScreenTest {
 
@@ -54,7 +55,7 @@ class CareCircleMemberScreenTest {
 
   private val context: Context = ApplicationProvider.getApplicationContext()
 
-  /** Marc as in the "US-15 / Member detail" mockup. */
+  /** Marc (design: M2, "Member detail"). */
   private val marc =
       CareCircleMember(
           uid = "marc",
@@ -393,7 +394,7 @@ class CareCircleMemberScreenTest {
     }
   }
 
-  // ---- adding symptoms (US-22) ----
+  // ---- adding symptoms ----
 
   @Test
   fun member_showsWhetherTheyCanAddSymptoms() {
@@ -421,7 +422,7 @@ class CareCircleMemberScreenTest {
     }
   }
 
-  // ---- editing and deleting (US-46) ----
+  // ---- editing and deleting ----
 
   @Test
   @Config(qualifiers = LANDSCAPE_PHONE)

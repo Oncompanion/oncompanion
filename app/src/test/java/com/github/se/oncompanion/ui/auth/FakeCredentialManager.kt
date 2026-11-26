@@ -23,13 +23,14 @@ import java.util.concurrent.Executor
  * Hand-written fake [CredentialManager] for unit tests. Both the suspend and the callback variants
  * of getCredential / clearCredentialState are supported so the fake does not depend on which one
  * the code under test uses.
+ *
+ * @property credential returned by getCredential, unless [getError] is set
+ * @property getError thrown by getCredential
+ * @property clearError thrown by clearCredentialState
  */
 class FakeCredentialManager(
-    /** Credential returned by getCredential, unless [getError] is set. */
     var credential: Credential? = null,
-    /** Exception thrown by getCredential. */
     var getError: GetCredentialException? = null,
-    /** Exception thrown by clearCredentialState. */
     var clearError: ClearCredentialException? = null,
 ) : CredentialManager {
 

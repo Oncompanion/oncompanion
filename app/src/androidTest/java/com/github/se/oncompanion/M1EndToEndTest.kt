@@ -70,8 +70,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The M1 end-to-end test: a new patient goes through the whole app like a real user, against the
- * Firebase emulators. It signs in, goes through onboarding, then uses every main feature, and
+ * The end-to-end journey of a new patient, who goes through the whole app like a real user, against
+ * the Firebase emulators. It signs in, goes through onboarding, then uses every main feature, and
  * checks the links between them: an appointment added in Planning shows on the Overview, a Ligue
  * event the patient confirms in Events shows in Planning, the first name given at onboarding shows
  * on the Overview and the profile, and signing in again finds everything where it was.
@@ -249,8 +249,8 @@ class M1EndToEndTest {
   }
 
   /**
-   * US-44 and US-73: the patient dictates a symptom from the journal's Add symptom, then from the
-   * Overview's "Speak how you feel", checks each draft and saves it; both are in the journal.
+   * The patient dictates a symptom from the journal's Add symptom, then from the Overview's "Speak
+   * how you feel", checks each draft and saves it; both are in the journal.
    */
   @Test
   fun newPatient_logsSymptomsByVoice() {
@@ -478,7 +478,7 @@ class M1EndToEndTest {
 
   /**
    * The Events tab lists the Ligue's event, whose detail says where it takes place; the patient
-   * confirms there that they registered with the organizer (US-25).
+   * confirms there that they registered with the organizer.
    */
   private fun confirmRegistrationForLigueEvent(title: String, place: String) {
     // The list only composes the cards on screen: scroll to ours first, in case earlier events
@@ -496,7 +496,7 @@ class M1EndToEndTest {
   }
 
   /**
-   * The link between Events and Planning (US-30): the confirmed event shows on its day, next to the
+   * The link between Events and Planning: the confirmed event shows on its day, next to the
    * patient's appointment.
    */
   private fun seeConfirmedEventInPlanning(title: String, appointment: String) {
@@ -539,8 +539,8 @@ class M1EndToEndTest {
   }
 
   /**
-   * From the journal's Add symptom (US-44): the patient speaks, sees what was heard, and the form
-   * comes back drafted with the symptom picked; saving returns to the journal with the entry.
+   * From the journal's Add symptom: the patient speaks, sees what was heard, and the form comes
+   * back drafted with the symptom picked; saving returns to the journal with the entry.
    */
   private fun dictateSymptomFromJournal() {
     ui.open(C.Tag.overview_journal_link, hasTestTag(C.Tag.symptom_journal_add))
@@ -556,8 +556,8 @@ class M1EndToEndTest {
   }
 
   /**
-   * From the Overview's "Speak how you feel" (US-73): the form opens already listening; once the
-   * drafted symptom is saved, the patient is back on the Overview.
+   * From the Overview's "Speak how you feel": the form opens already listening; once the drafted
+   * symptom is saved, the patient is back on the Overview.
    */
   private fun speakHowYouFeelFromOverview() {
     ui.open(C.Tag.overview_speak, hasTestTag(C.Tag.symptom_voice_screen))
@@ -683,7 +683,8 @@ class M1EndToEndTest {
 
   /**
    * From the Overview: the patient invites someone to their care circle, who then appears in it as
-   * waiting to join. Joining with the invite code on the caregiver's side has no screen yet (#137).
+   * waiting to join. The caregiver joining with the invite code is in [M2EndToEndTest], on a second
+   * account.
    */
   private fun inviteToCareCircle(firstName: String) {
     // A new patient's circle is empty: the sailboat's sheet offers to add someone
@@ -759,7 +760,7 @@ class M1EndToEndTest {
     )
   }
 
-  // Keep fluent journey steps while sharing all interaction behavior with M2.
+  // Keep fluent journey steps while sharing all interaction behavior with [M2EndToEndTest].
   private fun SemanticsNodeInteraction.typeText(value: String) = ui.typeText(this, value)
 
   private fun SemanticsNodeInteraction.replaceText(value: String) = ui.replaceText(this, value)

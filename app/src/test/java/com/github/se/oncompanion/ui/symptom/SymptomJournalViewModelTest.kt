@@ -42,6 +42,7 @@ import org.junit.runner.RunWith
 import org.robolectric.shadows.ShadowLooper
 
 // Robolectric provides the main dispatcher used by viewModelScope
+/** Tests of [SymptomJournalViewModel]. */
 @RunWith(AndroidJUnit4::class)
 class SymptomJournalViewModelTest {
 
@@ -281,7 +282,7 @@ class SymptomJournalViewModelTest {
     }
   }
 
-  // ----- Caregiver mode (US-20) -----
+  // ----- Caregiver mode -----
 
   private fun caregiverViewModel(vararg shared: CarePermission) =
       SymptomJournalViewModel(
@@ -346,7 +347,7 @@ class SymptomJournalViewModelTest {
   @Test
   fun caregiver_readRefusedBeforeTheAccessChange_stillEndsOnNotShared() {
     // The patient stops sharing: the server refuses the open read before the access change
-    // arrives (#204). The journal must not stay on the error
+    // arrives. The journal must not stay on the error
     val patient = FollowedPatient(CarePermission.SYMPTOMS)
     repository.observeError = IllegalStateException("PERMISSION_DENIED")
     val vm = caregiverViewModel(patient)
@@ -407,7 +408,7 @@ class SymptomJournalViewModelTest {
     assertTrue(state.canAdd)
   }
 
-  // ----- Who added an entry (US-22) -----
+  // ----- Who added an entry -----
 
   /** Added by "bob", whose own profile says "Bob". */
   private val addedByBob =

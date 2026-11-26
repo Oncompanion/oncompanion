@@ -61,6 +61,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
+/** Tests of [CheckInSheet]. */
 @RunWith(AndroidJUnit4::class)
 class CheckInSheetTest {
 

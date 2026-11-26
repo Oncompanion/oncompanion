@@ -38,6 +38,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
+/** Tests of [EditProfileScreen]. */
 @RunWith(AndroidJUnit4::class)
 class EditProfileScreenTest {
   @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
@@ -124,7 +125,7 @@ class EditProfileScreenTest {
     node(C.Tag.edit_profile_load_error)
         .assertIsDisplayed()
         .assertTextEquals(compose.activity.getString(R.string.profile_error))
-    // A load error isn't a connection problem: offline, Firestore serves its cache (#438)
+    // A load error isn't a connection problem: offline, Firestore serves its cache
     compose.onNode(hasText("connection", substring = true, ignoreCase = true)).assertDoesNotExist()
     node(C.Tag.edit_profile_retry).performClick()
     compose.runOnIdle { assertEquals(1, retries) }
@@ -321,7 +322,7 @@ class EditProfileScreenTest {
     compose.runOnIdle { assertEquals(Screen.PROFILE, nav.currentDestination?.route) }
   }
 
-  /** The saved text is editable even though M1 search is visible and disabled. */
+  /** The saved text is editable even though the search is visible and disabled. */
   @Test
   fun hospitalPrefillsCanBeEditedAndClearedWithSearchDisabled() {
     content(state.copy(hospital = "Saved hospital"))

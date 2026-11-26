@@ -307,7 +307,7 @@ class AppointmentFormScreenTest {
   @Test
   @org.robolectric.annotation.Config(qualifiers = SMALL_LANDSCAPE_PHONE)
   fun smallLandscapeKeyboardKeepsFieldsAndSaveReachable() {
-    // A caregiver's form has the longest title (US-41)
+    // A caregiver's form has the longest title
     show(state().copy(title = "Visit", time = LocalTime.NOON), caregiverOf = "Anne")
     compose.onNodeWithText("Add an appointment for Anne").assertIsDisplayed()
     compose.showKeyboard(280)
@@ -322,7 +322,7 @@ class AppointmentFormScreenTest {
     }
   }
 
-  /** A caregiver's form says whose planning the appointment goes in (US-41). */
+  /** A caregiver's form says whose planning the appointment goes in. */
   @Test
   fun caregiversFormSaysWhosePlanningItIs() {
     show(state(), caregiverOf = "Anne")

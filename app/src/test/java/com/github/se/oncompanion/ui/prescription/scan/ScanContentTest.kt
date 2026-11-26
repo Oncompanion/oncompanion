@@ -57,6 +57,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [ScanContent]. */
 @RunWith(AndroidJUnit4::class)
 class ScanContentTest {
 
@@ -162,7 +163,7 @@ class ScanContentTest {
     compose.onNodeWithTag(C.Tag.prescription_scan_capture_button).assertIsNotEnabled()
     // The preview is already there, as the camera only opens once it can draw it
     compose.onNodeWithTag(FakeScanCamera.VIEWFINDER).assertExists()
-    // The guide already shows where the page goes, with the spinner inside it (Figma)
+    // The guide already shows where the page goes, with the spinner inside it
     compose.onNodeWithTag(C.Tag.prescription_scan_framing_guide).assertIsDisplayed()
   }
 
@@ -540,7 +541,7 @@ class ScanContentTest {
     assertEquals(ready, disc(), 0.05)
   }
 
-  /** The node's bounds in dp, to compare with the Figma. */
+  /** The node's bounds in dp. */
   private fun boundsDp(node: SemanticsNodeInteraction) =
       node.fetchSemanticsNode().boundsInRoot.let {
         val d = compose.density.density
@@ -551,7 +552,7 @@ class ScanContentTest {
   @Config(qualifiers = "w390dp-h844dp-xhdpi")
   @GraphicsMode(GraphicsMode.Mode.NATIVE)
   fun photoStates_layOutAsInTheFigma() {
-    // An A4 page, as the Figma's placeholder
+    // An A4 page, as the placeholder
     val photo = photoFile(300, 424)
     // Each state: what is under the photo, how far under it, and the two buttons (or none)
     data class Case(

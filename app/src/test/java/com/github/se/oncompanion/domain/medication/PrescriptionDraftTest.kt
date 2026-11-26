@@ -13,6 +13,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Tests of [PrescriptionDraft]. */
 class PrescriptionDraftTest {
 
   private val date = LocalDate.of(2026, 9, 29)

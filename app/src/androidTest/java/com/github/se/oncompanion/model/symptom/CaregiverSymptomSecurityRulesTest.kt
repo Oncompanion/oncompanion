@@ -21,9 +21,9 @@ import org.junit.runner.RunWith
 
 /**
  * Tests that firestore.rules let a caregiver log a symptom in a patient's journal only when the
- * patient shares their symptoms and lets them add (US-22), signed with their own uid, and edit or
- * delete one only when the patient also lets them edit and delete there (US-46), signing their
- * edit. alice is the patient, carol her caregiver, dave a stranger.
+ * patient shares their symptoms and lets them add, signed with their own uid, and edit or delete
+ * one only when the patient also lets them edit and delete there, signing their edit. alice is the
+ * patient, carol her caregiver, dave a stranger.
  */
 @RunWith(AndroidJUnit4::class)
 class CaregiverSymptomSecurityRulesTest {

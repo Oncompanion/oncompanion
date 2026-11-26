@@ -14,6 +14,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Tests of [CareCircleInvite]. */
 class CareCircleInviteTest {
 
   private val createdAt = Instant.parse("2026-10-01T10:00:00Z")

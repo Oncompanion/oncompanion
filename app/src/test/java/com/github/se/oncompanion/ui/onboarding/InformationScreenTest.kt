@@ -54,6 +54,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
+/** Tests of [InformationScreen]. */
 @RunWith(AndroidJUnit4::class)
 class InformationScreenTest {
 
@@ -606,7 +607,7 @@ class InformationScreenTest {
         .assertTextEquals(
             context.getString(R.string.onboarding_signed_in_as, "alex.martin@example.com")
         )
-    // Just above Continue, which stays at the bottom of the screen (Figma)
+    // Just above Continue, which stays at the bottom of the screen
     val account =
         composeTestRule
             .onNodeWithTag(C.Tag.onboarding_use_another_account)

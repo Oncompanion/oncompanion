@@ -23,6 +23,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/** Tests of [NavigationActions]. */
 @RunWith(AndroidJUnit4::class)
 class NavigationActionsTest {
 

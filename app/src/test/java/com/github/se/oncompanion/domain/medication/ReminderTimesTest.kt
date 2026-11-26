@@ -6,6 +6,7 @@ import java.time.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+/** Tests of [ReminderTimes]. */
 class ReminderTimesTest {
 
   private fun times(vararg hours: Int) = hours.map { LocalTime.of(it, 0) }

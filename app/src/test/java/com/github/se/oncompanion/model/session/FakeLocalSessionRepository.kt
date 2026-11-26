@@ -1,4 +1,5 @@
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.model.session
 
@@ -6,12 +7,19 @@ import com.github.se.oncompanion.domain.auth.CleanupJournal
 
 /** Local lifecycle fake with controllable acknowledgement and cleanup failures. */
 class FakeLocalSessionRepository : LocalSessionRepository {
+  /** The names of the methods called, in order (e.g. "freeze", "seal"). */
   val calls = mutableListOf<String>()
+  /** Whether new writes are accepted: false between freeze and resume or reopen. */
   var accepting = true
+  /** Whether the session was sealed and not reopened since. */
   var sealed = false
+  /** Whether changes wait to be saved online; synchronize and clear empty them. */
   var offlineChanges = true
+  /** What synchronize does before it ends, e.g. suspend or throw. */
   var synchronizeAction: suspend () -> Unit = {}
+  /** Thrown by clear, if set. */
   var clearError: Exception? = null
+  /** Thrown by seal, if set. */
   var sealError: Exception? = null
 
   override fun prepare() {}
@@ -57,6 +65,7 @@ class FakeCleanupJournal(pending: Boolean = false) : CleanupJournal {
   override val pending: Boolean
     get() = flag
 
+  /** Thrown by setPending, if set: the journal couldn't be written. */
   var failure: Exception? = null
 
   override fun setPending(pending: Boolean) {

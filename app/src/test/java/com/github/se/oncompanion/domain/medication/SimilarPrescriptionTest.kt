@@ -9,7 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** [similarPrescription]: when a new prescription repeats a saved one (US-39). */
+/** [similarPrescription]: when a new prescription repeats a saved one. */
 class SimilarPrescriptionTest {
   private val october = LocalDate.of(2026, 10, 14)
   private val september = LocalDate.of(2026, 9, 14)

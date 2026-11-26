@@ -272,8 +272,8 @@ class AppointmentFormViewModelTest {
       }
 
   /**
-   * A caregiver the patient lets add appointments (US-41) adds one to the patient's planning,
-   * signed with their uid and first name; nothing goes in their own planning.
+   * A caregiver the patient lets add appointments adds one to the patient's planning, signed with
+   * their uid and first name; nothing goes in their own planning.
    */
   @Test
   fun caregiver_addsToThePatientsPlanning_signedWithTheirUidAndFirstName() =

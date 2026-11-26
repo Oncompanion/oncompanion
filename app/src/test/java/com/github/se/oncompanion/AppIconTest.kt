@@ -21,7 +21,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The home screen icon: the violet ribbon on a cream tile (Figma "Solid · Violet on cream"). */
+/**
+ * The home screen icon: the violet ribbon on a cream tile (design: Brand & Theme, "Solid · Violet
+ * on cream").
+ */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class AppIconTest {

@@ -7,6 +7,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
+/** Tests of [AuthUser]. */
 class AuthUserTest {
 
   @Test

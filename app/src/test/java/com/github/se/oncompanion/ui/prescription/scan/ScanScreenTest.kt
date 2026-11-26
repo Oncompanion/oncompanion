@@ -133,7 +133,7 @@ class ScanScreenTest {
         }
       }
 
-  // ---- the tip to hold the phone upright (#356) ----
+  // ---- the tip to hold the phone upright ----
 
   /** The tip shows before anything else; "Got it" then asks for the camera, or turns it on. */
   private fun tip_comesFirst(allowed: Boolean) {
@@ -489,7 +489,7 @@ class ScanScreenTest {
     compose.waitForIdle()
 
     // Rotating recreates the activity, but the screen's ViewModel survives it: the prescription it
-    // handed over is gone from it, so the form isn't opened a second time (review of #237)
+    // handed over is gone from it, so the form isn't opened a second time
     compose.activityRule.scenario.recreate()
     compose.runOnUiThread {
       compose.activity.setContent {

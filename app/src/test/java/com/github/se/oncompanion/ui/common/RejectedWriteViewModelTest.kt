@@ -27,6 +27,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 
+/** Tests of [RejectedWriteViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class RejectedWriteViewModelTest {
   private val dispatcher = StandardTestDispatcher()

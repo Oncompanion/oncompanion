@@ -41,6 +41,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [DeleteConfirmationDialog]. */
 @RunWith(AndroidJUnit4::class)
 class DeleteConfirmationDialogTest {
 
@@ -153,7 +154,7 @@ class DeleteConfirmationDialogTest {
     composeTestRule.runOnIdle { assertEquals(0, cancels) }
   }
 
-  // ----- Figma: "Dialog" (Brand & Theme) -----
+  // ----- Look (design: Brand & Theme, "Dialog") -----
 
   @Test
   @GraphicsMode(GraphicsMode.Mode.NATIVE)

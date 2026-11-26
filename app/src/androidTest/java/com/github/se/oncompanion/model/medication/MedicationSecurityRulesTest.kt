@@ -202,7 +202,7 @@ class MedicationSecurityRulesTest {
     denied(prescriptions().document("new").set(validPrescription()))
   }
 
-  // ---- reminders (US-32) ----
+  // ---- reminders ----
 
   @Test
   fun reminders_areAMapOfAtMost20Medications_onAConfirmedPrescription(): Unit = runBlocking {

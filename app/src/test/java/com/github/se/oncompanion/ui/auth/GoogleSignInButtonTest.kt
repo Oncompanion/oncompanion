@@ -45,6 +45,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [GoogleSignInButton]. */
 @RunWith(AndroidJUnit4::class)
 class GoogleSignInButtonTest {
 

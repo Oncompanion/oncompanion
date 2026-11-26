@@ -39,6 +39,7 @@ import org.junit.runner.RunWith
 import org.robolectric.shadows.ShadowLooper
 
 // Robolectric provides the main dispatcher used by viewModelScope
+/** Tests of [EventDetailViewModel]. */
 @RunWith(AndroidJUnit4::class)
 class EventDetailViewModelTest {
 

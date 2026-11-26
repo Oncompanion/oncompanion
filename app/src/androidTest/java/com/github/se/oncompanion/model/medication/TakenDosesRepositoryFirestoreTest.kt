@@ -28,6 +28,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/** Tests of [TakenDosesRepositoryFirestore]. */
 @RunWith(AndroidJUnit4::class)
 class TakenDosesRepositoryFirestoreTest {
 

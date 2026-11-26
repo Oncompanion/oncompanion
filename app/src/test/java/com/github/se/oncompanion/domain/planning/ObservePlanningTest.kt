@@ -23,6 +23,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Tests of [ObservePlanning]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObservePlanningTest {
 

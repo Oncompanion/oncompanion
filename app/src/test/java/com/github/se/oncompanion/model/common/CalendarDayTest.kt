@@ -9,6 +9,7 @@ import java.util.TimeZone
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+/** Tests that a calendar day is stored at midnight in Zurich and read back as the same day. */
 class CalendarDayTest {
 
   /**
