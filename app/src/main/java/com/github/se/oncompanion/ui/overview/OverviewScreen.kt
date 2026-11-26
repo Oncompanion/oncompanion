@@ -76,6 +76,11 @@ import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Route
 import com.github.se.oncompanion.ui.navigation.Screen
 import com.github.se.oncompanion.ui.navigation.Tab
+import com.github.se.oncompanion.ui.notification.CircleSheet
+import com.github.se.oncompanion.ui.notification.CircleSheetViewModel
+import com.github.se.oncompanion.ui.notification.SailboatBadge
+import com.github.se.oncompanion.ui.notification.SailboatButton
+import com.github.se.oncompanion.ui.notification.sailboatBadge
 import com.github.se.oncompanion.ui.symptom.AddSymptomViewModel
 import com.github.se.oncompanion.ui.symptom.label
 import com.github.se.oncompanion.ui.theme.Shapes
@@ -111,12 +116,6 @@ enum class OverviewShortcut(
       C.Tag.overview_shortcut_prescriptions,
       CarePermission.PRESCRIPTIONS,
   ),
-  CARE_CIRCLE(
-      Route.CARE_CIRCLE,
-      R.string.care_circle_title,
-      R.drawable.ic_care_circle,
-      C.Tag.overview_shortcut_care_circle,
-  ),
   /** Shown as the account icon in the top bar rather than as a tile. */
   PROFILE(
       Route.PROFILE,
@@ -126,15 +125,11 @@ enum class OverviewShortcut(
   ),
 }
 
-/** The caregiver's tiles under "How do you feel today?", in display order. */
-private val tileShortcuts =
-    listOf(OverviewShortcut.SYMPTOMS, OverviewShortcut.PRESCRIPTIONS, OverviewShortcut.CARE_CIRCLE)
-
 /**
- * The patient's tiles under the check-in, which already opens the symptoms; Prescriptions is a tab
- * of the bottom bar. The care circle's goes once the Overview UX Refactor gives it its own way in.
+ * The caregiver's tiles under "How do you feel today?", in display order. The patient has none: the
+ * check-in opens the symptoms, Prescriptions is a tab, and the sailboat opens the care circle.
  */
-private val patientTileShortcuts = listOf(OverviewShortcut.CARE_CIRCLE)
+private val tileShortcuts = listOf(OverviewShortcut.SYMPTOMS, OverviewShortcut.PRESCRIPTIONS)
 
 /** "Saturday 3 October", as in the mockup. Day and month names follow the app language. */
 private val todayFormatter
@@ -154,6 +149,8 @@ private val todayFormatter
  * @param bottomBar what the bottom bar shows on every tab: its tabs and the Prescriptions badge
  * @param checkIn gives the ViewModel that logs what the patient feels from the check-in's sheet
  *   (#544), created on the first tile tapped
+ * @param circle reads the patient's care circle from the start, for the sailboat's dot, and fills
+ *   the "Your circle" sheet it opens (US-50, #457)
  */
 @Composable
 fun OverviewScreen(
@@ -168,7 +165,11 @@ fun OverviewScreen(
     onSwitchPatient: () -> Unit = {},
     bottomBar: BottomBarUiState = BottomBarUiState(),
     checkIn: () -> AddSymptomViewModel = checkInViewModel(),
+    circle: CircleSheetViewModel = viewModel { CircleSheetViewModel() },
 ) {
+  // The "Your circle" sheet stays open across a rotation; what it shows stays in [circle]
+  var isCircleOpen by rememberSaveable { mutableStateOf(false) }
+  val circleState by circle.uiState.collectAsStateWithLifecycle()
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   // Stays open across a rotation; what was picked stays in the check-in's ViewModel
   var isCheckInOpen by rememberSaveable { mutableStateOf(false) }
@@ -204,6 +205,8 @@ fun OverviewScreen(
             state = bottomBar,
         )
       },
+      sailboatBadge = circleState.sailboatBadge,
+      onOpenCircle = { isCircleOpen = true },
   )
   uiState.dosesSheet?.let { sheet ->
     OverviewDosesSheet(
@@ -219,6 +222,24 @@ fun OverviewScreen(
         checkIn(),
         onSaved = { isCheckInOpen = false },
         onClose = { isCheckInOpen = false },
+    )
+  }
+  if (isCircleOpen) {
+    // Each link closes the sheet first, so Back never comes back to it open
+    val openFromCircle = { route: String ->
+      isCircleOpen = false
+      navigationActions.navigateTo(route)
+    }
+    CircleSheet(
+        circle,
+        onDismiss = { isCircleOpen = false },
+        onManage = { openFromCircle(Screen.CARE_CIRCLE) },
+        // Over the Care circle page, so Back from the invite code shows them waiting to join
+        onAddSomeone = {
+          openFromCircle(Screen.CARE_CIRCLE)
+          navigationActions.navigateTo(Screen.CARE_CIRCLE_ADD)
+        },
+        onOpen = openFromCircle,
     )
   }
 }
@@ -267,6 +288,8 @@ private const val CHECK_IN_KEY = "check_in"
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
  * @param onSwitchPatient opens "Whose care?", in caregiver mode
  * @param bottomBar the bottom navigation bar, empty by default
+ * @param sailboatBadge what the patient's sailboat points out; `null` shows no sailboat
+ * @param onOpenCircle opens the "Your circle" sheet from the sailboat
  */
 @Composable
 fun OverviewContent(
@@ -284,6 +307,8 @@ fun OverviewContent(
     caregiverOf: String? = null,
     onSwitchPatient: () -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
+    sailboatBadge: SailboatBadge? = null,
+    onOpenCircle: () -> Unit = {},
 ) {
   Scaffold(
       modifier = modifier.testTag(C.Tag.overview_screen),
@@ -312,6 +337,11 @@ fun OverviewContent(
               onSwitchPatient,
               onProfileClick = { onShortcutClick(OverviewShortcut.PROFILE) },
               band = band,
+              // The patient's only: only they manage their care circle
+              sailboat =
+                  sailboatBadge
+                      ?.takeIf { caregiverOf == null }
+                      ?.let { badge -> { SailboatButton(badge, onOpenCircle) } },
           )
         }
         val dayShown = !uiState.isLoading && !uiState.hasError && !uiState.isNotShared
@@ -352,29 +382,17 @@ fun OverviewContent(
               TodaySection(uiState.todayEntries, onOpenPlanning)
             }
           }
-          // The check-in and the shortcuts stay available whatever happens to the day's data. A
-          // caregiver only gets the sections the patient shares, never the care circle, which only
-          // the patient manages
+          // The patient's check-in, and the caregiver's shortcuts to the sections the patient
+          // shares, stay available whatever happens to the day's data
           if (caregiverOf == null) {
             CheckInDock(
                 onLogSymptom = onLogSymptom,
                 onOpenJournal = { onShortcutClick(OverviewShortcut.SYMPTOMS) },
                 onSpeak = onSpeak.takeIf { uiState.canSpeak },
             )
-          }
-          val tiles =
-              if (caregiverOf == null) patientTileShortcuts
-              else
-                  tileShortcuts.filter {
-                    it.section != null && it.section in uiState.sharedSections
-                  }
-          if (tiles.isNotEmpty()) {
-            Shortcuts(
-                onShortcutClick,
-                tiles,
-                // The patient's check-in already asks
-                withQuestion = caregiverOf != null,
-            )
+          } else {
+            val tiles = tileShortcuts.filter { it.section in uiState.sharedSections }
+            if (tiles.isNotEmpty()) Shortcuts(onShortcutClick, tiles)
           }
         }
       }
@@ -401,10 +419,12 @@ private fun Modifier.overlapLayout(): Modifier = layout { measurable, constraint
 }
 
 /**
- * The greeting (or "Anne's care ▾" for a caregiver), today's date and the profile button, on the
- * sky of the header. On the full header, room is left under them for the overlapping card.
+ * The greeting (or "Anne's care ▾" for a caregiver), today's date, the patient's sailboat and the
+ * profile button, on the sky of the header. On the full header, room is left under them for the
+ * overlapping card.
  *
  * @param band whether the header is the small band, where the title is one size smaller
+ * @param sailboat the patient's "Your circle" button, just before the profile; none for a caregiver
  */
 @Composable
 private fun OverviewHeader(
@@ -413,6 +433,7 @@ private fun OverviewHeader(
     onSwitchPatient: () -> Unit,
     onProfileClick: () -> Unit,
     band: Boolean,
+    sailboat: (@Composable () -> Unit)? = null,
 ) {
   val titleStyle =
       if (band) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineLarge
@@ -432,6 +453,8 @@ private fun OverviewHeader(
         if (caregiverOf == null) Greeting(uiState.firstName, uiState.now, titleStyle)
         else CareTitle(caregiverOf, uiState.now, onSwitchPatient, titleStyle)
       }
+      // The sailboat opening "Your circle", just before the profile (Figma M3)
+      sailboat?.invoke()
       val profile = OverviewShortcut.PROFILE
       IconButton(onClick = onProfileClick, modifier = Modifier.testTag(profile.testTag)) {
         Icon(

@@ -30,21 +30,15 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.R
-import com.github.se.oncompanion.model.auth.AuthUser
-import com.github.se.oncompanion.model.carecircle.CareCircleMember
-import com.github.se.oncompanion.model.carecircle.FakeCareCircleInviteRepository
-import com.github.se.oncompanion.model.carecircle.FakeCareCircleRepository
 import com.github.se.oncompanion.model.medication.FakeMedicationRepository
 import com.github.se.oncompanion.model.medication.Medication
 import com.github.se.oncompanion.model.medication.Prescription
 import com.github.se.oncompanion.model.medication.PrescriptionConfirmation
 import com.github.se.oncompanion.model.notification.CircleNotification
-import com.github.se.oncompanion.model.notification.FakeNotificationRepository
 import com.github.se.oncompanion.model.notification.NotificationKind
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
-import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.navigation.Screen
 import com.github.se.oncompanion.ui.textLayout
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
@@ -57,7 +51,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
-import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -344,26 +337,13 @@ class CircleSheetScreenTest {
       now: Instant = today.atTime(9, 30).atZone(ZoneId.systemDefault()).toInstant(),
       clock: Clock = Clock.fixed(now, ZoneId.systemDefault()),
       medications: FakeMedicationRepository = FakeMedicationRepository(),
-  ): CircleSheetViewModel {
-    val auth = FakeAuthRepository(onSignIn = { AuthUser(uid = it) })
-    runBlocking { auth.signInWithGoogle("alex") }
-    val circleRepo = FakeCareCircleRepository()
-    circleRepo.setMembers("alex", listOf(CareCircleMember("marc", "Marc")))
-    val notifications = FakeNotificationRepository { now }
-    notifications.deliver(
-        "alex",
-        card("p1", LocalTime.NOON, null).notification.copy(createdAt = now.minusSeconds(60)),
-    )
-    medications.seed("alex", prescription("p1"))
-    return CircleSheetViewModel(
-        notifications,
-        circleRepo,
-        FakeCareCircleInviteRepository(),
-        medications,
-        auth,
-        clock,
-    )
-  }
+  ) =
+      circleSheetViewModel(
+          now,
+          clock,
+          added = listOf(prescription("p1")),
+          medications = medications,
+      )
 
   @Test
   fun aFailedRead_saysSo_andRetryReadsAgain() {
