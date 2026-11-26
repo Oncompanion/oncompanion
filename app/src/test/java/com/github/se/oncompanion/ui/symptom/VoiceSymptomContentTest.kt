@@ -52,7 +52,6 @@ class VoiceSymptomContentTest {
   private val draft =
       SymptomDraft(
           types = listOf(SymptomType.FATIGUE, SymptomType.NAUSEA),
-          intensity = 5,
           date = today.minusDays(1),
           time = LocalTime.of(9, 0),
           notes = said,
@@ -228,14 +227,20 @@ class VoiceSymptomContentTest {
             "Yesterday · 09:00",
         )
     for (label in picked) compose.onNodeWithText(label).assertIsDisplayed()
-    compose.onNodeWithText(string(R.string.symptom_voice_intensity, 5)).assertDoesNotExist()
+    compose.onNodeWithText("/10", substring = true).assertDoesNotExist()
   }
 
   @Test
-  fun theStrengthOfTheOneSymptomSaid_isShown() {
-    show(VoiceUiState.Listening(said, draft.copy(types = listOf(SymptomType.FATIGUE))))
+  fun eachSymptom_isShownWithTheStrengthSaidForIt() {
+    val strengths = mapOf(SymptomType.FATIGUE to 5, SymptomType.NAUSEA to 3)
+    show(VoiceUiState.Listening(said, draft.copy(strengths = strengths)))
 
-    compose.onNodeWithText(string(R.string.symptom_voice_intensity, 5)).assertIsDisplayed()
+    // As on the form's strength chips, so the patient sees which strength is for which symptom
+    for ((type, strength) in strengths) {
+      compose
+          .onNodeWithText(string(R.string.symptom_strength_chip, string(type.label), strength))
+          .assertIsDisplayed()
+    }
   }
 
   @Test
