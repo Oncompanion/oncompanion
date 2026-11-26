@@ -236,6 +236,7 @@ class SpokenSymptomParserTest {
             Case("headache at 6", listOf(HEADACHE)),
             Case("headache since 6", listOf(HEADACHE)),
             Case("I threw up 3 times", listOf(NAUSEA)),
+            Case("I threw up 2 today", listOf(NAUSEA)),
             Case("fever 38", listOf(FEVER)),
             Case("nausea 2 hours ago", listOf(NAUSEA), emptyMap(), today, at(12)),
             // Words aren't turned into a number

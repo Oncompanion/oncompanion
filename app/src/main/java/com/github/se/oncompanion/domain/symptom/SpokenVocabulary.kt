@@ -253,7 +253,7 @@ internal class SpokenVocabulary(
             strengthEnds =
                 phraseList(
                     """
-                ok, okay, now, today, right, thanks, thank you, i think, i guess, i, it, it's, my
+                ok, okay, now, right, thanks, thank you, i think, i guess, i, it, it's, my
                 """
                 ),
             articles = setOf("a", "an"),
