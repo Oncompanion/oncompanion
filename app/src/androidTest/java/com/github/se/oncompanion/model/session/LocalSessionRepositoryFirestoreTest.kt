@@ -240,8 +240,8 @@ class LocalSessionRepositoryFirestoreTest {
         ApplicationProvider.getApplicationContext<Context>()
             .getSharedPreferences("reconnect-${UUID.randomUUID()}", Context.MODE_PRIVATE)
     db.disableNetwork().await()
-    // Simulate the pre-#35 app: raw SDK writes, no journal or operation tracking, persisted to
-    // disk.
+    // Simulate an app from before sign-out cleaned the session: raw SDK writes, no journal or
+    // operation tracking, persisted to disk.
     db.collection("users").document(uid).update("firstName", "Reconnected")
     assertTrue(
         db.collection("users").document(uid).get(Source.CACHE).await().metadata.hasPendingWrites()

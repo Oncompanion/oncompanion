@@ -13,6 +13,10 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * Tests of which errors count as a lost connection, so the app only says "check your connection"
+ * for those.
+ */
 class AuthErrorsTest {
 
   @Test

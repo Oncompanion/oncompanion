@@ -24,6 +24,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 
+/** Tests of [BottomBarViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class BottomBarViewModelTest {
 

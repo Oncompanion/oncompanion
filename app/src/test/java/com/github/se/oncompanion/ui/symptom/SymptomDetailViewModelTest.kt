@@ -31,6 +31,7 @@ import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
 
 // Robolectric provides the main dispatcher used by viewModelScope
+/** Tests of [SymptomDetailViewModel]. */
 @RunWith(AndroidJUnit4::class)
 class SymptomDetailViewModelTest {
 
@@ -385,7 +386,7 @@ class SymptomDetailViewModelTest {
     assertEquals(DeletePhase.IDLE, vm.uiState.value.delete)
   }
 
-  // ----- Caregiver mode (US-20) -----
+  // ----- Caregiver mode -----
 
   private fun caregiverViewModel(vararg shared: CarePermission) =
       SymptomDetailViewModel(
@@ -463,7 +464,7 @@ class SymptomDetailViewModelTest {
     assertFalse(vm.uiState.value.isNotShared)
   }
 
-  // ----- Who added the symptom (US-22) -----
+  // ----- Who added the symptom -----
 
   /** Added by "bob", whose own profile says "Bob". */
   private val addedByBob = fatigue.copy(addedBy = "bob", addedByName = "Bob")
@@ -513,7 +514,7 @@ class SymptomDetailViewModelTest {
     assertEquals("Bob", vm.uiState.value.addedByName)
   }
 
-  // ----- A caregiver the patient lets edit and delete (US-46) -----
+  // ----- A caregiver the patient lets edit and delete -----
 
   /** "caregiver" follows "patient", who lets them add to, edit and delete in Symptoms. */
   private fun allowedCaregiver() =

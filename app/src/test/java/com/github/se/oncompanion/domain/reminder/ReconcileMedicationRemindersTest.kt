@@ -35,7 +35,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The medication reminders of #553: which ones ring, and how changes update them (US-32). */
+/** The medication reminders: which ones ring, and how changes update them. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -284,7 +284,7 @@ class ReconcileMedicationRemindersTest {
     auth.signOut()
     runCurrent()
     assertEquals(MedicationReminderSync.IDLE, states.last())
-    // Another account has no medications: the patient's reminders are left to sign-out (#454)
+    // Another account has no medications: the patient's reminders are left to sign-out
     auth.signInWithGoogle("other")
     runCurrent()
     assertEquals(MedicationReminderSync.SYNCHRONIZED, states.last())

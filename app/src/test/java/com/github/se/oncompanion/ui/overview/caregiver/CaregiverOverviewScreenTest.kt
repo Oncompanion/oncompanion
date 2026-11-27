@@ -70,6 +70,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowLooper
 
+/** Tests of [CaregiverOverviewScreen]. */
 @RunWith(AndroidJUnit4::class)
 class CaregiverOverviewScreenTest {
 

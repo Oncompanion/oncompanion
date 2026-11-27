@@ -1,3 +1,6 @@
+// Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
+
 package com.github.se.oncompanion.model.hospital
 
 import java.io.ByteArrayInputStream
@@ -11,6 +14,10 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * Tests of the HTTP connection to the hospital search service: its timeouts and headers, error
+ * responses, failures and oversized responses.
+ */
 class HospitalHttpTransportTest {
   @Test
   fun identifiesApplicationSetsTimeoutsAndClosesSuccessfulResponse() {

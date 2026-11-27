@@ -11,7 +11,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** The phone's record of the accepted prescriptions a caregiver closed (US-43). */
+/** The phone's record of the accepted prescriptions a caregiver closed. */
 @RunWith(AndroidJUnit4::class)
 class SeenPrescriptionsPreferencesTest {
 

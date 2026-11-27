@@ -25,7 +25,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/** "Use another account" outside onboarding, e.g. on the account check (#204). */
+/** "Use another account" outside onboarding, e.g. on the account check. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AccountSwitchViewModelTest {
 

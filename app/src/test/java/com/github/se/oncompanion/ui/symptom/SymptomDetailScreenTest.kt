@@ -70,6 +70,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [SymptomDetailScreen]. */
 @RunWith(AndroidJUnit4::class)
 class SymptomDetailScreenTest {
 
@@ -177,7 +178,7 @@ class SymptomDetailScreenTest {
         C.Tag.symptom_detail_error,
     )
     assertTextInside(context.getString(R.string.symptom_error_hint), C.Tag.symptom_detail_error)
-    // A load error isn't a connection problem: offline, Firestore serves its cache (#438)
+    // A load error isn't a connection problem: offline, Firestore serves its cache
     composeTestRule
         .onNode(hasText("connection", substring = true, ignoreCase = true), useUnmergedTree = true)
         .assertDoesNotExist()
@@ -721,7 +722,7 @@ class SymptomDetailScreenTest {
     composeTestRule.runOnIdle { assertTrue(repository.symptoms("alice").isEmpty()) }
   }
 
-  // ----- Caregiver mode (US-20) -----
+  // ----- Caregiver mode -----
 
   private fun setCaregiverContent(state: SymptomDetailUiState) {
     composeTestRule.setContent {
@@ -768,7 +769,7 @@ class SymptomDetailScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.added_by).assertTextEquals("Added by Robert")
   }
 
-  // ----- A caregiver the patient lets edit and delete (US-46) -----
+  // ----- A caregiver the patient lets edit and delete -----
 
   /** Anne's symptom, as her caregiver allowed to edit and delete it, with [delete]. */
   private val allowed = loaded.copy(entry = fatigue, canEdit = true)

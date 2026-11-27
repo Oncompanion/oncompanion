@@ -32,8 +32,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * [EventPlanningSource] shows in Planning only the events a patient confirmed (US-30, #139), on
- * their day, past weeks included. Whose events they are is decided by [ObserveCarePlanning].
+ * [EventPlanningSource] shows in Planning only the events a patient confirmed, on their day, past
+ * weeks included. Whose events they are is decided by [ObserveCarePlanning].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class EventPlanningSourceTest {

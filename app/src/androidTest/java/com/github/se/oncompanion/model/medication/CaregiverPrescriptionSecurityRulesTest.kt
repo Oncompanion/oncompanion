@@ -23,10 +23,10 @@ import org.junit.runner.RunWith
 
 /**
  * Tests that firestore.rules let a caregiver add a prescription for a patient only when the patient
- * shares their prescriptions and lets them add (US-43): waiting for the patient, signed with their
- * own uid. Editing and deleting also require the patient's switch (US-46); a caregiver never
- * confirms or rejects it. Only the patient decides its confirmation state. alice is the patient,
- * carol her caregiver, dave a stranger.
+ * shares their prescriptions and lets them add: waiting for the patient, signed with their own uid.
+ * Editing and deleting also require the patient's switch; a caregiver never confirms or rejects it.
+ * Only the patient decides its confirmation state. alice is the patient, carol her caregiver, dave
+ * a stranger.
  */
 @RunWith(AndroidJUnit4::class)
 class CaregiverPrescriptionSecurityRulesTest {
@@ -195,14 +195,14 @@ class CaregiverPrescriptionSecurityRulesTest {
     EmulatorTestData.signIn("presc-alice")
     val doc = prescriptions(aliceUid)
 
-    // Saved before US-43 without the field, or with it
+    // Saved before prescriptions recorded who added them, without the field, or with it
     allowed(doc.document().set(prescription()))
     allowed(doc.document().set(prescription("confirmation" to "CONFIRMED")))
     denied(doc.document().set(prescription("confirmation" to "PENDING")))
     denied(doc.document().set(prescription("addedBy" to aliceUid, "addedByName" to "Alice")))
   }
 
-  // ---- A rejected prescription, kept apart for the caregiver who added it (#396) ----
+  // ---- A rejected prescription, kept apart for the caregiver who added it ----
 
   private fun rejected(uid: String): CollectionReference =
       db.collection("users")
@@ -268,7 +268,7 @@ class CaregiverPrescriptionSecurityRulesTest {
     allowed(kept.delete())
   }
 
-  // ---- A caregiver editing and deleting with the patient's permission (US-46) ----
+  // ---- A caregiver editing and deleting with the patient's permission ----
 
   /** Carol's signed edit; null removes a field to exercise malformed writes. */
   private fun carolsEdit(vararg extra: Pair<String, Any?>): Map<String, Any?> =
@@ -447,7 +447,7 @@ class CaregiverPrescriptionSecurityRulesTest {
     allowed(reject(doc, asRejected))
   }
 
-  // ---- Reminders: only the patient chooses them (US-32) ----
+  // ---- Reminders: only the patient chooses them ----
 
   @Test
   fun onlyThePatientChoosesReminders_aCaregiversEditKeepsThem(): Unit = runBlocking {

@@ -48,6 +48,10 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/**
+ * Tests of the check-in once the patient saved a symptom today: the entry instead of the tiles, its
+ * actions, and "Speak how you feel".
+ */
 @RunWith(AndroidJUnit4::class)
 class OverviewSavedCheckInTest {
 

@@ -42,6 +42,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [DayPickerDialog]. */
 @RunWith(AndroidJUnit4::class)
 class DayPickerDialogTest {
 
@@ -124,7 +125,7 @@ class DayPickerDialogTest {
   fun smallLandscape_lastDayCanBeSwipedTo_aboveTheButtons() =
       assertLastDayCanBeSwipedToAboveTheButtons()
 
-  // ----- Figma: "Log symptoms – Date picker" -----
+  // ----- Look (design: Brand & Theme, "Log symptoms – Date picker") -----
 
   /** Fails unless [text] was laid out in [expected], in [color]. */
   private fun assertStyle(text: String, expected: TextStyle, color: Color) =
@@ -141,7 +142,7 @@ class DayPickerDialogTest {
     assertSameColor("container", colors.surfaceContainerLowest, picker.colorAt(width - 8.dp, 8.dp))
   }
 
-  // The Figma writes the day in British English
+  // With the phone in English (UK), the day reads "Sat, 3 Oct 2026"
   @Test
   @Config(qualifiers = "en-rGB")
   fun titleAndSelectedDay_useTheFigmaStyles() {

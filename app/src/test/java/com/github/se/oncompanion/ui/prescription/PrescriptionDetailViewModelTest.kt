@@ -43,6 +43,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 // Robolectric provides android.util.Log, used when a read fails
+/** Tests of [PrescriptionDetailViewModel]. */
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class PrescriptionDetailViewModelTest {
@@ -269,7 +270,7 @@ class PrescriptionDetailViewModelTest {
   @Test
   fun whileReadingAgain_keepsWhatWasShown_butNeverAfterAccessWasLost() {
     // Only a shown or loading prescription may stay while it is read again: losing the access
-    // never turns back into the prescription, even if one were still held (#490)
+    // never turns back into the prescription, even if one were still held
     val cases =
         listOf(
             PrescriptionsLoad.SHOWN to chemo to PrescriptionsLoad.SHOWN,
@@ -290,7 +291,7 @@ class PrescriptionDetailViewModelTest {
     }
   }
 
-  // ----- Delete (US-12) -----
+  // ----- Delete -----
 
   @Test
   fun canEditAndDelete_onlyAShownPrescription() {
@@ -507,7 +508,7 @@ class PrescriptionDetailViewModelTest {
     assertFalse(vm.uiState.value.isDeleteDialogShown)
   }
 
-  // ----- Caregiver mode (US-20) -----
+  // ----- Caregiver mode -----
 
   private fun caregiverViewModel(vararg shared: CarePermission) =
       PrescriptionDetailViewModel(
@@ -587,7 +588,7 @@ class PrescriptionDetailViewModelTest {
     val viewModel = followedViewModel(patient)
     dispatcher.scheduler.advanceUntilIdle()
 
-    // Still in the circle: they signed out, nobody removed them (#490)
+    // Still in the circle: they signed out, nobody removed them
     patient.auth.signOut()
     dispatcher.scheduler.advanceUntilIdle()
 

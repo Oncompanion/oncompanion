@@ -13,14 +13,27 @@ import java.time.LocalDate
  */
 object ScanAnswerKey {
 
-  /** What is written on a sheet: the doctor, the date, and each medication's details. */
+  /**
+   * What is written on a sheet.
+   *
+   * @property doctor the prescriber's name
+   * @property date the prescription's date
+   * @property medications each medication's details
+   */
   data class Written(
       val doctor: String,
       val date: LocalDate,
       val medications: List<Medication>,
   )
 
-  /** A medication as the patient would enter it: [days] is `null` when no duration is given. */
+  /**
+   * A medication as the patient would enter it.
+   *
+   * @property name the medication's name
+   * @property dosage its dosage, e.g. "8 mg"
+   * @property frequency its frequency, as written
+   * @property days how many days to take it, or `null` when no duration is given
+   */
   data class Medication(
       val name: String,
       val dosage: String,

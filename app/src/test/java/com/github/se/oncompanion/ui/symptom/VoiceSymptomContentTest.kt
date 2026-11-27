@@ -41,6 +41,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [VoiceSymptomContent]. */
 @RunWith(AndroidJUnit4::class)
 class VoiceSymptomContentTest {
 
@@ -422,7 +423,7 @@ class VoiceSymptomContentTest {
     for ((note, tag) in notes) {
       voice = VoiceUiState.Listening(said, draft, connection = note)
       compose.waitForIdle()
-      // The column follows the words (#568): scroll back up to the note, at its top
+      // The column follows the words: scroll back up to the note, at its top
       node(tag).performScrollTo()
 
       val top = node(tag).fetchSemanticsNode().boundsInRoot.top

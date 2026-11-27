@@ -127,6 +127,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [OverviewScreen]. */
 @RunWith(AndroidJUnit4::class)
 class OverviewScreenTest {
 
@@ -209,7 +210,7 @@ class OverviewScreenTest {
     }
   }
 
-  /** The caregiver's day, which keeps the appointment card and the "Today" list for now. */
+  /** The caregiver's day, which keeps the appointment card and the "Today" list. */
   private fun setCaregiverDay(state: OverviewUiState) = setContent(state, caregiverOf = "Anne")
 
   /** The patient's circle at [morning]: Marc in it, and the prescriptions he [added]. */
@@ -466,7 +467,7 @@ class OverviewScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.overview_today_list).assertDoesNotExist()
 
     composeTestRule.onNodeWithTag(C.Tag.overview_next_up).performClick()
-    // Each card's link keeps the Figma's 20 dp row but a 48 dp touch target, and only opens
+    // Each card's link keeps a 20 dp row but a 48 dp touch target, and only opens
     // Planning: the Next up link doesn't also open the event
     listOf(C.Tag.overview_next_up_planning_link, C.Tag.overview_planning_link).forEach {
       composeTestRule.onNodeWithTag(it).assertTouchHeightIsEqualTo(48.dp).performClick()
@@ -987,7 +988,7 @@ class OverviewScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.bottom_navigation_bar).assertDoesNotExist()
   }
 
-  // --- Caregiver mode (US-20) ---
+  // --- Caregiver mode ---
 
   @Test
   fun caregiverMode_titleNamesThePatient_andOpensWhoseCare() {
@@ -1017,7 +1018,7 @@ class OverviewScreenTest {
     }
     composeTestRule.onNodeWithTag(C.Tag.overview_shortcuts).assertDoesNotExist()
     composeTestRule.onNodeWithTag(C.Tag.overview_no_appointment).assertIsDisplayed()
-    // The patient's cards of the Overview UX Refactor aren't the caregiver's yet
+    // The patient's cards aren't shown to a caregiver
     listOf(
             C.Tag.overview_next_up,
             C.Tag.overview_medications,
@@ -1049,7 +1050,7 @@ class OverviewScreenTest {
         .assertDoesNotExist()
   }
 
-  // ----- Caregiver mode (US-20) -----
+  // ----- Caregiver mode -----
 
   private fun setCaregiverContent(
       state: OverviewUiState,
@@ -1132,9 +1133,9 @@ class OverviewScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.overview_shortcuts).assertDoesNotExist()
   }
 
-  // ----- Check-in (Overview UX Refactor) -----
+  // ----- Check-in -----
 
-  /** The check-in's symptoms, in the Figma's order; "More…" comes after them. */
+  /** The check-in's symptoms, in their order on the Overview; "More…" comes after them. */
   private val checkInTypes =
       listOf(
           SymptomType.FATIGUE,
@@ -1221,7 +1222,7 @@ class OverviewScreenTest {
     }
   }
 
-  // The check-in's sheet (#544) shows every symptom, as tiles that say whether they are picked
+  // The check-in's sheet shows every symptom, as tiles that say whether they are picked
   @Test
   @GraphicsMode(GraphicsMode.Mode.NATIVE)
   // The sheet's width on a 390 dp phone, inside its 16 dp margins
@@ -1241,7 +1242,7 @@ class OverviewScreenTest {
     val rows = tops.chunked(3)
     rows.forEach { assertEquals(listOf(it[0], it[0], it[0]), it) }
     assertTrue(rows.map { it[0] }.zipWithNext().all { (above, below) -> above < below })
-    // Checked or not, read as a checkbox so it doesn't rely on colour alone
+    // Checked or not, read as a checkbox so it doesn't rely on color alone
     SymptomType.entries.zip(tiles).forEach { (type, tile) ->
       if (type in picked) tile.assertIsOn() else tile.assertIsOff()
     }
@@ -1333,7 +1334,7 @@ class OverviewScreenTest {
   fun sheetTilesInLandscapeAt200Percent_areWholeAndReachable() =
       assertEachSheetTileIsWholeAndReachable()
 
-  // ----- Speaking from the check-in (US-73) -----
+  // ----- Speaking from the check-in -----
 
   @Test
   fun checkIn_offersSpeakHowYouFeel_onlyWhenThePhoneCanListen() {
@@ -1408,7 +1409,7 @@ class OverviewScreenTest {
     assertTrue("Journal beside the title", bounds(C.Tag.overview_journal_link).top < title.bottom)
   }
 
-  // ----- Look (Figma "US-23 / Overview – Dashboard") -----
+  // ----- Look (design: M3, "Overview · Patient · Home") -----
 
   private fun bounds(tag: String) =
       composeTestRule.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
@@ -1724,7 +1725,7 @@ class OverviewScreenTest {
         OverviewContent(loaded, {}, {}, {}, {}, caregiverOf = caregiverOf)
       }
     }
-    // (dark, caregiver of) to the page's colour, in the side margin at the bottom of the screen
+    // (dark, caregiver of) to the page's color, in the side margin at the bottom of the screen
     listOf(
             Triple(false, null, StonePageLight),
             Triple(true, null, StonePageDark),
@@ -1754,7 +1755,7 @@ class OverviewScreenTest {
     composeTestRule.setContent {
       OncompanionTheme(darkTheme = dark) { OverviewContent(state, {}, {}, {}, {}) }
     }
-    // At night the check-in dock is lighter than the other cards (Figma M3, Home · Dusk)
+    // At night the check-in dock is lighter than the other cards (design: M3, "Home · Dusk")
     listOf(
             Triple(false, StoneCardLight, StoneDockLight),
             Triple(true, StoneCardDark, StoneDockDark),
@@ -1784,7 +1785,7 @@ class OverviewScreenTest {
         }
   }
 
-  // ----- "Your circle" sailboat (US-50, #457) -----
+  // ----- "Your circle" sailboat -----
 
   private val waitingPrescription =
       Prescription(

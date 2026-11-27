@@ -38,9 +38,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Data loaded once stays available without a connection (#32, US-2). Firestore keeps its cache on
- * the device's disk by default on Android: these tests check that the saved profile is still shown
- * offline, also after the app restarts.
+ * Data loaded once stays available without a connection. Firestore keeps its cache on the device's
+ * disk by default on Android: these tests check that the saved profile is still shown offline, also
+ * after the app restarts.
  */
 @RunWith(AndroidJUnit4::class)
 class OfflineSavedDataTest {

@@ -31,6 +31,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+/** Tests of [SignInViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SignInViewModelTest {
 

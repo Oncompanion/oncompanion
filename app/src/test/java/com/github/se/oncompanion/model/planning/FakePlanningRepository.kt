@@ -9,15 +9,19 @@ import kotlinx.coroutines.flow.flow
 
 /** Shared observable source for Planning tests, including explicit failures and retry behavior. */
 class FakePlanningRepository : PlanningRepository {
+  /** The planning every owner sees, unless [itemsOf] gives them their own. */
   val items = MutableStateFlow<List<PlanningItem>>(emptyList())
   /** The planning of each owner given one here, instead of [items]. */
   val itemsOf = mutableMapOf<String, MutableStateFlow<List<PlanningItem>>>()
+  /** The range each observation asked for, in order. */
   val ranges = mutableListOf<PlanningRange>()
   /** Whose planning each observation asked for, in order. */
   val owners = mutableListOf<String>()
   /** The sections each observation asked for, in order. */
   val sections = mutableListOf<Set<CarePermission>>()
+  /** Each observation fails, unless [observation] is set. */
   var fail = false
+  /** What each observation gives for its range, instead of [items]. */
   var observation: ((PlanningRange) -> Flow<List<PlanningItem>>)? = null
 
   override fun observeItems(

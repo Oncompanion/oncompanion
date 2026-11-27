@@ -1,4 +1,5 @@
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 package com.github.se.oncompanion.model.hospital
 
 import com.github.se.oncompanion.model.session.SessionAccess
@@ -18,6 +19,10 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Test
 
+/**
+ * Tests of the HTTP connection to the hospital search proxy: its headers, error responses, size
+ * limit, failures and cancellation.
+ */
 class HospitalProxyTransportTest {
   @Test
   fun attachesOnlyExpectedHeadersAndClosesUtf8Success() = runTest {

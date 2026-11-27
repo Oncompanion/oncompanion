@@ -31,7 +31,8 @@ import org.robolectric.annotation.GraphicsMode
 
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-// Wider than the lake, so it is drawn at the Figma's size and its units map to pixels
+// Wider than the lake, so it is drawn at its own size and its units map to pixels
+/** Tests of [VoiceLake]. */
 @Config(qualifiers = "w411dp-h891dp")
 class VoiceLakeTest {
 
@@ -40,14 +41,14 @@ class VoiceLakeTest {
   private var sun by mutableStateOf(VoiceSun.HIDDEN)
   private var level by mutableStateOf(0f)
 
-  /** The sun's colour (DESIGN.md), as drawn by voice_sun. */
+  /** The sun's color (DESIGN.md), as drawn by voice_sun. */
   private val sunColor = Color(0xFFFBF8F4)
 
   private fun show() {
     compose.mainClock.autoAdvance = false
     compose.setContent {
       OncompanionTheme(darkTheme = false) {
-        // At the Figma's size, so a pixel is a unit of the lake (at the test's density)
+        // At its own size, so a pixel is a unit of the lake (at the test's density)
         VoiceLake(
             sun,
             level,
@@ -67,7 +68,7 @@ class VoiceLakeTest {
     compose.mainClock.advanceTimeBy(3_000)
   }
 
-  /** The colour of the lake at ([x], [y]) in the Figma's units. */
+  /** The color of the lake at ([x], [y]) in the drawing's units. */
   private fun colorAt(x: Float, y: Float): Color {
     val image = compose.onNodeWithTag(LAKE).captureToImage()
     val scale = image.width / 390f

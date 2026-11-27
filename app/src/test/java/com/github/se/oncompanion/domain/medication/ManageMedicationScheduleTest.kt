@@ -24,6 +24,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Tests of [ManageMedicationSchedule]. */
 class ManageMedicationScheduleTest {
 
   private val uid = "patient-1"
@@ -591,7 +592,7 @@ class ManageMedicationScheduleTest {
     assertEquals(listOf(saved), repository.prescriptionsOf(uid))
   }
 
-  // ---------- Notifying the patient (US-50) ----------
+  // ---------- Notifying the patient ----------
 
   @Test
   fun caregiversPrescription_notifiesThePatient_aboutThatPrescription() = runTest {
@@ -680,7 +681,7 @@ class ManageMedicationScheduleTest {
     assertTrue(notifications.notificationsOf(uid).isEmpty())
   }
 
-  // ---------- Reminders (US-32) ----------
+  // ---------- Reminders ----------
 
   private val nine = listOf(LocalTime.of(9, 0))
 

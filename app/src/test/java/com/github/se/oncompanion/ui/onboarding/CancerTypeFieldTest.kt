@@ -45,6 +45,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [CancerTypeField]. */
 @RunWith(AndroidJUnit4::class)
 class CancerTypeFieldTest {
 
@@ -293,7 +294,7 @@ class CancerTypeFieldTest {
       CancerTypeField(value = "", onValueChange = {}, modifier = Modifier.width(300.dp))
     }
 
-    // As wide as the other onboarding fields (Figma), not the text field's own minimum
+    // As wide as the other onboarding fields, not the text field's own minimum
     composeTestRule.onNodeWithTag(C.Tag.cancer_type_field).assertWidthIsEqualTo(300.dp)
   }
 
@@ -314,7 +315,7 @@ class CancerTypeFieldTest {
       composeTestRule.onNodeWithTag(C.Tag.cancer_type_field).performTextInput("Br")
       val menu = composeTestRule.onNodeWithTag(C.Tag.cancer_type_suggestions)
       val size = menu.getUnclippedBoundsInRoot()
-      // The card's right edge, beside the items' text (Figma "Cancer type suggestions")
+      // The card's right edge, beside the items' text (design: M2, "Cancer type suggestions")
       assertSameColor(
           "menu, dark=$isDark",
           white,

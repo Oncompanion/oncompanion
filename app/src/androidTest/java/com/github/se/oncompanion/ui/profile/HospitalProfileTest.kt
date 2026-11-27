@@ -1,4 +1,5 @@
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.profile
 
@@ -131,7 +132,7 @@ class HospitalProfileTest {
     compose.onNodeWithTag(C.Tag.profile_hospital).assertDoesNotExist()
   }
 
-  /** Manual-only M1 entry is saved locally offline and displayed; clearing also persists. */
+  /** A hospital entered manually is saved locally offline and displayed; clearing also persists. */
   @Test
   fun manualHospitalEntryAndClearingWorkOfflineWithSearchDisabled() {
     val db = FirebaseEmulator.firestore

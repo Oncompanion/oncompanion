@@ -54,6 +54,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+/** Tests of [AddSymptomViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddSymptomViewModelTest {
 
@@ -706,7 +707,7 @@ class AddSymptomViewModelTest {
         assertEquals(1, repository.symptoms(uid).size)
       }
 
-  // ----- The Overview's check-in sheet (#544) -----
+  // ----- The Overview's check-in sheet -----
 
   /** A new check-in at the current time with [picked] ticked, as the sheet opens. */
   private fun freshCheckIn(picked: SymptomType?) =
@@ -1252,7 +1253,7 @@ class AddSymptomViewModelTest {
     )
   }
 
-  // ----- Caregiver mode (US-22) -----
+  // ----- Caregiver mode -----
 
   /** The form of the signed-in caregiver [uid], logging in "patient"'s journal. */
   private fun caregiverViewModel(profiles: UserProfileRepository = FakeUserProfileRepository()) =
@@ -1342,7 +1343,7 @@ class AddSymptomViewModelTest {
         assertNull(savedEntry().addedByName)
       }
 
-  // ----- Dictating a symptom (US-44) -----
+  // ----- Dictating a symptom -----
 
   /** A form listening to the patient, who has allowed the microphone. */
   private fun TestScope.listening(viewModel: AddSymptomViewModel = viewModel()) = viewModel.also {
@@ -1767,7 +1768,7 @@ class AddSymptomViewModelTest {
         assertEquals(listOf(SymptomType.SLEEP_PROBLEMS), viewModel.state.types)
       }
 
-  // ----- Speaking from the Overview (US-73) -----
+  // ----- Speaking from the Overview -----
 
   /** A form opened from the Overview's mic, to speak. */
   private fun openedToSpeak() =
@@ -1861,7 +1862,7 @@ class AddSymptomViewModelTest {
         }
       }
 
-  // ----- Voice without a connection (US-45) -----
+  // ----- Voice without a connection -----
 
   @Test
   fun beforeListening_theDownloadIsOfferedOnlyWhenThePhoneCanDownloadTheLanguage() =
@@ -2212,7 +2213,7 @@ class AddSymptomViewModelTest {
         assertEquals(emptyList<SymptomType>(), viewModel.state.types)
       }
 
-  // ----- A caregiver the patient lets edit and delete (US-46) -----
+  // ----- A caregiver the patient lets edit and delete -----
 
   /** The signed-in caregiver Sam, editing [entry] in "patient"'s journal. */
   private fun caregiverEditing(

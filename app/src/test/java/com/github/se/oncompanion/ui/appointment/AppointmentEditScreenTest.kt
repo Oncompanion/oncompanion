@@ -199,7 +199,7 @@ class AppointmentEditScreenTest {
     assertEquals(1, backs)
   }
 
-  /** A caregiver editing the patient's appointment (US-46) sees whose it is in the title. */
+  /** A caregiver editing the patient's appointment sees whose it is in the title. */
   @Test
   fun caregiverEdit_titleSaysWhoseAppointmentItIs() {
     compose.setContent {

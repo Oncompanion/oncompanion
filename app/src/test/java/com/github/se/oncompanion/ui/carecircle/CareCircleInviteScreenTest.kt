@@ -59,6 +59,7 @@ import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
+/** Tests of [CareCircleInviteScreen]. */
 @RunWith(AndroidJUnit4::class)
 class CareCircleInviteScreenTest {
 
@@ -552,7 +553,7 @@ class CareCircleInviteScreenTest {
     composeTestRule.onNodeWithText("Julie has joined your circle").assertIsDisplayed()
   }
 
-  // ---- adding symptoms (US-22) ----
+  // ---- adding symptoms ----
 
   @Test
   fun invite_showsWhetherTheMemberCanAddSymptoms() {

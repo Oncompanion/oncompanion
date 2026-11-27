@@ -53,6 +53,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [PrescriptionDetailScreen]. */
 @RunWith(AndroidJUnit4::class)
 class PrescriptionDetailScreenTest {
 
@@ -180,7 +181,7 @@ class PrescriptionDetailScreenTest {
   @Test
   @Config(qualifiers = SMALL_LANDSCAPE_PHONE, fontScale = 2f)
   fun error_retryCanBeReached_onASmallPhoneSidewaysWithTheLargestFont() {
-    // Taller than the screen there: the message scrolls so Retry can still be tapped (#490)
+    // Taller than the screen there: the message scrolls so Retry can still be tapped
     setContent(PrescriptionDetailUiState(load = PrescriptionsLoad.FAILED))
     composeTestRule
         .onNodeWithTag(C.Tag.prescription_detail_retry_button)
@@ -190,7 +191,7 @@ class PrescriptionDetailScreenTest {
 
   @Test
   fun error_spansTheWholeWidth_soItWrapsLikeOnTheOtherPrescriptionScreens() {
-    // The message state brings its own side padding: nothing is added around it (#490)
+    // The message state brings its own side padding: nothing is added around it
     setContent(PrescriptionDetailUiState(load = PrescriptionsLoad.FAILED))
     val screen = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot
     val message =
@@ -211,7 +212,7 @@ class PrescriptionDetailScreenTest {
 
   @Test
   fun everyMessage_isTheSharedMessageState() {
-    // The app's shared message state, as on the list and the form (#277): its tile shows in each
+    // The app's shared message state, as on the list and the form: its tile shows in each
     var state by mutableStateOf(PrescriptionDetailUiState(load = PrescriptionsLoad.FAILED))
     setContentOf { state }
     val cases =
@@ -285,7 +286,7 @@ class PrescriptionDetailScreenTest {
     }
     // Signed out, patient or caregiver: "You're signed out", even while the patient's name is
     // still known. Signed in but no longer in the circle (a caregiver): "no longer in the care
-    // circle", named or not, since leave() clears the name before Whose care? (#490)
+    // circle", named or not, since leave() clears the name before Whose care?
     val anne = "Anne"
     val cases =
         listOf(
@@ -447,7 +448,7 @@ class PrescriptionDetailScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.prescriptionDetailMedication("m20")).assertIsDisplayed()
   }
 
-  // ----- Edit (US-12) -----
+  // ----- Edit -----
 
   @Test
   fun shown_editButtonOpensTheForm() {
@@ -504,7 +505,7 @@ class PrescriptionDetailScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.prescription_detail_delete_button).assertIsDisplayed()
   }
 
-  // ----- Delete (US-12) -----
+  // ----- Delete -----
 
   private val confirming = shown.copy(delete = DeletePhase.CONFIRMING)
 
@@ -670,7 +671,7 @@ class PrescriptionDetailScreenTest {
           .positionInRoot
           .y
 
-  // ----- Caregiver mode (US-20) -----
+  // ----- Caregiver mode -----
 
   private fun setCaregiverContent(state: PrescriptionDetailUiState) {
     composeTestRule.setContent {
@@ -705,7 +706,7 @@ class PrescriptionDetailScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.prescription_detail_not_found).assertDoesNotExist()
   }
 
-  // ---- a prescription a caregiver added (US-43) ----
+  // ---- a prescription a caregiver added ----
 
   @Test
   fun prescriptionAddedByACaregiver_saysWho_andWhetherItIsConfirmed() {
@@ -741,7 +742,7 @@ class PrescriptionDetailScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.added_by).assertDoesNotExist()
   }
 
-  // ----- Authorized caregiver edits and deletion (US-46) -----
+  // ----- Authorized caregiver edits and deletion -----
 
   private val editablePatientPrescription = shown.copy(canChange = true)
 

@@ -43,6 +43,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [DetailActions]. */
 @RunWith(AndroidJUnit4::class)
 class DetailActionsTest {
 
@@ -173,7 +174,7 @@ class DetailActionsTest {
     composeTestRule.onNodeWithTag(TAGS.delete).assertDoesNotExist()
   }
 
-  // ----- Figma: "Bottom actions" of a detail ("Symptom detail") -----
+  // ----- Look (design: Brand & Theme, "Bottom actions") -----
 
   private lateinit var colors: ColorScheme
   private lateinit var buttonLabel: TextStyle

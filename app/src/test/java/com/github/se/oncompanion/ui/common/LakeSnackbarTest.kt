@@ -39,7 +39,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** [LakeSnackbar]'s action, as the Figma "Snackbar" (Shared patterns) draws it. */
+/** Tests of [LakeSnackbar]'s action (design: Brand & Theme, "Snackbar"). */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LakeSnackbarTest {

@@ -10,6 +10,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
+/**
+ * Tests of reading the signed-in user's uid, also when nobody is signed in or the user can't be
+ * read.
+ */
 class SignedInUidTest {
 
   /** An [AuthRepository] whose current user can't be read. */

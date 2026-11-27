@@ -20,7 +20,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The splash screen (Figma "US-2 / Splash – Signing you in"): the ribbon in the dawn lake, cut to a
+ * The splash screen (design: M2, "Splash – Signing you in"): the ribbon in the dawn lake, cut to a
  * 160 dp circle in the middle of the 288 dp that Android gives a splash icon without a background.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -38,7 +38,7 @@ class SplashScreenTest {
     return bitmap
   }
 
-  /** The dawn lake's sky, ribbon and deep water, at Figma points shifted into the 160 dp circle. */
+  /** The dawn lake's sky, ribbon and deep water, at points shifted into the 160 dp circle. */
   private fun assertDawnLake(icon: Bitmap) {
     val cases =
         listOf(

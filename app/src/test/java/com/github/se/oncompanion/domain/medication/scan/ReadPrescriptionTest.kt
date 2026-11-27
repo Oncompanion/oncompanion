@@ -173,7 +173,7 @@ class ReadPrescriptionTest {
     assertNull(readPrescription(RecognizedText(3000, 4000, emptyList()), today))
     assertNull(readPrescription(linesOf("Dr J. Roux - Oncologie", "Sion, le 11.11.2026"), today))
     assertNull(readPrescription(linesOf("Ordonnance", "Paracétamol si fièvre"), today))
-    // A drink label, with shares and amounts per serving (sheet 11, Sprint 3's phone test)
+    // A drink label, with shares and amounts per serving (sheet 11, from a test on a phone)
     assertNull(readPrescription(sheet(11), today))
   }
 
@@ -283,7 +283,7 @@ class ReadPrescriptionTest {
     val read = readPrescription(text, today)!!
 
     assertEquals(20, read.draft.medications.size)
-    // Dropped without a word, the patient wouldn't know (review of #231)
+    // Dropped without a word, the patient wouldn't know
     assertEquals(5, read.leftOut)
   }
 

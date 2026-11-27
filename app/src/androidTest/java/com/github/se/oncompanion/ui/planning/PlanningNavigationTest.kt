@@ -37,6 +37,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * Tests on a device that Planning is reachable and readable with a large font, and that a mixed
+ * agenda scrolls.
+ */
 @RunWith(AndroidJUnit4::class)
 class PlanningNavigationTest {
   @get:Rule val compose = createComposeRule()

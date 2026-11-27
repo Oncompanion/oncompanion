@@ -26,9 +26,9 @@ import org.junit.runner.RunWith
 
 /**
  * Checks on the Firebase emulators that a caregiver keeps what a patient shares with them while
- * offline (US-20): the access and the data already read come from the device, and the patient's
- * changes arrive once the connection is back. What the caregiver adds offline after losing the
- * right to is undone and reported once back online, so they are told it wasn't saved.
+ * offline: the access and the data already read come from the device, and the patient's changes
+ * arrive once the connection is back. What the caregiver adds offline after losing the right to is
+ * undone and reported once back online, so they are told it wasn't saved.
  */
 @RunWith(AndroidJUnit4::class)
 class CaregiverOfflineTest {

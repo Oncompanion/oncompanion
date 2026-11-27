@@ -42,6 +42,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+/** Tests of [CircleSheetViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CircleSheetViewModelTest {
 

@@ -22,8 +22,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Tests that firestore.rules let only the patient record the doses they took each day (US-28), let
- * a caregiver who sees their prescriptions read them, and keep each count a whole number from 0 to
+ * Tests that firestore.rules let only the patient record the doses they took each day, let a
+ * caregiver who sees their prescriptions read them, and keep each count a whole number from 0 to
  * 24. alice is the patient, carol her caregiver, dave a stranger.
  */
 @RunWith(AndroidJUnit4::class)

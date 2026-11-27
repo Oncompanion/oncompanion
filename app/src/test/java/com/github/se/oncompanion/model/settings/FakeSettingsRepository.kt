@@ -1,5 +1,6 @@
 // Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.model.settings
 
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.flow
 
 /** Shared controllable device preferences for screen, ViewModel and root-theme tests. */
 class FakeSettingsRepository(initial: DeviceSettings = DeviceSettings()) : SettingsRepository {
+  /** The saved preferences; setting it updates every observation. */
   val settings = MutableStateFlow(initial)
   /** Failure injected into an already-running observation. */
   val observationFailure = MutableStateFlow<Exception?>(null)
@@ -23,12 +25,17 @@ class FakeSettingsRepository(initial: DeviceSettings = DeviceSettings()) : Setti
   var writeGate: CompletableDeferred<Unit>? = null
   /** Suppresses the observation echo so tests exercise the ViewModel's successful local update. */
   var emitWrites = true
+  /** Every date format saved, in order. */
   val dateWrites = mutableListOf<DateFormatPreference>()
+  /** Every time format saved, in order. */
   val timeWrites = mutableListOf<TimeFormatPreference>()
+  /** Every appearance saved, in order. */
   val writes = mutableListOf<AppearancePreference>()
   /** Suspends each new observation until a test releases startup. */
   var readGate: CompletableDeferred<Unit>? = null
+  /** Thrown by each new observation, if set. */
   var readFailure: Exception? = null
+  /** Thrown by each write, if set. */
   var writeFailure: Exception? = null
 
   override fun observeSettings(): Flow<DeviceSettings> = flow {

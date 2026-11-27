@@ -48,6 +48,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
+/** Tests of [EventDetailScreen]. */
 @RunWith(AndroidJUnit4::class)
 class EventDetailScreenTest {
 
@@ -663,7 +664,7 @@ class EventDetailScreenTest {
         .assertIsFullyVisible()
   }
 
-  // ---- a caregiver the patient lets confirm events (US-42) ----
+  // ---- a caregiver the patient lets confirm events ----
 
   @Test
   fun caregiverAllowedToConfirm_confirmsForThePatient_andSaysItsOnlyTheirRecord() {
