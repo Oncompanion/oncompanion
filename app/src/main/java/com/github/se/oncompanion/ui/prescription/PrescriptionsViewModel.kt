@@ -45,8 +45,8 @@ import kotlinx.coroutines.launch
  * @property today the current date, which decides what counts as "This month"
  * @property prescriptions the saved prescriptions, most recently prescribed first
  * @property load where reading them is at: [prescriptions] only counts once they are shown
- * @property canAdd whether a prescription can be added: only to the user's own, once it is known to
- *   be theirs
+ * @property canAdd whether a prescription can be added: to the user's own list, or to the patient's
+ *   if they let this caregiver add prescriptions, once the access is known
  * @property caregiverUid in caregiver mode, the signed-in caregiver: only the prescriptions they
  *   added are grouped, with whether the patient accepted or rejected them. Null for the patient,
  *   who sees every caregiver's grouped while they wait.
@@ -95,7 +95,8 @@ data class PrescriptionsUiState(
  * from the form appears without reloading. The repository reads from the local cache, so the list
  * also works offline.
  *
- * In caregiver mode, the prescriptions are the followed patient's, read-only, when they share them.
+ * In caregiver mode, the prescriptions are the followed patient's, shown when the patient shares
+ * them. The caregiver can add one when the patient lets them.
  *
  * @param clock the current date, which decides what counts as "This month"
  * @param patientUid in caregiver mode, the patient whose prescriptions are shown; null for the

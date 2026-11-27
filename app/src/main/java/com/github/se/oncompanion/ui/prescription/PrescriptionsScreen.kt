@@ -431,8 +431,9 @@ private fun AddedByYouItem(
 }
 
 /**
- * Design: M3, "List and detail · Empty". A caregiver ([caregiverOf] set) can't add any, so they
- * aren't told how to.
+ * Design: M3, "List and detail · Empty". For a caregiver, the hint uses the patient's first name
+ * ([caregiverOf]) instead of saying how to add one: if the patient lets them add, the add buttons
+ * still show.
  */
 @Composable
 private fun EmptyState(caregiverOf: String?, buttonRoom: Dp) {
