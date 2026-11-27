@@ -117,10 +117,11 @@ data class PlanningListJump(val date: LocalDate, val keys: Set<String>)
  * belong to the view.
  *
  * @param patientUid in caregiver mode, the patient whose planning is shown; null for the user's own
+ * @property clock the current time, which the rows' status follows
  */
 class PlanningViewModel(
     private val observePlanning: ObserveCarePlanning = ObserveCarePlanning(),
-    private val clock: Clock = Clock.systemDefaultZone(),
+    internal val clock: Clock = Clock.systemDefaultZone(),
     val zoneId: ZoneId = ZoneId.systemDefault(),
     private val savedStateHandle: SavedStateHandle,
     private val patientUid: String? = null,

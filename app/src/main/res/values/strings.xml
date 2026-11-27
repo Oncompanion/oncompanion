@@ -23,6 +23,19 @@
     <string name="planning_type_event">Support event</string>
     <string name="planning_type_medication">Medication</string>
     <string name="planning_date_unavailable">Date outside supported range</string>
+    <!-- Where an entry stands, on its row (R3): "In 25 min · Cabinet Rive", "Happening now · until 15:00".
+         The no-break space keeps "until 15:00" together; a row that can't fit both shows them on two lines, without the "·" -->
+    <plurals name="planning_in_minutes">
+        <item quantity="one">In %1$d min</item>
+        <item quantity="other">In %1$d min</item>
+    </plurals>
+    <plurals name="planning_in_hours">
+        <item quantity="one">In %1$d h</item>
+        <item quantity="other">In %1$d h</item>
+    </plurals>
+    <string name="planning_happening_now">Happening now</string>
+    <string name="planning_until">until\u00A0%1$s</string>
+    <string name="planning_status_detail">%1$s · %2$s</string>
 
     <!-- Placeholder titles, replaced when each screen is implemented -->
     <string name="onboarding_role_title">Who are you?</string>

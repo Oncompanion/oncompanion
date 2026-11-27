@@ -30,6 +30,19 @@
     <string name="planning_type_event">Événement de soutien</string>
     <string name="planning_type_medication">Médicament</string>
     <string name="planning_date_unavailable">Date hors de la plage prise en charge</string>
+    <plurals name="planning_in_minutes">
+        <item quantity="one">Dans %1$d\u00A0min</item>
+        <item quantity="many">Dans %1$d\u00A0min</item>
+        <item quantity="other">Dans %1$d\u00A0min</item>
+    </plurals>
+    <plurals name="planning_in_hours">
+        <item quantity="one">Dans %1$d\u00A0h</item>
+        <item quantity="many">Dans %1$d\u00A0h</item>
+        <item quantity="other">Dans %1$d\u00A0h</item>
+    </plurals>
+    <string name="planning_happening_now">En cours</string>
+    <string name="planning_until">jusqu’à\u00A0%1$s</string>
+    <string name="planning_status_detail">%1$s · %2$s</string>
     <string name="planning_title">Planning</string>
     <string name="day_picker_title">Choisir une date</string>
     <string name="time_picker_title">Choisir une heure</string>

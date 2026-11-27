@@ -6,7 +6,6 @@ package com.github.se.oncompanion.ui.planning
 
 import android.text.format.DateFormat
 import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -18,15 +17,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.*
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,12 +38,11 @@ import com.github.se.oncompanion.R
 import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.planning.PlanningItem
 import com.github.se.oncompanion.model.planning.PlanningSource
-import com.github.se.oncompanion.model.planning.PlanningTiming
 import com.github.se.oncompanion.resources.C
-import com.github.se.oncompanion.ui.common.AddedBy
 import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
 import com.github.se.oncompanion.ui.common.NotSharedMessage
+import com.github.se.oncompanion.ui.common.currentTime
 import com.github.se.oncompanion.ui.common.formatDateHeading
 import com.github.se.oncompanion.ui.common.isCompactHeight
 import com.github.se.oncompanion.ui.navigation.BottomBarUiState
@@ -48,6 +51,8 @@ import com.github.se.oncompanion.ui.navigation.NavigationActions
 import com.github.se.oncompanion.ui.navigation.Tab
 import com.github.se.oncompanion.ui.reminder.ReminderPermissionViewModel
 import com.github.se.oncompanion.ui.reminder.rememberReminderPermissionNotice
+import com.github.se.oncompanion.ui.theme.Spacing
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -90,6 +95,12 @@ fun PlanningScreen(
     rememberReminderPermissionNotice(it, onAccessChanged = onReminderAccessChanged)
   }
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+  // One clock for every row: their status moves on at each new minute while Planning is shown
+  val now by
+      remember(viewModel) { currentTime(viewModel.clock) }
+          .collectAsStateWithLifecycle(
+              initialValue = remember(viewModel) { viewModel.clock.instant() }
+          )
   val openItem: (PlanningItem) -> Unit = {
     openPlanningItem(it, onOpenAppointment, onOpenEvent, onOpenMedication)
   }
@@ -103,6 +114,7 @@ fun PlanningScreen(
       state = state,
       today = state.today,
       zoneId = viewModel.zoneId,
+      now = now,
       actions =
           PlanningActions(
               viewModel::selectDate,
@@ -143,6 +155,7 @@ internal fun openPlanningItem(
 /**
  * Stateless calendar and agenda; unavailable appointment actions are omitted.
  *
+ * @param now the time the rows' status is worked out at: the screen's clock, a fixed time in tests
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
  */
 @Composable
@@ -152,6 +165,7 @@ fun PlanningContent(
     zoneId: ZoneId,
     actions: PlanningActions,
     modifier: Modifier = Modifier,
+    now: Instant,
     bottomBar: @Composable () -> Unit = {},
     caregiverOf: String? = null,
     reminderNotice: (@Composable () -> Unit)? = null,
@@ -159,6 +173,11 @@ fun PlanningContent(
   val locale = LocalConfiguration.current.locales[0]
   val compact = isCompactHeight()
   val showAdd = state.canAdd && actions.onAddAppointment != null
+  // The Add button grows with the font: the list ends that far below it, so its last row can scroll
+  // clear of the button (a floating action never covers another one)
+  val density = LocalDensity.current
+  var addHeight by remember { mutableStateOf(0.dp) }
+  val listEnd = if (showAdd) addHeight + Spacing.lg * 2 else Spacing.lg
   Scaffold(
       modifier = modifier.fillMaxSize().testTag(C.Tag.planning_screen),
       bottomBar = bottomBar,
@@ -174,6 +193,8 @@ fun PlanningContent(
             actions.onRetry,
             actions.onItemClick,
             Modifier.weight(1f),
+            now = now,
+            listEnd = listEnd,
             canOpenItem = actions.canOpenItem,
             header =
                 if (compact || reminderNotice != null) {
@@ -194,6 +215,7 @@ fun PlanningContent(
             modifier =
                 Modifier.align(Alignment.BottomEnd)
                     .padding(16.dp)
+                    .onSizeChanged { addHeight = with(density) { it.height.toDp() } }
                     .testTag(C.Tag.planning_add)
                     .semantics { contentDescription = addLabel },
         ) {
@@ -364,6 +386,8 @@ internal fun PlanningAgenda(
     onRetry: () -> Unit,
     onItemClick: ((PlanningItem) -> Unit)?,
     modifier: Modifier = Modifier,
+    now: Instant,
+    listEnd: Dp = 96.dp,
     canAdd: Boolean = false,
     canOpenItem: (PlanningItem) -> Boolean = { true },
     header: (@Composable () -> Unit)? = null,
@@ -375,6 +399,20 @@ internal fun PlanningAgenda(
         LazyListState()
       }
   val timePattern = if (DateFormat.is24HourFormat(LocalContext.current)) "HH:mm" else "h:mm a"
+  val timeFormatter =
+      remember(timePattern, locale) { DateTimeFormatter.ofPattern(timePattern, locale) }
+  val isToday = state.selectedDate == state.today
+  val row =
+      @Composable { item: PlanningItem ->
+        PlanningRow(
+            item,
+            now,
+            zoneId,
+            timeFormatter,
+            isToday,
+            onItemClick.takeIf { canOpenItem(item) }?.let { open -> { open(item) } },
+        )
+      }
   Column(modifier.fillMaxWidth()) {
     if (state.isLoading) {
       val label = stringResource(R.string.planning_loading)
@@ -433,7 +471,7 @@ internal fun PlanningAgenda(
       LazyColumn(
           Modifier.testTag(C.Tag.planning_list),
           state = listState,
-          contentPadding = PaddingValues(bottom = 96.dp),
+          contentPadding = PaddingValues(bottom = listEnd),
       ) {
         // Compact windows give the header and agenda one viewport, without nested lazy lists.
         if (header != null) item(key = "calendar-header") { header() }
@@ -442,17 +480,13 @@ internal fun PlanningAgenda(
           item(key = "section:no-time") {
             AgendaHeading(R.string.planning_no_set_time, C.Tag.planning_no_set_time)
           }
-          items(state.untimedItems, key = { it.key }) { item ->
-            PlanningRow(item, zoneId, locale, timePattern, onItemClick.takeIf { canOpenItem(item) })
-          }
+          items(state.untimedItems, key = { it.key }) { item -> RowSpacing { row(item) } }
         }
         if (state.scheduledItems.isNotEmpty()) {
           item(key = "section:scheduled") {
             AgendaHeading(R.string.planning_scheduled, C.Tag.planning_scheduled)
           }
-          items(state.scheduledItems, key = { it.key }) { item ->
-            PlanningRow(item, zoneId, locale, timePattern, onItemClick.takeIf { canOpenItem(item) })
-          }
+          items(state.scheduledItems, key = { it.key }) { item -> RowSpacing { row(item) } }
         }
       }
     }
@@ -469,67 +503,18 @@ private fun AgendaHeading(@StringRes label: Int, tag: String) {
   )
 }
 
+/**
+ * The space around a row of the agenda (R3: 16 dp at the sides, 8 dp between rows). A row is at
+ * most 512 dp wide (R4: a readable line held sideways), so the Add button sits beside it.
+ */
 @Composable
-private fun PlanningRow(
-    item: PlanningItem,
-    zoneId: ZoneId,
-    locale: Locale,
-    timePattern: String,
-    onItemClick: ((PlanningItem) -> Unit)?,
-) {
-  val (icon, typeLabel) =
-      when (item.source) {
-        is PlanningSource.Appointment ->
-            R.drawable.ic_calendar_month to R.string.planning_type_appointment
-        is PlanningSource.Event -> R.drawable.ic_event to R.string.planning_type_event
-        is PlanningSource.Medication ->
-            R.drawable.ic_medication to R.string.planning_type_medication
-      }
-  val supportingText = item.supportingText()
-  val timed = item.timing as? PlanningTiming.Timed
-  ListItem(
-      leadingContent = {
-        Icon(painterResource(icon), contentDescription = stringResource(typeLabel))
-      },
-      headlineContent = { Text(item.title) },
-      supportingContent =
-          if (supportingText == null && item.addedByName == null) null
-          else {
-            {
-              Column {
-                supportingText?.let { Text(it) }
-                // An entry a caregiver added says who did (US-41), and whether the patient
-                // confirmed
-                // it, for a prescription (US-43)
-                item.addedByName?.let { AddedBy(it, isConfirmed = item.isConfirmed) }
-              }
-            }
-          },
-      trailingContent =
-          timed?.let { value ->
-            {
-              Text(
-                  value.instant
-                      .atZone(zoneId)
-                      .format(DateTimeFormatter.ofPattern(timePattern, locale)),
-                  style = MaterialTheme.typography.labelSmall,
-              )
-            }
-          },
-      modifier =
-          Modifier.testTag(C.Tag.planningItem(item.key))
-              .then(
-                  if (onItemClick == null) Modifier else Modifier.clickable { onItemClick(item) }
-              ),
-  )
+private fun RowSpacing(content: @Composable () -> Unit) {
+  Box(
+      Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.xs).widthIn(max = ROW_MAX_WIDTH)
+  ) {
+    content()
+  }
 }
 
-/** Appointments may have no supporting text; medications always have a frequency fallback. */
-@Composable
-private fun PlanningItem.supportingText(): String? {
-  if (source !is PlanningSource.Medication) return subtitle
-  return frequency
-      ?.takeIf { it.isNotBlank() }
-      ?.let { stringResource(R.string.planning_frequency, it) }
-      ?: stringResource(R.string.planning_frequency_unspecified)
-}
+/** R4: rows stop at 512 dp, on the left, in a wide window. */
+private val ROW_MAX_WIDTH = 512.dp

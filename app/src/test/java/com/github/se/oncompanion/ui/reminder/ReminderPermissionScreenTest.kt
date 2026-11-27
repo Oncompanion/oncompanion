@@ -1,3 +1,4 @@
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.ui.reminder
@@ -183,6 +184,7 @@ class ReminderPermissionScreenTest {
             reminderNotice = {
               ReminderPermissionContent(ReminderPermissionUiState(true, access), {})
             },
+            now = now,
         )
       }
     }

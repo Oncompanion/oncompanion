@@ -81,6 +81,7 @@ private fun PlanningPreviewContent(
                 onToday = { selected = today },
                 onRetry = {},
             ),
+        now = today.atTime(11, 0).atZone(zone).toInstant(),
     )
   }
 }

@@ -98,7 +98,8 @@ class PlanningAppointmentsTest {
     awaitPlanning()
     compose.awaitDisplayed(hasText("Offline consultation"))
     compose.onNodeWithText("Offline consultation").assertIsDisplayed()
-    compose.onNodeWithText("HUG").assertIsDisplayed()
+    // The clock says noon, when it starts: its row says so instead of its place (R3)
+    compose.onNodeWithText("Happening now", substring = true).assertIsDisplayed()
     // Keep the populated offline agenda as a device-rendered artifact for the PR review.
     val context = ApplicationProvider.getApplicationContext<Context>()
     File(context.cacheDir, "planning-appointments-offline.png").outputStream().use {
