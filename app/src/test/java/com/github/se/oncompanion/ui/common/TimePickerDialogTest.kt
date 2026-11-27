@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.common
@@ -6,6 +7,10 @@ import android.provider.Settings
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertHeightIsEqualTo
@@ -26,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.R
+import com.github.se.oncompanion.model.settings.TimeFormatPreference
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.SMALL_LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
@@ -37,6 +43,7 @@ import com.github.se.oncompanion.ui.theme.OncompanionTheme
 import com.github.se.oncompanion.ui.theme.buttonLabel
 import com.github.se.oncompanion.ui.theme.lakeColors
 import java.time.LocalTime
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -135,6 +142,32 @@ class TimePickerDialogTest {
     setContentWithPhoneFormat("24")
 
     composeTestRule.onNodeWithContentDescription("23 hours").assertExists()
+  }
+
+  @Test
+  fun savedClockModeUpdatesTheOpenPickerAndKeepsTheConfirmedTime() {
+    var choice by mutableStateOf(TimeFormatPreference.TWELVE_HOUR)
+    composeTestRule.setContent {
+      val formats = DateTimeFormats(Locale.US, "MMM d, y", true, timeChoice = choice)
+      OncompanionTheme {
+        CompositionLocalProvider(LocalDateTimeFormats provides formats) {
+          TimePickerDialog(
+              time = LocalTime.of(14, 30),
+              onConfirm = { events += "confirm=$it" },
+              onDismiss = {},
+              confirmLabel = "OK",
+              cancelLabel = "Cancel",
+              testTags = tags,
+          )
+        }
+      }
+    }
+
+    composeTestRule.onNodeWithContentDescription("23 hours").assertDoesNotExist()
+    composeTestRule.runOnIdle { choice = TimeFormatPreference.TWENTY_FOUR_HOUR }
+    composeTestRule.onNodeWithContentDescription("23 hours").assertExists()
+    composeTestRule.onNodeWithTag(tags.confirm).performClick()
+    assertEquals(listOf("confirm=14:30"), events)
   }
 
   // ----- Short windows -----

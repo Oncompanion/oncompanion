@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.common
@@ -6,6 +7,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
@@ -22,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.R
+import com.github.se.oncompanion.model.settings.DateFormatPreference
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.SMALL_LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
@@ -33,6 +36,7 @@ import com.github.se.oncompanion.ui.theme.buttonLabel
 import com.github.se.oncompanion.ui.theme.lakeColors
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -82,6 +86,35 @@ class DayPickerDialogTest {
     composeTestRule.onNodeWithTag(tags.picker).assertExists()
     composeTestRule.onNodeWithTag(tags.confirm).performClick()
 
+    assertEquals(listOf("confirm=2026-10-03"), events)
+  }
+
+  @Test
+  fun savedDateFormatChangesTheHeadlineAndKeepsTheConfirmedDay() {
+    val formats =
+        DateTimeFormats(
+            Locale.US,
+            "MMM d, y",
+            false,
+            dateChoice = DateFormatPreference.DAY_MONTH_YEAR,
+        )
+    composeTestRule.setContent {
+      OncompanionTheme {
+        CompositionLocalProvider(LocalDateTimeFormats provides formats) {
+          DayPickerDialog(
+              date = LocalDate.of(2026, 10, 3),
+              onConfirm = { events += "confirm=$it" },
+              onDismiss = {},
+              confirmLabel = "OK",
+              cancelLabel = "Cancel",
+              testTags = tags,
+          )
+        }
+      }
+    }
+
+    composeTestRule.onNodeWithText("03/10/2026").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(tags.confirm).performClick()
     assertEquals(listOf("confirm=2026-10-03"), events)
   }
 

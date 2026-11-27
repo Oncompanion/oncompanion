@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.common
@@ -9,8 +10,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -27,9 +30,8 @@ import java.time.LocalTime
  * a fixed size and would be cut off, and the title leaves room for it. Either way the time is in
  * Display Small, as in DESIGN.md.
  *
- * @param is24Hour whether the time is picked in 24-hour format; by default the phone's setting, as
- *   the appointment and planning screens show times. A screen that always shows `HH:mm` passes
- *   `true`, so the picker matches what it shows.
+ * @param is24Hour whether the time is picked in 24-hour format; defaults to the app's effective
+ *   clock mode. A caller can override it to match its own time label.
  * @param testTags the picker and its two buttons
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,7 +43,8 @@ fun TimePickerDialog(
     confirmLabel: String,
     cancelLabel: String,
     testTags: PickerTestTags,
-    is24Hour: Boolean = DateFormat.is24HourFormat(LocalContext.current),
+    is24Hour: Boolean =
+        LocalDateTimeFormats.current?.is24Hour ?: DateFormat.is24HourFormat(LocalContext.current),
 ) {
   val pickerState =
       rememberTimePickerState(
@@ -49,6 +52,13 @@ fun TimePickerDialog(
           initialMinute = time.minute,
           is24Hour = is24Hour,
       )
+  // Material saves the selection, but its clock mode is not observable.
+  val displayState =
+      remember(pickerState, is24Hour) {
+        object : TimePickerState by pickerState {
+          override var is24hour = is24Hour
+        }
+      }
   val compact = isCompactHeight()
   AlertDialog(
       onDismissRequest = onDismiss,
@@ -77,9 +87,9 @@ fun TimePickerDialog(
                 )
         ) {
           if (compact) {
-            TimeInput(state = pickerState, modifier = Modifier.testTag(testTags.picker))
+            TimeInput(state = displayState, modifier = Modifier.testTag(testTags.picker))
           } else {
-            TimePicker(state = pickerState, modifier = Modifier.testTag(testTags.picker))
+            TimePicker(state = displayState, modifier = Modifier.testTag(testTags.picker))
           }
         }
       },
