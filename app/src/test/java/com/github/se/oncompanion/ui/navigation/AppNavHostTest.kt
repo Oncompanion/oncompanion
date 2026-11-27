@@ -712,6 +712,32 @@ class AppNavHostTest {
   }
 
   @Test
+  fun caregiverMode_whoseCare_followSomeoneNew_opensJoin_andBackReturnsToTheOverview() {
+    val (auth, invites, circles) = followingCaregiver("p-anne" to "Anne")
+    setNavHost(
+        Route.WHOSE_CARE,
+        careCircleRepository = circles,
+        careCircleInviteRepository = invites,
+        authRepository = auth,
+    )
+    waitForTag(C.Tag.overview_whose_care)
+
+    composeTestRule.onNodeWithTag(C.Tag.overview_whose_care).performClick()
+    waitForTag(C.Tag.whose_care_follow_new)
+    composeTestRule.onNodeWithTag(C.Tag.whose_care_follow_new).performScrollTo().performClick()
+    waitForTag(C.Tag.join_circle_screen)
+
+    Espresso.pressBack()
+
+    // Back on Anne's day, the sheet closed rather than opened again over it
+    waitForTag(C.Tag.overview_whose_care)
+    composeTestRule.onNodeWithTag(C.Tag.whose_care_sheet).assertDoesNotExist()
+    composeTestRule
+        .onNodeWithTag(C.Tag.caregiver_overview_day_title)
+        .assertTextContains(context.getString(R.string.caregiver_overview_day, "Anne"))
+  }
+
+  @Test
   fun caregiverMode_showsThePatientsSharedPlanning_neverTheCaregiversOwn() {
     val (auth, invites, circles) =
         followingCaregiver("p-anne" to "Anne", shared = setOf(CarePermission.PLANNING))

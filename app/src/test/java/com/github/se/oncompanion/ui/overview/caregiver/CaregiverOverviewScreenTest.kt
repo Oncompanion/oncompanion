@@ -15,6 +15,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -27,10 +28,13 @@ import com.github.se.oncompanion.domain.carecircle.FollowedPatient
 import com.github.se.oncompanion.domain.carecircle.ObserveCareSection
 import com.github.se.oncompanion.domain.medication.DoseCount
 import com.github.se.oncompanion.domain.planning.ObserveCarePlanning
+import com.github.se.oncompanion.model.carecircle.CareCircleMember
 import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.carecircle.CarePermission.PLANNING
 import com.github.se.oncompanion.model.carecircle.CarePermission.PRESCRIPTIONS
 import com.github.se.oncompanion.model.carecircle.CarePermission.SYMPTOMS
+import com.github.se.oncompanion.model.carecircle.FakeCareCircleInviteRepository
+import com.github.se.oncompanion.model.carecircle.JoinedCareCircle
 import com.github.se.oncompanion.model.medication.FakeTakenDosesRepository
 import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningItem
@@ -46,6 +50,9 @@ import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.assertSameColor
+import com.github.se.oncompanion.ui.carecircle.ChosenPatient
+import com.github.se.oncompanion.ui.carecircle.WhoseCareSwitch
+import com.github.se.oncompanion.ui.carecircle.WhoseCareViewModel
 import com.github.se.oncompanion.ui.colorAt
 import com.github.se.oncompanion.ui.common.TodayMedication
 import com.github.se.oncompanion.ui.navigation.NavigationActions
@@ -619,11 +626,11 @@ class CaregiverOverviewScreenTest {
       compose.activity.setContent {
         CaregiverOverviewScreen(
             viewModel = viewModel,
-            patientName = "Alex",
+            patient = ChosenPatient("patient", "Alex"),
             navigationActions = NavigationActions(TestNavHostController(LocalContext.current)),
             onOpenAppointment = {},
             onOpenEvent = {},
-            onSwitchPatient = {},
+            whoseCare = WhoseCareSwitch(whoseCareOf(patient), {}, {}, {}),
         )
       }
     }
@@ -659,5 +666,153 @@ class CaregiverOverviewScreenTest {
         .performScrollTo()
         .assertIsDisplayed()
     compose.onNodeWithText("Nausea\u00A07/10").assertDoesNotExist()
+  }
+
+  // ----- "Whose care?" over the Overview -----
+
+  /** "Whose care?" for "caregiver", who follows [patient] ("patient", Alex) and Anne. */
+  private fun whoseCareOf(patient: FollowedPatient): WhoseCareViewModel {
+    patient.circle.setMembers(
+        "p-anne",
+        listOf(
+            CareCircleMember(uid = "caregiver", firstName = "Sam", permissions = setOf(PLANNING))
+        ),
+    )
+    val invites =
+        FakeCareCircleInviteRepository().apply {
+          setJoinedCircles(
+              "caregiver",
+              listOf(JoinedCareCircle("patient", "Alex"), JoinedCareCircle("p-anne", "Anne")),
+          )
+        }
+    return WhoseCareViewModel(patient.auth, invites, patient.circle)
+  }
+
+  /** What the header's "Whose care?" was asked to do, in order. */
+  private val whoseCareCalls = mutableListOf<String>()
+
+  /** Alex's Overview with its ViewModels, as the app shows it; returns how to show it again. */
+  private fun showAlexsOverview(patient: FollowedPatient = FollowedPatient(PLANNING)): () -> Unit {
+    val viewModel =
+        CaregiverOverviewViewModel(
+            patientUid = "patient",
+            authRepository = patient.auth,
+            profileRepository = patient.profiles,
+            observePlanning =
+                ObserveCarePlanning(
+                    patient.sectionAccess,
+                    FakePlanningRepository(),
+                    patient.circle,
+                ),
+            symptomRepository = FakeSymptomRepository(),
+            observeSection = ObserveCareSection(patient.sectionAccess),
+            medications = FakePlanningRepository(),
+            takenDoses = FakeTakenDosesRepository(),
+            resolveAccess = patient.careAccess,
+            clock = Clock.fixed(morning.toInstant(ZoneOffset.UTC), ZoneOffset.UTC),
+            zoneId = ZoneOffset.UTC,
+        )
+    val whoseCare =
+        WhoseCareSwitch(
+            viewModel = whoseCareOf(patient),
+            onChoose = { whoseCareCalls += "choose ${it.firstName}" },
+            onFollowSomeoneNew = { whoseCareCalls += "follow" },
+            onSignedOut = { whoseCareCalls += "signed out" },
+        )
+    val show = {
+      compose.activity.setContent {
+        CaregiverOverviewScreen(
+            viewModel = viewModel,
+            patient = ChosenPatient("patient", "Alex"),
+            navigationActions = NavigationActions(TestNavHostController(LocalContext.current)),
+            onOpenAppointment = {},
+            onOpenEvent = {},
+            whoseCare = whoseCare,
+        )
+      }
+    }
+    compose.runOnUiThread(show)
+    return show
+  }
+
+  private fun openWhoseCare() {
+    compose.onNodeWithTag(C.Tag.overview_whose_care).performClick()
+    compose.waitUntil(5_000) {
+      compose.onAllNodesWithTag(C.Tag.whoseCarePatient("p-anne")).fetchSemanticsNodes().isNotEmpty()
+    }
+  }
+
+  @Test
+  fun whoseCare_opensOverTheOverview_andChoosingAnne_closesItOnAnne() {
+    showAlexsOverview()
+    compose.onNodeWithTag(C.Tag.whose_care_sheet).assertDoesNotExist()
+
+    openWhoseCare()
+    // Over the Overview, not instead of it
+    compose.onNodeWithTag(C.Tag.whose_care_sheet).assertIsDisplayed()
+    compose.onNodeWithTag(C.Tag.caregiver_overview_screen).assertExists()
+    compose.onNodeWithTag(C.Tag.whoseCarePatient("p-anne")).performClick()
+
+    compose.onNodeWithTag(C.Tag.whose_care_sheet).assertDoesNotExist()
+    assertEquals(listOf("choose Anne"), whoseCareCalls)
+  }
+
+  @Test
+  fun whoseCare_alexShownNow_orFollowSomeoneNew_closeIt() {
+    showAlexsOverview()
+
+    openWhoseCare()
+    compose.onNodeWithTag(C.Tag.whoseCarePatient("patient")).performClick()
+    compose.onNodeWithTag(C.Tag.whose_care_sheet).assertDoesNotExist()
+    openWhoseCare()
+    compose.onNodeWithTag(C.Tag.whose_care_follow_new).performClick()
+
+    compose.onNodeWithTag(C.Tag.whose_care_sheet).assertDoesNotExist()
+    // Alex was shown already: nothing to choose
+    assertEquals(listOf("follow"), whoseCareCalls)
+  }
+
+  @Test
+  @Config(qualifiers = LANDSCAPE_PHONE)
+  fun whoseCare_phoneHeldSideways_opensWhole_notJustTheFirstPerson() {
+    showAlexsOverview()
+
+    openWhoseCare()
+    compose.waitForIdle()
+
+    // Measured in the window: half open, the sheet's own root still holds Anne's row whole while
+    // the screen cuts it
+    listOf(C.Tag.whoseCarePatient("p-anne"), C.Tag.whose_care_follow_new).forEach {
+      val row = compose.onNodeWithTag(it).fetchSemanticsNode()
+      assertEquals(it, row.size.height.toFloat(), row.boundsInWindow.height)
+    }
+  }
+
+  @Test
+  fun whoseCare_staysOpen_whenThePhoneIsRotated() {
+    val show = showAlexsOverview()
+    openWhoseCare()
+
+    compose.activityRule.scenario.recreate()
+    compose.runOnUiThread(show)
+
+    compose.waitUntil(5_000) {
+      compose.onAllNodesWithTag(C.Tag.whose_care_sheet).fetchSemanticsNodes().isNotEmpty()
+    }
+    compose.onNodeWithTag(C.Tag.whoseCarePatient("p-anne")).assertExists()
+  }
+
+  @Test
+  fun whoseCare_nobodySignedIn_sendsToSignIn_onceOpened() {
+    val signedOut = FollowedPatient(PLANNING).apply { auth.signOut() }
+    showAlexsOverview(signedOut)
+    compose.waitForIdle()
+    // Nothing happens while the sheet is closed: the Overview says it can't load on its own
+    assertEquals(emptyList<String>(), whoseCareCalls)
+
+    compose.onNodeWithTag(C.Tag.overview_whose_care).performClick()
+    compose.waitForIdle()
+
+    assertEquals(listOf("signed out"), whoseCareCalls)
   }
 }

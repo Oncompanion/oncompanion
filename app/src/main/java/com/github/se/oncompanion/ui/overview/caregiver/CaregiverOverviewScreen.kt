@@ -24,6 +24,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -33,6 +36,9 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
+import com.github.se.oncompanion.ui.carecircle.ChosenPatient
+import com.github.se.oncompanion.ui.carecircle.WhoseCareSheet
+import com.github.se.oncompanion.ui.carecircle.WhoseCareSwitch
 import com.github.se.oncompanion.ui.common.PaperLakeHeader
 import com.github.se.oncompanion.ui.common.PaperLakeStatusBar
 import com.github.se.oncompanion.ui.common.isPaperLakeHeaderBand
@@ -49,24 +55,26 @@ import com.github.se.oncompanion.ui.theme.lakeColors
  * The caregiver's own Overview (Figma M3, "Home · Caregiver"): "Good morning, Marc" on the Paper
  * lake header, then "Alex's day", with only what Alex shares.
  *
- * @param patientName the first name of the patient the caregiver follows
+ * @param patient the patient the caregiver follows
  * @param onOpenAppointment opens the appointment in Next up
  * @param onOpenEvent opens the event in Next up
- * @param onSwitchPatient opens "Whose care?"
+ * @param whoseCare what the boat in the header opens: "Whose care?", as a sheet
  * @param bottomBar what the bottom bar shows: a caregiver's has no Prescriptions tab
  */
 @Composable
 fun CaregiverOverviewScreen(
     viewModel: CaregiverOverviewViewModel,
-    patientName: String,
+    patient: ChosenPatient,
     navigationActions: NavigationActions,
     onOpenAppointment: (String) -> Unit,
     onOpenEvent: (String) -> Unit,
-    onSwitchPatient: () -> Unit,
+    whoseCare: WhoseCareSwitch,
     modifier: Modifier = Modifier,
     bottomBar: BottomBarUiState = BottomBarUiState(caregiverMode = true),
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  // Kept open across a rotation, as the patient's sheets
+  var isWhoseCareOpen by rememberSaveable { mutableStateOf(false) }
   // Keeps the date, the greeting and Next up current while the Overview is shown
   LifecycleResumeEffect(viewModel) {
     val following = viewModel.followToday()
@@ -74,7 +82,7 @@ fun CaregiverOverviewScreen(
   }
   CaregiverOverviewContent(
       uiState = uiState,
-      patientName = patientName,
+      patientName = patient.firstName,
       actions =
           CaregiverOverviewActions(
               onOpenPlanning = {
@@ -84,7 +92,7 @@ fun CaregiverOverviewScreen(
               onOpenEvent = onOpenEvent,
               onOpenJournal = { navigationActions.navigateTo(OverviewShortcut.SYMPTOMS.route) },
               onRetry = viewModel::retry,
-              onSwitchPatient = onSwitchPatient,
+              onSwitchPatient = { isWhoseCareOpen = true },
               onOpenProfile = { navigationActions.navigateTo(OverviewShortcut.PROFILE.route) },
               onOpenShortcut = { navigationActions.navigateTo(it.route) },
           ),
@@ -97,6 +105,23 @@ fun CaregiverOverviewScreen(
         )
       },
   )
+  if (isWhoseCareOpen) {
+    // Closed first, so Back from the invite code never comes back to it open
+    WhoseCareSheet(
+        viewModel = whoseCare.viewModel,
+        currentUid = patient.uid,
+        onDismiss = { isWhoseCareOpen = false },
+        onChoose = {
+          isWhoseCareOpen = false
+          whoseCare.onChoose(it)
+        },
+        onFollowSomeoneNew = {
+          isWhoseCareOpen = false
+          whoseCare.onFollowSomeoneNew()
+        },
+        onSignedOut = whoseCare.onSignedOut,
+    )
+  }
 }
 
 /** What the caregiver can do from their Overview. */
