@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import android.text.format.DateFormat
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,3 +88,6 @@ internal fun rememberDateTimeFormats(
     DateTimeFormats(locale, pattern, use24Hours, dateChoice, timeChoice)
   }
 }
+
+/** The resolved date and time preferences supplied by the app root. */
+internal val LocalDateTimeFormats = compositionLocalOf<DateTimeFormats?> { null }
