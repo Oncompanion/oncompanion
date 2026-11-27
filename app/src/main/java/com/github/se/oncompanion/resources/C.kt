@@ -500,6 +500,9 @@ object C {
     /** The row of the followed patient [uid] in "Whose care?". */
     fun whoseCarePatient(uid: String) = "whose_care_patient_$uid"
 
+    const val whose_care_sheet = "whose_care_sheet"
+    const val whose_care_follow_new = "whose_care_follow_new"
+
     const val removed_from_circle_snackbar = "removed_from_circle_snackbar"
 
     // Caregiver mode: a section the patient doesn't share

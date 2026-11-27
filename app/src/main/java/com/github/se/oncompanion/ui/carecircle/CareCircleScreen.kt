@@ -282,12 +282,16 @@ private fun PendingLabel() {
   }
 }
 
+/** How wide a [Monogram] is, so a disc beside one lines up with it. */
+internal val MONOGRAM_SIZE = 40.dp
+
 /** A round avatar with a person's [initial], shared with "Whose care?". */
 @Composable
 internal fun Monogram(initial: String) {
   Box(
       modifier =
-          Modifier.size(40.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+          Modifier.size(MONOGRAM_SIZE)
+              .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
       contentAlignment = Alignment.Center,
   ) {
     Text(
