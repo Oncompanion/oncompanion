@@ -21,7 +21,7 @@ To edit a diagram, open its `.excalidraw` file on [excalidraw.com](https://excal
 
 ## Layers
 
-**UI layer** (`ui/<feature>/`). Each screen is a stateless composable plus a ViewModel that exposes a `StateFlow<UiState>`. ViewModels take their repositories and use cases in the constructor, so tests pass fakes; the defaults come from one provider object per repository (`XRepositoryProvider.repository`), the only place that names an implementation. No Firebase or Android `Context` here. Overview, Planning, Prescriptions and Events are the patient's bottom-bar tabs (a caregiver's bar has no Prescriptions: they open the shared list from the Overview); `BottomBarViewModel`, built once in `AppNavHost`, counts the prescriptions waiting for the patient for the badge on the Prescriptions tab. Overview shows what comes next from `ObservePlanning`: for the patient, "Next up" (the next appointment or Ligue event the patient registered for, today or on a later day) and today's medications with their frequency, said in the Overview's words when `DoseCount.describe` can ("Once a day" for `1-0-0`, "3 times a day if nauseous" for `1-1-1 si nausées`), and the doses the patient ticked (`TakenDosesRepository`, a bar per medication from `DoseCount`; one taken several times a day opens a sheet to correct the count, saved only on Done; a prescription a caregiver added shows only once the patient confirms it), then the check-in, "How do you feel?", whose tiles open the check-in's sheet ("What do you feel?", `CheckInSheet.kt`) with that symptom picked, and whose "Journal" opens the journal (Overview UX Refactor). The sheet logs through `AddSymptomViewModel`, the symptom form's own ViewModel, so the rules stay in one place: the Overview creates it on the first tile tapped (an Overview whose sheet never opens doesn't need the speech recognizer) and keeps it across a rotation, and `startCheckIn` gives each opening a fresh entry; a caregiver gets their own Overview (`ui/overview/caregiver/`, `CaregiverOverviewViewModel`, one per followed patient): "Good morning, Marc", then "Alex's day" with the patient's "Next up" while they share their planning, and a locked card ("Planning · Alex keeps this private") for each section of the day they keep private, which turns private at once when the patient withdraws it. While they share their symptoms, a "Journal" card shows their newest entry ("Yesterday at 18:10" and "Nausea 7/10 · Fatigue 6/10", or "No entries yet"), read through `ObserveCareSection` like the journal, and "Full journal ›" opens the journal; it takes the place of the Symptoms shortcut. While they share their prescriptions, "Medications today" shows the patient's card read-only: the same rows (`MedicationsCard` without `DoseActions`), with "1 of 3" also for a medication taken once a day and no button, read from the patient's prescriptions alone (`PlanningRepositoryProvider.medications`, over `MedicationPlanningSource`, so a caregiver who doesn't see the planning still gets them) and from `TakenDosesRepository`, both only while the section is shared; doses that can't be read, or aren't known yet (`observeDayIfKnown`: offline, the caregiver's phone has no copy of the patient's day), leave the medications without a bar rather than the day in an error or a wrong "0 of 3". "Prescriptions ›" also stays a tile whenever the card isn't shown, as when the rest of the day failed to load. "Prescriptions ›" opens the shared list, and the card takes the place of the Prescriptions shortcut on a day with medications. Both ViewModels compute "Next up" and today's medications, and refresh the day at each change and at midnight, with the same internal functions (`OverviewDay.kt`). The caregiver branch of `OverviewViewModel` stays until the caregiver's Overview has every card. Once the patient logged something today, the check-in becomes "Saved to your journal" (`OverviewSavedCheckIn.kt`): `OverviewViewModel` reads `SymptomRepository` for the newest entry the patient wrote themselves that day (`savedToday`, summarised like the caregiver's Journal card with `LatestEntry`), with Undo, Edit and "Log another symptom or note"; it stays until the next day. Overview saves the dose ticks and corrections, and deletes that entry on Undo (put back with a message if the delete fails); symptoms are saved by the symptom form's ViewModel, from the form or the check-in's sheet.
+**UI layer** (`ui/<feature>/`). Each screen is a stateless composable plus a ViewModel that exposes a `StateFlow<UiState>`. ViewModels take their repositories and use cases in the constructor, so tests pass fakes; the defaults come from one provider object per repository (`XRepositoryProvider.repository`), the only place that names an implementation. No Firebase or Android `Context` here. Overview, Planning, Prescriptions and Events are the patient's bottom-bar tabs (a caregiver's bar has no Prescriptions: they open the shared list from the Overview); `BottomBarViewModel`, built once in `AppNavHost`, counts the prescriptions waiting for the patient for the badge on the Prescriptions tab. Overview shows what comes next from `ObservePlanning`: for the patient, "Next up" (the next appointment or Ligue event the patient registered for, today or on a later day) and today's medications with their frequency, said in the Overview's words when `DoseCount.describe` can ("Once a day" for `1-0-0`, "3 times a day if nauseous" for `1-1-1 si nausées`), and the doses the patient ticked (`TakenDosesRepository`, a bar per medication from `DoseCount`; one taken several times a day opens a sheet to correct the count, saved only on Done; a prescription a caregiver added shows only once the patient confirms it), then the check-in, "How do you feel?", whose tiles open the check-in's sheet ("What do you feel?", `CheckInSheet.kt`) with that symptom picked, and whose "Journal" opens the journal. The sheet logs through `AddSymptomViewModel`, the symptom form's own ViewModel, so the rules stay in one place: the Overview creates it on the first tile tapped (an Overview whose sheet never opens doesn't need the speech recognizer) and keeps it across a rotation, and `startCheckIn` gives each opening a fresh entry; a caregiver gets their own Overview (`ui/overview/caregiver/`, `CaregiverOverviewViewModel`, one per followed patient): "Good morning, Marc", then "Alex's day" with the patient's "Next up" while they share their planning, and a locked card ("Planning · Alex keeps this private") for each section of the day they keep private, which turns private at once when the patient withdraws it. While they share their symptoms, a "Journal" card shows their newest entry ("Yesterday at 18:10" and "Nausea 7/10 · Fatigue 6/10", or "No entries yet"), read through `ObserveCareSection` like the journal, and "Full journal ›" opens the journal; it takes the place of the Symptoms shortcut. While they share their prescriptions, "Medications today" shows the patient's card read-only: the same rows (`MedicationsCard` without `DoseActions`), with "1 of 3" also for a medication taken once a day and no button, read from the patient's prescriptions alone (`PlanningRepositoryProvider.medications`, over `MedicationPlanningSource`, so a caregiver who doesn't see the planning still gets them) and from `TakenDosesRepository`, both only while the section is shared; doses that can't be read, or aren't known yet (`observeDayIfKnown`: offline, the caregiver's phone has no copy of the patient's day), leave the medications without a bar rather than the day in an error or a wrong "0 of 3". "Prescriptions ›" also stays a tile whenever the card isn't shown, as when the rest of the day failed to load. "Prescriptions ›" opens the shared list, and the card takes the place of the Prescriptions shortcut on a day with medications. Both ViewModels compute "Next up" and today's medications, and refresh the day at each change and at midnight, with the same internal functions (`OverviewDay.kt`). The caregiver branch of `OverviewViewModel` stays until the caregiver's Overview has every card. Once the patient logged something today, the check-in becomes "Saved to your journal" (`OverviewSavedCheckIn.kt`): `OverviewViewModel` reads `SymptomRepository` for the newest entry the patient wrote themselves that day (`savedToday`, summarised like the caregiver's Journal card with `LatestEntry`), with Undo, Edit and "Log another symptom or note"; it stays until the next day. Overview saves the dose ticks and corrections, and deletes that entry on Undo (put back with a message if the delete fails); symptoms are saved by the symptom form's ViewModel, from the form or the check-in's sheet.
 
 **Domain layer** (`domain/<feature>/`, optional). One class per use case, usually with a single `operator fun invoke(...)`. Only add one when the logic combines several repositories or device services, or is worth unit-testing on its own. Plain reads and writes (directory, events, appointments list) go straight from the ViewModel to the repository.
 
@@ -51,6 +51,7 @@ To edit a diagram, open its `.excalidraw` file on [excalidraw.com](https://excal
 **Data layer** (`model/<feature>/`). Data classes, a repository interface, and its Firestore implementation (`SymptomRepository` / `SymptomRepositoryFirestore`). Ligue events have their own `EventRepository`, separate from the directory of contacts and programs. The patient's confirmations that they registered for an event with its organizer are in `EventRegistrationRepository`: one document per event, keyed by the event's id, so confirming twice never creates a duplicate. Oncompanion only records what the patient says; registering stays on the organizer's website, linked from the event's `websiteUrl`. Device services (`TextRecognizer`, `SpeechRecognizer`, `ReminderScheduler`) follow the same interface + implementation pattern, so domain code never touches ML Kit or Android APIs directly.
 
 ## External hospital search
+
 `model/hospital/HospitalRepository` accepts explicitly submitted search text and returns
 `HospitalSearchResult`: a list of hospitals (possibly empty), or a typed network, service,
 rate-limit or invalid-response error. Future ViewModels inject this interface; screens never
@@ -89,7 +90,8 @@ to aggregate traffic across all app users, not each device. A local throttle can
 that limit. The constructor therefore requires an HTTPS search endpoint instead of defaulting
 to the public service. Before wiring this into a released UI, supply a deployment-configured
 proxy that enforces the aggregate limit, caches requests and can switch its upstream provider
-without an app update, as the policy requires. Proxy deployment and configuration are separate;
+without an app update, as the policy requires. Proxy deployment and configuration are described in
+"Shared hospital search proxy" below;
 the repository is not yet wired into production. No profile fields, Firestore rules, hospital
 field UI, or profile integration are added.
 
@@ -160,6 +162,7 @@ See the backend runbook and verification record for the remaining live/token/mon
 Deployment is manual; no automatic Functions deployment workflow is included.
 
 ## Reusable hospital field
+
 `ui/common/HospitalField` is an outlined free-text location field with an explicit Search button.
 The form owns its text and structured selection. `onValueChange(String)` supports unrestricted
 manual entry. Selecting a result sends its name through `onValueChange`, then the complete existing
@@ -185,6 +188,7 @@ HospitalFieldViewModel) → HospitalRepositoryProxy path; the overview shows it 
 Add Appointment integration remains planned.
 
 ## Optional profile hospital
+
 `UserProfile.hospital` is nullable text, limited to `MAX_HOSPITAL_LENGTH = 100`. Firestore's
 `hospital` field is optional: missing, null and empty strings are accepted, with non-string and
 oversized values denied by `isValidProfile`. Repository validation uses the same model limit.
@@ -282,12 +286,12 @@ upgrade cannot cause another prompt. The local flag survives sign-out and record
 only, not an account preference or health data;
 Android notification access itself is device/app-wide. Channel blocking opens that channel's
 settings; exact-alarm access opens Alarms & reminders separately. Notification preference controls
-are separate. Layouts reuse Planning, without its unrelated Figma restyle.
+are not built yet. Layouts reuse Planning, without its unrelated Figma restyle.
 
-This foundation still does not schedule from appointment saves. Appointment reconciliation,
-saved reminder choices, notification-tap navigation, sign-out cancellation, restoring
-alarms after sign-in/device restart and clearing displayed notifications on sign-out remain
-separate integration work. Granting permissions does not claim delivery. The "Appointment reminders enabled"
+Scheduling from appointment saves, the saved reminder choices and notification-tap navigation are
+described under "Appointment reminder integration" and "Appointment reminder controls". Restoring
+alarms after a device restart and complete cleanup on sign-out are not built yet.
+Granting permissions does not claim delivery. The "Appointment reminders enabled"
 confirmation belongs after successful scheduling, not permission
 grants alone. The invitation uses timing-neutral wording, following the saved appointment
 choice. Exact-alarm
@@ -307,6 +311,7 @@ Firestore's local cache is the offline store: writes are applied locally right a
 **Rejected writes.** Because writes return once saved on the device, the server can still reject one later (security rules, revoked access). Firestore then undoes it on the device: a deleted item comes back, an edit is reverted. Every repository that writes this way (symptoms, medications, the doses taken, appointments, the user profile, the care circle, its invites and event registrations) reports each rejection to `RejectedWrites` (`model/session/`, held by `RejectedWritesProvider`), a count of rejections the user hasn't been told about. Redeeming an invite (`CareCircleInviteRepository.redeem()`) doesn't report: it is a transaction that only runs on the server, so nothing was saved on the device to undo, and its failure is shown directly on the join screen. `RejectedWriteSnackbar` (`ui/common/`), placed once over the navigation graph in `AppNavHost`, shows "A change couldn't be saved and was undone" while that count is above zero, then acknowledges what it showed. A count rather than an event stream means a rejection that arrives while the app is in the background, or while the message is showing, isn't lost. The count is cleared at sign-out, so the next account never sees it.
 
 ## Appointment form
+
 Planning's Add action opens `AppointmentFormScreen` on the selected day. The Screen collects one
 `AppointmentFormUiState` and delegates to stateless `AppointmentFormContent`. Title and explicit
 time are required; date is prefilled. Type, optional location and notes are recorded without
@@ -348,6 +353,7 @@ shared `DetailWithActions` and `DetailActions`: supported actions stay visible i
 and scroll after the content in compact windows. Edit mode reuses the form's keyboard handling.
 
 ### Appointment reminder integration
+
 `domain/reminder/ReconcileAppointmentReminders` combines the signed-in patient's profile and appointment snapshots with `ReminderScheduler` and `AppointmentReminderPlans`. `MainActivity` installs the adapters and owns `AppointmentRemindersViewModel`, which collects the coordinator across rotation and refreshes it on resume. Account changes cancel the old observation; each scheduling batch rechecks the current uid inside `SessionAccess.immediate`.
 
 The saved reminder choice determines the offset: None, 15 minutes, one hour (including legacy defaults), three hours or one day. Offsets are elapsed durations; display text uses the phone's locale and zone. Past appointments get no alarm, and an elapsed reminder time for a future appointment schedules immediately. Caregiver changes arrive through the same patient repository. Notes/attribution changes do not reschedule. Before due time, title/location changes replace content; once due, unchanged timing never triggers another immediate alarm. Appointment-time or reminder-choice changes constitute a new timing. None/deletion cancels only that appointment. Read failures never stand for an empty/deleted list.
@@ -365,12 +371,13 @@ appointment remains visible without enabling an unintended reminder. Other malfo
 fields still follow the existing document validation. Patient and authorized caregiver writes use
 the same strict schema and existing permissions. Ordinary form edits preserve the
 stored choice. This data layer does not schedule or deliver notifications; form controls and
-notification delivery are separate.
+notification delivery are described under "Appointment reminder controls" and "Appointment reminder integration".
 
 Deploy the updated Firestore rules before distributing a client that writes `reminder`: the
 previous field allowlist rejects it. No live rules deployment is part of this data-layer change.
 
 ### Appointment reminder controls
+
 The shared Add/Edit form exposes `AppointmentFormUiState.reminder`, defaulting to `ONE_HOUR`.
 The read-only **Remind me** field opens a single-choice `LakeDialog`; selecting an option changes
 only the draft, while Cancel, Back and outside dismissal keep the previous choice. The dialog
@@ -382,12 +389,14 @@ the rest of the private draft.
 Detail displays the saved value after date/time and before location, including **No reminder**.
 The same form and wording apply to patients and authorized caregivers. Saving records the choice
 locally, including offline; it never asks for Android notification permission or claims delivery.
-Scheduling and permission handling are separate.
+Scheduling is described under "Appointment reminder integration", and permission handling under
+"Reminders (device foundation)".
 
 Approved implementation reference: [reminder-choice proposal](https://www.figma.com/design/LoQ2CmgkxNQhODegJmo7wd/OnCompanion?node-id=1818-5693).
 
 
 ## Appointment details
+
 `AppointmentDetailScreen` collects one `AppointmentDetailUiState`; its stateless Content follows
 Figma's entry-detail layout using the recorded type, title, start date/time and optional location
 and notes. No end time or reminder is inferred. `AppointmentDetailViewModel` reads the appointment
@@ -491,6 +500,7 @@ Known limitations:
 - A removal that a caregiver's device already saw shows as "checking access" (`CareAccess.Unconfirmed`), not `Denied`, until the server confirms it: the Firestore cache can't tell a deleted member document from one it never fetched. No patient data is shown meanwhile.
 
 ## Sign-out
+
 `ProfileViewModel` delegates to the process-scoped `SignOut` coordinator, and so does
 `OnboardingViewModel` for **Use another account**, which signs out before any profile is
 saved so the user can pick another Google account; both show the same `SignOutDialog`
@@ -577,13 +587,6 @@ offline caching. No remote documents are deleted. Repositories hold no additiona
 screen drafts and lists belong to the destroyed ViewModels. Scan photos retain their existing
 disposal cleanup.
 
-**PR size / splitting:** the reader is only 61 production lines. Moving it out alone would remove
-cross-account legacy protection unless a prerequisite migration PR ships first, or the team accepts
-a blanket first-upgrade discard-consent policy. Keep the reader and its security tests together for
-now; a supported replacement/migration strategy can be reviewed separately after that decision.
-Generated Excalidraw/SVG changes are required architecture artifacts. No unrelated feature changes
-or coverage exclusions are included.
-
 The Account diagram includes `SignOut` and `LocalSessionRepository`; the overview shows `SignOut` and the session. No dependencies,
 Firebase rules or normal persistence settings change. Future Firestore repositories must use
 `SessionAccess.operation`, `snapshots` and the shared instance accessor. Server transactions must
@@ -653,6 +656,7 @@ It is read only, except adding where `canAdd` allows it, and editing and deletin
 A prescription is one document: the prescribing doctor and the date, stored once, and the list of its medications, each with its own ID, start date and duration. A prescription and its medications are always written together (one form, one use case), so keeping them in one document makes saving, replacing or deleting a prescription a single write. It can't be half saved, and its medications can't be partly known by a device that is offline, mixed when two devices edit at once, or left behind after a deletion. Planning and reminders still work on single medications: the repository reads them out of the prescriptions, so they never deal with a prescription. What is recorded per intake goes in its own collection, not in the prescription: the doses the patient ticks each day are in `takenDoses`.
 
 ## Compact-height Profile and Planning
+
 Both screens reuse `isCompactHeight()` (window height below 480 dp). Planning puts its shared
 calendar header in the agenda's lazy list on compact windows; Profile lets its toolbar, details
 and actions share one scroll instead of pinning them around a small details viewport. Portrait
@@ -661,6 +665,7 @@ use saveable state. Navigation, access rules and repositories are unchanged. The
 feature diagrams document the layout behavior; the overview is unchanged.
 
 ## Medication details
+
 Planning passes the prescription and medication IDs to `MedicationDetailViewModel`. It observes
 one prescription through `ObserveCareSection(PRESCRIPTIONS)` and selects that medication by ID,
 so cached reads, edits, deletion and access changes all use the existing repository boundary.
@@ -694,14 +699,14 @@ come later. Android drops every alarm when the phone restarts, but the plans sti
 they wouldn't be scheduled again: restoring them after a restart is separate work too.
 
 ## Device settings
+
 Profile opens the Settings nested graph and Back returns to the same Profile entry.
-Only implemented preference categories appear; the foundation shows a short empty state
-until Appearance is added. The Settings body scrolls at large text sizes and in landscape.
+Only implemented preference categories appear. The Settings body scrolls at large text sizes and in landscape.
 
 `SettingsRepository` is the device-local contract, provided by `SettingsRepositoryProvider`.
 `SettingsRepositoryDataStore` persists `DeviceSettings` in one application-scoped Preferences
 DataStore (`device_settings`). Appearance defaults to `FOLLOW_DEVICE`; explicit Light and Dark
-values are groundwork for Appearance and are not exposed by this change. Unknown values fall back to the
+values are chosen on the Appearance screen. Unknown values fall back to the
 device default without deleting unrelated preferences. Read/write errors propagate to callers;
 no corrupt-file reset silently discards preferences.
 
@@ -713,12 +718,14 @@ does not join SessionAccess cleanup. Notification settings will be account-speci
 from this device store.
 
 ### Text size
+
 Settings reads the font scale from Android's current configuration and opens the phone's
 text reading settings. On devices without that destination it opens Accessibility settings.
 Android applies the new size and the row reads the updated configuration when the user returns.
 The Account diagram shows the system setting alongside the existing device preferences.
 
 ### Appearance
+
 Settings shows the saved Appearance choice next to its entry. `SettingsViewModel` observes the same
 repository in both settings destinations; the shared repository keeps them synchronized.
 `AppearanceContent` uses selectable rows with a trailing checkmark for Follow device, Light and Dark. Writes disable
@@ -743,6 +750,7 @@ sizes and in landscape. Rotation tests recreate the Activity and restore content
 ViewModel; startup tests also exercise the root Activity recreation.
 
 ### App language
+
 Settings opens the Language picker. Both screens refresh their LanguageViewModel on resume.
 The ViewModel reads and writes the override through the AppCompat locale adapter.
 AppCompat persists the locale on older Android versions
@@ -753,6 +761,7 @@ handoff. The French catalog covers the existing screens and uses the app locale 
 textual dates, including the date in care circle invitation messages.
 
 ### Date and time formats
+
 Settings opens Date and time, with an appointment preview and separate Time format and Date format
 choice screens. The repository saves each preference under its own key in the existing device
 DataStore. Missing or unknown preferences default to Follow device independently. Confirmed
