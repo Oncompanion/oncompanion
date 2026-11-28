@@ -99,6 +99,9 @@ class SpokenSymptomParserTest {
             Case("headache Monday at 9 am", listOf(HEADACHE)),
             Case("headache next week", listOf(HEADACHE)),
             Case("headache yesterday at 9 am", listOf(HEADACHE), emptyMap(), yesterday, at(9)),
+            Case("nausea an hour and a half ago", listOf(NAUSEA), emptyMap(), today, at(12, 30)),
+            // A duration isn't a time of day
+            Case("slept only 4 hours"),
             // Contradicting times or intensities: not guessed
             Case("yesterday, no, 2 hours ago"),
             Case("2 hours ago or 3 hours ago"),
@@ -189,6 +192,29 @@ class SpokenSymptomParserTest {
             Case("nausées lundi à 9h", listOf(NAUSEA)),
             Case("nausées la semaine dernière", listOf(NAUSEA)),
             Case("nausées hier à 9h", listOf(NAUSEA), emptyMap(), yesterday),
+            // A duration and an hour sound the same: a time needs "à", "vers" or "du matin"
+            Case("j'ai dormi que 4 heures"),
+            Case("j'ai dormi 4h"),
+            Case("nausées depuis deux heures", listOf(NAUSEA)),
+            Case("nausées pendant une heure", listOf(NAUSEA)),
+            Case("j'ai vomi pendant 1h30", listOf(NAUSEA)),
+            Case("nausées depuis 11h", listOf(NAUSEA)),
+            Case("nausées vers 9h", listOf(NAUSEA), time = at(9)),
+            Case("nausées à 9 heures", listOf(NAUSEA), time = at(9)),
+            Case("nausées 8 heures du matin", listOf(NAUSEA), time = at(8)),
+            Case("nausées il y a 1h30", listOf(NAUSEA), emptyMap(), today, at(12, 30)),
+            Case(
+                "nausées il y a une heure et demie",
+                listOf(NAUSEA),
+                emptyMap(),
+                today,
+                at(12, 30),
+            ),
+            Case("nausées il y a 2h et demie", listOf(NAUSEA), emptyMap(), today, at(11, 30)),
+            Case("nausées il y a 1h75", listOf(NAUSEA)),
+            Case("4h de sommeil, je suis épuisée", listOf(FATIGUE)),
+            // A transcript cut off before the duration
+            Case("nausées il y a", listOf(NAUSEA)),
             Case("je ne me sens pas très bien"),
         ),
     )

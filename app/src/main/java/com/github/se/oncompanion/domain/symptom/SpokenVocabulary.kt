@@ -43,11 +43,14 @@ internal typealias Phrase = List<String>
  * @property agoBefore what comes before a duration in the past ("il y a 2 heures")
  * @property agoAfter what comes after a duration in the past ("2 hours ago")
  * @property halfHour half an hour, as one phrase
+ * @property andAHalf what adds half an hour to a number of hours ("an hour and a half")
  * @property minuteUnits, hourUnits the units of a duration
  * @property daysAgo days said by name, with how many days ago they are
  * @property otherDays days the parser can't place ("tomorrow", "lundi"): when one is said, the day
  *   and time stay empty rather than default to today
  * @property clockWords what makes a number a time of day ("9 o'clock", "9 heures")
+ * @property clockBefore what must come before a time of day said without "am" or "pm" ("à 9h"),
+ *   where it could also be a duration ("j'ai dormi 4h"); empty where it never could
  * @property morning, afternoon what says whether a time is before or after noon
  */
 internal class SpokenVocabulary(
@@ -73,11 +76,13 @@ internal class SpokenVocabulary(
     agoBefore: List<String>,
     agoAfter: List<String>,
     halfHour: List<String>,
+    andAHalf: List<String>,
     val minuteUnits: Set<String>,
     val hourUnits: Set<String>,
     daysAgo: Map<String, Long>,
     otherDays: List<String>,
     clockWords: List<String>,
+    clockBefore: List<String>,
     morning: List<String>,
     afternoon: List<String>,
 ) {
@@ -97,6 +102,7 @@ internal class SpokenVocabulary(
   val agoBefore: List<Phrase> = phrases(agoBefore)
   val agoAfter: List<Phrase> = phrases(agoAfter)
   val halfHour: List<Phrase> = phrases(halfHour)
+  val andAHalf: List<Phrase> = phrases(andAHalf)
   /** Longest first, so "avant-hier" isn't read as "hier". */
   val daysAgo: List<Pair<Phrase, Long>> =
       daysAgo
@@ -104,6 +110,7 @@ internal class SpokenVocabulary(
           .sortedByDescending { it.first.size }
   val otherDays: List<Phrase> = phrases(otherDays)
   val clockWords: List<Phrase> = phrases(clockWords)
+  val clockBefore: List<Phrase> = phrases(clockBefore)
   val morning: List<Phrase> = phrases(morning)
   val afternoon: List<Phrase> = phrases(afternoon)
 
@@ -260,6 +267,7 @@ internal class SpokenVocabulary(
             agoBefore = emptyList(),
             agoAfter = listOf("ago"),
             halfHour = listOf("half an hour"),
+            andAHalf = listOf("and a half"),
             minuteUnits = setOf("minute", "minutes", "min", "mins"),
             hourUnits = setOf("hour", "hours", "hr", "hrs"),
             daysAgo = mapOf("yesterday" to 1, "day before yesterday" to 2),
@@ -271,6 +279,8 @@ internal class SpokenVocabulary(
                 """
                 ),
             clockWords = listOf("o'clock"),
+            // "o'clock", "am" and "pm" never say a duration
+            clockBefore = emptyList(),
             morning = listOf("am", "in the morning"),
             afternoon = listOf("pm", "in the afternoon", "in the evening", "at night"),
         )
@@ -389,6 +399,7 @@ internal class SpokenVocabulary(
             agoBefore = listOf("il y a"),
             agoAfter = emptyList(),
             halfHour = listOf("une demi-heure", "une demie heure"),
+            andAHalf = listOf("et demie", "et demi"),
             minuteUnits = setOf("minute", "minutes", "min"),
             hourUnits = setOf("heure", "heures", "h"),
             daysAgo = mapOf("hier" to 1, "avant-hier" to 2),
@@ -400,6 +411,7 @@ internal class SpokenVocabulary(
                 """
                 ),
             clockWords = listOf("h", "heure", "heures"),
+            clockBefore = listOf("à", "vers"),
             morning = listOf("du matin"),
             afternoon = listOf("de l'après-midi", "du soir"),
         )
