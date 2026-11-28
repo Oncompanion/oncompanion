@@ -61,9 +61,8 @@ import com.github.se.oncompanion.ui.theme.full
 import java.time.LocalDate
 
 /**
- * The symptom journal (US-8 "Review my symptom journal"): the user's symptoms grouped by day,
- * newest first (Figma: "Symptoms – History"). Tapping one opens its detail, and the add button
- * opens the add symptom screen.
+ * The symptom journal: the user's symptoms grouped by day, newest first (design: M3, "Journal · My
+ * symptoms"). Tapping one opens its detail, and the add button opens the add symptom screen.
  */
 @Composable
 fun SymptomJournalScreen(
@@ -315,7 +314,7 @@ private fun EntryRow(
 }
 
 /**
- * The round tile at the start of a row, the same for every entry so its colour never judges it.
+ * The round tile at the start of a row, the same for every entry so its color never judges it.
  * Decorative: the title says what was logged.
  */
 @Composable
@@ -337,7 +336,7 @@ private fun SymptomTile() {
 }
 
 /**
- * How strong it was in words, as entered: no colour, no advice. Each symptom's strength ("Moderate
+ * How strong it was in words, as entered: no color, no advice. Each symptom's strength ("Moderate
  * fatigue · mild nausea"), or for an entry saved before them its single severity ("Mild"). Then the
  * first line of the notes, so an "Other" entry shows which symptom it was without opening it.
  * `null` when the entry has neither.
@@ -353,6 +352,6 @@ private fun SymptomEntry.summary(): String? {
   }
 }
 
-// The round tile of the Figma's journal rows, and its icon
+// The round tile of the journal's rows, and its icon
 private val TILE_SIZE = 40.dp
 private val TILE_ICON_SIZE = 20.dp

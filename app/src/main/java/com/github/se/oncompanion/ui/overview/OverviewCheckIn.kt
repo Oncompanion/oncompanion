@@ -48,7 +48,7 @@ import com.github.se.oncompanion.ui.theme.elevation1
 import com.github.se.oncompanion.ui.theme.lakeColors
 
 /**
- * The check-in's tiles, in the Figma's order (M3 page, Overview → Patient → Home): five symptoms in
+ * The check-in's tiles, in this order (design: M3, "Overview · Patient · Home"): five symptoms in
  * one tap, then "More…" (`null`) for the others.
  */
 private val checkInTiles =
@@ -62,10 +62,9 @@ private val checkInTiles =
     )
 
 /**
- * "How do you feel?" (Overview UX Refactor): the patient logs a symptom in one tap, as often as
- * they like during the day. A tile opens the check-in's sheet with that symptom picked (#544),
- * "More…" opens it empty, and "Journal ›" opens the journal. "Speak how you feel" under the tiles
- * (US-73) lets them say it instead.
+ * "How do you feel?": the patient logs a symptom in one tap, as often as they like during the day.
+ * A tile opens the check-in's sheet with that symptom picked, "More…" opens it empty, and "Journal
+ * ›" opens the journal. "Speak how you feel" under the tiles lets them say it instead.
  *
  * @param onLogSymptom opens the check-in's sheet with that symptom picked, or empty for `null`
  * @param onSpeak opens the symptom form already listening; `null` when the phone can't listen, so
@@ -88,15 +87,15 @@ internal fun CheckInDock(
     Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
       CheckInHeader(onOpenJournal)
       SymptomTiles(checkInTiles, onLogSymptom)
-      // The card's last row, as wide as the tiles (Figma: Overview → Speak instead → Home)
+      // The card's last row, as wide as the tiles (design: M3, "Speak instead · Home")
       if (onSpeak != null) SpeakButton(onSpeak)
     }
   }
 }
 
 /**
- * "Speak how you feel" (US-73), the last row of the check-in, with its tiles or once something was
- * saved today: it opens the symptom form already listening.
+ * "Speak how you feel", the last row of the check-in, with its tiles or once something was saved
+ * today: it opens the symptom form already listening.
  */
 @Composable
 internal fun SpeakButton(onSpeak: () -> Unit) {
@@ -112,7 +111,7 @@ internal fun SpeakButton(onSpeak: () -> Unit) {
 /**
  * The heart, "How do you feel?", then "Journal ›", in one row while the title fits beside them on
  * two lines at most, each word whole. Otherwise (large font, small screen) the title gets its own
- * line and "Journal ›" goes under it, without the heart, as in the Figma at 200%.
+ * line and "Journal ›" goes under it, without the heart, at 200%.
  */
 @Composable
 private fun CheckInHeader(onOpenJournal: () -> Unit) {
@@ -190,10 +189,10 @@ internal fun JournalLink(onOpenJournal: () -> Unit) {
 }
 
 /**
- * The [tiles] ("More…" for `null`) in rows of the same width: three per row as in the Figma, all in
- * one row when the screen is wide (landscape) and they fit, and fewer per row when a word of a
- * label wouldn't fit (small screen or large font), so a word is never broken. Shared by the
- * check-in and its sheet.
+ * The [tiles] ("More…" for `null`) in rows of the same width: three per row, all in one row when
+ * the screen is wide (landscape) and they fit, and fewer per row when a word of a label wouldn't
+ * fit (small screen or large font), so a word is never broken. Shared by the check-in and its
+ * sheet.
  *
  * @param picked the symptoms picked in the sheet, each tile then showing whether it is; `null` on
  *   the check-in, where a tile just opens the sheet
@@ -247,8 +246,8 @@ internal fun SymptomTiles(
 
 /**
  * A symptom tile: its icon above its label. Every symptom looks the same on purpose, so none seems
- * more serious (Figma "Symptom tile"). In the sheet ([isPicked] not `null`), a picked tile takes
- * the dawn colour and a check, the others an empty ring, so the state doesn't rely on colour alone.
+ * more serious. In the sheet ([isPicked] not `null`), a picked tile takes the dawn color and a
+ * check, the others an empty ring, so the state doesn't rely on color alone.
  */
 @Composable
 private fun SymptomTile(
@@ -298,7 +297,7 @@ private fun SymptomTile(
   }
 }
 
-/** The check of a picked tile, or the empty ring of one that isn't (Figma "Check"). */
+/** The check of a picked tile, or the empty ring of one that isn't. */
 @Composable
 private fun PickedMark(picked: Boolean, modifier: Modifier) {
   if (picked) {
@@ -317,12 +316,12 @@ private fun PickedMark(picked: Boolean, modifier: Modifier) {
   }
 }
 
-/** The Figma's tile: 80 dp tall at least (it grows with a large font), 8 dp apart. */
+/** The tile: 80 dp tall at least (it grows with a large font), 8 dp apart. */
 private val TILE_HEIGHT = 80.dp
 private val TILE_SPACING = Spacing.sm
 private val TILE_PADDING = Spacing.xs
 
-/** The border of a picked tile, and how faint the ring of one that isn't (Figma). */
+/** The border of a picked tile, and how faint the ring of one that isn't. */
 private val PICKED_BORDER = 1.5.dp
 private const val RING_ALPHA = 0.55f
 

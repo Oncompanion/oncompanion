@@ -185,5 +185,5 @@ private fun PrivateCard(section: CarePermission, patientName: String) {
   }
 }
 
-/** The Figma's lock, 20 dp. */
+/** The lock, 20 dp. */
 private val LOCK_SIZE = 20.dp

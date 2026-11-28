@@ -69,9 +69,9 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 /**
- * The add symptom screen (US-07 "Log a symptom", Figma: "US-04 / Log symptoms"): the user picks
- * what they feel and saves it, optionally with how bad, when and notes. With a ViewModel editing a
- * symptom, it is the edit screen instead (US-09, Figma: "US-9 / Edit symptom entry").
+ * The add symptom screen (design: M2, "Log symptoms"): the user picks what they feel and saves it,
+ * optionally with how bad, when and notes. With a ViewModel editing a symptom, it is the edit
+ * screen instead (design: M3, "Edit and delete · Edit entry").
  *
  * @param onBack called when the user leaves without saving
  * @param onSaved called once the symptom is saved
@@ -103,7 +103,7 @@ fun AddSymptomScreen(
     onPauseOrDispose {}
   }
 
-  // Opened from "Speak how you feel" on the Overview (US-73): starts dictating once shown
+  // Opened from "Speak how you feel" on the Overview: starts dictating once shown
   LaunchedEffect(viewModel) {
     viewModel.onOpened(context.hasPermission(Manifest.permission.RECORD_AUDIO))
   }
@@ -168,7 +168,7 @@ fun AddSymptomScreen(
  * Stateless content of the add symptom screen, so each state can be tested without a ViewModel.
  *
  * @param onErrorShown called once the error snackbar is gone
- * @param onSpeak dictates the symptom instead (US-44), offered when the phone can listen
+ * @param onSpeak dictates the symptom instead, offered when the phone can listen
  * @param onRetry loads the symptom to edit again after an error
  * @param caregiverOf in caregiver mode, the first name of the patient whose journal gets the
  *   symptom, said in the title so the caregiver knows where it goes
@@ -289,7 +289,7 @@ private fun FormTopBar(
   LakeTopAppBar(
       title =
           when {
-            // A caregiver sees whose journal gets the symptom, or whose entry they edit (US-46)
+            // A caregiver sees whose journal gets the symptom, or whose entry they edit
             uiState.isEditing && caregiverOf != null ->
                 stringResource(R.string.symptom_edit_title_for, caregiverOf)
             uiState.isEditing -> stringResource(R.string.symptom_edit_title)
@@ -313,7 +313,7 @@ private fun FormTopBar(
 
 /**
  * "Speak instead" when the phone can listen, above the button that saves the symptom, so both are
- * in reach of the thumb (Figma: Voice logging).
+ * in reach of the thumb (design: M3, "Speak · Listening").
  */
 @Composable
 private fun FormButtons(uiState: AddSymptomUiState, onSpeak: () -> Unit, onSave: () -> Unit) {

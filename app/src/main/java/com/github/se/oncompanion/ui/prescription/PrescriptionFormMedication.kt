@@ -38,13 +38,13 @@ import com.github.se.oncompanion.ui.theme.Spacing
 // longest values ("30 Dec 2026", "365 days") are cut, so they are stacked
 private val SIDE_BY_SIDE_MIN_WIDTH = 260.dp
 
-// The start date is about twice as wide as the duration, as in the frame (206 and 110 dp)
+// The start date is about twice as wide as the duration (206 and 110 dp)
 private const val START_DATE_WEIGHT = 1.87f
 
 /**
- * The start date and the duration of a medication: on one row, the date wider as in the frame, or
- * one under the other when [stacked] or when the row is too narrow for the font size (a small
- * phone, a large font), so neither value is cut.
+ * The start date and the duration of a medication: on one row, the date wider, or one under the
+ * other when [stacked] or when the row is too narrow for the font size (a small phone, a large
+ * font), so neither value is cut.
  */
 @Composable
 internal fun StartAndDuration(
