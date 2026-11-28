@@ -34,6 +34,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [SaveButton]. */
 @RunWith(AndroidJUnit4::class)
 class SaveButtonTest {
 
@@ -92,7 +93,7 @@ class SaveButtonTest {
     composeTestRule.onNodeWithTag(BUTTON).assert(hasText("Save").not())
   }
 
-  // ----- Figma: "Button", Style=Filled, and the bottom bar of a form ("Log symptoms – Filled")
+  // ----- Look (design: Brand & Theme, "Button" and "Log symptoms – Filled") -----
   // -----
 
   @Test

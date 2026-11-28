@@ -7,6 +7,7 @@ import java.time.format.DateTimeParseException
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+/** Tests of [PlanningDates]. */
 class PlanningDatesTest {
   @Test
   fun formatsWithLeadingZeros() {

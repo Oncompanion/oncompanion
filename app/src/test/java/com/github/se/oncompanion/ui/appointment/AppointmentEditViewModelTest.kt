@@ -345,7 +345,7 @@ class AppointmentEditViewModelTest {
         assertTrue(repository.appointments("uid-patient").isEmpty())
       }
 
-  // ----- A caregiver the patient lets edit and delete (US-46) -----
+  // ----- A caregiver the patient lets edit and delete -----
 
   /** The signed-in user, "uid-patient" here, edits Anne's appointment as her caregiver Sam. */
   private fun caregiverForm(appointments: AppointmentRepository = repository) =

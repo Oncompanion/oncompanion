@@ -1,5 +1,6 @@
 // Co-authored-by: Codex
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 package com.github.se.oncompanion.ui.common
 
 import androidx.compose.material3.ColorScheme
@@ -34,6 +35,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/** Tests of [HospitalField]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(AndroidJUnit4::class)
 class HospitalFieldTest {
@@ -421,7 +423,10 @@ class HospitalFieldTest {
     node(C.Tag.hospital_loading).assertDoesNotExist()
   }
 
-  /** The location field looks like every other field of a form (Figma: "Text field"). */
+  /**
+   * The location field looks like every other field of a form (design: Brand & Theme, "Text
+   * field").
+   */
   @Test
   fun fieldShowsItsLabelSmallAboveTheTypedLocation() {
     lateinit var colors: ColorScheme

@@ -35,8 +35,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * [LakeDialog] for a decision that isn't destructive (e.g. signing out). The Figma "Dialog" itself,
- * destructive, is checked by `DeleteConfirmationDialogTest`.
+ * [LakeDialog] for a decision that isn't destructive (e.g. signing out). The destructive dialog
+ * (design: Brand & Theme, "Dialog") is checked by `DeleteConfirmationDialogTest`.
  */
 @RunWith(AndroidJUnit4::class)
 class LakeDialogTest {

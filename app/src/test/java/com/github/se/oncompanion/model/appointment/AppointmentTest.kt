@@ -109,8 +109,8 @@ class AppointmentTest {
   }
 
   /**
-   * A caregiver's appointment says who added it (US-41), and one a caregiver edited who edited it
-   * (US-46); the patient's own says nothing.
+   * A caregiver's appointment says who added it, and one a caregiver edited who edited it; the
+   * patient's own says nothing.
    */
   @Test
   fun caregiversAppointmentNeedsTheirName() {

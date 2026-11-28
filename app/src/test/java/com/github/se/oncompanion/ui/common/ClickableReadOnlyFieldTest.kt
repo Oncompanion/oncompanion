@@ -28,6 +28,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/** Tests of [ClickableReadOnlyField]. */
 @RunWith(AndroidJUnit4::class)
 class ClickableReadOnlyFieldTest {
 
@@ -103,7 +104,7 @@ class ClickableReadOnlyFieldTest {
     field().assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
   }
 
-  // ----- Figma: "Text field", as every other field of a form -----
+  // ----- Look (design: Brand & Theme, "Text field"), as every other field of a form -----
 
   @Test
   fun looksLikeTheOtherFields_labelSmallAboveTheValue() {

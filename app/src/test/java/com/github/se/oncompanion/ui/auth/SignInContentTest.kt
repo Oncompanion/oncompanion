@@ -46,6 +46,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [SignInContent]. */
 @RunWith(AndroidJUnit4::class)
 class SignInContentTest {
 
@@ -270,7 +271,7 @@ class SignInContentTest {
   @Config(qualifiers = LANDSCAPE_PHONE)
   fun errorSnackbar_staysAboveTheButton_inLandscape() = assertTheSnackbarIsAboveTheButton()
 
-  // ----- Layout (Figma "US-1 / Login") -----
+  // ----- Layout (design: M2, "Login") -----
 
   private fun bounds(tag: String) =
       composeTestRule.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()

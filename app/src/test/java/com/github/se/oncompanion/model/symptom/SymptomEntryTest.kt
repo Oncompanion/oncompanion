@@ -10,6 +10,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Tests of [SymptomEntry]. */
 class SymptomEntryTest {
 
   private val valid =
@@ -166,7 +167,7 @@ class SymptomEntryTest {
     assertFalse(other.copy(notes = "n".repeat(1001)).isValid())
   }
 
-  /** A caregiver who added (US-22) or edited (US-46) an entry signs it with a name. */
+  /** A caregiver who added or edited an entry signs it with a name. */
   @Test
   fun caregiversEntry_needsTheirName_ofAtMostFiftyCharacters() {
     val now = Instant.parse("2026-10-05T09:00:00Z")

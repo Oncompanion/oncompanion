@@ -28,6 +28,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+/** Tests of [WhoseCareViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class WhoseCareViewModelTest {
 

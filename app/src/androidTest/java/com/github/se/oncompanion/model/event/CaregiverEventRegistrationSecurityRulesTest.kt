@@ -29,9 +29,9 @@ import org.junit.runner.RunWith
 
 /**
  * Tests that firestore.rules let a caregiver confirm the patient's registration for an event only
- * when the patient shares Events and lets them confirm (US-42): signed with their own uid, for an
- * upcoming event, never over an existing confirmation, and removable with the Events removal
- * permission (US-46). Alice is the patient, carol her caregiver, dave a stranger.
+ * when the patient shares Events and lets them confirm: signed with their own uid, for an upcoming
+ * event, never over an existing confirmation, and removable with the Events removal permission.
+ * Alice is the patient, carol her caregiver, dave a stranger.
  */
 @RunWith(AndroidJUnit4::class)
 class CaregiverEventRegistrationSecurityRulesTest {

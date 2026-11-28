@@ -14,6 +14,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/** Tests that the theme's corner radii and spacing scale are those of DESIGN.md. */
 @RunWith(AndroidJUnit4::class)
 class ShapeAndSpacingTest {
 
@@ -25,7 +26,7 @@ class ShapeAndSpacingTest {
     composeTestRule.setContent { OncompanionTheme { shapes = MaterialTheme.shapes } }
     composeTestRule.waitForIdle()
 
-    // The "rounded" table of DESIGN.md (Figma variables "Radius/*")
+    // The "rounded" table of DESIGN.md
     val cases =
         listOf(
             "Small" to (shapes.small to RoundedCornerShape(8.dp)),
@@ -39,7 +40,7 @@ class ShapeAndSpacingTest {
 
   @Test
   fun spacing_matchesDesignMdScale() {
-    // The "spacing" table of DESIGN.md (Figma variables "Space/*")
+    // The "spacing" table of DESIGN.md
     val cases =
         listOf(
             "xs" to (Spacing.xs to 4.dp),

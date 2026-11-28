@@ -73,6 +73,7 @@ private class GatedMedicationRepository(private val delegate: FakeMedicationRepo
   }
 }
 
+/** Tests of [PrescriptionFormViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class PrescriptionFormViewModelTest {
 
@@ -1768,7 +1769,7 @@ class PrescriptionFormViewModelTest {
     assertFalse(viewModel.state.isEditing)
   }
 
-  // ---------- A prescription already saved (US-39) ----------
+  // ---------- A prescription already saved ----------
 
   /** A new draft like [saved] (same prescriber and medications), dated [on]: new, so no IDs. */
   private fun draftLikeSaved(on: LocalDate = saved.prescribedOn) =
@@ -1927,7 +1928,7 @@ class PrescriptionFormViewModelTest {
     assertEquals(SavePhase.SAVED, viewModel.state.save)
   }
 
-  // ---------- The patient confirms or rejects a caregiver's prescription (US-43) ----------
+  // ---------- The patient confirms or rejects a caregiver's prescription ----------
 
   private val sams =
       saved.copy(
@@ -2096,7 +2097,7 @@ class PrescriptionFormViewModelTest {
     assertFalse(viewModel.state.isToConfirm)
   }
 
-  // ---------- A caregiver adds a prescription for the patient (US-43) ----------
+  // ---------- A caregiver adds a prescription for the patient ----------
 
   private val patient = "patient-2"
 
@@ -2116,7 +2117,7 @@ class PrescriptionFormViewModelTest {
 
   private val caregiverProfiles = CaregiverProfiles()
 
-  /** Where the patient is told of a caregiver's prescription (US-50). */
+  /** Where the patient is told of a caregiver's prescription. */
   private val notifications = FakeNotificationRepository()
 
   /** The form of the caregiver following [patient], signed in, filled in with Ondansetron. */
@@ -2213,7 +2214,7 @@ class PrescriptionFormViewModelTest {
         }
       }
 
-  // ---------- A caregiver edits with the patient's permission (US-46) ----------
+  // ---------- A caregiver edits with the patient's permission ----------
 
   private fun caregiverEditForm(
       access: FollowedPatient,
@@ -2424,7 +2425,7 @@ class PrescriptionFormViewModelTest {
     const val CAREGIVER = "caregiver"
   }
 
-  // ---------- Reminders (US-32) ----------
+  // ---------- Reminders ----------
 
   private fun hours(vararg hours: Int) = hours.map { LocalTime.of(it, 0) }
 

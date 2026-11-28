@@ -28,8 +28,8 @@ import org.junit.runner.RunWith
  * [MlKitTextRecognizer] reading real photos with ML Kit's bundled model, on the device and offline:
  * upright and sideways photos, blank and tiny ones, photos larger than
  * [MlKitTextRecognizer.MAX_SIDE], and files that aren't images. The prescription in the test assets
- * is fictional (sheet 01 of the US-10 test prescriptions, 1588 × 2246). Reading it takes seconds on
- * CI's emulator, so only the test of what is read on it uses it: the others read small pages.
+ * is fictional (sheet 01 of the test prescriptions, 1588 × 2246). Reading it takes seconds on CI's
+ * emulator, so only the test of what is read on it uses it: the others read small pages.
  */
 @RunWith(AndroidJUnit4::class)
 class MlKitTextRecognizerDeviceTest {

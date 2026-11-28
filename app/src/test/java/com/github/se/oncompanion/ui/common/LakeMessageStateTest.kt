@@ -38,7 +38,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** [LakeMessageState] as the Figma "Message state" (Shared patterns). */
+/** Tests of [LakeMessageState] (design: Brand & Theme, "Message state"). */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LakeMessageStateTest {
@@ -109,7 +109,7 @@ class LakeMessageStateTest {
     }
   }
 
-  // Many of the Figma's states are only a title, e.g. "Couldn't load your circle." and Retry
+  // Many message states are only a title, e.g. "Couldn't load your circle." and Retry
   @Test
   fun withoutALine_theActionComes20dpBelowTheTitle() {
     setContent(message = null, actionLabel = "Retry")

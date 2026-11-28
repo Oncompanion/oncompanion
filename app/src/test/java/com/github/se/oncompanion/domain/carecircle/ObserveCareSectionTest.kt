@@ -21,7 +21,7 @@ import org.junit.Test
 
 /**
  * Checks what [ObserveCareSection] emits for each access to a section, and that a read failure
- * never stops it from following the access (#204, #323). "caregiver" follows "patient".
+ * never stops it from following the access. "caregiver" follows "patient".
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObserveCareSectionTest {

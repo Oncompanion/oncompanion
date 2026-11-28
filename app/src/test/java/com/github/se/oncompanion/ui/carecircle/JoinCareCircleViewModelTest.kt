@@ -45,6 +45,7 @@ private class ControlledInviteRepository(private val delegate: FakeCareCircleInv
   }
 }
 
+/** Tests of [JoinCareCircleViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class JoinCareCircleViewModelTest {
 

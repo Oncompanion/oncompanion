@@ -63,9 +63,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * M2's two-account journeys through real screens and Firebase emulators. Only Google's account
- * picker is replaced. Each journey creates its own accounts and reuses the same sign-in helpers and
- * cleanup rather than relying on another test running first.
+ * The journeys of a patient and a caregiver, on two accounts, through real screens and Firebase
+ * emulators. Only Google's account picker is replaced. Each journey creates its own accounts and
+ * reuses the same sign-in helpers and cleanup rather than relying on another test running first.
  */
 @RunWith(AndroidJUnit4::class)
 class M2EndToEndTest {
@@ -230,9 +230,9 @@ class M2EndToEndTest {
   }
 
   /**
-   * US-46: the patient lets the caregiver edit and delete symptoms, the caregiver edits the
-   * patient's entry and deletes their own, then the patient takes back editing and deleting but
-   * keeps sharing and adding.
+   * The patient lets the caregiver edit and delete symptoms, the caregiver edits the patient's
+   * entry and deletes their own, then the patient takes back editing and deleting but keeps sharing
+   * and adding.
    */
   @Test
   fun patientLetsTheCaregiverEditAndDeleteSymptoms_thenTakesItBack() {
@@ -771,7 +771,7 @@ class M2EndToEndTest {
             true
       } and text(notes)
 
-  // Keep fluent journey steps while sharing all interaction behavior with M1.
+  // Keep fluent journey steps while sharing all interaction behavior with [M1EndToEndTest].
   private fun SemanticsNodeInteraction.replaceText(value: String) = ui.replaceText(this, value)
 
   private fun SemanticsNodeInteraction.reveal() = ui.reveal(this)

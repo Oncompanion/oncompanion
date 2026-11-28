@@ -37,7 +37,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** [LakeBanner] as the Figma "Inline banner" (Shared patterns), tone by tone. */
+/** Tests of [LakeBanner] (design: Brand & Theme, "Inline banner"), tone by tone. */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LakeBannerTest {
@@ -83,7 +83,7 @@ class LakeBannerTest {
 
   private fun bounds(tone: LakeBannerTone) = banner(tone).getUnclippedBoundsInRoot()
 
-  /** Each tone's container and text colors, from the Figma. */
+  /** Each tone's container and text colors. */
   private fun figmaColors(tone: LakeBannerTone): Pair<Color, Color> =
       when (tone) {
         LakeBannerTone.Neutral -> colors.surfaceContainerHigh to colors.onSurface

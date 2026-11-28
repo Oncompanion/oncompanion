@@ -12,6 +12,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/** Tests that the theme's colors are those of DESIGN.md, in light and dark. */
 @RunWith(AndroidJUnit4::class)
 class ThemeTest {
 
@@ -20,7 +21,7 @@ class ThemeTest {
   /** The colors one theme gives its content. */
   private class ThemeColors(val scheme: ColorScheme, val lake: LakeColors)
 
-  /** One color role: how to read it, then its Light and Dark values in the Figma variables. */
+  /** One color role: how to read it, then its Light and Dark values in DESIGN.md. */
   private class Role(
       val name: String,
       val read: (ThemeColors) -> Color,
@@ -28,7 +29,7 @@ class ThemeTest {
       val dark: Long,
   )
 
-  // The "Oncompanion" variable collection of the Figma (Brand & Theme), modes Light and Dark.
+  // The colors of DESIGN.md, in light and dark.
   private val roles =
       listOf(
           Role("Primary", { it.scheme.primary }, 0xFF2F6F7E, 0xFF9AD0DC),

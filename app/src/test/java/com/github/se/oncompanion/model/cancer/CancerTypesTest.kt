@@ -8,6 +8,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Tests of [CancerTypes]. */
 class CancerTypesTest {
 
   private val aml = "Leukemia – acute myeloid (AML)"

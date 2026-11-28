@@ -56,6 +56,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
+/** Tests of [CareCircleMemberFormScreen]. */
 @RunWith(AndroidJUnit4::class)
 class CareCircleMemberFormScreenTest {
 
@@ -340,7 +341,7 @@ class CareCircleMemberFormScreenTest {
     node(C.Tag.care_circle_form_back_button).performScrollTo().assertIsFullyVisible()
   }
 
-  // ---- inviting someone already in the circle (#257) ----
+  // ---- inviting someone already in the circle ----
 
   private val expiredInvite =
       CareCircleInvite(
@@ -512,7 +513,7 @@ class CareCircleMemberFormScreenTest {
 
   // ---- editing a member ----
 
-  /** Marc as in the Figma "US-14 / Edit member (email read-only)". */
+  /** Marc (design: M2, "Edit member"). */
   private val editing =
       CareCircleMemberFormUiState(
           firstName = "Marc",
@@ -718,8 +719,7 @@ class CareCircleMemberFormScreenTest {
     compose.runOnIdle { assertEquals(1, backs) }
   }
 
-  // ---- adding symptoms (US-22), appointments (US-41), confirming events (US-42) and
-  // prescriptions (US-43) ----
+  // ---- adding symptoms, appointments, event confirmations and prescriptions ----
 
   @Test
   fun allowAdding_isGreyedOut_untilItsSectionIsShared() {
@@ -765,7 +765,7 @@ class CareCircleMemberFormScreenTest {
     }
   }
 
-  // ---- editing and deleting (US-46) ----
+  // ---- editing and deleting ----
 
   @Test
   fun editingAndDeleting_isOnlyOfferedWhenEditing_greyedOutUntilAdding() {

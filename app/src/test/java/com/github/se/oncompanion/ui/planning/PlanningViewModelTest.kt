@@ -667,7 +667,7 @@ class PlanningViewModelTest {
         }
       }
 
-  // ----- Caregiver mode (US-20) -----
+  // ----- Caregiver mode -----
 
   @Test
   fun caregiver_planningShared_showsThePatientsEntries() =
@@ -716,7 +716,7 @@ class PlanningViewModelTest {
         assertTrue(repository.owners.isEmpty())
       }
 
-  // ----- A caregiver adding appointments (US-41) -----
+  // ----- A caregiver adding appointments -----
 
   @Test
   fun addIsOffered_inTheUsersOwnPlanning_andToACaregiverOnlyWhenThePatientLetsThem() =
@@ -752,7 +752,7 @@ class PlanningViewModelTest {
         }
       }
 
-  // ----- Loading the period of each view (#575) -----
+  // ----- Loading the period of each view -----
 
   /** Each view loads its own days, once: List its window, the grids their period. */
   @Test
@@ -1031,7 +1031,7 @@ class PlanningViewModelTest {
         )
       }
 
-  // ----- The List's window (#660) -----
+  // ----- The List's window -----
 
   /**
    * The List opens 4 weeks before the day and 8 after, grows by 4 weeks either way with one read
@@ -1095,7 +1095,7 @@ class PlanningViewModelTest {
 
   /**
    * While other days load, the entries of the days that stay loaded are shown, as loading more:
-   * when the List grows, and when the view changes over days the List already has (S1 of #660).
+   * when the List grows, and when the view changes over days the List already has.
    */
   @Test
   fun entriesOfDaysStillLoadedStayWhileTheOthersLoad() =

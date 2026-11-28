@@ -66,6 +66,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [AddSymptomScreen]. */
 @RunWith(AndroidJUnit4::class)
 class AddSymptomScreenTest {
 
@@ -288,10 +289,10 @@ class AddSymptomScreenTest {
   fun otherNotNamedYet_asksWhichSymptom_andHowStrongItIs_andSaveIsDisabled() {
     setContent(empty.copy(types = listOf(SymptomType.OTHER), strengthOf = SymptomType.OTHER))
 
-    // Not "your other": it has no name yet (Figma: "Check-in · Other, not named yet")
+    // Not "your other": it has no name yet (design: M3, "Check-in · Other, not named yet")
     composeTestRule.onNodeWithText("How strong is it? (optional)").assertExists()
 
-    // One field, as in Figma: the placeholder asks, without a label or a helper text
+    // One field: the placeholder asks, without a label or a helper text
     scrolledTo(C.Tag.symptom_add_other_name)
         .assert(hasText(string(R.string.symptom_add_other_name_placeholder)))
     node(C.Tag.symptom_add_save).assertIsNotEnabled()
@@ -863,7 +864,7 @@ class AddSymptomScreenTest {
     assertEquals(listOf("retry"), events)
   }
 
-  // ----- Logging by voice (US-44) -----
+  // ----- Logging by voice -----
 
   @Test
   fun speakInstead_isOffered_onlyWhenThePhoneCanListen() {
@@ -988,7 +989,7 @@ class AddSymptomScreenTest {
     composeTestRule.onNodeWithText("Log symptoms for Anne").assertIsDisplayed()
   }
 
-  /** A caregiver editing the patient's symptom (US-46) sees whose entry it is in the title. */
+  /** A caregiver editing the patient's symptom sees whose entry it is in the title. */
   @Test
   fun caregiverEdit_titleSaysWhoseEntryItIs() {
     composeTestRule.setContent {
@@ -1039,7 +1040,7 @@ class AddSymptomScreenTest {
   @Config(qualifiers = LANDSCAPE_PHONE, fontScale = 2f)
   fun landscape_largeText_strengthsCanBeReachedAndSet() = assertStrengthsReachableAtLargeText()
 
-  // ----- Figma: "Log symptoms" -----
+  // ----- Look (design: M2, "Log symptoms") -----
   // Native graphics, so texts have their real width (the default mode measures them almost 0 wide)
 
   /** The bounds of the first node showing [text], even in the unmerged tree. */

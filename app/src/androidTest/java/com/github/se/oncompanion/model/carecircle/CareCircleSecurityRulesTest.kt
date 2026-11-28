@@ -202,7 +202,7 @@ class CareCircleSecurityRulesTest {
     denied(member.update("canEditAndDelete", listOf("PLANNING")))
   }
 
-  // ---- editing and deleting (US-46) ----
+  // ---- editing and deleting ----
 
   @Test
   fun ownerLetsTheMemberEditAndDelete_onlyWhereTheyAdd(): Unit = runBlocking {

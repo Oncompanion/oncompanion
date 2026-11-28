@@ -1,4 +1,5 @@
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 package com.github.se.oncompanion.ui.profile
 
 import androidx.activity.ComponentActivity
@@ -34,6 +35,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
+/**
+ * Tests of the hospital search in Edit profile through the proxy: searching and picking a result,
+ * the cooldown, and the field with the keyboard open.
+ */
 @RunWith(AndroidJUnit4::class)
 class EditProfileHospitalProxyTest {
   @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()

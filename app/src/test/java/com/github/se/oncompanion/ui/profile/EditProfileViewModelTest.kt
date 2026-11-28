@@ -34,6 +34,7 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 
+/** Tests of [EditProfileViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class EditProfileViewModelTest {
   private val dispatcher = StandardTestDispatcher()

@@ -19,6 +19,10 @@ import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+/**
+ * Tests of drafting a symptom entry from what the patient said, in English and French: the
+ * symptoms, their strengths, and what is negated or over.
+ */
 class SpokenSymptomParserTest {
 
   private val today = LocalDate.of(2026, 10, 5)

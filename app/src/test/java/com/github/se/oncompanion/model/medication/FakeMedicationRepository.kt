@@ -48,7 +48,7 @@ class FakeMedicationRepository(
   /**
    * Everything stored, in one state so that rejecting moves a prescription in a single update, like
    * Firestore's single write: uid -> prescription ID -> prescription, with the rejected ones kept
-   * apart (US-43).
+   * apart.
    */
   private data class Stored(
       val kept: Map<String, Map<String, Prescription>> = emptyMap(),

@@ -32,6 +32,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [SailboatButton]. */
 @RunWith(AndroidJUnit4::class)
 class SailboatButtonTest {
 

@@ -75,7 +75,7 @@ class SymptomSecurityRulesTest {
     denied(symptoms(aliceUid).document().set(data))
   }
 
-  // ---- strengths (#543) ----
+  // ---- strengths ----
 
   @Test
   fun eachSymptomCanHaveAStrength_aWholeNumberFrom1To10_or0ForOneRemoved() {
@@ -282,7 +282,7 @@ class SymptomSecurityRulesTest {
     )
   }
 
-  // ---- the name of "Other" (#545) ----
+  // ---- the name of "Other" ----
 
   private fun namedOther(): MutableMap<String, Any?> =
       validOther().apply {

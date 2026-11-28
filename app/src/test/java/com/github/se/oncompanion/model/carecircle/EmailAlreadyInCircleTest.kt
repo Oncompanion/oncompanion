@@ -10,7 +10,7 @@ import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** [emailAlreadyInCircle]: who in the circle already has the email being invited (#257). */
+/** [emailAlreadyInCircle]: who in the circle already has the email being invited. */
 class EmailAlreadyInCircleTest {
   private val now = Instant.parse("2026-11-04T10:00:00Z")
   private val expiredAt = now.minus(CareCircleInvite.VALIDITY)

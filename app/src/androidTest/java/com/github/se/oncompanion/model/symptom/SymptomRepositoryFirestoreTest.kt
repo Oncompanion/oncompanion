@@ -32,6 +32,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/** Tests of [SymptomRepositoryFirestore]. */
 @RunWith(AndroidJUnit4::class)
 class SymptomRepositoryFirestoreTest {
 
@@ -129,7 +130,7 @@ class SymptomRepositoryFirestoreTest {
     assertNull(stored.intensity)
   }
 
-  /** Fatigue and nausea, each with its own strength, as the form saves them since #543. */
+  /** Fatigue and nausea, each with its own strength, as the form saves them. */
   private fun withStrengths() =
       SymptomEntry(
           types = listOf(SymptomType.FATIGUE, SymptomType.NAUSEA),
@@ -702,7 +703,7 @@ class SymptomRepositoryFirestoreTest {
     assertFalse("the deletion reaches the server once online", server.exists())
   }
 
-  // ---- a caregiver the patient lets edit and delete (US-46) ----
+  // ---- a caregiver the patient lets edit and delete ----
 
   /**
    * A caregiver the patient lets edit and delete symptoms signs their edit; the patient's next edit

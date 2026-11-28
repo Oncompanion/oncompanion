@@ -8,6 +8,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Tests of [CareCircleMember]. */
 class CareCircleMemberTest {
 
   @Test

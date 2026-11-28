@@ -12,6 +12,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Tests of [Prescription]. */
 class PrescriptionTest {
 
   private val date = LocalDate.of(2026, 9, 29)
@@ -185,7 +186,7 @@ class PrescriptionTest {
     )
   }
 
-  /** What reminders may schedule (US-32, US-34): only the medications the patient confirmed. */
+  /** What reminders may schedule: only the medications the patient confirmed. */
   @Test
   fun confirmedMedications_leaveOutWhatThePatientHasntConfirmed_sortedByStartThenName() {
     fun medication(id: String, prescriptionId: String, name: String, start: LocalDate) =

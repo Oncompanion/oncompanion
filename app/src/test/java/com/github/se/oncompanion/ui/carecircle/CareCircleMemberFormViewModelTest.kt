@@ -49,6 +49,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+/** Tests of [CareCircleMemberFormViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CareCircleMemberFormViewModelTest {
 
@@ -387,7 +388,7 @@ class CareCircleMemberFormViewModelTest {
         assertNull(viewModel.uiState.value.savedInviteCode)
       }
 
-  // ---- inviting someone already in the circle (#257) ----
+  // ---- inviting someone already in the circle ----
   // Who matches is tested on emailAlreadyInCircle; these tests check how the form uses it.
 
   private val now = Instant.parse("2026-11-04T10:00:00Z")
@@ -1046,7 +1047,7 @@ class CareCircleMemberFormViewModelTest {
         assertTrue(state.canSave)
       }
 
-  // ----- Editing and deleting (US-46) -----
+  // ----- Editing and deleting -----
 
   @Test
   fun editingAndDeleting_isOnlyOfferedToAMember_whoCanAddToTheSection() =

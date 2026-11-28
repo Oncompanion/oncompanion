@@ -7,6 +7,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
 
+/** Tests of [GoogleSignInException]. */
 class GoogleSignInExceptionTest {
 
   @Test

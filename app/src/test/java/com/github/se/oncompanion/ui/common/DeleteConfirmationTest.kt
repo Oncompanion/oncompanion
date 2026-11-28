@@ -19,6 +19,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 // Robolectric provides android.util.Log, used when a deletion fails
+/** Tests of [DeleteConfirmation]. */
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class DeleteConfirmationTest {

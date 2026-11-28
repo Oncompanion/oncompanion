@@ -429,7 +429,7 @@ class AndroidSpeechRecognizerTest {
 
   @Test
   fun theRecognizerThatAnswered_isKeptUntilTheNextSessionIsReady() = runTest {
-    // #675: destroying it at once shut the phone's speech service down under the next session
+    // Destroying it at once shut the phone's speech service down under the next session
     ShadowSpeechRecognizer.setIsOnDeviceRecognitionAvailable(true)
     val recognizer = AndroidSpeechRecognizer(context, UnconfinedTestDispatcher(testScheduler))
     val installed: ShadowSpeechRecognizer.() -> Unit = {
@@ -509,7 +509,7 @@ class AndroidSpeechRecognizerTest {
 
   @Test
   fun aCheckTheAppStoppedWaitingFor_isKeptUntilTheSessionAfterItIsReady() = runTest {
-    // The form stops waiting after 2 s and listens at once: the #675 case, on a slow phone
+    // The form stops waiting after 2 s and listens at once: a busy speech service, on a slow phone
     ShadowSpeechRecognizer.setIsOnDeviceRecognitionAvailable(true)
     val recognizer = AndroidSpeechRecognizer(context, UnconfinedTestDispatcher(testScheduler))
     val answer = askOffline(recognizer = recognizer)
@@ -644,7 +644,7 @@ class AndroidSpeechRecognizerTest {
 
   @Test
   fun onDevice_aServiceErrorBeforeThePatientSpeaks_startsItOnceMore() = runTest {
-    // #675: the phone's speech service drops the on-device session before the patient spoke
+    // The phone's speech service drops the on-device session before the patient spoke
     ShadowSpeechRecognizer.setIsOnDeviceRecognitionAvailable(true)
     val serviceErrors =
         listOf(
