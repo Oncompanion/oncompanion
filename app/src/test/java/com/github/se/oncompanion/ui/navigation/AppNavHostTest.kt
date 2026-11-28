@@ -98,6 +98,7 @@ import com.github.se.oncompanion.ui.PlannedDay
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.auth.FakeGoogleCredentialProvider
 import com.github.se.oncompanion.ui.auth.GoogleCredentialProvider
+import com.github.se.oncompanion.ui.carecircle.WhoseCareViewModel
 import com.github.se.oncompanion.ui.overview.OverviewShortcut
 import java.time.Clock
 import java.time.Duration
@@ -113,6 +114,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -525,7 +527,23 @@ class AppNavHostTest {
     composeTestRule
         .onNodeWithTag(C.Tag.caregiver_overview_day_title)
         .assertTextContains(context.getString(R.string.caregiver_overview_day, "Paul"))
+    // Ready on the Overview before its sheet opens, so the list is confirmed by then
+    composeTestRule.runOnIdle { assertTrue(overviewHasWhoseCare()) }
   }
+
+  @Test
+  fun patientsOverview_neverListensForWhoseCare() {
+    setNavHost(Route.OVERVIEW)
+    composeTestRule.onNodeWithTag(C.Tag.overview_screen).assertIsDisplayed()
+
+    composeTestRule.runOnIdle { assertFalse(overviewHasWhoseCare()) }
+  }
+
+  /** Whether the Overview's entry holds a [WhoseCareViewModel]. */
+  private fun overviewHasWhoseCare(): Boolean =
+      navController.getBackStackEntry(Screen.OVERVIEW).viewModelStore.keys().any {
+        "$it".endsWith(WhoseCareViewModel::class.java.canonicalName!!)
+      }
 
   /** Waits until a node with [tag] is on screen. */
   private fun waitForTag(tag: String) =
@@ -710,6 +728,32 @@ class AppNavHostTest {
     composeTestRule.onNodeWithTag(Tab.PLANNING.testTag).performClick()
     composeTestRule.onNodeWithTag(C.Tag.planning_screen).assertIsDisplayed()
     composeTestRule.onNodeWithTag(C.Tag.planning_add).assertDoesNotExist()
+  }
+
+  @Test
+  fun caregiverMode_whoseCare_followSomeoneNew_opensJoin_andBackReturnsToTheOverview() {
+    val (auth, invites, circles) = followingCaregiver("p-anne" to "Anne")
+    setNavHost(
+        Route.WHOSE_CARE,
+        careCircleRepository = circles,
+        careCircleInviteRepository = invites,
+        authRepository = auth,
+    )
+    waitForTag(C.Tag.overview_whose_care)
+
+    composeTestRule.onNodeWithTag(C.Tag.overview_whose_care).performClick()
+    waitForTag(C.Tag.whose_care_follow_new)
+    composeTestRule.onNodeWithTag(C.Tag.whose_care_follow_new).performScrollTo().performClick()
+    waitForTag(C.Tag.join_circle_screen)
+
+    Espresso.pressBack()
+
+    // Back on Anne's day, the sheet closed rather than opened again over it
+    waitForTag(C.Tag.overview_whose_care)
+    composeTestRule.onNodeWithTag(C.Tag.whose_care_sheet).assertDoesNotExist()
+    composeTestRule
+        .onNodeWithTag(C.Tag.caregiver_overview_day_title)
+        .assertTextContains(context.getString(R.string.caregiver_overview_day, "Anne"))
   }
 
   @Test

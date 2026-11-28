@@ -59,6 +59,7 @@ import com.github.se.oncompanion.ui.carecircle.ChosenPatient
 import com.github.se.oncompanion.ui.carecircle.JoinCareCircleScreen
 import com.github.se.oncompanion.ui.carecircle.JoinCareCircleViewModel
 import com.github.se.oncompanion.ui.carecircle.WhoseCareScreen
+import com.github.se.oncompanion.ui.carecircle.WhoseCareSwitch
 import com.github.se.oncompanion.ui.carecircle.WhoseCareViewModel
 import com.github.se.oncompanion.ui.common.RejectedWriteSnackbar
 import com.github.se.oncompanion.ui.events.EventDetailScreen
@@ -312,7 +313,18 @@ private fun SessionNavHost(
 
     navigation(startDestination = Screen.OVERVIEW, route = Route.OVERVIEW) {
       composable(Screen.OVERVIEW) {
-        OverviewRoute(navigationActions, chosenPatient, clock, bottomBar)
+        // Only in caregiver mode: a patient never opens "Whose care?", so it never listens
+        val whoseCare: @Composable () -> WhoseCareSwitch = {
+          WhoseCareSwitch(
+              viewModel = viewModel { WhoseCareViewModel() },
+              // The Overview's ViewModel is keyed by the patient: their day replaces this one
+              onChoose = caregiverMode::choose,
+              // Back from the invite code returns to the Overview
+              onFollowSomeoneNew = { navigationActions.navigateTo(Screen.JOIN_CIRCLE) },
+              onSignedOut = signOut,
+          )
+        }
+        OverviewRoute(navigationActions, chosenPatient, clock, bottomBar, whoseCare)
       }
     }
 
@@ -864,6 +876,7 @@ private fun OverviewRoute(
     patient: ChosenPatient?,
     clock: Clock,
     bottomBar: BottomBarUiState,
+    whoseCare: @Composable () -> WhoseCareSwitch,
 ) {
   val onOpenAppointment = appointmentOpener(navigationActions)
   val onOpenEvent = eventOpener(navigationActions)
@@ -882,11 +895,11 @@ private fun OverviewRoute(
           viewModel(key = patient.uid) {
             CaregiverOverviewViewModel(patientUid = patient.uid, clock = clock)
           },
-      patientName = patient.firstName,
+      patient = patient,
       navigationActions = navigationActions,
       onOpenAppointment = onOpenAppointment,
       onOpenEvent = onOpenEvent,
-      onSwitchPatient = { navigationActions.navigateTo(Screen.WHOSE_CARE_SWITCH) },
+      whoseCare = whoseCare(),
       bottomBar = bottomBar,
   )
 }
