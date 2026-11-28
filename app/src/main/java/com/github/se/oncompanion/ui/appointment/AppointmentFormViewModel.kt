@@ -6,7 +6,11 @@ package com.github.se.oncompanion.ui.appointment
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.oncompanion.domain.carecircle.CareSection
+import com.github.se.oncompanion.domain.carecircle.CaregiverEditSession
 import com.github.se.oncompanion.domain.carecircle.CaregiverName
+import com.github.se.oncompanion.domain.carecircle.ObserveCareSection
+import com.github.se.oncompanion.domain.carecircle.ResolveSectionAccess
 import com.github.se.oncompanion.model.appointment.Appointment
 import com.github.se.oncompanion.model.appointment.AppointmentReminder
 import com.github.se.oncompanion.model.appointment.AppointmentRepository
@@ -14,6 +18,8 @@ import com.github.se.oncompanion.model.appointment.AppointmentRepositoryProvider
 import com.github.se.oncompanion.model.appointment.AppointmentType
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
+import com.github.se.oncompanion.model.auth.signedInUid
+import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.user.UserProfileRepository
 import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import com.github.se.oncompanion.ui.common.SavePhase
@@ -142,6 +148,7 @@ class AppointmentFormViewModel(
     private val appointmentId: String? = null,
     private val patientUid: String? = null,
     profileRepository: UserProfileRepository = UserProfileRepositoryProvider.repository,
+    resolveSection: ResolveSectionAccess = ResolveSectionAccess(),
 ) : ViewModel() {
   /** The first name a caregiver's appointment is signed with. */
   private val caregiverName = CaregiverName(profileRepository, authRepository)
@@ -149,6 +156,9 @@ class AppointmentFormViewModel(
   private val state = MutableStateFlow(emptyState(initialDate))
   /** Draft and load/save feedback, shared by creation and editing. */
   val uiState = state.asStateFlow()
+  private val caregiverEdit = patientUid != null && appointmentId != null
+  private val editAccess = CaregiverEditSession()
+  private val observeSection = ObserveCareSection(resolveSection)
   private var session = 0
   private var ownerUid = runCatching { authRepository.currentUser?.uid }.getOrNull()
 
@@ -178,13 +188,14 @@ class AppointmentFormViewModel(
           .catch { resetOwner(null) }
           .collect { uid ->
             if (uid != ownerUid) resetOwner(uid)
-            if (appointmentId != null) observeAppointment(uid)
+            appointmentId?.let { observeAppointment(uid, it) }
           }
     }
   }
 
   private fun resetOwner(uid: String?) {
     session++
+    editAccess.invalidate()
     ownerUid = uid
     observation?.cancel()
     original = null
@@ -200,27 +211,61 @@ class AppointmentFormViewModel(
   /** Retries loading an existing appointment without replacing an edited draft. */
   fun load() {
     if (appointmentId == null || state.value.save != SavePhase.EDITING) return
-    state.update { it.copy(load = AppointmentFormLoad.LOADING) }
+    if (caregiverEdit) clearCaregiverDraft(AppointmentFormLoad.LOADING)
+    else state.update { it.copy(load = AppointmentFormLoad.LOADING) }
     observeAuthentication()
   }
 
-  private fun observeAppointment(uid: String?) {
+  private fun observeAppointment(uid: String?, id: String) {
     observation?.cancel()
     if (uid == null) {
       state.update { it.copy(load = AppointmentFormLoad.NOT_SIGNED_IN) }
+      return
+    }
+    if (caregiverEdit) {
+      observeCaregiverAppointment(uid, id)
       return
     }
     val attempt = session
     observation = viewModelScope.launch {
       // A caregiver edits the patient's appointment
       val owner = patientUid ?: uid
-      flow { emitAll(repository.observeAppointment(owner, requireNotNull(appointmentId))) }
+      flow { emitAll(repository.observeAppointment(owner, id)) }
           .catch {
             if (isCurrentAttempt(uid, attempt))
                 state.update { it.copy(load = AppointmentFormLoad.FAILED) }
           }
           .collect { saved -> if (isCurrentAttempt(uid, attempt)) show(saved) }
     }
+  }
+
+  private fun observeCaregiverAppointment(uid: String, id: String) {
+    observation = viewModelScope.launch {
+      observeSection(CarePermission.PLANNING, patientUid) { owner ->
+            repository.observeAppointment(owner, id)
+          }
+          .collect { section ->
+            if (authRepository.signedInUid("AppointmentForm") != uid) return@collect
+            when (section) {
+              is CareSection.Shown ->
+                  if (section.canEditEntries && section.data != null) {
+                    editAccess.grant(uid)
+                    show(section.data)
+                  } else clearCaregiverDraft(AppointmentFormLoad.UNAVAILABLE)
+              is CareSection.Loading -> clearCaregiverDraft(AppointmentFormLoad.LOADING)
+              is CareSection.Failed -> clearCaregiverDraft(AppointmentFormLoad.FAILED)
+              CareSection.NoAccess,
+              CareSection.NotShared -> clearCaregiverDraft(AppointmentFormLoad.UNAVAILABLE)
+            }
+          }
+    }
+  }
+
+  // A new grant must start from the saved appointment instead of the discarded draft.
+  private fun clearCaregiverDraft(load: AppointmentFormLoad) {
+    editAccess.invalidate()
+    original = null
+    state.value = emptyState(initialDate).copy(load = load)
   }
 
   private fun show(saved: Appointment?) {
@@ -297,7 +342,11 @@ class AppointmentFormViewModel(
   fun onCompletionHandled(): Boolean {
     val saved = state.value
     val uid = ownerUid ?: return false
-    if (saved.savedAt == null || saved.completionHandled || !isCurrentAttempt(uid, session))
+    if (
+        saved.savedAt == null ||
+            saved.completionHandled ||
+            !isCurrentAttempt(uid, mutationAttempt())
+    )
         return false
     state.update { it.copy(completionHandled = true) }
     return true
@@ -308,7 +357,7 @@ class AppointmentFormViewModel(
     val draft = state.value
     if (!draft.canSave) return
     val uid = validatedOwner() ?: return
-    val attempt = session
+    val attempt = mutationAttempt()
     val appointment = draft.toAppointment()
     state.update { it.copy(save = SavePhase.SAVING, error = null) }
     viewModelScope.launch { writeAppointment(uid, appointment, attempt) }
@@ -338,8 +387,11 @@ class AppointmentFormViewModel(
           notes = notes.trim().ifEmpty { null },
       )
 
+  private fun mutationAttempt() = if (caregiverEdit) editAccess.generation else session
+
   private fun isCurrentAttempt(uid: String, attempt: Int) =
-      attempt == session && runCatching { authRepository.currentUser?.uid }.getOrNull() == uid
+      runCatching { authRepository.currentUser?.uid }.getOrNull() == uid &&
+          if (caregiverEdit) editAccess.permits(uid, attempt) else attempt == session
 
   // Only the session that submitted the write may receive its completion.
   private suspend fun writeAppointment(uid: String, appointment: Appointment, attempt: Int) {

@@ -1,3 +1,4 @@
+// Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -726,6 +728,70 @@ class EventDetailViewModelTest {
       assertEquals(expected, registrations.registration("patient", "yoga"))
       assertNull(viewModel.uiState.value.addedByName)
     }
+  }
+
+  /** Reloading the event invalidates confirmation work from the previous observation. */
+  @Test
+  fun caregiverReloadCancelsPendingConfirmation() {
+    val events = CarePermission.EVENTS
+    val patient = FollowedPatient(events, canAdd = setOf(events))
+    val counting = CountingRegistrations(registrations)
+    val slowProfiles = SlowProfiles(patient.profiles)
+    val vm = caregiverViewModel(patient, registrationRepository = counting, profiles = slowProfiles)
+
+    vm.confirmRegistration()
+    vm.loadEvent()
+    slowProfiles.release.complete(Unit)
+    ShadowLooper.idleMainLooper()
+    assertEquals(0, counting.confirms)
+    assertEquals(RegistrationStatus.CAN_CONFIRM, vm.uiState.value.registration)
+  }
+
+  /** Signing out blocks a previously displayed caregiver action before the observer catches up. */
+  @Test
+  fun caregiverSignOutBlocksStaleRegistrationActions() {
+    val events = CarePermission.EVENTS
+    val patient = FollowedPatient(events, canAdd = setOf(events), canEditAndDelete = setOf(events))
+    val vm = caregiverViewModel(patient)
+    assertEquals(RegistrationStatus.CAN_CONFIRM, vm.uiState.value.registration)
+    patient.auth.signOut()
+    vm.confirmRegistration()
+    ShadowLooper.idleMainLooper()
+    assertNull(registrations.registration("patient", "yoga"))
+
+    val removing = FollowedPatient(events, canAdd = setOf(events), canEditAndDelete = setOf(events))
+    registrations.confirm("patient", "yoga")
+    val removal = caregiverViewModel(removing)
+    removal.requestRemoval()
+    assertTrue(removal.uiState.value.isConfirmingRemoval)
+    removing.auth.signOut()
+    removal.removeRegistration()
+    ShadowLooper.idleMainLooper()
+    assertNotNull(registrations.registration("patient", "yoga"))
+  }
+
+  /** Regranting add access does not revive a confirmation still waiting for a name. */
+  @Test
+  fun caregiverConfirmationRequiresFreshTapAfterRegrant() {
+    val events = CarePermission.EVENTS
+    val patient = FollowedPatient(events, canAdd = setOf(events))
+    val counting = CountingRegistrations(registrations)
+    val slowProfiles = SlowProfiles(patient.profiles)
+    val viewModel =
+        caregiverViewModel(patient, registrationRepository = counting, profiles = slowProfiles)
+
+    viewModel.confirmRegistration()
+    patient.shares(events)
+    ShadowLooper.idleMainLooper()
+    patient.shares(events, canAdd = setOf(events))
+    ShadowLooper.idleMainLooper()
+    slowProfiles.release.complete(Unit)
+    ShadowLooper.idleMainLooper()
+
+    assertEquals(0, counting.confirms)
+    viewModel.confirmRegistration()
+    ShadowLooper.idleMainLooper()
+    assertEquals(1, counting.confirms)
   }
 
   @Test

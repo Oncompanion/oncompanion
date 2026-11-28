@@ -1,3 +1,4 @@
+// Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
@@ -7,11 +8,13 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.oncompanion.domain.carecircle.CareSection
+import com.github.se.oncompanion.domain.carecircle.CaregiverEditSession
 import com.github.se.oncompanion.domain.carecircle.CaregiverName
 import com.github.se.oncompanion.domain.carecircle.ObserveCareSection
 import com.github.se.oncompanion.domain.carecircle.ResolveSectionAccess
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
+import com.github.se.oncompanion.model.auth.signedInUid
 import com.github.se.oncompanion.model.carecircle.CareCircleRepository
 import com.github.se.oncompanion.model.carecircle.CareCircleRepositoryProvider
 import com.github.se.oncompanion.model.carecircle.CarePermission
@@ -135,6 +138,8 @@ class EventDetailViewModel(
 
   /** A caregiver's confirmation being signed, so repeated taps save only one. */
   private var signing: Job? = null
+  private val confirmationAccess = CaregiverEditSession()
+  private val removalAccess = CaregiverEditSession()
 
   init {
     loadEvent()
@@ -143,6 +148,9 @@ class EventDetailViewModel(
   /** Loads (or, after an error, reloads) the event, then observes the patient's registration. */
   fun loadEvent() {
     registrationObservation?.cancel()
+    confirmationAccess.invalidate()
+    signing?.cancel()
+    removalAccess.invalidate()
     lastRegistration = null
     editableOwner = null
     confirmableOwner = null
@@ -179,9 +187,15 @@ class EventDetailViewModel(
     }
     // A caregiver signs it with their first name, read once per confirmation
     if (signing?.isActive == true) return
+    val caregiverUid = authRepository.signedInUid(TAG) ?: return
+    val attempt = confirmationAccess.generation
     signing = viewModelScope.launch {
-      val caregiverUid = authRepository.currentUser?.uid
-      val by = caregiverUid?.let { EventRegistration(it, caregiverName(it)) }
+      if (!confirmationAccess.permits(caregiverUid, attempt)) return@launch
+      val by = EventRegistration(caregiverUid, caregiverName(caregiverUid))
+      if (
+          !confirmationAccess.permitsCurrent(authRepository.signedInUid(TAG), caregiverUid, attempt)
+      )
+          return@launch
       // The patient may have taken the permission away, or confirmed it, while the name was read
       refreshStatus()
       if (
@@ -189,7 +203,7 @@ class EventDetailViewModel(
       )
           return@launch
       changeRegistration("confirm", owner) { uid ->
-        registrationRepository.confirm(uid, eventId, by ?: error("Nobody is signed in"))
+        registrationRepository.confirm(uid, eventId, by)
       }
     }
   }
@@ -225,6 +239,10 @@ class EventDetailViewModel(
   fun removeRegistration() {
     refreshStatus()
     val owner = editableOwner ?: return
+    if (patientUid != null) {
+      val actor = authRepository.signedInUid(TAG) ?: return
+      if (!removalAccess.permits(actor)) return
+    }
     val state = _uiState.value
     if (!state.isConfirmingRemoval || state.registration != RegistrationStatus.CONFIRMED) return
     _uiState.update { it.copy(isConfirmingRemoval = false) }
@@ -262,6 +280,16 @@ class EventDetailViewModel(
       event: Event,
       section: CareSection<ShownRegistration>,
   ): RegistrationStatus {
+    val actor = if (patientUid == null) null else authRepository.signedInUid(TAG)
+    if (actor != null && section is CareSection.Shown && section.canAdd) {
+      confirmationAccess.grant(actor)
+    } else {
+      confirmationAccess.invalidate()
+      signing?.cancel()
+    }
+    if (actor != null && section is CareSection.Shown && section.canEditEntries) {
+      removalAccess.grant(actor)
+    } else removalAccess.invalidate()
     if (section !is CareSection.Shown) {
       // Another person's registration never shows, and nothing can be changed, until it is read
       lastRegistration = null

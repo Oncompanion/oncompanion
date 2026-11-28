@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.oncompanion.domain.carecircle.CareSection
+import com.github.se.oncompanion.domain.carecircle.CaregiverEditSession
 import com.github.se.oncompanion.domain.carecircle.CaregiverName
 import com.github.se.oncompanion.domain.carecircle.ObserveCareSection
 import com.github.se.oncompanion.domain.carecircle.ResolveCareCircleAccess
@@ -240,8 +241,7 @@ class PrescriptionFormViewModel(
   private val caregiverEdit = patientUid != null && prescriptionId != null
   private val editingActor = authRepository.currentUser?.uid
   private val emptyDate = LocalDate.now(clock)
-  private var editSession = 0
-  private var editingAllowed = !caregiverEdit
+  private val editSession = CaregiverEditSession()
 
   // The draft the form last started from: while the form still shows it, the user changed nothing
   private var shownDraft: PrescriptionDraft? = null
@@ -355,7 +355,8 @@ class PrescriptionFormViewModel(
 
   /** Applies the section result without retaining a draft after authorization is lost. */
   private fun showPatientEdit(section: CareSection<Prescription?>) {
-    if (editingActor == null || authRepository.currentUser?.uid != editingActor) {
+    val actor = editingActor
+    if (actor == null || authRepository.currentUser?.uid != actor) {
       clearPatientEdit(PrescriptionFormLoad.NOT_SIGNED_IN)
       return
     }
@@ -363,7 +364,7 @@ class PrescriptionFormViewModel(
       is CareSection.Shown -> {
         if (!section.canEditEntries) clearPatientEdit(PrescriptionFormLoad.NOT_ALLOWED)
         else {
-          editingAllowed = true
+          editSession.grant(actor)
           _uiState.update { it.copy(canChange = true) }
           show(section.data)
         }
@@ -371,8 +372,7 @@ class PrescriptionFormViewModel(
       is CareSection.Loading -> {
         if (!section.accessKnown) clearPatientEdit(PrescriptionFormLoad.LOADING)
         else {
-          editingAllowed = false
-          editSession++
+          editSession.invalidate()
           saving?.cancel()
           _uiState.update { it.copy(canChange = false, save = SavePhase.EDITING) }
         }
@@ -387,8 +387,7 @@ class PrescriptionFormViewModel(
    * Access/session loss drops private drafts and cancels writes that have not yet been enqueued.
    */
   private fun clearPatientEdit(load: PrescriptionFormLoad) {
-    editingAllowed = false
-    editSession++
+    editSession.invalidate()
     saving?.cancel()
     shownDraft = null
     _uiState.value =
@@ -403,7 +402,7 @@ class PrescriptionFormViewModel(
   /** A save completion still belongs to the account and permission that started it. */
   private fun isCurrentSave(uid: String, session: Int): Boolean =
       authRepository.currentUser?.uid == uid &&
-          (!caregiverEdit || (uid == editingActor && editingAllowed && session == editSession))
+          (!caregiverEdit || editSession.permits(uid, session))
 
   /**
    * Applies what is saved for the prescription to correct, `null` if it doesn't exist. Like every
@@ -690,7 +689,7 @@ class PrescriptionFormViewModel(
     }
     if (!confirmed && asksAboutTheSame(state.draft)) return
     _uiState.update { it.copy(save = SavePhase.SAVING, error = null) }
-    val session = editSession
+    val session = editSession.generation
     saving = viewModelScope.launch { saveDraft(uid, state.draft, session) }
   }
 

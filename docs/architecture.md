@@ -220,6 +220,12 @@ remain separate work.
 
 ### Care circle
 
+Caregiver edits use a shared `CaregiverEditSession` with live access from `ObserveCareSection`.
+The prescription, appointment and symptom forms discard drafts when permission is lost and load
+the saved record again on regrant. Symptom deletion and event registration also discard pending
+actions when their grants change. A stale mutation cannot report a result in a later session.
+Writes already queued offline are still subject to Firestore rules when they sync.
+
 ![Care circle](architecture-care-circle.svg)
 
 ### Symptoms

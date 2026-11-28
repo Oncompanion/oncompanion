@@ -1,3 +1,4 @@
+// Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -421,11 +422,14 @@ class SymptomDetailViewModelTest {
   }
 
   /** A caregiver's view of "patient"'s symptom, while [patient] changes the access. */
-  private fun followedViewModel(patient: FollowedPatient) =
+  private fun followedViewModel(
+      patient: FollowedPatient,
+      symptoms: SymptomRepository = repository,
+  ) =
       SymptomDetailViewModel(
           "s1",
           patient.auth,
-          repository,
+          symptoms,
           patientUid = "patient",
           resolveSection = patient.sectionAccess,
           careCircleRepository = patient.circle,
@@ -539,6 +543,34 @@ class SymptomDetailViewModelTest {
 
     assertEquals(DeletePhase.DELETED, vm.uiState.value.delete)
     assertTrue(repository.symptoms("patient").isEmpty())
+  }
+
+  /** A delete result from lost access cannot reopen a dialog or navigate away. */
+  @Test
+  fun caregiverDeleteResultAfterRevocationIsIgnored() {
+    for (fail in listOf(false, true)) {
+      repository.seed("patient", fatigue)
+      val patient = allowedCaregiver()
+      val release = CompletableDeferred<Unit>()
+      val slow =
+          object : SymptomRepository by repository {
+            override suspend fun deleteSymptom(uid: String, id: String) {
+              release.await()
+              if (fail) error("Write failed")
+            }
+          }
+      val vm = followedViewModel(patient, slow)
+      vm.requestDelete()
+      vm.confirmDelete()
+      assertEquals(DeletePhase.DELETING, vm.uiState.value.delete)
+
+      patient.removesTheCaregiver()
+      idle()
+      release.complete(Unit)
+      idle()
+      assertEquals(DeletePhase.IDLE, vm.uiState.value.delete)
+      assertNull(vm.uiState.value.entry)
+    }
   }
 
   @Test

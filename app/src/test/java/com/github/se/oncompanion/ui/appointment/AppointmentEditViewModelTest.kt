@@ -4,11 +4,10 @@
 
 package com.github.se.oncompanion.ui.appointment
 
+import com.github.se.oncompanion.domain.carecircle.FollowedPatient
 import com.github.se.oncompanion.model.appointment.*
+import com.github.se.oncompanion.model.carecircle.CarePermission.PLANNING
 import com.github.se.oncompanion.model.session.RejectedWrites
-import com.github.se.oncompanion.model.user.FakeUserProfileRepository
-import com.github.se.oncompanion.model.user.Role
-import com.github.se.oncompanion.model.user.UserProfile
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.common.SavePhase
 import java.io.IOException
@@ -347,25 +346,106 @@ class AppointmentEditViewModelTest {
 
   // ----- A caregiver the patient lets edit and delete -----
 
-  /** The signed-in user, "uid-patient" here, edits Anne's appointment as her caregiver Sam. */
-  private fun caregiverForm(appointments: AppointmentRepository = repository) =
+  private fun caregiverForm(
+      appointments: AppointmentRepository = repository,
+      patient: FollowedPatient =
+          FollowedPatient(PLANNING, canAdd = setOf(PLANNING), canEditAndDelete = setOf(PLANNING)),
+  ) =
       AppointmentFormViewModel(
           LocalDate.of(2026, 10, 20),
           zone,
           appointments,
-          auth,
+          patient.auth,
           appointment.id,
-          patientUid = "anne",
-          profileRepository =
-              FakeUserProfileRepository().apply {
-                seed(UserProfile("uid-patient", Role.CAREGIVER, firstName = "Sam"))
-              },
+          patientUid = "patient",
+          profileRepository = patient.profiles,
+          resolveSection = patient.sectionAccess,
       )
+
+  /** A failed read can be retried, and a later membership removal clears the loaded record. */
+  @Test
+  fun caregiverRetryThenMembershipRemoval() =
+      runTest(dispatcher) {
+        val patient =
+            FollowedPatient(PLANNING, canAdd = setOf(PLANNING), canEditAndDelete = setOf(PLANNING))
+        repository.observeError = IOException("Read failed")
+        val vm = caregiverForm(patient = patient)
+        advanceUntilIdle()
+        assertEquals(AppointmentFormLoad.FAILED, vm.uiState.value.load)
+
+        repository.observeError = null
+        vm.load()
+        advanceUntilIdle()
+        assertEquals(AppointmentFormLoad.UNAVAILABLE, vm.uiState.value.load)
+
+        repository.seed("patient", appointment)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.editable)
+        patient.shares()
+        advanceUntilIdle()
+        assertEquals(AppointmentFormLoad.UNAVAILABLE, vm.uiState.value.load)
+        patient.shares(PLANNING, canAdd = setOf(PLANNING), canEditAndDelete = setOf(PLANNING))
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.editable)
+        patient.removesTheCaregiver()
+        advanceUntilIdle()
+        assertEquals(AppointmentFormLoad.UNAVAILABLE, vm.uiState.value.load)
+        assertEquals("", vm.uiState.value.title)
+      }
+
+  /** A local write completing after revocation cannot trigger a success or navigation. */
+  @Test
+  fun caregiverSaveCompletionAfterRevocationIsIgnored() =
+      runTest(dispatcher) {
+        val patient =
+            FollowedPatient(PLANNING, canAdd = setOf(PLANNING), canEditAndDelete = setOf(PLANNING))
+        repository.seed("patient", appointment)
+        val pending = CompletableDeferred<Unit>()
+        repository.writeGate = pending
+        val vm = caregiverForm(patient = patient)
+        advanceUntilIdle()
+        vm.onTitleChange("New title")
+        vm.save()
+        advanceUntilIdle()
+        assertEquals(SavePhase.SAVING, vm.uiState.value.save)
+
+        patient.shares(PLANNING)
+        advanceUntilIdle()
+        pending.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(AppointmentFormLoad.UNAVAILABLE, vm.uiState.value.load)
+        assertFalse(vm.onCompletionHandled())
+      }
+
+  /** Revoking only edit access drops the draft and regrant loads the saved appointment. */
+  @Test
+  fun caregiverEditRevocationDiscardsDraft() =
+      runTest(dispatcher) {
+        val patient =
+            FollowedPatient(PLANNING, canAdd = setOf(PLANNING), canEditAndDelete = setOf(PLANNING))
+        repository.seed("patient", appointment)
+        val vm = caregiverForm(patient = patient)
+        advanceUntilIdle()
+        vm.onTitleChange("Unsaved draft")
+
+        patient.shares(PLANNING, canAdd = setOf(PLANNING))
+        advanceUntilIdle()
+        assertEquals(AppointmentFormLoad.UNAVAILABLE, vm.uiState.value.load)
+        assertEquals("", vm.uiState.value.title)
+        vm.save()
+        advanceUntilIdle()
+        assertEquals(listOf(appointment), repository.appointments("patient"))
+
+        patient.shares(PLANNING, canAdd = setOf(PLANNING), canEditAndDelete = setOf(PLANNING))
+        advanceUntilIdle()
+        assertEquals(appointment.title, vm.uiState.value.title)
+        assertTrue(vm.uiState.value.editable)
+      }
 
   @Test
   fun caregiver_editsThePatientsAppointment_signedAsEditor_keepingWhoAddedIt() =
       runTest(dispatcher) {
-        repository.seed("anne", appointment.copy(addedBy = "bob", addedByName = "Bob"))
+        repository.seed("patient", appointment.copy(addedBy = "bob", addedByName = "Bob"))
         val vm = caregiverForm()
         advanceUntilIdle()
         assertEquals("Consultation", vm.uiState.value.title)
@@ -376,10 +456,10 @@ class AppointmentEditViewModelTest {
         advanceUntilIdle()
 
         assertEquals(SavePhase.SAVED, vm.uiState.value.save)
-        val saved = repository.appointments("anne").single()
+        val saved = repository.appointments("patient").single()
         assertEquals("Fasting", saved.notes)
         assertEquals(AppointmentReminder.NONE, saved.reminder)
-        assertEquals("uid-patient", saved.editedBy)
+        assertEquals("caregiver", saved.editedBy)
         assertEquals("Sam", saved.editedByName)
         assertEquals("bob", saved.addedBy)
         assertEquals("Bob", saved.addedByName)
@@ -409,7 +489,7 @@ class AppointmentEditViewModelTest {
       runTest(dispatcher) {
         val rejectedWrites = RejectedWrites()
         val appointments = FakeAppointmentRepository(rejectedWrites = rejectedWrites)
-        appointments.seed("anne", appointment)
+        appointments.seed("patient", appointment)
         appointments.serverRejectsWrites = true
         val vm = caregiverForm(appointments)
         advanceUntilIdle()
@@ -421,7 +501,7 @@ class AppointmentEditViewModelTest {
         assertEquals(SavePhase.SAVED, vm.uiState.value.save)
         appointments.rejectPendingWrites()
 
-        assertEquals(listOf(appointment), appointments.appointments("anne"))
+        assertEquals(listOf(appointment), appointments.appointments("patient"))
         assertEquals(1, rejectedWrites.unseen.value)
       }
 }
