@@ -73,6 +73,7 @@ class PlanningScreenTest {
               date,
               zone,
               PlanningActions(onDate, previous, next, today, onRetry, onAdd, onItem, canOpen),
+              now = date.atTime(12, 0).atZone(zone).toInstant(),
           )
         }
       }
@@ -255,7 +256,15 @@ class PlanningScreenTest {
     var current by mutableStateOf(state(entries))
     val restoration = StateRestorationTester(compose)
     restoration.setContent {
-      OncompanionTheme { PlanningContent(current, date, zone, PlanningActions({}, {}, {}, {}, {})) }
+      OncompanionTheme {
+        PlanningContent(
+            current,
+            date,
+            zone,
+            PlanningActions({}, {}, {}, {}, {}),
+            now = date.atTime(12, 0).atZone(zone).toInstant(),
+        )
+      }
     }
     compose
         .onNodeWithTag(C.Tag.planning_list)
@@ -271,7 +280,13 @@ class PlanningScreenTest {
   fun readOnlyAgendaDoesNotOfferAnItemAction() {
     compose.setContent {
       OncompanionTheme {
-        PlanningContent(state(listOf(item)), date, zone, PlanningActions({}, {}, {}, {}, {}))
+        PlanningContent(
+            state(listOf(item)),
+            date,
+            zone,
+            PlanningActions({}, {}, {}, {}, {}),
+            now = date.atTime(12, 0).atZone(zone).toInstant(),
+        )
       }
     }
     compose.onNodeWithTag(C.Tag.planningItem(item.key)).assertHasNoClickAction()
@@ -440,6 +455,7 @@ class PlanningScreenTest {
               PlanningActions({}, {}, {}, {}, {}),
               bottomBar = bottomBar,
               caregiverOf = "Anne",
+              now = date.atTime(12, 0).atZone(zone).toInstant(),
           )
         }
       }

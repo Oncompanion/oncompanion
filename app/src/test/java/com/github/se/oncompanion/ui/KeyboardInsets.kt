@@ -21,6 +21,9 @@ const val SMALL_LANDSCAPE_PHONE = "w640dp-h360dp-xhdpi"
 /** Robolectric qualifiers of the narrowest phones held upright: long labels have the least room. */
 const val SMALL_PHONE = "w320dp-h640dp-xhdpi"
 
+/** Robolectric qualifiers of a common phone held upright, 390 dp wide (the Figma frames' width). */
+const val PHONE = "w390dp-h844dp-xxhdpi"
+
 /**
  * Tells the screen under test that the keyboard is open and covers [heightPx] at the bottom of the
  * window, as Android does with `adjustResize`. Robolectric has no keyboard of its own.

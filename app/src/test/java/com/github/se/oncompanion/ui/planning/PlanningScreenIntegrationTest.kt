@@ -353,7 +353,7 @@ class PlanningScreenIntegrationTest {
       )
     }
     compose.onNodeWithText("Oncology consultation").assertIsDisplayed()
-    compose.onNodeWithText("HUG").assertIsDisplayed()
+    compose.onNodeWithText("HUG", substring = true).assertIsDisplayed()
     compose.onNodeWithTag(C.Tag.planning_empty).assertDoesNotExist()
     compose.runOnIdle {
       appointments.seed(

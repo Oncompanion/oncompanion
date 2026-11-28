@@ -134,11 +134,17 @@ class PlanningNavigationTest {
     compose.onNodeWithText("Frequency: Twice a day").assertIsDisplayed()
     compose.onNodeWithContentDescription("Medication", useUnmergedTree = true).assertExists()
     compose.onNodeWithTag(C.Tag.planning_add).assertIsDisplayed()
-    val med =
-        compose.onNodeWithTag(C.Tag.planningItem(medication.key)).fetchSemanticsNode().boundsInRoot
-    val scheduled =
-        compose.onNodeWithTag(C.Tag.planning_scheduled).fetchSemanticsNode().boundsInRoot
-    assertTrue("Medication precedes timed entries", med.bottom <= scheduled.top)
+    // On a short screen at this font, "Scheduled" starts below the screen: scroll it into view,
+    // then the medication row ends above it (unclipped, since the row may be partly scrolled off)
+    compose
+        .onNodeWithTag(C.Tag.planning_list)
+        .performScrollToNode(hasTestTag(C.Tag.planning_scheduled))
+    val med = compose.onNodeWithTag(C.Tag.planningItem(medication.key)).fetchSemanticsNode()
+    val scheduled = compose.onNodeWithTag(C.Tag.planning_scheduled).fetchSemanticsNode()
+    assertTrue(
+        "Medication precedes timed entries",
+        med.positionInRoot.y + med.size.height <= scheduled.positionInRoot.y,
+    )
     compose
         .onNodeWithTag(C.Tag.planning_list)
         .performScrollToNode(hasTestTag(C.Tag.planningItem(event.key)))

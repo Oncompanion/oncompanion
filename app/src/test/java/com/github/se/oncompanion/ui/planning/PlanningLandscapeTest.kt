@@ -1,3 +1,4 @@
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 // Co-authored-by: Codex <noreply@openai.com>
 
 package com.github.se.oncompanion.ui.planning
@@ -73,6 +74,7 @@ class PlanningLandscapeTest {
                 { added = it },
             ),
             bottomBar = { BottomNavigationBar(Tab.PLANNING, {}) },
+            now = day.atTime(12, 0).atZone(zone).toInstant(),
         )
       }
     }
@@ -105,7 +107,13 @@ class PlanningLandscapeTest {
     var retries = 0
     compose.setContent {
       OncompanionTheme {
-        PlanningContent(current, day, zone, PlanningActions({}, {}, {}, {}, { retries++ }))
+        PlanningContent(
+            current,
+            day,
+            zone,
+            PlanningActions({}, {}, {}, {}, { retries++ }),
+            now = day.atTime(12, 0).atZone(zone).toInstant(),
+        )
       }
     }
     val cases =
@@ -151,6 +159,7 @@ class PlanningLandscapeTest {
             zone,
             PlanningActions({ selected = it }, { previous++ }, { next++ }, { today++ }, {}),
             caregiverOf = "Anne",
+            now = day.atTime(12, 0).atZone(zone).toInstant(),
         )
       }
     }
@@ -186,7 +195,15 @@ class PlanningLandscapeTest {
     var current by mutableStateOf(state())
     val restoration = StateRestorationTester(compose)
     restoration.setContent {
-      OncompanionTheme { PlanningContent(current, day, zone, PlanningActions({}, {}, {}, {}, {})) }
+      OncompanionTheme {
+        PlanningContent(
+            current,
+            day,
+            zone,
+            PlanningActions({}, {}, {}, {}, {}),
+            now = day.atTime(12, 0).atZone(zone).toInstant(),
+        )
+      }
     }
     compose
         .onNodeWithTag(C.Tag.planning_list)

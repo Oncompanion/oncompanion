@@ -130,8 +130,10 @@ class AppointmentNavigationTest {
     compose.onNodeWithTag(C.Tag.appointment_location).performScrollTo().performTextInput("Room 12")
     compose.onNodeWithTag(C.Tag.appointment_save).performScrollTo().performClick()
     compose.onNodeWithText("Visit").assertIsDisplayed()
-    compose.onNodeWithText("Room 12").assertIsDisplayed()
-    assertEquals(1, repository.appointments("uid-patient").size)
+    // The app's clock says noon, when the visit starts: its row says "Happening now", which
+    // replaces the place (R3), so the place is checked on the saved appointment
+    compose.onNodeWithText("Happening now", substring = true).assertIsDisplayed()
+    assertEquals("Room 12", repository.appointments("uid-patient").single().location)
     compose.runOnIdle { assertEquals(Screen.PLANNING, nav.currentDestination?.route) }
     compose.onNodeWithTag(C.Tag.planning_add).performClick()
     assertEquals(
