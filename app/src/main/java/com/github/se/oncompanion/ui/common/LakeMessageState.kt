@@ -28,8 +28,8 @@ import com.github.se.oncompanion.ui.theme.full
 
 /**
  * Replaces the content when there is nothing to show: a load failed, the item no longer exists, or
- * a section isn't shared (Figma: "Message state" in Shared patterns). A neutral info tile, [title],
- * an optional [message], then an optional filled [actionLabel] such as "Retry", all centered. For
+ * a section isn't shared (design: Brand & Theme, "Message state"). A neutral info tile, [title], an
+ * optional [message], then an optional filled [actionLabel] such as "Retry", all centered. For
  * "nothing yet", screens show the Empty lake instead.
  *
  * @param actionTestTag the test tag of the button, shown when [actionLabel] isn't null
@@ -80,12 +80,12 @@ fun LakeMessageState(
       LakeButton(
           text = actionLabel,
           onClick = onAction,
-          // 12 dp more than the gap above it, as in the Figma
+          // 12 dp more than the gap above it
           modifier = Modifier.padding(top = Spacing.md).testTag(actionTestTag),
       )
     }
   }
 }
 
-// The round info tile of the Figma "Message state"
+// The round info tile of the message state
 private val TILE_SIZE = 64.dp

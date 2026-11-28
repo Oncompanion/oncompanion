@@ -19,6 +19,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * Tests of the shared shadow, DESIGN.md's Elevation 1: its values, and that it is drawn around its
+ * element.
+ */
 @RunWith(AndroidJUnit4::class)
 class ElevationTest {
 
@@ -26,7 +30,7 @@ class ElevationTest {
 
   @Test
   fun elevation1_matchesFigmaEffectStyle() {
-    // Figma effect style "Oncompanion/Elevation 1": 0 1 2 at 6% and 0 6 18 at 8%, ink #1F2930
+    // DESIGN.md's Elevation 1: 0 1 2 at 6% and 0 6 18 at 8%, ink #1F2930
     val ink = Color(0xFF1F2930)
     val expected =
         listOf(

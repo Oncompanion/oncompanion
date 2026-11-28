@@ -12,6 +12,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
+/** Tests of [ScanPhotoStore]. */
 class ScanPhotoStoreTest {
 
   @get:Rule val temporaryFolder = TemporaryFolder()

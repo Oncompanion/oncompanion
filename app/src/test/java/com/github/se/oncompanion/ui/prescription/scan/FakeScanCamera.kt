@@ -19,8 +19,8 @@ import kotlinx.coroutines.flow.flow
 /**
  * [ScanCamera] for tests, where there is no real camera.
  *
- * @param startError thrown by [open], as if the camera couldn't be turned on
- * @param photoError thrown by [takePhoto], as if the photo couldn't be taken
+ * @property startError thrown by [open], as if the camera couldn't be turned on
+ * @property photoError thrown by [takePhoto], as if the photo couldn't be taken
  */
 class FakeScanCamera(
     var startError: Exception? = null,

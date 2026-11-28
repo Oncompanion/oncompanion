@@ -17,6 +17,7 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
+/** Tests of [CaregiverModeViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CaregiverModeViewModelTest {
 
@@ -106,7 +107,7 @@ class CaregiverModeViewModelTest {
     vm.choose(patient)
 
     // The screens show what isn't shared; sign-out takes the caregiver to sign in
-    // Offline, a membership the server hasn't confirmed isn't a removal either (#204)
+    // Offline, a membership the server hasn't confirmed isn't a removal either
     val changes =
         listOf(
             { following.shares() },

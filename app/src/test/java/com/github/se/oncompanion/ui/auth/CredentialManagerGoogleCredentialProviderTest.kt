@@ -39,6 +39,7 @@ import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowNetworkCapabilities
 
+/** Tests of [CredentialManagerGoogleCredentialProvider]. */
 @RunWith(AndroidJUnit4::class)
 class CredentialManagerGoogleCredentialProviderTest {
 

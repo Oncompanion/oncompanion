@@ -42,7 +42,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** [LakeTextField] as the Figma "Text field" (Brand & Theme), state by state. */
+/** Tests of [LakeTextField] (design: Brand & Theme, "Text field"), state by state. */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LakeTextFieldTest {

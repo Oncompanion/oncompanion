@@ -49,7 +49,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
 
-/** The add symptom screen with its ViewModel, dictating through a fake recognizer (US-44). */
+/** The add symptom screen with its ViewModel, dictating through a fake recognizer. */
 @RunWith(AndroidJUnit4::class)
 class VoiceSymptomScreenTest {
 
@@ -261,7 +261,7 @@ class VoiceSymptomScreenTest {
     node(C.Tag.symptom_add_drafted).assertIsDisplayed()
   }
 
-  // ----- Opened from the Overview's mic (US-73) -----
+  // ----- Opened from the Overview's mic -----
 
   private val openedToSpeak =
       AddSymptomViewModel(

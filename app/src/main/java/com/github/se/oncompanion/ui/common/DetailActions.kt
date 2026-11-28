@@ -50,9 +50,9 @@ fun DetailWithActions(
 }
 
 /**
- * Available item actions, Edit before Delete, shared across detail screens (Figma: "Bottom actions"
- * of a detail): full-width outlined Edit and text Delete, 16 dp from the sides and 24 dp from the
- * bottom.
+ * Available item actions, Edit before Delete, shared across detail screens (design: Brand & Theme,
+ * "Bottom actions"): full-width outlined Edit and text Delete, 16 dp from the sides and 24 dp from
+ * the bottom.
  */
 @Composable
 fun DetailActions(

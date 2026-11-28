@@ -14,18 +14,20 @@ import kotlinx.coroutines.runBlocking
 
 /**
  * For tests of caregiver mode: "caregiver" is signed in and follows "patient", who shares the
- * [shared] sections with them, lets them add to [canAdd], and edit and delete in [canEditAndDelete]
- * (US-46). The test can change that while a screen shows the patient's data.
+ * [shared] sections with them, lets them add to [canAdd], and edit and delete in
+ * [canEditAndDelete]. The test can change that while a screen shows the patient's data.
  */
 class FollowedPatient(
     vararg shared: CarePermission,
     canAdd: Set<CarePermission> = emptySet(),
     canEditAndDelete: Set<CarePermission> = emptySet(),
 ) {
+  /** The authentication, with "caregiver" signed in. */
   val auth = FakeAuthRepository {
     AuthUser(it)
   }
       .also { runBlocking { it.signInWithGoogle("caregiver") } }
+  /** The care circle, with "caregiver" in the patient's. */
   val circle = FakeCareCircleRepository()
   /** The caregiver's profile, so what they add is signed "Sam". */
   val profiles =

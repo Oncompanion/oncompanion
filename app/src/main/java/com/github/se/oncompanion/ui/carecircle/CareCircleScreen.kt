@@ -57,10 +57,9 @@ import com.github.se.oncompanion.ui.navigation.Screen
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
 
 /**
- * Displays the members of the signed-in user's care circle (US-13), following the "US-13 / Circle
- * members" as well as the people invited who haven't joined yet. Tapping a member opens their
- * details (US-14), tapping an invitation opens its invite code (#150), and "Add member" opens the
- * form adding someone (#79).
+ * Displays the members of the signed-in user's care circle (design: M2, "Circle members"), as well
+ * as the people invited who haven't joined yet. Tapping a member opens their details, tapping an
+ * invitation opens its invite code, and "Add member" opens the form adding someone.
  */
 @Composable
 fun CareCircleScreen(
@@ -407,7 +406,7 @@ internal val CarePermission.addDescription: Int?
 
 /**
  * The switch letting a member edit and delete in the section, e.g. "Allow editing and deleting
- * symptoms" (US-46). For events, removing a confirmation: there is nothing to edit.
+ * symptoms". For events, removing a confirmation: there is nothing to edit.
  */
 @get:StringRes
 internal val CarePermission.editDeleteLabel: Int
@@ -449,6 +448,7 @@ internal val Relationship.label: Int
         Relationship.OTHER -> R.string.relationship_other
       }
 
+/** Preview: the members of the circle. */
 @Preview(showBackground = true)
 @Composable
 fun CareCircleScreenPreview() {
@@ -502,6 +502,7 @@ fun CareCircleScreenPreview() {
   }
 }
 
+/** Preview: an empty circle. */
 @Preview(showBackground = true)
 @Composable
 fun CareCircleScreenEmptyPreview() {

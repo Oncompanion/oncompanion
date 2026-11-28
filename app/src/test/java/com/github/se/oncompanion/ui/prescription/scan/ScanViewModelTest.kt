@@ -38,6 +38,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
+/** Tests of [ScanViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ScanViewModelTest {
 
@@ -73,7 +74,7 @@ class ScanViewModelTest {
     Dispatchers.resetMain()
   }
 
-  // ---- the tip to hold the phone upright (#356) ----
+  // ---- the tip to hold the phone upright ----
 
   @Test
   fun uprightTip_showsUntilClosed_andStopsShowingOnlyWhenAsked() {

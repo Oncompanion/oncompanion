@@ -29,6 +29,7 @@ sealed interface CareCircleMemberUiState {
   /**
    * The member's details.
    *
+   * @property member the member shown
    * @property updatedJustNow whether the patient saved changes to the member during this visit
    * @property confirmingRemoval whether the "Remove from your circle?" dialog is open
    * @property isRemoving whether the removal was confirmed and is being saved
@@ -60,9 +61,9 @@ sealed interface CareCircleMemberUiState {
 }
 
 /**
- * Shows one member of the signed-in user's care circle (US-14), and lets the patient remove them
- * after confirming. The member's uid is the [Screen.CARE_CIRCLE_MEMBER_ARG] navigation argument,
- * read from [savedStateHandle].
+ * Shows one member of the signed-in user's care circle, and lets the patient remove them after
+ * confirming. The member's uid is the [Screen.CARE_CIRCLE_MEMBER_ARG] navigation argument, read
+ * from [savedStateHandle].
  *
  * The dialog's state lives here rather than in the screen, so the screen's content stays stateless
  * and each step can be tested.

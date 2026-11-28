@@ -1,4 +1,5 @@
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.reminder
 
@@ -29,6 +30,10 @@ import kotlinx.coroutines.launch
 
 /**
  * Scheduling status and an account-checked appointment navigation request, never display content.
+ *
+ * @property sync where scheduling the reminders is
+ * @property appointmentId the appointment a tapped reminder asks to open, once checked against the
+ *   signed-in account; `null` when there is none
  */
 data class AppointmentRemindersUiState(
     val sync: AppointmentReminderSync = AppointmentReminderSync.IDLE,

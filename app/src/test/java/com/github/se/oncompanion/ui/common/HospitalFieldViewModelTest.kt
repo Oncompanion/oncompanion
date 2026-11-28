@@ -1,5 +1,6 @@
 // Co-authored-by: Codex
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 package com.github.se.oncompanion.ui.common
 
 import com.github.se.oncompanion.model.hospital.FakeHospitalRepository
@@ -25,6 +26,7 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 
+/** Tests of [HospitalFieldViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class HospitalFieldViewModelTest {
   private val dispatcher = StandardTestDispatcher()

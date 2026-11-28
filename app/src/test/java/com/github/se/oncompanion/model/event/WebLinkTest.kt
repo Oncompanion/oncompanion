@@ -6,6 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
+/** Tests of reading an event's website link: web addresses are kept, anything else gives none. */
 class WebLinkTest {
 
   @Test

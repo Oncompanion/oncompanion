@@ -13,6 +13,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Tests of [UserProfile]. */
 class UserProfileTest {
 
   private val valid = UserProfile(uid = "uid-1", role = Role.PATIENT, firstName = "Alice")

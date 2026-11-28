@@ -8,6 +8,9 @@ import android.content.Context
  * Hand-written fake [GoogleCredentialProvider]. [onGetToken] decides what getGoogleIdToken does
  * (return a token, throw, or suspend); the contexts it is called with are recorded in
  * [tokenRequests].
+ *
+ * @property onGetToken what getGoogleIdToken does
+ * @property onClear what clearCredentialState does
  */
 class FakeGoogleCredentialProvider(
     var onGetToken: suspend () -> String = { "fake-token" },

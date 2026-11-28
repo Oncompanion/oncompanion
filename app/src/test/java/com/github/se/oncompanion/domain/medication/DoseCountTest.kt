@@ -5,6 +5,7 @@ package com.github.se.oncompanion.domain.medication
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+/** Tests of [DoseCount]. */
 class DoseCountTest {
 
   /** Checks each frequency gives its count, with the frequency in the failure message. */

@@ -17,6 +17,10 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+/**
+ * Tests of the day the screens follow: today right away, then the new day at each midnight, in the
+ * phone's time zone.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CurrentDayTest {
 

@@ -37,6 +37,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+/** Tests of [PlanningScreen]. */
 @RunWith(RobolectricTestRunner::class)
 class PlanningScreenTest {
   @get:Rule val compose = createComposeRule()
@@ -435,7 +436,7 @@ class PlanningScreenTest {
     assertEquals(listOf("appointment:a", "event:e", "medication:prescription:med"), opened)
   }
 
-  // ----- Caregiver mode (US-20) -----
+  // ----- Caregiver mode -----
 
   private fun renderCaregiver(
       state: PlanningUiState,
@@ -513,7 +514,7 @@ class PlanningScreenTest {
     assertEquals(calendarTop, calendar.fetchSemanticsNode().positionInRoot.y)
   }
 
-  // ----- A caregiver adding appointments (US-41) -----
+  // ----- A caregiver adding appointments -----
 
   @Test
   fun add_isHidden_whenTheCaregiverMayNotAdd() {
@@ -532,7 +533,7 @@ class PlanningScreenTest {
         .assertTextContains("Added by Sam", substring = true)
   }
 
-  // ----- A prescription a caregiver added, not confirmed yet (US-43) -----
+  // ----- A prescription a caregiver added, not confirmed yet -----
 
   @Test
   fun medicationOfAnUnconfirmedPrescription_saysItIsNotConfirmed() {

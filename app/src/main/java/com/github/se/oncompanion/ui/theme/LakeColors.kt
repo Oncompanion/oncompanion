@@ -16,8 +16,8 @@ import androidx.compose.ui.graphics.Color
 @Immutable data class Horizon(val top: Color, val bottom: Color)
 
 /**
- * The stone palette of the patient's Overview (Figma M3, Home · Dawn and Dusk): a warm grey page
- * under the day's cards.
+ * The stone palette of the patient's Overview (design: M3, "Home · Dawn" and "Home · Dusk"): a warm
+ * gray page under the day's cards.
  *
  * @property page the page behind the cards
  * @property card the Next up and medications cards

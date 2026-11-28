@@ -314,7 +314,7 @@ class AppointmentDetailViewModelTest {
         assertFalse(vm.canLeaveAfterDeletion())
       }
 
-  // ----- Caregiver mode (US-20) -----
+  // ----- Caregiver mode -----
 
   private fun caregiverViewModel(vararg shared: CarePermission) =
       AppointmentDetailViewModel(
@@ -350,7 +350,7 @@ class AppointmentDetailViewModelTest {
         assertEquals(AppointmentDetailUiState.NotShared, vm.uiState.value)
       }
 
-  // ----- An appointment a caregiver added (US-41) -----
+  // ----- An appointment a caregiver added -----
 
   @Test
   fun addedByACaregiver_thePatientSeesTheNameTheyGaveThem_theCaregiverTheStoredOne() =
@@ -398,7 +398,7 @@ class AppointmentDetailViewModelTest {
         )
       }
 
-  // ----- A caregiver the patient lets edit and delete (US-46) -----
+  // ----- A caregiver the patient lets edit and delete -----
 
   /** "caregiver" follows "patient", who lets them add to, edit and delete in Planning. */
   private fun allowedCaregiver() =

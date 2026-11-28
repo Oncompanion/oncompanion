@@ -49,6 +49,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 // Robolectric provides android.util.Log, used when a read fails
+/** Tests of [PrescriptionsViewModel]. */
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class PrescriptionsViewModelTest {
@@ -362,7 +363,7 @@ class PrescriptionsViewModelTest {
         assertEquals(PrescriptionsLoad.FAILED, viewModel.uiState.value.load)
       }
 
-  // ----- Caregiver mode (US-20) -----
+  // ----- Caregiver mode -----
 
   private fun caregiverViewModel(vararg shared: CarePermission) =
       PrescriptionsViewModel(
@@ -455,7 +456,7 @@ class PrescriptionsViewModelTest {
         val viewModel = caregiverViewModel(patient)
         advanceUntilIdle()
 
-        // Still in the circle: they signed out, nobody removed them (#490)
+        // Still in the circle: they signed out, nobody removed them
         patient.auth.signOut()
         advanceUntilIdle()
 
@@ -512,7 +513,7 @@ class PrescriptionsViewModelTest {
         }
       }
 
-  // ----- A prescription a caregiver added (US-43) -----
+  // ----- A prescription a caregiver added -----
 
   @Test
   fun addedByACaregiver_thePatientSeesTheNameTheyGave_theCaregiverTheStoredOne() =
@@ -582,7 +583,7 @@ class PrescriptionsViewModelTest {
         val cases =
             listOf(
                 patient to Triple(listOf("sams", "leas"), listOf("confirmed"), emptyList()),
-                // Their accepted one stays under "Added by you" until they close it (#396)
+                // Their accepted one stays under "Added by you" until they close it
                 caregiver to
                     Triple(listOf("sams", "confirmed"), emptyList<String>(), listOf("leas")),
             )
@@ -622,7 +623,7 @@ class PrescriptionsViewModelTest {
         for (viewModel in listOf(patient, caregiver)) assertEquals(listOf("kept"), viewModel.ids)
       }
 
-  // ----- The caregiver sees what the patient decided (#396) -----
+  // ----- The caregiver sees what the patient decided -----
 
   /** A prescription "caregiver" (or [by]) added for "patient", in [confirmation]. */
   private fun added(

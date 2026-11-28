@@ -122,6 +122,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
 
+/** Tests of [AppNavHost]. */
 @RunWith(AndroidJUnit4::class)
 class AppNavHostTest {
 
@@ -1384,7 +1385,7 @@ class AppNavHostTest {
         }
     setNavHost(Route.OVERVIEW, careCircleInviteRepository = invites, authRepository = auth)
 
-    // Two taps from Overview (#74): the sailboat, then "Add someone you trust" in the empty circle
+    // Two taps from Overview: the sailboat, then "Add someone you trust" in the empty circle
     composeTestRule.onNodeWithTag(C.Tag.circle_button).performClick()
     composeTestRule.onNodeWithTag(C.Tag.circle_sheet_nobody_yet).assertIsDisplayed()
     composeTestRule.onNodeWithTag(C.Tag.circle_sheet_add_someone).performScrollTo().performClick()
@@ -1462,7 +1463,7 @@ class AppNavHostTest {
       )
     }
 
-    // Julie uses the invite code on her phone: the screen says she joined (#150)
+    // Julie uses the invite code on her phone: the screen says she joined
     runBlocking { invites.redeem("jjjjj-23456", "julie-uid", "julie@example.com") }
     composeTestRule.onNodeWithText("Julie has joined your circle").assertIsDisplayed()
 
@@ -1611,7 +1612,7 @@ class AppNavHostTest {
         .assertTextEquals("Son · Updated just now")
     composeTestRule.onNodeWithTag(C.Tag.care_circle_form_screen).assertDoesNotExist()
 
-    // The list shows his new access (#75)
+    // The list shows his new access
     composeTestRule.onNodeWithTag(C.Tag.care_circle_member_back_button).performClick()
     composeTestRule
         .onNodeWithTag(C.Tag.careCircleMember("marc"))
@@ -1640,7 +1641,7 @@ class AppNavHostTest {
     composeTestRule.onNodeWithTag(C.Tag.care_circle_member_name).assertTextEquals("Marc")
     composeTestRule.runOnIdle { assertTrue(careCircle.removed.isEmpty()) }
 
-    // Confirming removes Marc and returns to the list, without him (#75)
+    // Confirming removes Marc and returns to the list, without him
     composeTestRule.onNodeWithTag(C.Tag.care_circle_member_remove_button).performClick()
     composeTestRule.onNodeWithTag(C.Tag.care_circle_member_remove_confirm).performClick()
     composeTestRule.onNodeWithTag(C.Tag.care_circle_screen).assertIsDisplayed()
@@ -1873,7 +1874,7 @@ class AppNavHostTest {
     }
   }
 
-  /** Taps "Speak how you feel" (US-73) with the microphone allowed; returns the recognizer. */
+  /** Taps "Speak how you feel" with the microphone allowed; returns the recognizer. */
   private fun speakFromTheOverview(symptoms: SymptomRepository = FakeSymptomRepository()) = run {
     shadowOf(context as Application).grantPermissions(Manifest.permission.RECORD_AUDIO)
     setNavHost(Route.OVERVIEW, authRepository = signedInPatient(), symptomRepository = symptoms)
@@ -2761,7 +2762,7 @@ class AppNavHostTest {
 
   /**
    * Verifies the default Planning source reads the appointment, auth, event and registration
-   * providers: it shows the appointments and only the events the patient confirmed (US-30).
+   * providers: it shows the appointments and only the events the patient confirmed.
    */
   @Test
   fun defaultPlanningSourceShowsAppointmentsAndConfirmedEvents() {

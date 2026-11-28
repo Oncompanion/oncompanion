@@ -44,6 +44,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/** Tests of [MedicationRepositoryFirestore]. */
 @RunWith(AndroidJUnit4::class)
 class MedicationRepositoryFirestoreTest {
 
@@ -420,7 +421,7 @@ class MedicationRepositoryFirestoreTest {
     val carols = carolAddsAPrescriptionForAlice()
     val carolUid = carols.addedBy
     assertSameContent(carols, repository.observePrescription(aliceUid, "presc-1").awaitFirst())
-    // Not confirmed yet: none of its medications may be reminded (US-43)
+    // Not confirmed yet: none of its medications may be reminded
     assertEquals(emptyList<Medication>(), repository.observeMedications(aliceUid).awaitFirst())
 
     // Alice checks it and confirms it: who added it stays
@@ -1442,7 +1443,7 @@ class MedicationRepositoryFirestoreTest {
     assertEquals(2, repository.observeMedications(aliceUid).awaitFirst { it.isNotEmpty() }.size)
   }
 
-  // ---------- Reminders (US-32) ----------
+  // ---------- Reminders ----------
 
   /** [prescription] with the patient's reminder [times] on its first medication. */
   private fun Prescription.remindedAt(vararg times: LocalTime) =

@@ -621,8 +621,8 @@ class AppointmentRepositoryFirestoreTest {
   }
 
   /**
-   * A caregiver the patient lets add to Planning (US-41) adds an appointment signed with their uid
-   * and first name; the patient reads who added it, and keeps it when correcting the appointment.
+   * A caregiver the patient lets add to Planning adds an appointment signed with their uid and
+   * first name; the patient reads who added it, and keeps it when correcting the appointment.
    */
   @Test
   fun caregiversAppointmentKeepsWhoAddedIt(): Unit = runBlocking {
@@ -684,8 +684,8 @@ class AppointmentRepositoryFirestoreTest {
   }
 
   /**
-   * A caregiver the patient lets edit and delete in Planning (US-46) signs their edit; the
-   * patient's next edit removes their name, and who added it never changes.
+   * A caregiver the patient lets edit and delete in Planning signs their edit; the patient's next
+   * edit removes their name, and who added it never changes.
    */
   @Test
   fun caregiverEdit_isSigned_andThePatientsNextEditRemovesTheName(): Unit = runBlocking {

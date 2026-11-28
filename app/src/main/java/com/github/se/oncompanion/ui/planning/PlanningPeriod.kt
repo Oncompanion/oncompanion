@@ -11,7 +11,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
 
-/** The ways Planning shows its calendar (#555, #556). */
+/** The ways Planning shows its calendar. */
 enum class PlanningView {
   /** The selected day's agenda under the strip of its week. */
   LIST,

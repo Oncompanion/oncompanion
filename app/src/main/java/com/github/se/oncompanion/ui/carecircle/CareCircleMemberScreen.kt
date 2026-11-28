@@ -69,10 +69,10 @@ private val addedAtFormatter
   @Composable get() = rememberAppDateFormatter("MMM yyyy")
 
 /**
- * One member of the signed-in user's care circle (US-14), following the "US-14 / Member detail"
- * Figma mockup: who they are, how to reach them and what they can see. "Edit member" opens the
- * member form; "Remove from circle" asks for confirmation (Figma "US-14 / Remove member –
- * confirmation dialog"), then removes them and goes back to the circle.
+ * One member of the signed-in user's care circle (design: M2, "Member detail"): who they are, how
+ * to reach them and what they can see. "Edit member" opens the member form; "Remove from circle"
+ * asks for confirmation (design: M2, "Remove member – confirmation dialog"), then removes them and
+ * goes back to the circle.
  */
 @Composable
 fun CareCircleMemberScreen(
@@ -168,7 +168,7 @@ fun CareCircleMemberContent(
   }
 }
 
-/** "Remove Marc from your circle?", as in the mockup: Cancel changes nothing. */
+/** "Remove Marc from your circle?": Cancel changes nothing. */
 @Composable
 private fun RemoveDialog(firstName: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
   LakeDialog(
@@ -213,8 +213,8 @@ private fun MessageState(
 }
 
 /**
- * The details scroll, while the actions stay at the bottom like in the mockup. The subtitle says
- * "Updated just now" instead of when they joined once the patient saved changes in this visit.
+ * The details scroll, while the actions stay at the bottom. The subtitle says "Updated just now"
+ * instead of when they joined once the patient saved changes in this visit.
  */
 @Composable
 private fun MemberDetails(
@@ -378,9 +378,7 @@ internal fun CanAddItem(section: CarePermission, allowed: Boolean) {
   )
 }
 
-/**
- * Whether the member can also edit and delete in [section] (US-46), read-only, like [CanAddItem].
- */
+/** Whether the member can also edit and delete in [section], read-only, like [CanAddItem]. */
 @Composable
 private fun CanEditAndDeleteItem(section: CarePermission, allowed: Boolean) {
   ListItem(
@@ -430,6 +428,7 @@ internal val CarePermission.description: Int
         CarePermission.PRESCRIPTIONS -> R.string.permission_prescriptions_description
       }
 
+/** Preview: a member's details. */
 @Preview(showBackground = true)
 @Composable
 fun CareCircleMemberScreenPreview() {
@@ -457,6 +456,7 @@ fun CareCircleMemberScreenPreview() {
   }
 }
 
+/** Preview: a member who isn't in the circle anymore. */
 @Preview(showBackground = true)
 @Composable
 fun CareCircleMemberScreenNotFoundPreview() {
@@ -473,6 +473,7 @@ fun CareCircleMemberScreenNotFoundPreview() {
   }
 }
 
+/** Preview: asking to remove a member. */
 @Preview(showBackground = true)
 @Composable
 fun CareCircleMemberScreenRemovePreview() {

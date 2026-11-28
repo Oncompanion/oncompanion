@@ -1,4 +1,5 @@
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.utils
 
@@ -10,6 +11,7 @@ import android.content.SharedPreferences
  * Simulates a failed disk commit and records any unsafe asynchronous fallback by production code.
  */
 class FailedCommitContext(base: Context) : ContextWrapper(base) {
+  /** Whether the code saved its preferences asynchronously, which a failed commit must never do. */
   var applied = false
     private set
 

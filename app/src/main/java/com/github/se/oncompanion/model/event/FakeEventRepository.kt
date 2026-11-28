@@ -11,9 +11,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
 /**
- * [EventRepository] backed by a fixed list, used until events are read from Firestore (#91). By
- * default it returns the events of the Figma mockup, scheduled in the coming days so the list is
- * never empty. The support group has no website link, so both cases are covered.
+ * [EventRepository] backed by a fixed list, for tests. By default it returns a few sample events,
+ * scheduled in the coming days so the list is never empty. The support group has no website link,
+ * so both cases are covered.
  *
  * @param now the current time, to leave out past events
  * @param zone the time zone of the events' local times, to compare them with instants
@@ -39,7 +39,7 @@ class FakeEventRepository(
   override suspend fun getEvent(id: String): Event? = events.find { it.id == id }
 
   companion object {
-    /** The events of the "US-03 / Events" Figma mockup, in the days following [today]. */
+    /** A few sample events, in the days following [today]. */
     fun sampleEvents(today: LocalDate): List<Event> {
       fun at(daysFromToday: Long, hour: Int, minute: Int = 0) =
           LocalDateTime.of(today.plusDays(daysFromToday), LocalTime.of(hour, minute))

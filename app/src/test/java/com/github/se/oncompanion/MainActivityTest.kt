@@ -48,6 +48,7 @@ import org.robolectric.Robolectric
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [MainActivity]. */
 @RunWith(AndroidJUnit4::class)
 class MainActivityTest {
 

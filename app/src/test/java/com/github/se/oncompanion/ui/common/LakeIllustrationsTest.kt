@@ -33,6 +33,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/**
+ * Tests of the lake illustrations: the boats' initials and colors, the ribbon read as the app's
+ * name, and the others hidden from TalkBack.
+ */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LakeIllustrationsTest {
@@ -45,7 +49,7 @@ class LakeIllustrationsTest {
     }
   }
 
-  /** The colour at ([x], [y]) dp of the content. */
+  /** The color at ([x], [y]) dp of the content. */
   private fun colorAt(x: Float, y: Float): Color {
     val density = compose.density.density
     return compose
@@ -132,7 +136,7 @@ class LakeIllustrationsTest {
 
   @Test
   fun circleOnTheLake_showsAtMostThreeBoats_inTheFigmaPlaces() {
-    // 358 dp wide, so one Figma unit is one dp
+    // 358 dp wide, so one unit of the drawing is one dp
     setThemed {
       CircleOnTheLake(
           listOf(

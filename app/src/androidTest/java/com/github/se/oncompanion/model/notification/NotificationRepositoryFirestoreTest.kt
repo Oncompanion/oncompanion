@@ -334,7 +334,7 @@ class NotificationRepositoryFirestoreTest {
       runBlocking {
         val carolUid = carolMayAddAlicesPrescriptions()
         val medications = MedicationRepositoryFirestore(db)
-        // What carol's form does when she saves (US-43, US-50)
+        // What carol's form does when she saves
         val schedule = ManageMedicationSchedule(medications, repository)
         val today = LocalDate.now()
         val draft =

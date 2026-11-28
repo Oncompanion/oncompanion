@@ -51,6 +51,7 @@ private class ProfileScreenAuthRepository(private val user: AuthUser) : AuthRepo
   override fun signOut() = Unit
 }
 
+/** Tests of [ProfileScreen]. */
 @RunWith(AndroidJUnit4::class)
 class ProfileScreenTest {
 
@@ -224,7 +225,7 @@ class ProfileScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.profile_screen).assertIsDisplayed()
     composeTestRule.onNodeWithText("Alex Moreau").assertIsDisplayed()
     composeTestRule.onNodeWithText("alex@example.com").assertIsDisplayed()
-    // The details scroll above the Figma's 56 dp buttons
+    // The details scroll above the 56 dp buttons
     composeTestRule.onNodeWithText("Breast cancer").performScrollTo().assertIsDisplayed()
     composeTestRule.onNodeWithTag(C.Tag.profile_hospital).performScrollTo().assertIsDisplayed()
     composeTestRule.onNodeWithText("Geneva Hospital").assertIsDisplayed()
@@ -310,7 +311,7 @@ class ProfileScreenTest {
     }
   }
 
-  // ----- Date of birth (#218) -----
+  // ----- Date of birth -----
 
   private fun loaded(dateOfBirth: LocalDate?) =
       ProfileUiState.Loaded(
@@ -325,7 +326,7 @@ class ProfileScreenTest {
           )
       )
 
-  /** Shown right after the family name, as a day in the phone's language (Figma: British). */
+  /** Shown right after the family name, as a day in the phone's language. */
   @Test
   @Config(qualifiers = "en-rGB")
   fun dateOfBirth_whenSet_isShownAfterTheFamilyName() {

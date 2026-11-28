@@ -1,4 +1,5 @@
 <!-- Co-authored-by: ChatGPT <noreply@openai.com> -->
+<!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
 
 # Android hospital proxy client and integration
 
@@ -38,8 +39,7 @@ Cancellation disconnects an active platform connection immediately. Blocking rea
 session cleanup does not wait for a late response, and cancelled callers cannot receive it. Streams
 and connections are also closed when the worker exits.
 
-App Check is installed lazily, as introduced in
-[HTTP client #303](https://github.com/Oncompanion/Oncompanion/pull/303): the variant-specific factory
+App Check is installed lazily: the variant-specific factory
 is installed before this client's first App Check token request, on the existing default app. This keeps
 an unused client inert and does not activate UI networking. The SDK installation affects that app's
 App Check instance; coordinate any future global initializer rather than installing competing factories.

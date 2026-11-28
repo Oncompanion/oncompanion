@@ -59,6 +59,7 @@ import org.junit.runner.RunWith
 import org.robolectric.shadows.ShadowLooper
 
 // Robolectric provides the main dispatcher used by viewModelScope
+/** Tests of [CaregiverOverviewViewModel]. */
 @RunWith(AndroidJUnit4::class)
 class CaregiverOverviewViewModelTest {
 
@@ -340,10 +341,10 @@ class CaregiverOverviewViewModelTest {
     val yesterday = now.minusDays(1).withHour(18).withMinute(10)
     val cases =
         listOf(
-            // A strength per symptom (#615): each symptom has its own, no overall one
+            // A strength per symptom: each symptom has its own, no overall one
             entry("new", yesterday, intensity = 7, strengths = mapOf(NAUSEA to 7, FATIGUE to 6)) to
                 (listOf(NAUSEA to 7, FATIGUE to 6) to null),
-            // Saved before #615: one intensity for the whole entry
+            // Saved before strengths per symptom: one intensity for the whole entry
             entry("new", yesterday, intensity = 6) to
                 (listOf(NAUSEA to null, FATIGUE to null) to 6),
             // A strength for some symptoms only: the others have none, and a leftover overall

@@ -20,6 +20,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * Tests of the time the screens follow: the time right away, then every minute, also the night the
+ * clocks go back.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CurrentTimeTest {
 

@@ -59,7 +59,18 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
-/** Calendar and agenda events supplied by the screen or preview. */
+/**
+ * Calendar and agenda events supplied by the screen or preview.
+ *
+ * @property onDateSelected selects a day
+ * @property onPreviousPeriod moves to the period before
+ * @property onNextPeriod moves to the period after
+ * @property onToday goes back to today
+ * @property onRetry reads the planning again after an error
+ * @property onAddAppointment opens the appointment form on a day; `null` when adding isn't offered
+ * @property onItemClick opens an entry; `null` when entries can't be opened
+ * @property canOpenItem whether an entry can be opened
+ */
 data class PlanningActions(
     val onDateSelected: (LocalDate) -> Unit,
     val onPreviousPeriod: () -> Unit,
@@ -207,7 +218,7 @@ fun PlanningContent(
         )
       }
       actions.onAddAppointment?.let { onAdd ->
-        // A caregiver only gets "+" when the patient lets them add appointments (US-41)
+        // A caregiver only gets "+" when the patient lets them add appointments
         if (!showAdd) return@let
         val addLabel = stringResource(R.string.planning_add)
         FloatingActionButton(

@@ -33,7 +33,7 @@ sealed interface CarePlanning {
    * The planning's [items].
    *
    * @property canAdd whether adding an appointment may be offered: in the user's own planning, or
-   *   when the patient lets the caregiver add to it (US-41)
+   *   when the patient lets the caregiver add to it
    */
   data class Shown(val items: List<PlanningItem>, val canAdd: Boolean = false) : CarePlanning
 
@@ -52,9 +52,9 @@ sealed interface CarePlanning {
 
 /**
  * The planning the signed-in user may see: their own, or that of the patient they follow when the
- * patient shares it (US-20), so Planning and the Overview have one code path for both. Whose
- * planning, and whether it is shared, comes from [resolveSection]. In the patient's own planning,
- * an appointment a caregiver added shows the name the patient gave them in [careCircle].
+ * patient shares it, so Planning and the Overview have one code path for both. Whose planning, and
+ * whether it is shared, comes from [resolveSection]. In the patient's own planning, an appointment
+ * a caregiver added shows the name the patient gave them in [careCircle].
  */
 class ObserveCarePlanning(
     private val resolveSection: ResolveSectionAccess = ResolveSectionAccess(),

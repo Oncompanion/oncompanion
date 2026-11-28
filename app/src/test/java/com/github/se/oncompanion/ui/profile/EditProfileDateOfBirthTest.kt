@@ -51,7 +51,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
-/** The date of birth of Edit profile (#218), typed or picked. In British English: DD/MM/YYYY. */
+/** The date of birth of Edit profile, typed or picked. In British English: DD/MM/YYYY. */
 @RunWith(AndroidJUnit4::class)
 @Config(qualifiers = "en-rGB")
 class EditProfileDateOfBirthTest {

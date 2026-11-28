@@ -16,6 +16,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/** Tests that the theme's typography is that of DESIGN.md, in Figtree. */
 @RunWith(AndroidJUnit4::class)
 class TypeTest {
 
@@ -33,7 +34,7 @@ class TypeTest {
       val letterSpacing: Double = 0.0,
   )
 
-  // The "typography" table of DESIGN.md (Figma text styles "Oncompanion/*")
+  // The "typography" table of DESIGN.md
   private val roles =
       listOf(
           Role("Display Small", { it.displaySmall }, 36, FontWeight.Bold, 44, -0.042),
@@ -49,7 +50,7 @@ class TypeTest {
           Role("Label Large", { it.labelLarge }, 15, FontWeight.SemiBold, 20),
           Role("Label Medium", { it.labelMedium }, 13, FontWeight.SemiBold, 16, 0.015),
           Role("Label Small", { it.labelSmall }, 12, FontWeight.Medium, 16, 0.025),
-          // Not a Material role: the label of the Figma "Button" component
+          // Not a Material role: the label of a button (design: Brand & Theme, "Button")
           Role("Button label", { it.buttonLabel }, 17, FontWeight.SemiBold, 20),
       )
 

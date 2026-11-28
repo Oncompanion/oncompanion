@@ -1,13 +1,15 @@
 // Co-authored-by: ChatGPT <noreply@openai.com>
-
-// Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.resources
 
-// Like R, but C
+/** The app's own constants, as `R` holds its resources. */
 object C {
+  /**
+   * The test tag of every element a test needs to find, named `<feature>_<element>` and grouped in
+   * one commented section per feature. A new tag goes at the end of its feature's section.
+   */
   object Tag {
     // Appointment detail
     const val appointment_detail_screen = "appointment_detail_screen"
@@ -126,7 +128,7 @@ object C {
     const val overview_medications = "overview_medications"
     const val overview_planning_link = "overview_planning_link"
     const val overview_more_medications = "overview_more_medications"
-    // The sheet to correct a medication's doses (#546)
+    // The sheet to correct a medication's doses
     const val overview_doses_sheet = "overview_doses_sheet"
     const val overview_doses_count = "overview_doses_count"
     const val overview_doses_less = "overview_doses_less"
@@ -438,7 +440,7 @@ object C {
     fun careCircleMemberCanAdd(permissionName: String) =
         "care_circle_member_can_add_$permissionName"
 
-    /** Whether the member can edit and delete in [permissionName], read-only (US-46). */
+    /** Whether the member can edit and delete in [permissionName], read-only. */
     fun careCircleMemberCanEditAndDelete(permissionName: String) =
         "care_circle_member_can_edit_and_delete_$permissionName"
 
@@ -469,11 +471,11 @@ object C {
     /** The switch letting the member add to [permissionName], e.g. "SYMPTOMS". */
     fun careCircleFormCanAdd(permissionName: String) = "care_circle_form_can_add_$permissionName"
 
-    /** The switch letting the member edit and delete in [permissionName] (US-46). */
+    /** The switch letting the member edit and delete in [permissionName]. */
     fun careCircleFormCanEditAndDelete(permissionName: String) =
         "care_circle_form_can_edit_and_delete_$permissionName"
 
-    /** Under the email warning: opens the invitation that already has this email (#257). */
+    /** Under the email warning: opens the invitation that already has this email. */
     const val care_circle_form_open_invite = "care_circle_form_open_invite"
 
     // Join a care circle
@@ -506,7 +508,7 @@ object C {
     const val not_shared = "not_shared"
     // Caregiver mode: who added an entry for the patient
     const val added_by = "added_by"
-    // Who last edited an entry for the patient (US-46)
+    // Who last edited an entry for the patient
     const val edited_by = "edited_by"
 
     // Care circle invite code
@@ -576,7 +578,7 @@ object C {
     /** One prescription of the list. */
     fun prescriptionsItem(prescriptionId: String) = "prescriptions_item_$prescriptionId"
 
-    /** The close button of a prescription the caregiver added, once decided (US-43). */
+    /** The close button of a prescription the caregiver added, once decided. */
     fun prescriptionsDismiss(prescriptionId: String) = "prescriptions_dismiss_$prescriptionId"
 
     const val prescription_detail_screen = "prescription_detail_screen"
@@ -618,7 +620,7 @@ object C {
     const val prescription_form_medication_card = "prescription_form_medication_card"
     const val prescription_form_save_bar = "prescription_form_save_bar"
 
-    // Medication detail (US-35)
+    // Medication detail
     const val medication_detail_screen = "medication_detail_screen"
     const val medication_detail_back = "medication_detail_back"
     const val medication_detail_content = "medication_detail_content"
@@ -676,7 +678,7 @@ object C {
     // Shared message state: its round info tile
     const val message_state_icon = "message_state_icon"
 
-    // The "Your circle" sheet and the sailboat that opens it (US-50, #457)
+    // The "Your circle" sheet and the sailboat that opens it
     const val circle_button = "circle_button"
     const val circle_button_dot = "circle_button_dot"
     const val circle_button_add = "circle_button_add"
@@ -691,13 +693,13 @@ object C {
     const val circle_sheet_add_someone = "circle_sheet_add_someone"
     const val circle_sheet_nothing_today = "circle_sheet_nothing_today"
 
-    /** The card of the "Your circle" notification with this ID (US-50, #457). */
+    /** The card of the "Your circle" notification with this ID. */
     fun circleSheetCard(notificationId: String) = "circle_sheet_card_$notificationId"
 
     /** The "See prescription" link of the notification with this ID. */
     fun circleSheetOpen(notificationId: String) = "circle_sheet_open_$notificationId"
 
-    // Medication reminders in the prescription form (US-32)
+    // Medication reminders in the prescription form
     const val medication_reminders = "medication_reminders"
     const val medication_reminders_switch = "medication_reminders_switch"
     const val medication_reminders_add_time = "medication_reminders_add_time"

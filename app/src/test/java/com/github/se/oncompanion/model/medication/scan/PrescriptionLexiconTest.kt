@@ -29,7 +29,7 @@ class PrescriptionLexiconTest {
         mapOf(
             "Lakeside Clinic (fictional) 29/09/2026" to LocalDate.of(2026, 9, 29),
             "Genève, le 14.10.2026" to LocalDate.of(2026, 10, 14),
-            // At the end of a sentence (review of #230)
+            // At the end of a sentence
             "Genève, le 14.10.2026." to LocalDate.of(2026, 10, 14),
             "Fait le 05/11/2026." to LocalDate.of(2026, 11, 5),
             "Date : 05/11/2026" to LocalDate.of(2026, 11, 5),
@@ -227,7 +227,7 @@ class PrescriptionLexiconTest {
         "| tablet each morning",
     )
     assertAll(PrescriptionLexicon::hasDoseQuantity, false, "Ondansetron 8 mg", "3 jours", "Rx")
-    // Drugs ending in "-one" or "-une" before their form aren't a quantity (review of #230)
+    // Drugs ending in "-one" or "-une" before their form aren't a quantity
     assertAll(
         PrescriptionLexicon::hasDoseQuantity,
         false,
@@ -257,7 +257,7 @@ class PrescriptionLexiconTest {
         "le soir",
         "toutes les 12 heures",
         "every 8 hours",
-        // Chemotherapy cycles (review of #230)
+        // Chemotherapy cycles
         "1 injection toutes les 3 semaines",
         "every 2 weeks",
         "toutes les 48 heures",
@@ -414,7 +414,7 @@ class PrescriptionLexiconTest {
         "Dr Paul Keller",
         "Ondansétron 8 mg :1 comprimé 2x/jour pendant 5 jours",
         "Service d'hémato-oncologie",
-        // "route" and "place" in a prescription line (review of #230)
+        // "route" and "place" in a prescription line
         "Route: oral, 1 tablet twice a day",
         "À la place de Primpéran, 1 cp le matin",
     )

@@ -35,7 +35,7 @@ interface MedicationRepository {
   /**
    * Emits the medications of [uid]'s confirmed prescriptions ([confirmedMedications]) now and every
    * time they change, for features that don't need the prescriptions, such as reminders: one a
-   * caregiver added never schedules anything before the patient confirms it (US-43).
+   * caregiver added never schedules anything before the patient confirms it.
    */
   fun observeMedications(uid: String): Flow<List<Medication>>
 
@@ -66,9 +66,9 @@ interface MedicationRepository {
   suspend fun deletePrescription(uid: String, id: String)
 
   /**
-   * Rejects [prescription], one a caregiver added that waits for [uid] (US-43): in one write, it
-   * leaves [uid]'s prescriptions and is kept apart as [PrescriptionConfirmation.REJECTED], where
-   * only [uid] and the caregiver who added it can read it.
+   * Rejects [prescription], one a caregiver added that waits for [uid]: in one write, it leaves
+   * [uid]'s prescriptions and is kept apart as [PrescriptionConfirmation.REJECTED], where only
+   * [uid] and the caregiver who added it can read it.
    */
   suspend fun rejectPrescription(uid: String, prescription: Prescription)
 
@@ -81,7 +81,7 @@ interface MedicationRepository {
   /**
    * Emits the prescriptions of [uid] followed by the ones [uid] rejected, now and every time either
    * changes, always in step: a prescription being rejected moves from one to the other in a single
-   * write, and is never emitted as in neither (US-50). Only [uid] may read them.
+   * write, and is never emitted as in neither. Only [uid] may read them.
    */
   fun observePrescriptionsWithRejected(uid: String): Flow<List<Prescription>>
 

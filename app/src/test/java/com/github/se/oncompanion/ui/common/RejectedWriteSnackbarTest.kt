@@ -34,6 +34,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [RejectedWriteSnackbar]. */
 @RunWith(AndroidJUnit4::class)
 class RejectedWriteSnackbarTest {
   @get:Rule val compose = createComposeRule()
@@ -116,7 +117,7 @@ class RejectedWriteSnackbarTest {
     assertEquals(0, rejectedWrites.unseen.value)
   }
 
-  // ----- Figma: "Snackbar" (Brand & Theme) -----
+  // ----- Look (design: Brand & Theme, "Snackbar") -----
 
   @Test
   @GraphicsMode(GraphicsMode.Mode.NATIVE)

@@ -48,6 +48,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [CircleNotificationCard]. */
 @RunWith(AndroidJUnit4::class)
 class CircleNotificationCardTest {
 
@@ -115,7 +116,7 @@ class CircleNotificationCardTest {
     compose.onNodeWithText("Dr. Martin").assertIsDisplayed()
     compose.onNodeWithText(string(R.string.circle_sheet_to_confirm)).assertIsDisplayed()
     compose.onNodeWithText("Ondansetron, Dexamethasone").assertIsDisplayed()
-    // A full row, as in the Figma (44 dp there, Android's 48 dp touch target here)
+    // A full row, at Android's 48 dp touch target
     compose.onNodeWithTag(link).assertHeightIsAtLeast(48.dp).performClick()
     assertEquals(listOf(Screen.prescriptionEdit("p1")), opened)
   }

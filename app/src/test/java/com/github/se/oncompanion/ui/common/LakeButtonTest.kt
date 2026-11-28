@@ -52,7 +52,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** [LakeButton] as the Figma "Button" (Brand & Theme), style by style. */
+/** Tests of [LakeButton] (design: Brand & Theme, "Button"), style by style. */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LakeButtonTest {
@@ -103,7 +103,7 @@ class LakeButtonTest {
   private fun label(style: LakeButtonStyle) =
       composeTestRule.onNodeWithText(style.name, useUnmergedTree = true)
 
-  /** Each style's container and label colors, from the Figma and DESIGN.md. */
+  /** Each style's container and label colors, from DESIGN.md. */
   private fun figmaColors(style: LakeButtonStyle): Pair<Color, Color> =
       when (style) {
         LakeButtonStyle.Filled -> colors.primary to colors.onPrimary

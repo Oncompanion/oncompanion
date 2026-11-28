@@ -15,8 +15,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 
 /**
- * Fails unless this text was laid out in the size and weight of [expected], in [color], as in the
- * Figma. Find the text with `useUnmergedTree = true`: a button merges its label into itself.
+ * Fails unless this text was laid out in the size and weight of [expected], in [color]. Find the
+ * text with `useUnmergedTree = true`: a button merges its label into itself.
  */
 fun SemanticsNodeInteraction.assertTextStyle(expected: TextStyle, color: Color) {
   val layouts = mutableListOf<TextLayoutResult>()

@@ -38,7 +38,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.GraphicsMode
 
-/** [LakeFilterChip] as the Figma "Filter chip" (Brand & Theme). */
+/** Tests of [LakeFilterChip] (design: Brand & Theme, "Filter chip"). */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LakeFilterChipTest {
@@ -145,7 +145,7 @@ class LakeFilterChipTest {
     assertEquals(0, clicks)
   }
 
-  // A detail shows what was logged: the same colours, but nothing to tap
+  // A detail shows what was logged: the same colors, but nothing to tap
   @Test
   fun readOnly_isDawn_andCantBeTappedNorHeardAsACheckbox() {
     setContent(selected = true, onClick = null)

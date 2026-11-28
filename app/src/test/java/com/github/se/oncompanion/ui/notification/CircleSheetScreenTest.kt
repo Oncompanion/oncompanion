@@ -59,6 +59,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [CircleSheetScreen]. */
 @RunWith(AndroidJUnit4::class)
 class CircleSheetScreenTest {
 
@@ -309,7 +310,7 @@ class CircleSheetScreenTest {
   }
 
   @Test
-  // Real text widths: the default graphics mode measures text as almost 0 wide (#678)
+  // Real text widths: the default graphics mode measures text as almost 0 wide
   @GraphicsMode(GraphicsMode.Mode.NATIVE)
   @Config(qualifiers = LANDSCAPE_PHONE)
   fun landscape_everyActionCanBeReachedWhole() {

@@ -30,8 +30,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The add member form refuses an email already in the circle without a connection (#257): the
- * members and invitations come from the phone's cache, like every other screen offline.
+ * The add member form refuses an email already in the circle without a connection: the members and
+ * invitations come from the phone's cache, like every other screen offline.
  */
 @RunWith(AndroidJUnit4::class)
 class CareCircleMemberFormOfflineTest {

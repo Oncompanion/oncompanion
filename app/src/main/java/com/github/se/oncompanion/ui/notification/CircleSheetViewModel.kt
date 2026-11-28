@@ -43,6 +43,7 @@ import kotlinx.coroutines.launch
 /**
  * One notification of the "Your circle" sheet, with what it is about as it is now.
  *
+ * @property notification the notification itself
  * @property time when it arrived, in the phone's time zone
  * @property prescription the prescription it is about, read live: its [Prescription.confirmation]
  *   says whether it waits for the patient, was confirmed or was rejected (a rejected one is read
@@ -58,7 +59,7 @@ data class CircleCard(
 /** The notifications that arrived on [date], newest first. */
 data class CircleDay(val date: LocalDate, val cards: List<CircleCard>)
 
-/** What the "Your circle" sheet shows (Figma M3: "Overview · Patient · Care circle"). */
+/** What the "Your circle" sheet shows (design: M3, "Overview · Patient · Care circle"). */
 sealed interface CircleSheetUiState {
   /** Waiting for the first result, from the local cache or the server. */
   data object Loading : CircleSheetUiState
@@ -97,7 +98,7 @@ val CircleSheetUiState.hasUnseen: Boolean
       this is CircleSheetUiState.Circle &&
           days.any { day -> day.cards.any { !it.notification.seen } }
 
-/** What the sailboat in the Overview header points out (Figma: "Header care circle button"). */
+/** What the sailboat in the Overview header points out (design: M3, "Boat button"). */
 enum class SailboatBadge {
   /** Nothing: the sailboat in its ring. */
   NONE,
@@ -117,9 +118,9 @@ val CircleSheetUiState.sailboatBadge: SailboatBadge
       }
 
 /**
- * Tells the patient what their care circle did for them (US-50, #457): the "Your circle" sheet and
- * the dot on the sailboat button that opens it. It follows the signed-in account, so another
- * account never sees the previous one's circle.
+ * Tells the patient what their care circle did for them: the "Your circle" sheet and the dot on the
+ * sailboat button that opens it. It follows the signed-in account, so another account never sees
+ * the previous one's circle.
  *
  * @param clock the time zone the days and times are shown in, and the day the sheet calls "Today"
  */
