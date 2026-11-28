@@ -25,8 +25,8 @@ import org.junit.runner.RunWith
 
 /**
  * Tests that firestore.rules let a caregiver notify the patient of a prescription they added for
- * them (US-50), and nothing else: about their own prescription still waiting for the patient,
- * signed with their own uid, once. alice is the patient, carol her caregiver, dave a stranger.
+ * them, and nothing else: about their own prescription still waiting for the patient, signed with
+ * their own uid, once. alice is the patient, carol her caregiver, dave a stranger.
  */
 @RunWith(AndroidJUnit4::class)
 class CaregiverNotificationSecurityRulesTest {

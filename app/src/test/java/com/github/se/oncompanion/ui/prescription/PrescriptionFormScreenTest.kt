@@ -91,6 +91,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [PrescriptionFormScreen]. */
 @RunWith(AndroidJUnit4::class)
 class PrescriptionFormScreenTest {
 
@@ -365,7 +366,7 @@ class PrescriptionFormScreenTest {
   @Test
   fun durationShowsItsUnitInTheValue_asInTheFrame_notBesideTheLabel() {
     setContent(filled)
-    // The days saved, and what the field shows ("3 days" in the M3 frames). A unit beside the
+    // The days saved, and what the field shows ("3 days"). A unit beside the
     // value would take the label's width once the field is focused, and break "Duration" in two
     val cases = listOf(5 to "5 days", 1 to "1 day", null to "")
     for ((days, shown) in cases) {
@@ -483,7 +484,7 @@ class PrescriptionFormScreenTest {
 
     field(C.Tag.prescriptionFormMedicationRow(0)).assertExists()
     composeTestRule.onNodeWithText("Ondansetron 8 mg").assertExists()
-    // The start date is in the row too, short like the rest of it (Figma)
+    // The start date is in the row too, short like the rest of it
     composeTestRule.onNodeWithText("1 tablet · Twice a day · from 30 Sep · 5 days").assertExists()
   }
 
@@ -673,7 +674,7 @@ class PrescriptionFormScreenTest {
 
   @Test
   fun everyLoadMessage_isTheSharedMessageState() {
-    // The app's shared message state, as on the list and the detail (#277): its tile shows in each
+    // The app's shared message state, as on the list and the detail: its tile shows in each
     setContent(filled.copy(isEditing = true, load = PrescriptionFormLoad.NOT_FOUND))
     val cases =
         listOf(
@@ -703,7 +704,7 @@ class PrescriptionFormScreenTest {
   @Test
   @Config(qualifiers = SMALL_LANDSCAPE_PHONE, fontScale = 2f)
   fun error_retryCanBeReached_onASmallPhoneSidewaysWithTheLargestFont() {
-    // Taller than the screen there: the message scrolls so Retry can still be tapped (#490)
+    // Taller than the screen there: the message scrolls so Retry can still be tapped
     setContent(filled.copy(isEditing = true, load = PrescriptionFormLoad.FAILED))
     composeTestRule
         .onNodeWithTag(C.Tag.prescription_form_retry_button)
@@ -713,7 +714,7 @@ class PrescriptionFormScreenTest {
 
   @Test
   fun error_spansTheWholeWidth_soItWrapsLikeOnTheOtherPrescriptionScreens() {
-    // The message state brings its own side padding: nothing is added around it (#490)
+    // The message state brings its own side padding: nothing is added around it
     setContent(filled.copy(isEditing = true, load = PrescriptionFormLoad.FAILED))
     val screen = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot
     val message =
@@ -1100,7 +1101,7 @@ class PrescriptionFormScreenTest {
         .assertIsFullyVisible()
   }
 
-  // ---------- The patient reviews a caregiver's prescription (US-43) ----------
+  // ---------- The patient reviews a caregiver's prescription ----------
 
   private val toConfirm = filled.copy(isEditing = true, isToConfirm = true)
 
@@ -1150,7 +1151,7 @@ class PrescriptionFormScreenTest {
         .assertTextContains(string(R.string.prescription_form_save))
   }
 
-  // ---------- A caregiver adds for the patient (US-43) ----------
+  // ---------- A caregiver adds for the patient ----------
 
   @Test
   fun caregiver_titleSaysWhosePrescriptionsItGoesTo() {
@@ -1355,7 +1356,7 @@ class PrescriptionFormScreenTest {
     field(C.Tag.prescription_form_prescribed_by_field).assertTextContains("Dr. Martin")
   }
 
-  // ---------- A prescription already saved (US-39) ----------
+  // ---------- A prescription already saved ----------
 
   private val savedBefore =
       Prescription(
@@ -1511,7 +1512,7 @@ class PrescriptionFormScreenTest {
     assertEquals("5 days", editableText(C.Tag.prescription_form_duration_field))
   }
 
-  // ---------- A caregiver corrects an existing prescription (US-46) ----------
+  // ---------- A caregiver corrects an existing prescription ----------
 
   private val caregiverEditing = filled.copy(isEditing = true, pendingAddedByName = "Marc")
 
@@ -1608,7 +1609,7 @@ class PrescriptionFormScreenTest {
     node(C.Tag.prescription_form_save_button).assertIsAboveKeyboard(keyboardHeight)
   }
 
-  // ---------- M3 look (#549) ----------
+  // ---------- Look ----------
 
   /** Where the start date and the duration are, both read after one scroll so they compare. */
   private fun startAndDuration(): Pair<DpRect, DpRect> {
@@ -1625,7 +1626,7 @@ class PrescriptionFormScreenTest {
         listOf(C.Tag.prescription_form_prescribed_by_field, C.Tag.prescription_form_date_field)) {
       composeTestRule.onNode(hasTestTag(tag) and card).assertExists()
     }
-    // Its eyebrow is in capitals, as in the frame
+    // Its eyebrow is in capitals
     composeTestRule
         .onNode(
             hasText(string(R.string.prescription_form_prescription_section).uppercase()) and card
@@ -1792,7 +1793,7 @@ class PrescriptionFormScreenTest {
     }
   }
 
-  // ---------- Reminders (US-32) ----------
+  // ---------- Reminders ----------
 
   private fun hours(vararg hours: Int) = hours.map { LocalTime.of(it, 0) }
 

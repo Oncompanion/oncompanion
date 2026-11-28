@@ -64,6 +64,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
+/** Tests of [PrescriptionsScreen]. */
 @RunWith(AndroidJUnit4::class)
 class PrescriptionsScreenTest {
 
@@ -357,7 +358,7 @@ class PrescriptionsScreenTest {
   @Test
   @Config(qualifiers = SMALL_LANDSCAPE_PHONE, fontScale = 2f)
   fun error_retryCanBeReached_onASmallPhoneSidewaysWithTheLargestFont() {
-    // Taller than the screen there: the message scrolls so Retry can still be tapped (#490)
+    // Taller than the screen there: the message scrolls so Retry can still be tapped
     setContent(loaded.copy(load = PrescriptionsLoad.FAILED))
     composeTestRule
         .onNodeWithTag(C.Tag.prescriptions_retry_button)
@@ -367,7 +368,7 @@ class PrescriptionsScreenTest {
 
   @Test
   fun error_spansTheWholeWidth_soItWrapsLikeOnTheOtherPrescriptionScreens() {
-    // The message state brings its own side padding: nothing is added around it (#490)
+    // The message state brings its own side padding: nothing is added around it
     setContent(loaded.copy(load = PrescriptionsLoad.FAILED))
     val screen = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot
     val message =
@@ -408,7 +409,7 @@ class PrescriptionsScreenTest {
     }
     // Signed out, patient or caregiver: "You're signed out", even while the patient's name is
     // still known. Signed in but no longer in the circle (a caregiver): "no longer in the care
-    // circle", named or not, since leave() clears the name before Whose care? (#490)
+    // circle", named or not, since leave() clears the name before Whose care?
     val anne = "Anne"
     val cases =
         listOf(
@@ -722,7 +723,7 @@ class PrescriptionsScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.prescriptions_retry_button).assertDoesNotExist()
   }
 
-  // ----- Waiting for the patient (US-43) -----
+  // ----- Waiting for the patient -----
 
   @Test
   fun waitingForThePatient_showsFirst_underWhoAddedIt() {
@@ -864,7 +865,7 @@ class PrescriptionsScreenTest {
     )
   }
 
-  // ----- Caregiver mode (US-20) -----
+  // ----- Caregiver mode -----
 
   private fun setCaregiverContent(state: PrescriptionsUiState) {
     composeTestRule.setContent {
@@ -906,7 +907,7 @@ class PrescriptionsScreenTest {
 
   @Test
   fun caregiver_isShownThePatientsList_neverTheirOwn() {
-    // Figma #240: "Anne's prescriptions", and nothing tells the caregiver to add one
+    // "Anne's prescriptions", and nothing tells the caregiver to add one
     val cases =
         listOf(
             filled.copy(canAdd = false) to null,
@@ -960,7 +961,7 @@ class PrescriptionsScreenTest {
     assertTrue("gap $gap", gap < 24.dp)
   }
 
-  // ---- a prescription a caregiver added (US-43) ----
+  // ---- a prescription a caregiver added ----
 
   @Test
   fun prescriptionAddedByACaregiver_saysWho_andWhetherItIsConfirmed() {

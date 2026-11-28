@@ -11,6 +11,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
+/**
+ * Tests of the journal's "This week" summary: the days of the week, each day's highest intensity
+ * and the symptom logged most often.
+ */
 class SymptomWeekTest {
 
   /** Wednesday 7 October 2026: its week runs from Monday 5 to Sunday 11 October. */

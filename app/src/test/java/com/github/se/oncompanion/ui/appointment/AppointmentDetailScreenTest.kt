@@ -133,7 +133,7 @@ class AppointmentDetailScreenTest {
     compose.onNodeWithText("Long note ".repeat(100)).performScrollTo().assertIsDisplayed()
   }
 
-  /** An appointment a caregiver added says who did (US-41); the patient's own says nothing. */
+  /** An appointment a caregiver added says who did; the patient's own says nothing. */
   @Test
   fun addedByACaregiver_saysWhoAddedIt() {
     var state by
@@ -349,7 +349,7 @@ class AppointmentDetailScreenTest {
     compose.runOnIdle { owner.lifecycle.currentState = Lifecycle.State.DESTROYED }
   }
 
-  // ----- Caregiver mode (US-20) -----
+  // ----- Caregiver mode -----
 
   @Test
   fun caregiver_seesThePatientsAppointment_withoutEditOrDelete() {
@@ -378,7 +378,7 @@ class AppointmentDetailScreenTest {
     compose.onNodeWithText("Anne doesn't share Planning with you").assertIsDisplayed()
   }
 
-  // ----- A caregiver the patient lets edit and delete (US-46) -----
+  // ----- A caregiver the patient lets edit and delete -----
 
   /** Anne's appointment, as her caregiver allowed to edit and delete it, with [deletion]. */
   private fun showAllowedCaregiver(
@@ -431,7 +431,7 @@ class AppointmentDetailScreenTest {
     compose.onNodeWithTag(C.Tag.appointment_delete_cancel).assertIsFullyVisible()
   }
 
-  /** An appointment a caregiver edited says who did (US-46), under who added it, which stays. */
+  /** An appointment a caregiver edited says who did, under who added it, which stays. */
   @Test
   fun editedByACaregiver_saysWhoEditedIt_underWhoAddedIt() {
     var state by

@@ -34,6 +34,9 @@ sealed interface CareCircleUiState {
   /**
    * The circle, in two sections each sorted by name: the people who [joined], and the invitations
    * still [pending]. One of the two may be empty, never both.
+   *
+   * @property joined the people who joined, by name
+   * @property pending the invitations not used yet, by name
    */
   data class CareCircleMembers(
       val joined: List<CareCircleEntry.Joined>,
@@ -48,7 +51,7 @@ sealed interface CareCircleUiState {
 }
 
 /**
- * Lists the signed-in user's care circle (US-13): its members and the invitations not used yet.
+ * Lists the signed-in user's care circle: its members and the invitations not used yet.
  *
  * @param clock tells whether an invitation has expired; tests pass one they control
  */

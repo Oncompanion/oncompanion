@@ -16,10 +16,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
 /**
- * Shows in Planning the events a patient confirmed they registered for (US-30), on their day, with
- * their place below the title. Past weeks show the confirmed events that took place then. Whose
- * events they are is decided by the caller ([ObserveCarePlanning]): the signed-in patient, or the
- * patient a caregiver follows.
+ * Shows in Planning the events a patient confirmed they registered for, on their day, with their
+ * place below the title. Past weeks show the confirmed events that took place then. Whose events
+ * they are is decided by the caller ([ObserveCarePlanning]): the signed-in patient, or the patient
+ * a caregiver follows.
  *
  * An event ends at its end time, or [DEFAULT_PLANNING_DURATION] after it starts when that is
  * unknown. One still going on when the range starts is shown too, if it started at most [LOOKBACK]

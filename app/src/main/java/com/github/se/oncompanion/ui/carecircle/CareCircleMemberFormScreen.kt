@@ -68,13 +68,13 @@ import com.github.se.oncompanion.ui.common.isCompactHeight
 import com.github.se.oncompanion.ui.theme.OncompanionTheme
 
 /**
- * Adds someone to the care circle (#79), following the Figma "US-13 / Add member": their name,
- * relationship, an optional email and what they can see, all off by default. Saving creates their
- * invitation, then calls [onSaved] with its invite code. An email that already has an invitation
- * can't be invited again: [onOpenInvite] opens that invitation instead, with its invite code.
+ * Adds someone to the care circle (design: M2, "Add member"): their name, relationship, an optional
+ * email and what they can see, all off by default. Saving creates their invitation, then calls
+ * [onSaved] with its invite code. An email that already has an invitation can't be invited again:
+ * [onOpenInvite] opens that invitation instead, with its invite code.
  *
- * With a member to edit (#75, Figma "US-14 / Edit member"), the same form shows their details and
- * account email, which can't be changed; saving updates them, then calls [onSaved] with null.
+ * With a member to edit (design: M2, "Edit member"), the same form shows their details and account
+ * email, which can't be changed; saving updates them, then calls [onSaved] with null.
  */
 @Composable
 fun CareCircleMemberFormScreen(
@@ -401,7 +401,7 @@ private fun PermissionSwitches(
     )
     if (permission in CareCircleMemberDetails.ADDABLE_SECTIONS) {
       CanAddSwitch(permission, uiState, granted, onCanAddChange)
-      // Only for a member: nobody starts out able to edit or delete (US-46)
+      // Only for a member: nobody starts out able to edit or delete
       if (uiState.isEditing) CanEditAndDeleteSwitch(permission, uiState, onCanEditAndDeleteChange)
     }
   }
@@ -409,7 +409,7 @@ private fun PermissionSwitches(
 
 /**
  * Lets the member add to [section] (e.g. "Allow adding symptoms"), indented under the section it
- * depends on: only for someone who sees the section, so it is greyed out while the section is off.
+ * depends on: only for someone who sees the section, so it is grayed out while the section is off.
  * Nothing for a section nobody can add to.
  */
 @Composable
@@ -441,8 +441,8 @@ private fun CanAddSwitch(
 }
 
 /**
- * Lets the member edit and delete in [section] (US-46), indented like [CanAddSwitch]: only for
- * someone who can add to it, so it is greyed out, saying so, while adding is off.
+ * Lets the member edit and delete in [section], indented like [CanAddSwitch]: only for someone who
+ * can add to it, so it is grayed out, saying so, while adding is off.
  */
 @Composable
 private fun CanEditAndDeleteSwitch(
@@ -539,6 +539,7 @@ private fun missingText(uiState: CareCircleMemberFormUiState): Int? =
       else -> null
     }
 
+/** Preview: the form adding someone to the circle. */
 @Preview(showBackground = true)
 @Composable
 fun CareCircleMemberFormScreenPreview() {
@@ -562,6 +563,7 @@ fun CareCircleMemberFormScreenPreview() {
   }
 }
 
+/** Preview: the form editing a member. */
 @Preview(showBackground = true)
 @Composable
 fun CareCircleMemberFormEditPreview() {

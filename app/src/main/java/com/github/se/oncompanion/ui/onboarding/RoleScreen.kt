@@ -35,7 +35,7 @@ import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.theme.Spacing
 
 /**
- * First onboarding step (Figma "US-1 / Onboarding – Role"): patient or caregiver. The role decides
+ * First onboarding step (design: M2, "Onboarding – Role"): patient or caregiver. The role decides
  * what the next steps ask (a caregiver has no cancer type) and can't change afterwards.
  *
  * @param onContinue called to go to the next step
@@ -113,8 +113,9 @@ fun RoleContent(
 }
 
 /**
- * A selectable card for one role (Figma "I'm a patient"): a radio, then the role and what it means.
- * Chosen, it takes the warm secondary container with a secondary outline; otherwise a plain card.
+ * A selectable card for one role (design: M2, "I'm a patient"): a radio, then the role and what it
+ * means. Chosen, it takes the warm secondary container with a secondary outline; otherwise a plain
+ * card.
  */
 @Composable
 private fun RoleCard(
@@ -172,5 +173,5 @@ private fun RoleCard(
   }
 }
 
-// The Figma's outline of the chosen role
+// The outline of the chosen role
 private val SELECTED_BORDER = 1.5.dp

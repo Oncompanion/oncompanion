@@ -15,8 +15,8 @@ import kotlinx.coroutines.flow.transformWhile
  * what the phone would hear with [send]. Like the real one, a session ends after its
  * [SpeechEvent.FinalText] or [SpeechEvent.Failed].
  *
- * @param available what [isAvailable] answers, as a phone with or without a recognizer
- * @param offline what [offlineSupport] answers, for every language
+ * @property available what [isAvailable] answers, as a phone with or without a recognizer
+ * @property offline what [offlineSupport] answers, for every language
  */
 class FakeSpeechRecognizer(
     var available: Boolean = true,

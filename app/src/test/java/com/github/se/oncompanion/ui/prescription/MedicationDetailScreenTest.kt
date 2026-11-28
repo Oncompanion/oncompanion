@@ -33,7 +33,9 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The M2 detail uses shared controls and shows only recorded information, in every state. */
+/**
+ * The medication detail uses shared controls and shows only recorded information, in every state.
+ */
 @RunWith(AndroidJUnit4::class)
 class MedicationDetailScreenTest {
   @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()

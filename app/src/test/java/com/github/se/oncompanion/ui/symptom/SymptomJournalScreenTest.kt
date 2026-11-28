@@ -58,6 +58,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
+/** Tests of [SymptomJournalScreen]. */
 @RunWith(AndroidJUnit4::class)
 class SymptomJournalScreenTest {
 
@@ -186,7 +187,7 @@ class SymptomJournalScreenTest {
         C.Tag.symptom_journal_error,
     )
     assertTextInside(context.getString(R.string.symptom_error_hint), C.Tag.symptom_journal_error)
-    // A load error isn't a connection problem: offline, Firestore serves its cache (#438)
+    // A load error isn't a connection problem: offline, Firestore serves its cache
     composeTestRule
         .onNode(hasText("connection", substring = true, ignoreCase = true), useUnmergedTree = true)
         .assertDoesNotExist()
@@ -552,7 +553,7 @@ class SymptomJournalScreenTest {
     composeTestRule.onNodeWithTag(C.Tag.symptomJournalItem("e0")).assertIsNotDisplayed()
   }
 
-  // ----- Caregiver mode (US-20) -----
+  // ----- Caregiver mode -----
 
   private fun setCaregiverContent(state: SymptomJournalUiState) {
     composeTestRule.setContent {

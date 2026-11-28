@@ -32,9 +32,9 @@ enum class DeletePhase {
 
   /**
    * This phase once the item has been read again, [deletable] here or not: an item deleted
-   * elsewhere, or one the patient no longer lets the caregiver delete (US-46), can't be deleted
-   * here, so its confirmation and its error are dropped and don't reopen by themselves. A deletion
-   * under way or done goes on.
+   * elsewhere, or one the patient no longer lets the caregiver delete, can't be deleted here, so
+   * its confirmation and its error are dropped and don't reopen by themselves. A deletion under way
+   * or done goes on.
    */
   fun afterRead(deletable: Boolean): DeletePhase = if (!deletable && isAsking) IDLE else this
 }

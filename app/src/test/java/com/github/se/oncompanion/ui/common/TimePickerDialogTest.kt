@@ -52,6 +52,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [TimePickerDialog]. */
 @RunWith(AndroidJUnit4::class)
 class TimePickerDialogTest {
 

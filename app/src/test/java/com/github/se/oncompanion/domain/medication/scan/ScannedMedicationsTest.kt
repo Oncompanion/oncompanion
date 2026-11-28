@@ -221,8 +221,7 @@ class ScannedMedicationsTest {
 
   @Test
   fun severalSpacesBeforeTheUnitAreStillAStrength() {
-    // ML Kit can keep two spaces: the classifier and the reader must agree it's a strength (review
-    // of #231)
+    // ML Kit can keep two spaces: the classifier and the reader must agree it's a strength
     val medication =
         medicationsOf(linesOf("Ondansetron 8  mg", "1 comprimé 2x/jour pendant 5 jours")).single()
     assertEquals(Reading("Ondansetron 8  mg", true), medication.name)

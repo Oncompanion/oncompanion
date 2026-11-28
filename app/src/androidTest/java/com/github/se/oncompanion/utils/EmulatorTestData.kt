@@ -24,6 +24,7 @@ import org.json.JSONObject
  * share the emulators): every account gets a unique email, hence a fresh uid.
  */
 object EmulatorTestData {
+  /** The Firebase project the emulators run as. */
   const val PROJECT_ID = "oncompanion-c4144"
   private const val PASSWORD = "password123"
   private const val FIRESTORE_REST =
@@ -32,6 +33,7 @@ object EmulatorTestData {
 
   private val emails = mutableMapOf<String, String>()
 
+  /** Signs the current account out of the Auth emulator. */
   fun signOut() = FirebaseEmulator.auth.signOut()
 
   /**

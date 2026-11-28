@@ -37,8 +37,8 @@ private val Material = Typography()
 
 /**
  * The type scale of DESIGN.md: Figtree for every role, one step larger than Material's defaults for
- * body text, so it stays readable through fatigue. The two largest display roles aren't used in the
- * Figma; they keep Material's sizes in Figtree.
+ * body text, so it stays readable through fatigue. The two largest display roles aren't used; they
+ * keep Material's sizes in Figtree.
  */
 val Typography =
     Typography(
@@ -60,31 +60,32 @@ val Typography =
     )
 
 /**
- * The label of every button (Figma "Button": Figtree SemiBold 17/20), a step larger than Label
- * Large so the main actions read easily through fatigue. Read as `MaterialTheme.typography`.
+ * The label of every button (design: Brand & Theme, "Button": Figtree SemiBold 17/20), a step
+ * larger than Label Large so the main actions read easily through fatigue. Read as
+ * `MaterialTheme.typography`.
  */
 val Typography.buttonLabel: TextStyle
   get() = labelLarge.copy(fontSize = 17.sp, lineHeight = 20.sp)
 
 /**
- * The eyebrow that names a card of the Overview's day ("Next up", "Today's medications"): Figma
- * SemiBold 14/18, a step below Label Large so the card's title leads.
+ * The eyebrow that names a card of the Overview's day ("Next up", "Today's medications"): SemiBold
+ * 14/18, a step below Label Large so the card's title leads.
  */
 val Typography.cardEyebrow: TextStyle
   get() = labelLarge.copy(fontSize = 14.sp, lineHeight = 18.sp, letterSpacing = 0.015.em)
 
-/** The title of a card of the Overview's day ("Gentle yoga for patients"): Figma SemiBold 18/24. */
+/** The title of a card of the Overview's day ("Gentle yoga for patients"): SemiBold 18/24. */
 val Typography.cardTitle: TextStyle
   get() = titleMedium.copy(fontSize = 18.sp)
 
-/** The detail under a card's title ("10:00 · Wellness center"): Figma Regular 15/20. */
+/** The detail under a card's title ("10:00 · Wellness center"): Regular 15/20. */
 val Typography.cardDetail: TextStyle
   get() = bodyMedium.copy(lineHeight = 20.sp)
 
-/** An item listed on a card of the Overview's day ("Ondansetron 8 mg"): Figma SemiBold 17/20. */
+/** An item listed on a card of the Overview's day ("Ondansetron 8 mg"): SemiBold 17/20. */
 val Typography.cardItem: TextStyle
   get() = titleMedium.copy(lineHeight = 20.sp)
 
-/** The chip under a card's item ("Once a day"): Figma Medium 14/17. */
+/** The chip under a card's item ("Once a day"): Medium 14/17. */
 val Typography.cardChip: TextStyle
   get() = labelLarge.copy(fontSize = 14.sp, fontWeight = FontWeight.Medium, lineHeight = 17.sp)

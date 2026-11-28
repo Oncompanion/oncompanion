@@ -15,8 +15,8 @@ import java.time.LocalDate
  * @property prescribedOn the date written on the prescription
  * @property medications at least one, see [isValid]
  * @property createdAt set by the server when the prescription is saved; `null` before that
- * @property addedBy the uid of the caregiver who added it for the patient (US-43), or `null` when
- *   the patient did
+ * @property addedBy the uid of the caregiver who added it for the patient, or `null` when the
+ *   patient did
  * @property addedByName that caregiver's first name, shown as "Added by Sam"
  * @property editedBy the caregiver who last edited it, null when the patient edited it last
  * @property editedByName that caregiver's first name, shown as "Edited by Sam"
@@ -38,7 +38,7 @@ data class Prescription(
   val isConfirmed: Boolean
     get() = confirmation == PrescriptionConfirmation.CONFIRMED
 
-  /** Whether the patient rejected it (US-43): it then shows nowhere, see [visible]. */
+  /** Whether the patient rejected it: it then shows nowhere, see [visible]. */
   val isRejected: Boolean
     get() = confirmation == PrescriptionConfirmation.REJECTED
 
@@ -52,7 +52,7 @@ data class Prescription(
           // A caregiver's prescription says who added it; the patient's is confirmed
           (if (addedBy == null) isConfirmed
           else !addedByName.isNullOrBlank() && addedByName.length <= MAX_ADDED_BY_NAME_LENGTH) &&
-          // Reminders only once the patient confirmed it (US-32, US-43)
+          // Reminders only once the patient confirmed it
           (isConfirmed || medications.all { it.reminderTimes.isEmpty() }) &&
           // An edit is signed with both parts, or neither when the patient edited last.
           (if (editedBy == null) editedByName == null
@@ -71,9 +71,9 @@ data class Prescription(
 }
 
 /**
- * Where a prescription stands with the patient (US-43, decided in #332). A caregiver's prescription
- * waits for the patient, who confirms it after checking each field, or rejects it. Prescriptions
- * saved before this existed, and the patient's own, are confirmed.
+ * Where a prescription stands with the patient. A caregiver's prescription waits for the patient,
+ * who confirms it after checking each field, or rejects it. Prescriptions saved before this
+ * existed, and the patient's own, are confirmed.
  */
 enum class PrescriptionConfirmation {
   /** The patient's own, or one they confirmed: it counts like any other. */
@@ -85,15 +85,15 @@ enum class PrescriptionConfirmation {
 }
 
 /**
- * The prescriptions that show anywhere: all but those the patient rejected (US-43). Every screen,
- * Planning and the duplicate check read them through it, so they always agree.
+ * The prescriptions that show anywhere: all but those the patient rejected. Every screen, Planning
+ * and the duplicate check read them through it, so they always agree.
  */
 fun List<Prescription>.visible(): List<Prescription> = filterNot { it.isRejected }
 
 /**
  * The medications of the prescriptions the patient confirmed, earliest start date first, then by
- * name: what may be scheduled or reminded (US-32, US-34). A prescription a caregiver added counts
- * only once the patient confirmed it (US-43).
+ * name: what may be scheduled or reminded. A prescription a caregiver added counts only once the
+ * patient confirmed it.
  */
 fun List<Prescription>.confirmedMedications(): List<Medication> {
   val confirmed = filter { it.isConfirmed }

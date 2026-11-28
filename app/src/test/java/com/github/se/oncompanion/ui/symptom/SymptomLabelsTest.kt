@@ -21,6 +21,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
+/**
+ * Tests of how symptoms are named on screen: their labels, the titles of an entry, the strength
+ * question and the day labels, in English and French.
+ */
 @RunWith(AndroidJUnit4::class)
 class SymptomLabelsTest {
 

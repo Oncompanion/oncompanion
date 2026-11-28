@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 typealias DeleteDialogTags = DialogTags
 
 /**
- * Asks to confirm the deletion of an item, which can't be undone (Figma: "US-9 / Delete entry –
+ * Asks to confirm the deletion of an item, which can't be undone (design: M2, "Delete entry –
  * confirmation dialog"). Shared by the detail screens so that every deletion looks the same: a
  * [LakeDialog] whose confirm button is red, working while [isDeleting].
  *

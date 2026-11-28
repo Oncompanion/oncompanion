@@ -123,8 +123,8 @@ class SymptomRepositoryFirestore(
       else mapOf(FIELD_ADDED_BY to entry.addedBy, FIELD_ADDED_BY_NAME to entry.addedByName)
 
   /**
-   * Who edited [entry]: the caregiver who signed it (US-46), or nobody when the patient did, which
-   * removes an earlier caregiver's name since the patient's edit is now the last one.
+   * Who edited [entry]: the caregiver who signed it, or nobody when the patient did, which removes
+   * an earlier caregiver's name since the patient's edit is now the last one.
    */
   private fun editorOf(entry: SymptomEntry): Map<String, Any?> =
       mapOf(
@@ -229,7 +229,7 @@ class SymptomRepositoryFirestore(
     const val FIELD_CREATED_AT = "createdAt"
     const val FIELD_ADDED_BY = "addedBy"
     const val FIELD_ADDED_BY_NAME = "addedByName"
-    /** The uid of the caregiver who last edited it (US-46); absent when the patient did. */
+    /** The uid of the caregiver who last edited it; absent when the patient did. */
     const val FIELD_EDITED_BY = "editedBy"
     /** That caregiver's first name, as shown in "Edited by". */
     const val FIELD_EDITED_BY_NAME = "editedByName"

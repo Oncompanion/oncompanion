@@ -5,17 +5,20 @@ package com.github.se.oncompanion.model.auth
 import android.util.Log
 import kotlinx.coroutines.flow.Flow
 
-/** The signed-in user, without Firebase types so ViewModels and tests don't depend on Firebase. */
+/**
+ * The signed-in user, without Firebase types so ViewModels and tests don't depend on Firebase.
+ *
+ * @property uid the Firebase Authentication user ID
+ * @property email the Google account's email, if it shares one
+ * @property displayName the full name from the Google account
+ * @property givenName the first name from the Google account, used to pre-fill onboarding. Only
+ *   known after [AuthRepository.signInWithGoogle], until the app is closed: `null` when the user
+ *   was signed in by an earlier launch
+ */
 data class AuthUser(
     val uid: String,
     val email: String? = null,
-    /** Full name from the Google account. */
     val displayName: String? = null,
-    /**
-     * First name from the Google account, used to pre-fill onboarding. Only known after
-     * [AuthRepository.signInWithGoogle], until the app is closed: `null` when the user was signed
-     * in by an earlier launch.
-     */
     val givenName: String? = null,
 ) {
   /** Best guess of the first name: [givenName], or else the first word of [displayName]. */

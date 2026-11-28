@@ -85,6 +85,7 @@ private fun PlanningPreviewContent(
   }
 }
 
+/** Preview: Planning with entries. */
 @Preview(
     name = "Planning — mixed fake entries",
     showBackground = true,
@@ -94,18 +95,22 @@ private fun PlanningPreviewContent(
 @Composable
 fun PlanningFilledPreview() = PlanningPreviewContent()
 
+/** Preview: Planning with nothing planned. */
 @Preview(name = "Planning — empty", showBackground = true, widthDp = 412, heightDp = 820)
 @Composable
 fun PlanningEmptyPreview() = PlanningPreviewContent(empty = true)
 
+/** Preview: Planning while it loads. */
 @Preview(name = "Planning — loading", showBackground = true, widthDp = 412, heightDp = 820)
 @Composable
 fun PlanningLoadingPreview() = PlanningPreviewContent(empty = true, loading = true)
 
+/** Preview: Planning when it couldn't load. */
 @Preview(name = "Planning — error", showBackground = true, widthDp = 412, heightDp = 820)
 @Composable
 fun PlanningErrorPreview() = PlanningPreviewContent(empty = true, error = true)
 
+/** Preview: Planning with a large font. */
 @Preview(
     name = "Planning — large text",
     showBackground = true,

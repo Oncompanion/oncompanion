@@ -1,5 +1,6 @@
 // Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.settings
 
@@ -25,7 +26,13 @@ enum class SettingsSavePhase {
   FAILED,
 }
 
-/** The confirmed device preference and any pending operation or recoverable failure. */
+/**
+ * The confirmed device preference and any pending operation or recoverable failure.
+ *
+ * @property settings the preferences saved on this phone, or `null` until they are read
+ * @property readFailed the preferences couldn't be read
+ * @property savePhase where saving a changed preference is
+ */
 data class SettingsUiState(
     val settings: DeviceSettings? = null,
     val readFailed: Boolean = false,

@@ -68,6 +68,7 @@ private class GatedProfileRepository(private val delegate: FakeUserProfileReposi
   }
 }
 
+/** Tests of [OnboardingViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class OnboardingViewModelTest {
 
@@ -460,7 +461,7 @@ class OnboardingViewModelTest {
     assertEquals(before, state(vm))
   }
 
-  // ---- Use another account (#281) ----
+  // ---- Use another account ----
 
   /** A view model whose sign-out runs on [local]; the signed-in user has an email. */
   private fun switching(

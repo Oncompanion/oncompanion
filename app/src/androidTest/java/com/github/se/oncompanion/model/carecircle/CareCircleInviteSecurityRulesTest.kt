@@ -177,7 +177,7 @@ class CareCircleInviteSecurityRulesTest {
   @Test
   fun cannotCreateWithExtraFields(): Unit = runBlocking {
     denied(newInvite().set(inviteFields(aliceUid, "role" to "PATIENT")))
-    // Editing and deleting is only granted to a member, never on an invite (US-46)
+    // Editing and deleting is only granted to a member, never on an invite
     denied(
         newInvite()
             .set(

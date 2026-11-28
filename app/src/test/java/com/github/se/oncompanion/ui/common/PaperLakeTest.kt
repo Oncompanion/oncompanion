@@ -52,6 +52,10 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 // A portrait phone: Robolectric's default window (470 dp tall) would count as landscape
+/**
+ * Tests of the Paper lake header, band and status bar strip: their heights and the light of each
+ * time of day, in both themes.
+ */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w411dp-h891dp-xhdpi")
@@ -89,8 +93,8 @@ class PaperLakeTest {
     }
   }
 
-  /** The colour of the sky, in the header's top-left corner. */
-  /** The colour at ([x], [y]) dp in the node tagged [tag]. */
+  /** The color of the sky, in the header's top-left corner. */
+  /** The color at ([x], [y]) dp in the node tagged [tag]. */
   private fun pixel(tag: String, x: Float, y: Float): Color {
     val density = compose.density.density
     return compose
@@ -99,7 +103,7 @@ class PaperLakeTest {
         .toPixelMap()[(x * density).toInt(), (y * density).toInt()]
   }
 
-  /** The colour at ([x], [y]) dp in the header. */
+  /** The color at ([x], [y]) dp in the header. */
   private fun colorAt(x: Float, y: Float) = pixel(HEADER, x, y)
 
   private fun skyColor(): Color {

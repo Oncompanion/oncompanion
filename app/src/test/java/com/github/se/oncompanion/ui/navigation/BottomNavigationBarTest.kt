@@ -45,6 +45,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Tests of [BottomNavigationBar]. */
 @RunWith(AndroidJUnit4::class)
 class BottomNavigationBarTest {
 
@@ -163,7 +164,7 @@ class BottomNavigationBarTest {
     }
   }
 
-  // ----- Figma: "Navigation bar" (Brand & Theme) -----
+  // ----- Look (design: M3, "Navigation bar (4 tabs, Speak slot)") -----
 
   private lateinit var colors: ColorScheme
   private lateinit var labelMedium: TextStyle
@@ -226,7 +227,7 @@ class BottomNavigationBarTest {
   fun badge_isTealAndRisesAboveTheIndicatorUncut() {
     setThemedContent(BottomBarUiState(prescriptionsToReview = 1))
 
-    // Figma: the count badge overlaps the indicator's top edge, so it must not be clipped by it
+    // The count badge overlaps the indicator's top edge, so it must not be clipped by it
     val bar = composeTestRule.onNodeWithTag(C.Tag.bottom_navigation_bar)
     val badge =
         composeTestRule

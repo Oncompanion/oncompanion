@@ -67,13 +67,13 @@ fun CancerTypeField(
         supportingText = { Text(stringResource(R.string.cancer_type_hint)) },
         singleLine = true,
         modifier =
-            // As wide as the box, like the other fields (Figma)
+            // As wide as the box, like the other fields
             Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
                 .fillMaxWidth()
                 .testTag(C.Tag.cancer_type_field),
     )
-    // A white card under the field (Figma "Cancer type suggestions"). Material's own shadow, which
-    // the menu's window draws: the theme's Elevation 1 would be cut at the window's edges
+    // A white card under the field (design: M2, "Cancer type suggestions"), with Material's own
+    // shadow, which the menu's window draws: the theme's Elevation 1 would be cut at its edges
     ExposedDropdownMenu(
         expanded = expanded,
         onDismissRequest = { open = false },

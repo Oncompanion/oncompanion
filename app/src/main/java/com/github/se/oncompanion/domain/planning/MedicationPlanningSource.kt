@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.map
  * Lists recorded active medication days from a patient's cached prescriptions. Whose they are is
  * decided by the caller ([ObserveCarePlanning]), which restarts the observation when it changes;
  * read errors reach the caller. A prescription a caregiver added shows who did, and whether the
- * patient confirmed it (US-43); a rejected one isn't listed.
+ * patient confirmed it; a rejected one isn't listed.
  */
 class MedicationPlanningSource(private val medications: MedicationRepository) : PlanningRepository {
 

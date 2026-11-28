@@ -12,11 +12,11 @@ import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
 
 /**
- * "Added by Sam" under an entry a caregiver added for the patient (US-22), so the patient and their
- * doctor know who logged it. Shared by every section a caregiver can add to. A prescription the
- * patient hasn't confirmed yet ([isConfirmed] false) reads "Added by Sam · Not confirmed" (US-43):
- * the words say it, not only the color (Dawn, for what the patient should check), so it never looks
- * like a confirmed one.
+ * "Added by Sam" under an entry a caregiver added for the patient, so the patient and their doctor
+ * know who logged it. Shared by every section a caregiver can add to. A prescription the patient
+ * hasn't confirmed yet ([isConfirmed] false) reads "Added by Sam · Not confirmed": the words say
+ * it, not only the color (Dawn, for what the patient should check), so it never looks like a
+ * confirmed one.
  */
 @Composable
 fun AddedBy(name: String, modifier: Modifier = Modifier, isConfirmed: Boolean = true) {

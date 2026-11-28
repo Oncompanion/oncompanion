@@ -32,7 +32,9 @@ import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.buttonLabel
 import com.github.se.oncompanion.ui.theme.lakeColors
 
-/** The styles of the Figma "Button", from the strongest to the quietest. */
+/**
+ * The styles of the button (design: Brand & Theme, "Button"), from the strongest to the quietest.
+ */
 enum class LakeButtonStyle {
   /** The one main action of a screen, in teal. */
   Filled,
@@ -44,7 +46,7 @@ enum class LakeButtonStyle {
   Text,
 }
 
-/** The sizes shared by every button of the Figma, and by the fields and chips that fade alike. */
+/** The sizes shared by every button, and by the fields and chips that fade alike. */
 internal object LakeButtonDefaults {
   /** Every button is 56 dp tall, which is also a comfortable touch target. */
   val MinHeight = 56.dp
@@ -55,14 +57,14 @@ internal object LakeButtonDefaults {
   /** The border of an outlined button. */
   val OutlineWidth = 1.5.dp
 
-  /** A disabled button keeps its colors and fades as a whole, as the Figma draws it. */
+  /** A disabled button keeps its colors and fades as a whole. */
   const val DISABLED_ALPHA = 0.38f
 }
 
 /**
- * A button of the Figma ("Button" in Brand & Theme), so every screen's buttons look the same.
- * Material's buttons are smaller (40 dp) and grey out when disabled; these are 56 dp pills that
- * fade as a whole.
+ * A button (design: Brand & Theme, "Button"), so every screen's buttons look the same. Material's
+ * buttons are smaller (40 dp) and gray out when disabled; these are 56 dp pills that fade as a
+ * whole.
  *
  * @param isDestructive makes an outlined or text button red while it can be tapped (e.g. a dialog's
  *   Delete); only the destructive action of a screen is red
@@ -144,7 +146,7 @@ internal fun LinkAction(
   }
 }
 
-/** The small spinner of the Figma (Progress/Circular, Size=Small), in [color]. */
+/** The small spinner (design: Brand & Theme, "Progress/Circular"), in [color]. */
 @Composable
 internal fun SmallSpinner(color: Color, modifier: Modifier = Modifier) {
   CircularProgressIndicator(
@@ -154,9 +156,9 @@ internal fun SmallSpinner(color: Color, modifier: Modifier = Modifier) {
   )
 }
 
-// The size of a button's leading icon in the Figma
+// The size of a button's leading icon
 private val ICON_SIZE = 24.dp
 
-// The size and line width of the Figma's small spinner
+// The size and line width of the small spinner
 private val SMALL_SPINNER_SIZE = 24.dp
 private val SMALL_SPINNER_STROKE = 2.dp

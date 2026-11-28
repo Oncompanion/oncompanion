@@ -93,6 +93,7 @@ class FakeCareCircleRepository(rejectedWrites: RejectedWrites = RejectedWrites()
   var activeObservations = 0
     private set
 
+  /** Replaces the members of [ownerUid]'s circle, as if they changed on the server. */
   fun setMembers(ownerUid: String, members: List<CareCircleMember>) {
     circles.value = circles.value + (ownerUid to members)
   }

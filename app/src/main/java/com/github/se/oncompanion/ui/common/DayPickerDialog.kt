@@ -28,10 +28,10 @@ import java.time.ZoneOffset
 data class PickerTestTags(val picker: String, val confirm: String, val cancel: String)
 
 /**
- * A dialog to pick a calendar day, starting on [date] (Figma: "Log symptoms – Date picker"): white,
- * with the selected day in the app's date format and no switch to typing the date. [onConfirm] gets
- * the picked day; dismissing or cancelling calls [onDismiss]. The caller closes the dialog in both
- * cases.
+ * A dialog to pick a calendar day, starting on [date] (design: Brand & Theme, "Log symptoms – Date
+ * picker"): white, with the selected day in the app's date format and no switch to typing the date.
+ * [onConfirm] gets the picked day. Dismissing or cancelling calls [onDismiss]. The caller closes
+ * the dialog in both cases.
  *
  * @param latestDate the last day that can be picked (e.g. today, for something that already
  *   happened), or `null` for no limit

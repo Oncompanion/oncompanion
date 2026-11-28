@@ -23,9 +23,9 @@ import org.junit.runner.RunWith
 
 /**
  * Tests that firestore.rules let a caregiver add an appointment to a patient's planning only when
- * the patient shares Planning and lets them add (US-41), signed with their own uid, and edit or
- * delete one only when the patient also lets them edit and delete there (US-46), signing their
- * edit. alice is the patient, carol her caregiver, dave a stranger.
+ * the patient shares Planning and lets them add, signed with their own uid, and edit or delete one
+ * only when the patient also lets them edit and delete there, signing their edit. alice is the
+ * patient, carol her caregiver, dave a stranger.
  */
 @RunWith(AndroidJUnit4::class)
 class CaregiverAppointmentSecurityRulesTest {

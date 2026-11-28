@@ -40,6 +40,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
+/**
+ * Tests of Planning with its real ViewModel: selecting days and weeks, opening an entry, retrying a
+ * failed read and the bottom bar.
+ */
 @RunWith(RobolectricTestRunner::class)
 class PlanningScreenIntegrationTest {
   @get:Rule val compose = createComposeRule()

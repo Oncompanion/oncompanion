@@ -39,11 +39,10 @@ import kotlinx.coroutines.tasks.await
  * reported to [rejectedWrites], so the user is told; [Prescription.isValid] mirrors the rules so
  * the first shouldn't happen.
  *
- * The reminder times the patient chose (US-32) are kept beside the list, in one map from a
- * medication's ID to its times, so the rules can stop a caregiver from changing them: a caregiver's
- * edit leaves the map as it is. So a medication a caregiver removes keeps its entry until the
- * patient's next save rewrites the map: read the times from the medications returned, never from
- * the map directly.
+ * The reminder times the patient chose are kept beside the list, in one map from a medication's ID
+ * to its times, so the rules can stop a caregiver from changing them: a caregiver's edit leaves the
+ * map as it is. So a medication a caregiver removes keeps its entry until the patient's next save
+ * rewrites the map: read the times from the medications returned, never from the map directly.
  */
 class MedicationRepositoryFirestore(
     private val dbProvider: () -> FirebaseFirestore = SessionAccess::firestore,
@@ -318,7 +317,7 @@ class MedicationRepositoryFirestore(
               addedByName = doc.getString(FIELD_ADDED_BY_NAME),
               editedBy = doc.getString(FIELD_EDITED_BY),
               editedByName = doc.getString(FIELD_EDITED_BY_NAME),
-              // Saved before US-43: the patient's own, so confirmed
+              // Saved before prescriptions recorded who added them: the patient's own, so confirmed
               confirmation =
                   doc.getString(FIELD_CONFIRMATION)?.let(PrescriptionConfirmation::valueOf)
                       ?: PrescriptionConfirmation.CONFIRMED,
@@ -387,7 +386,7 @@ class MedicationRepositoryFirestore(
     const val FIELD_EDITED_BY_NAME = "editedByName"
     /** The medications of the prescription, in the order they were saved. */
     const val FIELD_MEDICATIONS = "medications"
-    /** The reminder times the patient chose, as a list of "HH:mm" by medication ID (US-32). */
+    /** The reminder times the patient chose, as a list of "HH:mm" by medication ID. */
     const val FIELD_REMINDERS = "reminders"
 
     // Fields of each medication of the list

@@ -8,6 +8,10 @@ import java.time.ZoneId
 import org.junit.Assert.*
 import org.junit.Test
 
+/**
+ * Tests of the planning data: date ranges, timed and calendar entries across clock changes, and
+ * what an entry keeps of its source.
+ */
 class PlanningContractTest {
   private val date = LocalDate.of(2026, 10, 2)
   private val zone = ZoneId.of("Europe/Zurich")

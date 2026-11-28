@@ -26,13 +26,14 @@ import kotlinx.coroutines.launch
 /**
  * Selected calendar day, the days loaded around it, and the agenda currently available.
  *
+ * @property selectedDate the day the user picked
  * @property period the days of the chosen view around [selectedDate]; the grids load its range
  * @property listWindow the days the List loads around [selectedDate]: kept while it holds the day,
  *   else rebuilt around it; it only grows ([PlanningViewModel.showEarlier],
  *   [PlanningViewModel.showLater]) and isn't saved, so a restored day gets a new one
  * @property itemsByDay every loaded entry under the day it starts in the display zone, in agenda
  *   order; only days with entries are keys. An entry that goes past midnight is listed on its start
- *   day only: showing it on each day it covers is up to the view that needs it (#555)
+ *   day only: showing it on each day it covers is up to the view that needs it
  * @property untimedItems the selected day's medications, by name
  * @property scheduledItems the selected day's timed entries, by time
  * @property isLoading a read is pending. With [isLoadingMore], the entries of the days that stay
@@ -41,11 +42,13 @@ import kotlinx.coroutines.launch
  * @property readDays the days whose entries [itemsByDay] holds from an answer: a day outside them
  *   isn't read yet, so the List can't say it has nothing planned. Null before any answer, after a
  *   change of account or access, or when a read keeps none of them; a failed read keeps them
+ * @property hasError the last read failed
  * @property pendingJump the List's jump asked by [PlanningViewModel.openInList], until the List
  *   plays it ([PlanningViewModel.jumpShown]); null when there is none or the view left the List
+ * @property today the phone's today, in [PlanningViewModel.zoneId]
  * @property isNotShared in caregiver mode, the patient doesn't share their planning: no entries
  * @property canAdd whether adding an appointment is offered: always in the user's own planning, and
- *   in caregiver mode once the patient's planning shows and they let the caregiver add (US-41)
+ *   in caregiver mode once the patient's planning shows and they let the caregiver add
  */
 data class PlanningUiState(
     val selectedDate: LocalDate,
@@ -116,6 +119,7 @@ data class PlanningListJump(val date: LocalDate, val keys: Set<String>)
  * of days; it loads the window in List and the period in the grids. Presentation and date labels
  * belong to the view.
  *
+ * @property zoneId the time zone the days are shown in
  * @param patientUid in caregiver mode, the patient whose planning is shown; null for the user's own
  */
 class PlanningViewModel(
@@ -175,7 +179,7 @@ class PlanningViewModel(
   fun showLater() = growListWindow(PlanningListWindow::later)
 
   /**
-   * Shows [date] in the List, from a grid (#555, #556), and asks the List, through
+   * Shows [date] in the List, from a grid, and asks the List, through
    * [PlanningUiState.pendingJump], to scroll to it and flash the entries with [keys]. A newer jump
    * replaces one not played yet.
    */

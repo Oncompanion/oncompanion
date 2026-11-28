@@ -55,7 +55,7 @@ data class SignInUiState(
     val next: AfterSignIn? = null,
 )
 
-/** Signs the user in with Google (US-1, US-2). */
+/** Signs the user in with Google. */
 class SignInViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
     private val profileRepository: UserProfileRepository = UserProfileRepositoryProvider.repository,

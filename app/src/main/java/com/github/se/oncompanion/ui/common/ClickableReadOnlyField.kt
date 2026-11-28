@@ -24,7 +24,7 @@ import androidx.compose.ui.semantics.semantics
  * It looks like the other fields of a form but works as a button, also for screen readers.
  *
  * @param onClickLabel what tapping does, read by screen readers (e.g. "Pick a date")
- * @param isCheck the value was drafted by the app and the user should check it (Figma: Check)
+ * @param isCheck the value was drafted by the app and the user should check it
  */
 @Composable
 fun ClickableReadOnlyField(

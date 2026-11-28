@@ -284,13 +284,13 @@ private fun doseButtonLabel(medication: TodayMedication): String {
   }
 }
 
-/** From this font scale, the bar and the count go under the frequency chip (Figma M3, 200%). */
+/** From this font scale, the bar and the count go under the frequency chip. */
 private const val LARGE_TEXT_SCALE = 1.5f
 
-/** The Figma's dose segments: 6 dp high, fully rounded. */
+/** The dose segments: 6 dp high, fully rounded. */
 private val SEGMENT_HEIGHT = 6.dp
 
-/** The dose button's 48 dp touch target, around the Figma's 36 dp disc and 20 dp icon. */
+/** The dose button's 48 dp touch target, around the 36 dp disc and 20 dp icon. */
 private val DOSE_BUTTON_SIZE = 48.dp
 private val DOSE_DISC_SIZE = 36.dp
 private val DOSE_ICON_SIZE = 20.dp
@@ -298,5 +298,5 @@ private val DOSE_ICON_SIZE = 20.dp
 /** The outline of the "+" disc. */
 private val DOSE_DISC_BORDER = 1.5.dp
 
-/** The Figma's frequency chip: 14 dp corners. */
+/** The frequency chip: 14 dp corners. */
 private val CHIP_SHAPE = RoundedCornerShape(14.dp)

@@ -41,9 +41,9 @@ import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
 
 /**
- * Scanning a prescription through the app's navigation (US-10, #64), from the prescriptions list to
- * the saved prescription, with a fake camera and a fake text recognizer that reads the fictional
- * test sheets as ML Kit read them on a phone. Refusing the camera is in AppNavHostTest.
+ * Scanning a prescription through the app's navigation, from the prescriptions list to the saved
+ * prescription, with a fake camera and a fake text recognizer that reads the fictional test sheets
+ * as ML Kit read them on a phone. Refusing the camera is in AppNavHostTest.
  */
 @RunWith(AndroidJUnit4::class)
 class ScanFlowTest {

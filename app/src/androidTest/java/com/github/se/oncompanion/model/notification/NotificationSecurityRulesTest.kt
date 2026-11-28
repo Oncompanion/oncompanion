@@ -24,9 +24,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Tests firestore.rules for /users/{uid}/notifications/{id} (US-50) through the client SDK: the
- * owner reads theirs and marks them seen, nothing else, and nobody deletes one (Firestore's TTL
- * does). Who may create one is in [CaregiverNotificationSecurityRulesTest].
+ * Tests firestore.rules for /users/{uid}/notifications/{id} through the client SDK: the owner reads
+ * theirs and marks them seen, nothing else, and nobody deletes one (Firestore's TTL does). Who may
+ * create one is in [CaregiverNotificationSecurityRulesTest].
  */
 @RunWith(AndroidJUnit4::class)
 class NotificationSecurityRulesTest {
