@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Co-authored-by: Codex <noreply@openai.com> -->
 <!-- Co-authored-by: ChatGPT <noreply@openai.com> -->
+<!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Reminder delivery; permission request UI follows separately in #452. -->
+    <!-- Reminder delivery -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <!-- Sign-in checks for a connection before opening Google's dialog -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Scanning a prescription (US-10). Not required: phones without a camera can still enter
+    <!-- Scanning a prescription. Not required: phones without a camera can still enter
          prescriptions manually -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature
         android:name="android.hardware.camera.any"
         android:required="false" />
-    <!-- Logging a symptom by voice (US-44). Not required: symptoms can always be typed -->
+    <!-- Logging a symptom by voice. Not required: symptoms can always be typed -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-feature
         android:name="android.hardware.microphone"
