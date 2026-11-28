@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
@@ -909,11 +910,17 @@ class CaregiverOverviewScreenTest {
       )
 
   @Test
-  fun whoseCare_annesNewEntry_putsANewLineInTheSheet() {
+  fun whoseCare_annesNewEntry_putsADotOnTheButton_andANewLineInTheSheet() {
     lastOpened.markOpened("caregiver", "p-anne", morningInstant.minusSeconds(2 * 3600))
     logged("p-anne", "anne-1", minutesAgo = 60)
     showAlexsOverview(annesSections = setOf(PLANNING, SYMPTOMS))
 
+    compose.waitUntil(5_000) {
+      compose.onAllNodesWithTag(C.Tag.overview_whose_care_dot).fetchSemanticsNodes().isNotEmpty()
+    }
+    compose
+        .onNodeWithTag(C.Tag.overview_whose_care)
+        .assertContentDescriptionEquals("Choose whose care to follow, something new")
     openWhoseCare()
     compose
         .onNodeWithTag(C.Tag.whoseCareNewDot("p-anne"), useUnmergedTree = true)
@@ -932,9 +939,9 @@ class CaregiverOverviewScreenTest {
     showAlexsOverview(alex)
     compose.waitForIdle()
 
-    // Seen while shown: remembered, and not new
+    // Seen while shown: remembered, and nothing new on the button
     assertEquals(morningInstant, runBlocking { lastOpened.observe("caregiver").first() }["patient"])
-    assertEquals(false, whoseCareViewModel.uiState.value.news["patient"]?.isNew)
+    compose.onNodeWithTag(C.Tag.overview_whose_care_dot).assertDoesNotExist()
 
     compose.runOnUiThread { compose.activity.setContent {} }
     compose.waitForIdle()

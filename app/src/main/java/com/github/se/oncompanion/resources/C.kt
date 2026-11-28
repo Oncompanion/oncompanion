@@ -510,6 +510,10 @@ object C {
     /** The dot after [uid]'s name when they logged something the caregiver hasn't seen. */
     fun whoseCareNewDot(uid: String) = "whose_care_new_dot_$uid"
 
+    // The caregiver header's "Whose care?" button when something is new
+    const val overview_whose_care_dot = "overview_whose_care_dot"
+    const val overview_whose_care_glow = "overview_whose_care_glow"
+
     const val removed_from_circle_snackbar = "removed_from_circle_snackbar"
 
     // Caregiver mode: a section the patient doesn't share

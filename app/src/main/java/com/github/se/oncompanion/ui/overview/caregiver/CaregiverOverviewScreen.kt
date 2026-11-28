@@ -34,7 +34,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.carecircle.ChosenPatient
 import com.github.se.oncompanion.ui.carecircle.WhoseCareSheet
@@ -58,7 +57,8 @@ import com.github.se.oncompanion.ui.theme.lakeColors
  * @param patient the patient the caregiver follows
  * @param onOpenAppointment opens the appointment in Next up
  * @param onOpenEvent opens the event in Next up
- * @param whoseCare what the three-people button in the header opens: "Whose care?", as a sheet
+ * @param whoseCare what the three-people button in the header opens: "Whose care?", as a sheet; its
+ *   ViewModel also says whether someone logged something new, for the button's dot
  * @param bottomBar what the bottom bar shows: a caregiver's has no Prescriptions tab
  */
 @Composable
@@ -73,6 +73,7 @@ fun CaregiverOverviewScreen(
     bottomBar: BottomBarUiState = BottomBarUiState(caregiverMode = true),
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val whoseCareState by whoseCare.viewModel.uiState.collectAsStateWithLifecycle()
   // Kept open across a rotation, as the patient's sheets
   var isWhoseCareOpen by rememberSaveable { mutableStateOf(false) }
   // Keeps the date, the greeting and Next up current while the Overview is shown
@@ -88,6 +89,7 @@ fun CaregiverOverviewScreen(
   CaregiverOverviewContent(
       uiState = uiState,
       patientName = patient.firstName,
+      newsKey = whoseCareState.newsKey,
       actions =
           CaregiverOverviewActions(
               onOpenPlanning = {
@@ -144,6 +146,9 @@ data class CaregiverOverviewActions(
 /**
  * Stateless content of the caregiver's Overview, so each state can be tested without a ViewModel.
  * Everything scrolls together, so a large font or a phone held sideways never hides the day.
+ *
+ * @param newsKey which entries of the people followed are new, for the header button's dot and
+ *   glow; `null` when none is
  */
 @Composable
 fun CaregiverOverviewContent(
@@ -151,6 +156,7 @@ fun CaregiverOverviewContent(
     patientName: String,
     actions: CaregiverOverviewActions,
     modifier: Modifier = Modifier,
+    newsKey: String? = null,
     bottomBar: @Composable () -> Unit = {},
 ) {
   Scaffold(
@@ -170,7 +176,7 @@ fun CaregiverOverviewContent(
     ) {
       Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         PaperLakeHeader(uiState.now.toLocalTime(), Modifier.testTag(C.Tag.overview_header)) {
-          CaregiverHeader(uiState, actions)
+          CaregiverHeader(uiState, newsKey, actions)
         }
         CaregiverDay(uiState, patientName, actions)
       }
@@ -182,7 +188,11 @@ fun CaregiverOverviewContent(
 
 /** "Good morning, Marc", today's date, "Whose care?" and the profile, on the sky of the header. */
 @Composable
-private fun CaregiverHeader(uiState: CaregiverOverviewUiState, actions: CaregiverOverviewActions) {
+private fun CaregiverHeader(
+    uiState: CaregiverOverviewUiState,
+    newsKey: String?,
+    actions: CaregiverOverviewActions,
+) {
   val titleStyle =
       if (isPaperLakeHeaderBand()) MaterialTheme.typography.headlineMedium
       else MaterialTheme.typography.headlineLarge
@@ -199,16 +209,7 @@ private fun CaregiverHeader(uiState: CaregiverOverviewUiState, actions: Caregive
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
       Box(Modifier.weight(1f)) { Greeting(uiState.firstName, uiState.now, titleStyle) }
-      IconButton(
-          onClick = actions.onSwitchPatient,
-          // The same tag as the old caregiver title that opened "Whose care?"
-          modifier = Modifier.testTag(C.Tag.overview_whose_care),
-      ) {
-        Icon(
-            painterResource(R.drawable.ic_care_circle),
-            contentDescription = stringResource(R.string.overview_switch_patient),
-        )
-      }
+      WhoseCareButton(newsKey, onClick = actions.onSwitchPatient)
       val profile = OverviewShortcut.PROFILE
       IconButton(onClick = actions.onOpenProfile, modifier = Modifier.testTag(profile.testTag)) {
         Icon(painterResource(profile.icon), contentDescription = stringResource(profile.label))

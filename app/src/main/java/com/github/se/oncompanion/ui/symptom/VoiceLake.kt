@@ -2,7 +2,6 @@
 
 package com.github.se.oncompanion.ui.symptom
 
-import android.provider.Settings
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -28,13 +27,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.R
+import com.github.se.oncompanion.ui.common.animationsEnabled
 import com.github.se.oncompanion.ui.common.horizonAt
 import com.github.se.oncompanion.ui.theme.lakeColors
 import java.time.LocalTime
@@ -207,13 +206,4 @@ private fun breathing(): Float {
           label = "breath",
       )
   return breath
-}
-
-/** Whether the system's Remove animations setting is off, so the lake may move. */
-@Composable
-private fun animationsEnabled(): Boolean {
-  val resolver = LocalContext.current.contentResolver
-  return remember(resolver) {
-    Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f
-  }
 }
