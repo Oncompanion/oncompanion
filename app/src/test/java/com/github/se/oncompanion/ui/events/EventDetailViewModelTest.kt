@@ -1,3 +1,4 @@
+// Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
@@ -726,6 +727,30 @@ class EventDetailViewModelTest {
       assertEquals(expected, registrations.registration("patient", "yoga"))
       assertNull(viewModel.uiState.value.addedByName)
     }
+  }
+
+  /** Regranting add access does not revive a confirmation still waiting for a name. */
+  @Test
+  fun caregiverConfirmationRequiresFreshTapAfterRegrant() {
+    val events = CarePermission.EVENTS
+    val patient = FollowedPatient(events, canAdd = setOf(events))
+    val counting = CountingRegistrations(registrations)
+    val slowProfiles = SlowProfiles(patient.profiles)
+    val viewModel =
+        caregiverViewModel(patient, registrationRepository = counting, profiles = slowProfiles)
+
+    viewModel.confirmRegistration()
+    patient.shares(events)
+    ShadowLooper.idleMainLooper()
+    patient.shares(events, canAdd = setOf(events))
+    ShadowLooper.idleMainLooper()
+    slowProfiles.release.complete(Unit)
+    ShadowLooper.idleMainLooper()
+
+    assertEquals(0, counting.confirms)
+    viewModel.confirmRegistration()
+    ShadowLooper.idleMainLooper()
+    assertEquals(1, counting.confirms)
   }
 
   @Test

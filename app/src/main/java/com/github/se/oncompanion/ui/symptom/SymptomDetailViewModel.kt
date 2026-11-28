@@ -1,3 +1,4 @@
+// Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -5,6 +6,7 @@ package com.github.se.oncompanion.ui.symptom
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.oncompanion.domain.carecircle.CareSection
+import com.github.se.oncompanion.domain.carecircle.CaregiverEditSession
 import com.github.se.oncompanion.domain.carecircle.ObserveCareSection
 import com.github.se.oncompanion.domain.carecircle.ResolveCareCircleAccess
 import com.github.se.oncompanion.domain.carecircle.ResolveSectionAccess
@@ -88,6 +90,7 @@ class SymptomDetailViewModel(
   private val _uiState = MutableStateFlow(SymptomDetailUiState())
   val uiState: StateFlow<SymptomDetailUiState> = _uiState.asStateFlow()
 
+  private val editAccess = CaregiverEditSession()
   private var observation: Job? = null
 
   private val deletion =
@@ -112,6 +115,7 @@ class SymptomDetailViewModel(
   /** Observes the symptom in place of the current observation, keeping what is shown. */
   private fun observe() {
     observation?.cancel()
+    editAccess.invalidate()
     observation = viewModelScope.launch {
       observeSection(CarePermission.SYMPTOMS, patientUid) { ownerUid ->
             combine(
@@ -120,7 +124,17 @@ class SymptomDetailViewModel(
                 ::Pair,
             )
           }
-          .collect { section -> _uiState.update { it.showing(section) } }
+          .collect { section ->
+            val actor = if (patientUid == null) null else authRepository.signedInUid(TAG)
+            val allowed = section is CareSection.Shown && section.canEditEntries
+            if (actor != null && allowed) editAccess.grant(actor) else editAccess.invalidate()
+            _uiState.update { state ->
+              val shown = state.showing(section)
+              if (patientUid != null && !allowed)
+                  shown.copy(canEdit = false, delete = DeletePhase.IDLE)
+              else shown
+            }
+          }
     }
   }
 
@@ -204,13 +218,22 @@ class SymptomDetailViewModel(
    * once it is deleted on the device, also offline: the journal no longer shows it and the server
    * deletes it when there is a connection.
    */
-  fun confirmDelete() =
-      deletion.confirm(
-          signedInUid = { authRepository.signedInUid(TAG) },
-          stopObserving = { observation?.cancel() },
-          delete = { uid -> symptomRepository.deleteSymptom(patientUid ?: uid, symptomId) },
-          onFailure = { observe() },
-      )
+  fun confirmDelete() {
+    val actor = if (patientUid == null) null else authRepository.signedInUid(TAG)
+    val attempt = editAccess.generation
+    deletion.confirm(
+        signedInUid = { authRepository.signedInUid(TAG) },
+        stopObserving = { if (patientUid == null) observation?.cancel() },
+        delete = { uid -> symptomRepository.deleteSymptom(patientUid ?: uid, symptomId) },
+        onFailure = { if (patientUid == null) observe() },
+        isCurrent = {
+          patientUid == null ||
+              (actor != null &&
+                  authRepository.currentUser?.uid == actor &&
+                  editAccess.permits(actor, attempt))
+        },
+    )
+  }
 
   private companion object {
     const val TAG = "SymptomDetailViewModel"

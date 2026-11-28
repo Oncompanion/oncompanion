@@ -1,3 +1,4 @@
+// Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.common
@@ -75,6 +76,7 @@ class DeleteConfirmation<S : HasDeletePhase>(
    * @param stopObserving stops reading the item first, or it would show as missing before the
    *   screen closes
    * @param delete deletes the item of the given user
+   * @param isCurrent whether the pending deletion still belongs to the active permission grant
    * @param onFailure resumes reading the item of the given user after a failed deletion
    */
   fun confirm(
@@ -82,6 +84,7 @@ class DeleteConfirmation<S : HasDeletePhase>(
       stopObserving: () -> Unit,
       delete: suspend (uid: String) -> Unit,
       onFailure: (uid: String) -> Unit,
+      isCurrent: () -> Boolean = { true },
   ) {
     val state = uiState.value
     if (!state.delete.isAsking || !state.canDelete) return
@@ -94,12 +97,15 @@ class DeleteConfirmation<S : HasDeletePhase>(
     uiState.update { withDelete(it, DeletePhase.DELETING) }
     scope.launch {
       try {
+        if (!isCurrent()) return@launch
         delete(uid)
+        if (!isCurrent()) return@launch
         uiState.update { withDelete(it, DeletePhase.DELETED) }
       } catch (e: CancellationException) {
         // Not a failure: the screen was left, the deletion stops with it
         throw e
       } catch (e: Exception) {
+        if (!isCurrent()) return@launch
         Log.e(tag, "Failed to delete $item", e)
         uiState.update { withDelete(it, DeletePhase.FAILED) }
         onFailure(uid)

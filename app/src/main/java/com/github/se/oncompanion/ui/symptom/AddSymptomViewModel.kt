@@ -1,3 +1,4 @@
+// Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.symptom
@@ -5,12 +6,17 @@ package com.github.se.oncompanion.ui.symptom
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.oncompanion.domain.carecircle.CareSection
+import com.github.se.oncompanion.domain.carecircle.CaregiverEditSession
 import com.github.se.oncompanion.domain.carecircle.CaregiverName
+import com.github.se.oncompanion.domain.carecircle.ObserveCareSection
+import com.github.se.oncompanion.domain.carecircle.ResolveSectionAccess
 import com.github.se.oncompanion.domain.symptom.SymptomDraft
 import com.github.se.oncompanion.domain.symptom.parseSpokenSymptom
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
 import com.github.se.oncompanion.model.auth.signedInUid
+import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.speech.DeclinedDownloads
 import com.github.se.oncompanion.model.speech.DeclinedDownloadsProvider
 import com.github.se.oncompanion.model.speech.OfflineSpeech
@@ -236,10 +242,17 @@ class AddSymptomViewModel(
     private val symptomName: (SymptomType) -> String,
     private val declinedDownloads: DeclinedDownloads = DeclinedDownloadsProvider.declined,
     speakOnOpen: Boolean = false,
+    resolveSection: ResolveSectionAccess = ResolveSectionAccess(auth = authRepository),
 ) : ViewModel() {
 
   /** The first name a caregiver's symptom is signed with. */
   private val caregiverName = CaregiverName(profileRepository, authRepository)
+
+  private val caregiverEdit = patientUid != null && symptomId != null
+  private val editingActor = if (caregiverEdit) authRepository.signedInUid(TAG) else null
+  private val editAccess = CaregiverEditSession()
+  private val observeSection = ObserveCareSection(resolveSection)
+  private var editObservation: Job? = null
 
   private val canDictate = speechRecognizer.isAvailable()
 
@@ -272,6 +285,10 @@ class AddSymptomViewModel(
    */
   fun load() {
     val id = symptomId ?: return
+    if (caregiverEdit) {
+      observeCaregiverEdit(id)
+      return
+    }
     _uiState.update { it.copy(isLoading = true, hasLoadError = false, isNotFound = false) }
     val uid = authRepository.signedInUid(TAG)
     if (uid == null) {
@@ -297,6 +314,54 @@ class AddSymptomViewModel(
       }
     }
   }
+
+  private fun observeCaregiverEdit(id: String) {
+    editObservation?.cancel()
+    clearCaregiverDraft(loading = true)
+    editObservation = viewModelScope.launch {
+      observeSection(CarePermission.SYMPTOMS, patientUid) { owner ->
+            symptomRepository.observeSymptom(owner, id)
+          }
+          .collect { section ->
+            val actor = editingActor
+            when {
+              actor == null || authRepository.currentUser?.uid != actor ->
+                  clearCaregiverDraft(error = true)
+              section is CareSection.Shown && section.canEditEntries -> {
+                if (!editAccess.permits(actor)) {
+                  val entry = section.data
+                  if (entry == null) clearCaregiverDraft()
+                  else {
+                    editAccess.grant(actor)
+                    _uiState.update { it.filledWith(entry).withFutureCheck() }
+                  }
+                }
+              }
+              section is CareSection.Loading -> clearCaregiverDraft(loading = true)
+              section is CareSection.Failed -> clearCaregiverDraft(error = true)
+              else -> clearCaregiverDraft()
+            }
+          }
+    }
+  }
+
+  // Permission loss clears typed and dictated details and invalidates pending saves.
+  private fun clearCaregiverDraft(loading: Boolean = false, error: Boolean = false) {
+    editAccess.invalidate()
+    cancelVoice()
+    _uiState.value =
+        AddSymptomUiState(
+            now = LocalDateTime.now(clock),
+            isEditing = true,
+            canDictate = canDictate,
+            isLoading = loading,
+            hasLoadError = error,
+            isNotFound = !loading && !error,
+        )
+  }
+
+  private fun canFinishEdit(uid: String, attempt: Int): Boolean =
+      !caregiverEdit || (authRepository.currentUser?.uid == uid && editAccess.permits(uid, attempt))
 
   /** The form showing [entry], the symptom being edited. */
   private fun AddSymptomUiState.filledWith(entry: SymptomEntry): AddSymptomUiState {
@@ -462,6 +527,8 @@ class AddSymptomViewModel(
       _uiState.update { it.copy(error = AddSymptomError.NOT_SIGNED_IN) }
       return
     }
+    val attempt = editAccess.generation
+    if (!canFinishEdit(uid, attempt)) return
     val entry =
         SymptomEntry(
             id = symptomId.orEmpty(),
@@ -475,7 +542,10 @@ class AddSymptomViewModel(
     _uiState.update { it.copy(save = SavePhase.SAVING, error = null) }
     viewModelScope.launch {
       try {
-        if (!store(uid, entry)) {
+        if (!canFinishEdit(uid, attempt)) return@launch
+        val stored = store(uid, entry, attempt)
+        if (!canFinishEdit(uid, attempt)) return@launch
+        if (!stored) {
           _uiState.update {
             it.copy(save = SavePhase.EDITING, error = AddSymptomError.NOT_SIGNED_IN)
           }
@@ -485,6 +555,7 @@ class AddSymptomViewModel(
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
+        if (!canFinishEdit(uid, attempt)) return@launch
         Log.e(TAG, "Failed to save the symptom", e)
         _uiState.update { it.copy(save = SavePhase.EDITING, error = AddSymptomError.SAVE_FAILED) }
       }
@@ -777,7 +848,7 @@ class AddSymptomViewModel(
    * journal, signed with who added or edited it. Returns false, saving nothing, if the account
    * changed while the caregiver's name was read.
    */
-  private suspend fun store(uid: String, entry: SymptomEntry): Boolean {
+  private suspend fun store(uid: String, entry: SymptomEntry, attempt: Int): Boolean {
     val owner = patientUid ?: uid
     val signed =
         if (patientUid == null) entry
@@ -785,7 +856,7 @@ class AddSymptomViewModel(
           val name = caregiverName(uid)
           // Reading the name can take a while: the account may have changed meanwhile
           currentCoroutineContext().ensureActive()
-          if (authRepository.signedInUid(TAG) != uid) return false
+          if (authRepository.signedInUid(TAG) != uid || !canFinishEdit(uid, attempt)) return false
           if (symptomId != null) entry.copy(editedBy = uid, editedByName = name)
           else entry.copy(addedBy = uid, addedByName = name)
         }
