@@ -33,6 +33,8 @@ internal typealias Phrase = List<String>
  *   bit sick", "pas très faim") without changing what it says
  * @property numbers numbers said as words; digits are always understood
  * @property outOf what joins an intensity and its scale ("7 out of 10")
+ * @property rangeJoins what joins the two ends of a range of intensities ("7 or 8"); two numbers in
+ *   a row ("7-8") are one too
  * @property strengthLinks what may come between a symptom and a strength said as a number alone
  *   ("nausea is about 6"); never "at", which says a time ("headache at 6")
  * @property strengthFor what says a strength is for the symptom said after it ("7 out of 10 for the
@@ -43,11 +45,14 @@ internal typealias Phrase = List<String>
  * @property agoBefore what comes before a duration in the past ("il y a 2 heures")
  * @property agoAfter what comes after a duration in the past ("2 hours ago")
  * @property halfHour half an hour, as one phrase
+ * @property andAHalf what adds half an hour to a number of hours ("an hour and a half")
  * @property minuteUnits, hourUnits the units of a duration
  * @property daysAgo days said by name, with how many days ago they are
  * @property otherDays days the parser can't place ("tomorrow", "lundi"): when one is said, the day
  *   and time stay empty rather than default to today
  * @property clockWords what makes a number a time of day ("9 o'clock", "9 heures")
+ * @property clockBefore what must come before a time of day said without "am" or "pm" ("à 9h"),
+ *   where it could also be a duration ("j'ai dormi 4h"); empty where it never could
  * @property morning, afternoon what says whether a time is before or after noon
  */
 internal class SpokenVocabulary(
@@ -66,6 +71,7 @@ internal class SpokenVocabulary(
     fillers: List<String>,
     val numbers: Map<String, Int>,
     outOf: List<String>,
+    rangeJoins: List<String>,
     strengthLinks: List<String>,
     strengthFor: List<String>,
     strengthEnds: List<String>,
@@ -73,11 +79,13 @@ internal class SpokenVocabulary(
     agoBefore: List<String>,
     agoAfter: List<String>,
     halfHour: List<String>,
+    andAHalf: List<String>,
     val minuteUnits: Set<String>,
     val hourUnits: Set<String>,
     daysAgo: Map<String, Long>,
     otherDays: List<String>,
     clockWords: List<String>,
+    clockBefore: List<String>,
     morning: List<String>,
     afternoon: List<String>,
 ) {
@@ -91,12 +99,14 @@ internal class SpokenVocabulary(
   val pronounEndings: List<Phrase> = phrases(pronounEndings)
   val fillers: List<Phrase> = phrases(fillers)
   val outOf: List<Phrase> = phrases(outOf)
+  val rangeJoins: List<Phrase> = phrases(rangeJoins)
   val strengthLinks: List<Phrase> = phrases(strengthLinks)
   val strengthFor: List<Phrase> = phrases(strengthFor)
   val strengthEnds: List<Phrase> = phrases(strengthEnds)
   val agoBefore: List<Phrase> = phrases(agoBefore)
   val agoAfter: List<Phrase> = phrases(agoAfter)
   val halfHour: List<Phrase> = phrases(halfHour)
+  val andAHalf: List<Phrase> = phrases(andAHalf)
   /** Longest first, so "avant-hier" isn't read as "hier". */
   val daysAgo: List<Pair<Phrase, Long>> =
       daysAgo
@@ -104,6 +114,7 @@ internal class SpokenVocabulary(
           .sortedByDescending { it.first.size }
   val otherDays: List<Phrase> = phrases(otherDays)
   val clockWords: List<Phrase> = phrases(clockWords)
+  val clockBefore: List<Phrase> = phrases(clockBefore)
   val morning: List<Phrase> = phrases(morning)
   val afternoon: List<Phrase> = phrases(afternoon)
 
@@ -236,6 +247,8 @@ internal class SpokenVocabulary(
                     "ten" to 10,
                 ),
             outOf = listOf("out of", "on", "over", "/"),
+            // "and" for "between 7 and 8"
+            rangeJoins = listOf("or", "to", "and"),
             strengthLinks =
                 phraseList(
                     """
@@ -260,6 +273,7 @@ internal class SpokenVocabulary(
             agoBefore = emptyList(),
             agoAfter = listOf("ago"),
             halfHour = listOf("half an hour"),
+            andAHalf = listOf("and a half"),
             minuteUnits = setOf("minute", "minutes", "min", "mins"),
             hourUnits = setOf("hour", "hours", "hr", "hrs"),
             daysAgo = mapOf("yesterday" to 1, "day before yesterday" to 2),
@@ -271,6 +285,8 @@ internal class SpokenVocabulary(
                 """
                 ),
             clockWords = listOf("o'clock"),
+            // "o'clock", "am" and "pm" never say a duration
+            clockBefore = emptyList(),
             morning = listOf("am", "in the morning"),
             afternoon = listOf("pm", "in the afternoon", "in the evening", "at night"),
         )
@@ -364,6 +380,8 @@ internal class SpokenVocabulary(
                     "dix" to 10,
                 ),
             outOf = listOf("sur", "/"),
+            // "et" for "entre 7 et 8"
+            rangeJoins = listOf("ou", "à", "et"),
             // "à 6" says a strength, but "à 6 heures" a time: a strength ends what is said of it
             strengthLinks =
                 phraseList(
@@ -389,6 +407,7 @@ internal class SpokenVocabulary(
             agoBefore = listOf("il y a"),
             agoAfter = emptyList(),
             halfHour = listOf("une demi-heure", "une demie heure"),
+            andAHalf = listOf("et demie", "et demi"),
             minuteUnits = setOf("minute", "minutes", "min"),
             hourUnits = setOf("heure", "heures", "h"),
             daysAgo = mapOf("hier" to 1, "avant-hier" to 2),
@@ -400,6 +419,7 @@ internal class SpokenVocabulary(
                 """
                 ),
             clockWords = listOf("h", "heure", "heures"),
+            clockBefore = listOf("à", "vers"),
             morning = listOf("du matin"),
             afternoon = listOf("de l'après-midi", "du soir"),
         )

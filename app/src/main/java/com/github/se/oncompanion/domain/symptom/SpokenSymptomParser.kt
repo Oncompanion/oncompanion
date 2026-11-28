@@ -35,8 +35,9 @@ fun parseSpokenSymptom(transcript: String, locale: Locale, now: ZonedDateTime): 
 
 /**
  * [text] as words to compare with a [SpokenVocabulary]: lowercase, without accents or apostrophes,
- * with "3:30" as "3h30", "p.m." as "pm", and punctuation that ends a clause kept as ",". The
- * recognizer adds punctuation on some phones and not on others, so it is never required.
+ * with "3:30" as "3h30", "p.m." as "pm", a decimal ("7.5", "7,5") as "7d5", which is no number, and
+ * punctuation that ends a clause kept as ",". The recognizer adds punctuation on some phones and
+ * not on others, so it is never required.
  */
 internal fun spokenWords(text: String): List<String> {
   val marked =
@@ -46,6 +47,7 @@ internal fun spokenWords(text: String): List<String> {
           .replace(Regex("\\b([ap])\\.\\s?m\\b\\.?"), "$1m")
           .replace(Regex("(\\d)(am|pm)\\b"), "$1 $2")
           .replace(Regex("(\\d{1,2})[:.](\\d{2})"), "$1h$2")
+          .replace(Regex("(\\d)[.,](\\d)"), "$1d$2")
   return Normalizer.normalize(marked, Normalizer.Form.NFD)
       .replace(Regex("\\p{Mn}+"), "")
       .replace(Regex("[.,;:!?]+"), " , ")
@@ -317,11 +319,17 @@ private class SpokenSymptoms(
    * ("nausea is about 6", "nausée à 6"). Elsewhere a number alone could be a time, a temperature or
    * a count ("headache at 6", "threw up 3 times"), so it is never a strength. "N out of 10" is for
    * the symptoms said shortly before it (see [STRENGTH_REACH]), or for those said after it when it
-   * comes before any symptom or before "for" ("7 out of 10 for the nausea"). Returns how many words
-   * it takes, or 0.
+   * comes before any symptom or before "for" ("7 out of 10 for the nausea"). A range or a half ("7
+   * or 8", "7 and a half") isn't one strength, so none is drafted. Returns how many words it takes,
+   * or 0.
    */
   private fun readStrength(i: Int): Int {
     val value = numberAt(words, i, vocabulary) ?: return 0
+    val notOne = notOneStrengthAt(i)
+    if (notOne > 0) {
+      reach = maxOf(0, reach - notOne)
+      return notOne
+    }
     val outOf = anyAt(words, i + 1, vocabulary.outOf)
     val sinceSymptom = wordsSinceSymptom(i)
     val length =
@@ -342,6 +350,24 @@ private class SpokenSymptoms(
           strengths += SaidStrength(value, group.toList())
     }
     return length
+  }
+
+  /**
+   * How many words a strength that isn't one number takes from the number at [i], with its "out of
+   * 10" if said, or 0: a range ("7 or 8", "7-8") or a half ("7 and a half").
+   */
+  private fun notOneStrengthAt(i: Int): Int {
+    val half = anyAt(words, i + 1, vocabulary.andAHalf)
+    val join = anyAt(words, i + 1, vocabulary.rangeJoins)
+    val end =
+        when {
+          half > 0 -> i + 1 + half
+          numberAt(words, i + 1 + join, vocabulary) != null -> i + 2 + join
+          else -> return 0
+        }
+    val outOf = anyAt(words, end, vocabulary.outOf)
+    val scale = if (outOf > 0 && numberAt(words, end + outOf, vocabulary) == 10) outOf + 1 else 0
+    return end + scale - i
   }
 
   /**
@@ -475,23 +501,44 @@ private class SpokenWhen(
     return length + after
   }
 
-  /** A duration in minutes at [i] ("2 hours", "an hour", "3h", "half an hour"), and its length. */
+  /**
+   * A duration in minutes at [i] ("2 hours", "an hour and a half", "3h", "1h30", "half an hour"),
+   * and its length.
+   */
   private fun durationAt(i: Int): Pair<Long, Int>? {
     val half = anyAt(words, i, vocabulary.halfHour)
     if (half > 0) return 30L to half
-    Regex("(\\d+)h").matchEntire(words.getOrNull(i) ?: return null)?.let {
-      return it.groupValues[1].toLong() * 60 to 1
-    }
-    val count =
-        numberAt(words, i, vocabulary) ?: (if (words[i] in vocabulary.articles) 1 else return null)
-    val unit = words.getOrNull(i + 1)
-    val minutes =
-        when (unit) {
-          in vocabulary.minuteUnits -> count.toLong()
-          in vocabulary.hourUnits -> count * 60L
-          else -> return null
+    val word = words.getOrNull(i) ?: return null
+    val clock = Regex("(\\d+)h(\\d{2})?").matchEntire(word)
+    val (minutes, length) =
+        if (clock != null) {
+          val hours = clock.groupValues[1].toLong()
+          val extra = clock.groupValues[2]
+          when {
+            extra.isEmpty() -> hoursAt(i, hours, 1)
+            extra.toLong() > 59 -> return null
+            else -> hours * 60 + extra.toLong() to 1
+          }
+        } else {
+          val count =
+              numberAt(words, i, vocabulary)
+                  ?: (if (word in vocabulary.articles) 1 else return null)
+          when (words.getOrNull(i + 1)) {
+            in vocabulary.minuteUnits -> count.toLong() to 2
+            in vocabulary.hourUnits -> hoursAt(i, count.toLong(), 2)
+            else -> return null
+          }
         }
-    return minutes.takeIf { it > 0 }?.let { it to 2 }
+    return minutes.takeIf { it > 0 }?.let { it to length }
+  }
+
+  /**
+   * [hours] said in the [length] words from [i], in minutes, with the half hour that may follow
+   * ("2h et demie", "an hour and a half"), and how many words they all take.
+   */
+  private fun hoursAt(i: Int, hours: Long, length: Int): Pair<Long, Int> {
+    val andAHalf = anyAt(words, i + length, vocabulary.andAHalf)
+    return hours * 60 + (if (andAHalf > 0) 30 else 0) to length + andAHalf
   }
 
   /** "yesterday", "avant-hier": how many words it takes, or 0. */
@@ -506,9 +553,10 @@ private class SpokenWhen(
       anyAt(words, i, vocabulary.otherDays).also { if (it > 0) otherDay = true }
 
   /**
-   * A time of day: "15h30", "3:30 pm", "9 o'clock", "8 heures du soir". A number alone isn't one.
-   * Without "am" or "pm", an hour up to 12 could be morning or evening. Returns how many words it
-   * takes, or 0.
+   * A time of day: "15h30", "3:30 pm", "9 o'clock", "à 8 heures du soir". A number alone isn't one,
+   * and neither is one said without [SpokenVocabulary.clockBefore] or "am" or "pm", which could be
+   * a duration ("j'ai dormi 4 heures"). Without "am" or "pm", an hour up to 12 could be morning or
+   * evening. Returns how many words it takes, or 0.
    */
   private fun readClock(i: Int): Int {
     val word = words[i]
@@ -529,6 +577,7 @@ private class SpokenWhen(
     val afternoon = anyAt(words, i + length, vocabulary.afternoon)
     // A number needs "o'clock", "heures", "am" or "pm" to be a time
     if (length == 1 && clock == null && morning + afternoon == 0) return 0
+    if (!saysClock(i) && morning + afternoon == 0) return 0
     if (hour > 23 || minutes > 59) return 0
     length += morning + afternoon
     val hours =
@@ -541,4 +590,9 @@ private class SpokenWhen(
     clockTimes += hours to minutes
     return length
   }
+
+  /** Whether [SpokenVocabulary.clockBefore] is said just before word [i], or isn't needed. */
+  private fun saysClock(i: Int): Boolean =
+      vocabulary.clockBefore.isEmpty() ||
+          vocabulary.clockBefore.any { i >= it.size && matchAt(words, i - it.size, it) == it.size }
 }
