@@ -759,6 +759,42 @@ class CaregiverOverviewScreenTest {
   }
 
   @Test
+  fun whoseCare_slidesDownBeforeShowingAnne() {
+    showAlexsOverview()
+    openWhoseCare()
+    compose.mainClock.autoAdvance = false
+
+    compose.onNodeWithTag(C.Tag.whoseCarePatient("p-anne")).performClick()
+    compose.mainClock.advanceTimeBy(SLIDING_MILLIS)
+    // Still sliding: nothing chosen yet
+    compose.onNodeWithTag(C.Tag.whose_care_sheet).assertExists()
+    assertEquals(emptyList<String>(), whoseCareCalls)
+    compose.mainClock.autoAdvance = true
+    compose.waitForIdle()
+
+    compose.onNodeWithTag(C.Tag.whose_care_sheet).assertDoesNotExist()
+    assertEquals(listOf("choose Anne"), whoseCareCalls)
+  }
+
+  @Test
+  fun whoseCare_phoneTurnedWhileItSlidesDown_staysOpen_withNothingChosen() {
+    val show = showAlexsOverview()
+    openWhoseCare()
+    compose.mainClock.autoAdvance = false
+    compose.onNodeWithTag(C.Tag.whoseCarePatient("p-anne")).performClick()
+    compose.mainClock.advanceTimeBy(SLIDING_MILLIS)
+
+    compose.activityRule.scenario.recreate()
+    compose.runOnUiThread(show)
+    compose.mainClock.autoAdvance = true
+
+    compose.waitUntil(5_000) {
+      compose.onAllNodesWithTag(C.Tag.whose_care_sheet).fetchSemanticsNodes().isNotEmpty()
+    }
+    assertEquals(emptyList<String>(), whoseCareCalls)
+  }
+
+  @Test
   fun whoseCare_alexShownNow_orFollowSomeoneNew_closeIt() {
     showAlexsOverview()
 
@@ -828,3 +864,6 @@ class CaregiverOverviewScreenTest {
     assertEquals(listOf("signed out"), whoseCareCalls)
   }
 }
+
+/** Part of the sheet's slide down: long enough to start it, too short to end it. */
+private const val SLIDING_MILLIS = 50L
