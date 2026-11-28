@@ -6,9 +6,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -16,11 +18,18 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.font.FontWeight
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.oncompanion.model.carecircle.CarePermission
+import com.github.se.oncompanion.model.symptom.SymptomEntry
+import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
+import com.github.se.oncompanion.ui.overview.LatestEntry
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Rule
@@ -41,15 +50,43 @@ class WhoseCareSheetTest {
   private val alex = patient("p-alex", "Alex")
   private val anne = patient("p-anne", "Anne")
 
+  /** The caregiver's day: Saturday 28 November. */
+  private val today = LocalDate.of(2026, 11, 28)
+
+  /** What someone logged: [type] at [strength], felt [daysAgo] days before today at [time]. */
+  private fun news(
+      type: SymptomType,
+      strength: Int,
+      time: LocalTime,
+      daysAgo: Long = 0,
+      isNew: Boolean = false,
+  ) =
+      PatientNews(
+          LatestEntry(
+              SymptomEntry(types = listOf(type), occurredAt = Instant.EPOCH),
+              today.minusDays(daysAgo).atTime(time),
+              listOf(type to strength),
+              overall = null,
+          ),
+          isNew,
+      )
+
   /**
    * Alex, shown now, and Anne (design: M3, "Overview · Caregiver · Whose care? · Whose care?
    * sheet"); then Jean and Léa (design: M3, "Overview · Caregiver · Whose care? · Four people").
+   * Anne logged something new, Jean something seen, Alex and Léa nothing.
    */
   private val fourPeople =
       WhoseCareUiState(
           patients = listOf(alex, anne, patient("p-jean", "Jean"), patient("p-lea", "Léa")),
           isLoading = false,
           isConfirmed = true,
+          news =
+              mapOf(
+                  "p-anne" to news(SymptomType.NAUSEA, 3, LocalTime.of(9, 15), isNew = true),
+                  "p-jean" to news(SymptomType.FATIGUE, 4, LocalTime.of(20, 15), daysAgo = 1),
+              ),
+          today = today,
       )
 
   /** What the sheet was asked to do, in order. */
@@ -140,6 +177,47 @@ class WhoseCareSheetTest {
   }
 
   @Test
+  fun eachLine_saysWhatThePersonLoggedLast_andWhen_newInBoldWithADot() {
+    val cases =
+        listOf(
+            // uid, what they logged, the line, whether it is new
+            Triple("p-anne", fourPeople.news.getValue("p-anne"), "New · Nausea\u00A03/10 · 09:15"),
+            Triple(
+                "p-jean",
+                fourPeople.news.getValue("p-jean"),
+                "Fatigue\u00A04/10 · Yesterday at 20:15",
+            ),
+            Triple(
+                "p-lea",
+                news(SymptomType.PAIN, 6, LocalTime.of(7, 5), daysAgo = 3),
+                "Pain\u00A06/10 · Wed 25 Nov at 07:05",
+            ),
+        )
+    show(fourPeople.copy(news = cases.associate { (uid, news, _) -> uid to news }))
+
+    for ((uid, news, line) in cases) {
+      compose.onNodeWithTag(C.Tag.whoseCareNews(uid), useUnmergedTree = true).assertTextEquals(line)
+      val dot = compose.onNodeWithTag(C.Tag.whoseCareNewDot(uid), useUnmergedTree = true)
+      if (news.isNew) dot.assertIsDisplayed() else dot.assertDoesNotExist()
+      val weight = textLayout(C.Tag.whoseCareNews(uid)).layoutInput.style.fontWeight
+      assertEquals(line, if (news.isNew) FontWeight.SemiBold else FontWeight.Normal, weight)
+    }
+    // Nothing logged, or nothing shared: only the name
+    compose
+        .onNodeWithTag(C.Tag.whoseCareNews(alex.uid), useUnmergedTree = true)
+        .assertDoesNotExist()
+  }
+
+  @Test
+  @Config(qualifiers = "+fr")
+  fun inFrench_aNewLineSaysNouveau() {
+    show()
+    compose
+        .onNodeWithTag(C.Tag.whoseCareNews(anne.uid), useUnmergedTree = true)
+        .assertTextEquals("Nouveau · Nausées 3/10 · 09:15")
+  }
+
+  @Test
   @GraphicsMode(GraphicsMode.Mode.NATIVE)
   @Config(qualifiers = "w360dp-h640dp", fontScale = 2f)
   fun atLargeFont_everyRowCanBeReached_whole() {
@@ -162,17 +240,27 @@ class WhoseCareSheetTest {
   private fun assertEveryRowFullyVisible() {
     (fourPeople.patients.map { C.Tag.whoseCarePatient(it.uid) } + C.Tag.whose_care_follow_new)
         .forEach { compose.onNodeWithTag(it).performScrollTo().assertIsFullyVisible() }
-    listOf("Léa", "Follow someone new", "Enter the invite code they shared").forEach { text ->
-      val layouts = mutableListOf<TextLayoutResult>()
-      compose.onNodeWithText(text, useUnmergedTree = true).performSemanticsAction(
-          SemanticsActions.GetTextLayoutResult
-      ) {
-        it(layouts)
-      }
-      // Every character on a line that shows, and every line inside the text's own height
-      val layout = layouts.single()
-      val shown = layout.getLineEnd(layout.lineCount - 1, visibleEnd = true)
-      assertFalse("\"$text\" is cut", layout.didOverflowHeight || shown < text.length)
-    }
+    listOf(
+            "Léa",
+            "Follow someone new",
+            "Enter the invite code they shared",
+            "Fatigue\u00A04/10 · Yesterday at 20:15",
+        )
+        .forEach { text ->
+          val layout = textLayout(compose.onNodeWithText(text, useUnmergedTree = true))
+          // Every character on a line that shows, and every line inside the text's own height
+          val shown = layout.getLineEnd(layout.lineCount - 1, visibleEnd = true)
+          assertFalse("\"$text\" is cut", layout.didOverflowHeight || shown < text.length)
+        }
+  }
+
+  private fun textLayout(tag: String) =
+      textLayout(compose.onNodeWithTag(tag, useUnmergedTree = true))
+
+  /** How [node]'s text was laid out. */
+  private fun textLayout(node: SemanticsNodeInteraction): TextLayoutResult {
+    val layouts = mutableListOf<TextLayoutResult>()
+    node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+    return layouts.single()
   }
 }

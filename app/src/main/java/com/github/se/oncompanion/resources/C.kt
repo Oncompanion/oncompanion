@@ -504,6 +504,12 @@ object C {
     const val whose_care_sheet = "whose_care_sheet"
     const val whose_care_follow_new = "whose_care_follow_new"
 
+    /** What [uid] logged last, under their name in the sheet. */
+    fun whoseCareNews(uid: String) = "whose_care_news_$uid"
+
+    /** The dot after [uid]'s name when they logged something the caregiver hasn't seen. */
+    fun whoseCareNewDot(uid: String) = "whose_care_new_dot_$uid"
+
     const val removed_from_circle_snackbar = "removed_from_circle_snackbar"
 
     // Caregiver mode: a section the patient doesn't share

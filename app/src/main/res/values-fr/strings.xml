@@ -808,6 +808,8 @@
     <string name="whose_care_unconfirmed_title">Vos cercles de soins apparaîtront après la synchronisation de ce téléphone.</string>
     <string name="whose_care_follow_new">Suivre une autre personne</string>
     <string name="whose_care_follow_new_hint">Saisissez le code d’invitation qu’elle vous a transmis</string>
+    <string name="whose_care_news">%1$s · %2$s</string>
+    <string name="whose_care_news_new">Nouveau · %1$s · %2$s</string>
     <string name="removed_from_circle">Vous ne faites plus partie du cercle de soins de %1$s.</string>
     <string name="removed_from_circle_unnamed">Vous ne faites plus partie de ce cercle de soins.</string>
     <string name="not_shared_title">%1$s ne partage pas cette rubrique avec vous\u00A0: %2$s</string>
