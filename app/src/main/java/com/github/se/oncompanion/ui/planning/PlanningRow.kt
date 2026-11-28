@@ -140,8 +140,8 @@ private fun RowCard(
         )
         if (item.source is PlanningSource.Medication) MedicationLine(item.frequency)
         else StatusLine(status, item.subtitle, timeFormatter, zoneId)
-        // An entry a caregiver added says who did (US-41), and a prescription whether the patient
-        // confirmed it (US-43)
+        // An entry a caregiver added says who did, and a prescription whether the patient
+        // confirmed it
         item.addedByName?.let { AddedBy(it, isConfirmed = item.isConfirmed) }
       }
       if (onClick != null) {
