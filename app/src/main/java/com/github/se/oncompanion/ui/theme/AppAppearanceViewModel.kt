@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
 
 package com.github.se.oncompanion.ui.theme
@@ -11,10 +12,20 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-/** The device appearance is unresolved only until the first local read completes. */
-data class AppAppearanceUiState(val appearance: AppearancePreference? = null)
+/**
+ * The device display preferences exposed to the app root.
+ *
+ * @property appearance the saved appearance, or null until startup resolves it
+ * @property dateFormat the saved choice for displaying calendar days
+ * @property timeFormat the saved choice for displaying times of day
+ */
+data class AppAppearanceUiState(
+    val appearance: AppearancePreference? = null,
+    val dateFormat: DateFormatPreference = DateFormatPreference.FOLLOW_DEVICE,
+    val timeFormat: TimeFormatPreference = TimeFormatPreference.FOLLOW_DEVICE,
+)
 
-/** Restores the device appearance before startup and observes changes across account sessions. */
+/** Restores device display settings before startup and observes changes across account sessions. */
 class AppAppearanceViewModel(
     private val repository: SettingsRepository = SettingsRepositoryProvider.repository
 ) : ViewModel() {
@@ -39,7 +50,9 @@ class AppAppearanceViewModel(
             if (cause is CancellationException) throw cause
             useStartupFallback()
           }
-          .collect { state.value = AppAppearanceUiState(it.appearance) }
+          .collect {
+            state.value = AppAppearanceUiState(it.appearance, it.dateFormat, it.timeFormat)
+          }
     }
   }
 

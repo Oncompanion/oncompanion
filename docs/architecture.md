@@ -767,6 +767,8 @@ choice screens. The repository saves each preference under its own key in the ex
 DataStore. Missing or unknown preferences default to Follow device independently. Confirmed
 selections update when the write succeeds. A failed write leaves the last saved choices visible.
 
-The preview uses one fixed example appointment. Follow device uses the phone's date ordering and
-12- or 24-hour setting. Textual month names use the app locale. Applying these preferences to
-Planning, Overview, forms, pickers, and detail screens is separate work.
+The preview uses one fixed example appointment and shares its formatting with the app root.
+`AppAppearanceViewModel` observes the date and time choices alongside appearance.
+`AppAppearanceRoot` supplies the resolved formatter to Compose screens and shared pickers.
+Follow device uses the phone's date order and rereads the system clock mode on resume.
+Textual month names and AM/PM labels use the app locale.

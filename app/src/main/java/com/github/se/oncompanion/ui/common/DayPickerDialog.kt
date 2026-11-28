@@ -1,3 +1,4 @@
+// Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.ui.common
@@ -28,10 +29,9 @@ data class PickerTestTags(val picker: String, val confirm: String, val cancel: S
 
 /**
  * A dialog to pick a calendar day, starting on [date] (design: Brand & Theme, "Log symptoms – Date
- * picker"): white, with the selected day as its headline, and no switch to typing the date. Like
- * Material's calendar below it, the headline follows the phone's language. [onConfirm] gets the
- * picked day; dismissing or cancelling calls [onDismiss]. The caller closes the dialog in both
- * cases.
+ * picker"): white, with the selected day in the app's date format and no switch to typing the date.
+ * [onConfirm] gets the picked day. Dismissing or cancelling calls [onDismiss]. The caller closes
+ * the dialog in both cases.
  *
  * @param latestDate the last day that can be picked (e.g. today, for something that already
  *   happened), or `null` for no limit
@@ -52,8 +52,6 @@ fun DayPickerDialog(
           initialSelectedDateMillis = date.toPickerMillis(),
           selectableDates = latestDate?.let(::selectableUpTo) ?: DatePickerDefaults.AllDates,
       )
-  // The selected day above the calendar, e.g. "Fri, 30 Oct 2026" on a British phone
-  val headlineFormatter = rememberDayFormatter(HEADLINE_SKELETON)
   val colors =
       DatePickerDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest)
   DatePickerDialog(
@@ -94,8 +92,11 @@ fun DayPickerDialog(
           )
         },
         headline = {
+          val selectedDay = (pickerState.selectedDateMillis ?: date.toPickerMillis()).toPickerDate()
+          val formats = LocalDateTimeFormats.current
           Text(
-              (pickerState.selectedDateMillis?.toPickerDate() ?: date).format(headlineFormatter),
+              formats?.date(selectedDay)
+                  ?: selectedDay.format(rememberDayFormatter(HEADLINE_SKELETON)),
               style = MaterialTheme.typography.headlineSmall,
               color = MaterialTheme.colorScheme.onSurface,
               modifier =
