@@ -10,6 +10,7 @@ import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+/** Tests date order, clock modes and app-language labels in [DateTimeFormats]. */
 class DateTimeFormatterTest {
   @Test
   fun dateChoicesKeepTheirOrderAndLeadingZeros() {

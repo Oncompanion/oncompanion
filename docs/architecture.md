@@ -771,4 +771,4 @@ The preview uses one fixed example appointment and shares its formatting with th
 `AppAppearanceViewModel` observes the date and time choices alongside appearance.
 `AppAppearanceRoot` supplies the resolved formatter to Compose screens and shared pickers.
 Follow device uses the phone's date order and rereads the system clock mode on resume.
-Textual month names and AM/PM labels use the app locale. The feature screens adopt the formatter in follow-up changes.
+Textual month names and AM/PM labels use the app locale.
