@@ -4,7 +4,7 @@ package com.github.se.oncompanion.model.carecircle
 
 import java.time.Instant
 
-/** Someone in the patient's care circle who already has the email being invited (#257). */
+/** Someone in the patient's care circle who already has the email being invited. */
 sealed interface EmailAlreadyInCircle {
   /** Their first name, as the patient typed it. */
   val firstName: String
@@ -33,8 +33,8 @@ sealed interface EmailAlreadyInCircle {
  * A [member][EmailAlreadyInCircle.Member] comes first, then a
  * [working invitation][EmailAlreadyInCircle.PendingInvite], then an
  * [expired one][EmailAlreadyInCircle.ExpiredInvite]. Among several invitations of the same kind
- * (the same person invited twice before #257), the newest one: an invitation not on the server yet
- * has no creation time and is the newest.
+ * (the same person invited twice before the app checked for it), the newest one: an invitation not
+ * on the server yet has no creation time and is the newest.
  *
  * @param invites the patient's unused invitations
  * @param now tells whether an invitation has expired

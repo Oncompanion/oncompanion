@@ -34,7 +34,7 @@ import com.github.se.oncompanion.ui.theme.lakeColors
 
 /**
  * The patient's check-in: its tiles, or, once they saved an entry today, what they saved until the
- * day ends (Figma M3: After saving).
+ * day ends (design: M3, "Check-in · After saving").
  */
 @Composable
 internal fun PatientCheckIn(
@@ -63,7 +63,7 @@ internal fun PatientCheckIn(
 }
 
 /**
- * The check-in once the patient saved how they feel today (Figma M3: Check-in · After saving):
+ * The check-in once the patient saved how they feel today (design: M3, "Check-in · After saving"):
  * "Saved to your journal" and the entry, e.g. "09:30 Nausea 7/10", which they can undo or edit,
  * then "Log another symptom or note" and "Speak how you feel". It stays until the day ends, the
  * entry showing the last one saved.
@@ -117,7 +117,7 @@ internal fun SavedCheckIn(
           icon = painterResource(R.drawable.ic_add),
           modifier = Modifier.fillMaxWidth().testTag(C.Tag.overview_saved_log_another),
       )
-      // Under "Log another", as under the tiles (Figma: Speak instead · After saving)
+      // Under "Log another", as under the tiles (design: M3, "Speak instead · After saving")
       if (onSpeak != null) SpeakButton(onSpeak)
     }
   }
@@ -188,7 +188,7 @@ private fun RowScope.EntryText(saved: LatestEntry) {
   )
 }
 
-/** Undo and Edit as the Figma's short text actions, so the summary keeps most of the row. */
+/** Undo and Edit as short text actions, so the summary keeps most of the row. */
 @Composable
 private fun EntryActions(onUndo: () -> Unit, onEdit: () -> Unit) {
   val color = MaterialTheme.lakeColors.primaryText
@@ -206,7 +206,7 @@ private fun EntryActions(onUndo: () -> Unit, onEdit: () -> Unit) {
   )
 }
 
-/** The Figma's entry row: 12 dp corners. */
+/** The entry row: 12 dp corners. */
 private val ENTRY_CORNER = 12.dp
 
 /** From this font scale (150%), the card's rows stack. */

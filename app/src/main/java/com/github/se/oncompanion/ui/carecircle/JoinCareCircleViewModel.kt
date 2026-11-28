@@ -59,8 +59,8 @@ data class JoinCareCircleUiState(
 }
 
 /**
- * Lets a caregiver join a patient's care circle with the invite code the patient shared (US-15). A
- * wrong invite code keeps the caregiver on the screen to fix it.
+ * Lets a caregiver join a patient's care circle with the invite code the patient shared. A wrong
+ * invite code keeps the caregiver on the screen to fix it.
  */
 class JoinCareCircleViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,

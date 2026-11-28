@@ -1,4 +1,5 @@
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 package com.github.se.oncompanion.model.hospital
 
 import com.github.se.oncompanion.model.session.SessionAccess
@@ -23,10 +24,20 @@ import org.json.JSONTokener
 
 /** Transport outcome only; callers decide presentation, persistence and subsequent user actions. */
 sealed interface HospitalProxyResult {
-  /** Validated hospital values, including an empty successful search. */
+  /**
+   * Validated hospital values, including an empty successful search.
+   *
+   * @property hospitals the hospitals found, possibly none
+   */
   data class Success(val hospitals: List<Hospital>) : HospitalProxyResult
 
-  /** No sensitive server body/credentials are retained. A retry hint never schedules a request. */
+  /**
+   * No sensitive server body/credentials are retained. A retry hint never schedules a request.
+   *
+   * @property kind why the search failed
+   * @property status the HTTP status the proxy answered with, if it answered
+   * @property retryAfter when the proxy says to try again, if it said so
+   */
   data class Failure(
       val kind: HospitalProxyError,
       val status: Int? = null,

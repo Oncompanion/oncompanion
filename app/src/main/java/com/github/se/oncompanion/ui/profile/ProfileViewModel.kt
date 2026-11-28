@@ -30,6 +30,12 @@ import kotlinx.coroutines.launch
 /**
  * The profile details needed by the read-only Profile screen.
  *
+ * @property firstName the user's first name
+ * @property familyName the user's family name, if they gave it
+ * @property cancerType the patient's cancer type, if they gave it
+ * @property email the account's email, if it has one
+ * @property memberSince when the profile was created, if known
+ * @property hospital the patient's hospital, if they gave it
  * @property dateOfBirth a calendar day, shown as is (no time zone conversion); null when not set
  */
 data class ProfileDetails(
@@ -44,17 +50,33 @@ data class ProfileDetails(
 
 /** What the Profile screen displays while resolving the signed-in user's profile. */
 sealed interface ProfileUiState {
+  /** The profile is being read. */
   data object Loading : ProfileUiState
 
+  /** Nobody is signed in. */
   data object SignedOut : ProfileUiState
 
+  /** The signed-in account has no profile. */
   data object MissingProfile : ProfileUiState
 
+  /**
+   * The profile is read.
+   *
+   * @property details what the screen shows
+   */
   data class Loaded(val details: ProfileDetails) : ProfileUiState
 
+  /** The profile couldn't be read. */
   data object Error : ProfileUiState
 
-  /** Confirmation retains the current screen until sign-out starts; failures allow retry. */
+  /**
+   * Confirmation retains the current screen until sign-out starts; failures allow retry.
+   *
+   * @property profile the state shown behind the dialog
+   * @property isSigningOut the user confirmed and signing out is under way
+   * @property failed signing out failed; the user can try again
+   * @property pendingChanges some changes aren't saved online yet, so signing out would lose them
+   */
   data class ConfirmingSignOut(
       val profile: ProfileUiState,
       val isSigningOut: Boolean = false,
@@ -66,7 +88,7 @@ sealed interface ProfileUiState {
   data object SignOutComplete : ProfileUiState
 }
 
-/** Observes the authenticated profile and handles confirmed sign-out (US-18, US-19). */
+/** Observes the authenticated profile and handles confirmed sign-out. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProfileViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,

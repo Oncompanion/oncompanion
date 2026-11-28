@@ -37,6 +37,14 @@ enum class CameraStatus {
   UNAVAILABLE,
 }
 
+/** Why no prescription could be read on a photo, which says what to do about it. */
+enum class NothingRead {
+  /** No text: it may be handwritten, blurry or too dark. */
+  NO_TEXT,
+  /** Text but no medication: it may not be a prescription. */
+  NOT_A_PRESCRIPTION,
+}
+
 /**
  * What the scan screen shows.
  *
@@ -56,14 +64,6 @@ enum class CameraStatus {
  * @property read the prescription just read, for the screen to open the form with; the photo is
  *   then its own, no longer this screen's
  */
-/** Why no prescription could be read on a photo, which says what to do about it. */
-enum class NothingRead {
-  /** No text: it may be handwritten, blurry or too dark. */
-  NO_TEXT,
-  /** Text but no medication: it may not be a prescription. */
-  NOT_A_PRESCRIPTION,
-}
-
 data class ScanUiState(
     val showUprightTip: Boolean = false,
     val permission: CameraPermission = CameraPermission.UNKNOWN,
@@ -89,8 +89,8 @@ data class ScanUiState(
 }
 
 /**
- * State of the prescription scan screen (US-10, #61). It has no Android `Context`: the screen
- * checks the permission and drives the camera, and reports here.
+ * State of the prescription scan screen. It has no Android `Context`: the screen checks the
+ * permission and drives the camera, and reports here.
  *
  * The photo of a prescription is a medical document: there is at most one, in [photoStore], shown
  * for the user to check, and it is deleted on Retake and when the screen is closed or destroyed.

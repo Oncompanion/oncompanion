@@ -29,7 +29,7 @@ import com.github.se.oncompanion.ui.theme.cardTitle
 import java.time.LocalDate
 
 /**
- * "Journal" (Figma M3, "Alex's day"): when the patient last logged how they felt, and what, e.g.
+ * "Journal" (design: M3, "Alex's day"): when the patient last logged how they felt, and what, e.g.
  * "Yesterday at 18:10" and "Nausea 7/10 · Fatigue 6/10"; "No entries yet" while their journal is
  * empty. "Full journal ›" opens the journal.
  *

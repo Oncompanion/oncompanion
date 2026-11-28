@@ -61,10 +61,10 @@ import com.github.se.oncompanion.ui.common.NotSharedMessage
 import com.github.se.oncompanion.ui.theme.Spacing
 
 /**
- * The prescriptions list (US-11 "See my saved prescriptions", Figma: "US-11 / Prescription list"):
- * the user's prescriptions, most recently prescribed first, each with the names of its medications,
- * who prescribed it and its date. It is the patient's Prescriptions tab; a caregiver opens it from
- * the Overview.
+ * The prescriptions list (design: M3, "List and detail · List · Added by a caregiver"): the user's
+ * prescriptions, most recently prescribed first, each with the names of its medications, who
+ * prescribed it and its date. It is the patient's Prescriptions tab; a caregiver opens it from the
+ * Overview.
  *
  * @param onBack returns to the previous screen; `null` on the patient's tab, which has no back
  *   arrow
@@ -73,7 +73,7 @@ import com.github.se.oncompanion.ui.theme.Spacing
  * @param onOpen opens the detail of the prescription with the given ID
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
  * @param onReview opens the review of a prescription a caregiver added, for the patient to confirm
- *   or reject it (US-43)
+ *   or reject it
  * @param bottomBar the bottom navigation bar on the patient's tab, empty otherwise
  */
 @Composable
@@ -120,8 +120,8 @@ fun PrescriptionsScreen(
  * @param onRetry reloads the prescriptions after an error
  * @param onOpen opens the detail of the prescription with the given ID
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
- * @param onReview opens the review of a prescription a caregiver added, for the patient (US-43)
- * @param onDismiss closes the state of a prescription the caregiver added, once decided (US-43)
+ * @param onReview opens the review of a prescription a caregiver added, for the patient
+ * @param onDismiss closes the state of a prescription the caregiver added, once decided
  * @param bottomBar the bottom navigation bar on the patient's tab, empty by default
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -214,14 +214,11 @@ fun PrescriptionsContent(
   }
 }
 
-/**
- * The two ways to add a prescription, side by side and sharing the width (Figma: "Enter manually
- * FAB" and "Scan FAB").
- */
+/** The two ways to add a prescription, side by side and sharing the width. */
 @Composable
 private fun AddButtons(onAdd: () -> Unit, onScan: () -> Unit) {
   Row(
-      // With the Scaffold's own spacing, the buttons sit 24dp above the bottom as in the mockup
+      // With the Scaffold's own spacing, the buttons sit 24dp above the bottom
       modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
       horizontalArrangement = Arrangement.spacedBy(12.dp),
   ) {
@@ -266,8 +263,8 @@ private fun AddButton(
 
 /**
  * The groups, each under its subheader; a group with nothing in it shows no subheader. Those
- * waiting for the patient come first (US-43): "Added by a caregiver" for the patient, "Added by
- * you" for the caregiver who added them ([isCaregiver]).
+ * waiting for the patient come first: "Added by a caregiver" for the patient, "Added by you" for
+ * the caregiver who added them ([isCaregiver]).
  */
 @Composable
 private fun PrescriptionList(
@@ -296,7 +293,7 @@ private fun PrescriptionList(
             C.Tag.prescriptions_waiting_header,
         )
       }
-      // The patient reviews each on a Dawn card: tapping it opens the review (US-43)
+      // The patient reviews each on a Dawn card: tapping it opens the review
       items(waiting, key = { it.id }) {
         if (caregiverOf != null) AddedByYouItem(it, caregiverOf, onOpen, onDismiss)
         else PrescriptionItem(it, onReview, toReview = true)
@@ -340,7 +337,7 @@ private fun Subheader(text: String, testTag: String) {
 /**
  * One prescription: the names of its medications, then who prescribed it and when ("Dr. Martin · 29
  * Sep 2026"), or the date alone when the prescriber wasn't entered. One the patient has [toReview]
- * is on a Dawn card (`secondaryContainer`), the colour of what the app wants checked.
+ * is on a Dawn card (`secondaryContainer`), the color of what the app wants checked.
  */
 @Composable
 private fun PrescriptionItem(
@@ -390,9 +387,9 @@ private fun PrescriptionItem(
 }
 
 /**
- * A prescription the caregiver added, under "Added by you" (US-43): where it is for [patient]
- * ("Waiting for Anne", "Accepted by Anne", "Rejected by Anne"), and once decided a close button
- * ([onDismiss]). A rejected one has no detail to open.
+ * A prescription the caregiver added, under "Added by you": where it is for [patient] ("Waiting for
+ * Anne", "Accepted by Anne", "Rejected by Anne"), and once decided a close button ([onDismiss]). A
+ * rejected one has no detail to open.
  */
 @Composable
 private fun AddedByYouItem(
@@ -434,8 +431,9 @@ private fun AddedByYouItem(
 }
 
 /**
- * Figma: "US-11 / Prescription list – Empty". A caregiver ([caregiverOf] set) can't add any, so
- * they aren't told how to.
+ * Design: M3, "List and detail · Empty". For a caregiver, the hint uses the patient's first name
+ * ([caregiverOf]) instead of saying how to add one: if the patient lets them add, the add buttons
+ * still show.
  */
 @Composable
 private fun EmptyState(caregiverOf: String?, buttonRoom: Dp) {

@@ -1,8 +1,9 @@
 <!-- Co-authored-by: Codex <noreply@openai.com> -->
+<!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
 
 # Appointment form screenshots
 
-Device-rendered examples captured for PR #182, using fictional input and the app theme:
+Device-rendered examples captured using fictional input and the app theme:
 
 | State | Screenshot |
 | --- | --- |

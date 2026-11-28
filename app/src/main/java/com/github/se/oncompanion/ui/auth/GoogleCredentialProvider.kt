@@ -21,6 +21,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingExcept
 /** Why getting a Google ID token failed, so the UI can show the right message. */
 class GoogleSignInException(val reason: Reason, cause: Throwable? = null) :
     Exception("Google sign-in failed: $reason", cause) {
+  /** Why no token could be obtained, which decides what the screen says. */
   enum class Reason {
     /** The user closed the Google account picker. Usually no error message is needed. */
     CANCELLED,

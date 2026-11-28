@@ -155,7 +155,8 @@ private fun HospitalSearchFeedback(
             Modifier.testTag(C.Tag.hospital_empty).semantics { liveRegion = LiveRegionMode.Polite },
         )
       } else {
-        // The results as rows of one card, as lists are (Figma: "Edit profile – Hospital results")
+        // The results as rows of one card, as lists are (design: Brand & Theme, "Edit profile –
+        // Hospital results")
         Surface(
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surfaceContainerLowest,
@@ -212,7 +213,7 @@ private fun HospitalResult(hospital: Hospital, onClick: () -> Unit) {
   }
 }
 
-// The height of a result row in the Figma
+// The height of a result row
 private val RESULT_HEIGHT = 64.dp
 
 @Preview

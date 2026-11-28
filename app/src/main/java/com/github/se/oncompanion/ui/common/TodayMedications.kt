@@ -11,7 +11,7 @@ import java.time.ZoneId
 
 /**
  * One of the medications to take today, on the patient's "Today's medications" card, with the doses
- * they ticked (US-28).
+ * they ticked.
  *
  * @property key identifies it, the same as in Planning
  * @property medicationId the [com.github.se.oncompanion.model.medication.Medication] it is, under
@@ -37,8 +37,8 @@ data class TodayMedication(
 
 /**
  * The sheet where the patient corrects how many doses of a medication taken several times a day
- * they took today (#546). Nothing is saved until Done: a sheet closed any other way, or an app
- * stopped with it open, leaves the saved count as it was.
+ * they took today. Nothing is saved until Done: a sheet closed any other way, or an app stopped
+ * with it open, leaves the saved count as it was.
  *
  * @property medication the medication corrected, as the card shows it now
  * @property doses its doses a day, at least 2

@@ -5,8 +5,9 @@ package com.github.se.oncompanion.domain.medication
 import com.github.se.oncompanion.model.medication.Prescription
 import com.github.se.oncompanion.model.medication.scan.comparable
 
-/** A saved prescription that a new one repeats (US-39). */
+/** A saved prescription that a new one repeats. */
 sealed interface SimilarPrescription {
+  /** The saved prescription the new one repeats. */
   val prescription: Prescription
 
   /** Same date, prescriber and medications: most likely the same paper, saved twice. */

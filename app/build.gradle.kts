@@ -141,9 +141,9 @@ sonar {
 // `protobuf-javalite` Firestore needs (NoSuchMethodError when Firestore runs in tests).
 configurations.configureEach { exclude(group = "com.google.protobuf", module = "protobuf-lite") }
 
-// Robolectric's Android jars (#324): Gradle downloads them with its retries, caches them and locks
-// them in gradle.lockfile, instead of Robolectric fetching them itself from Maven with no retry
-// (#300). One configuration per jar: they are versions of the same module, which one
+// Robolectric's Android jars: Gradle downloads them with its retries, caches them and locks
+// them in gradle.lockfile, instead of Robolectric fetching them itself from Maven with no retry.
+// One configuration per jar: they are versions of the same module, which one
 // configuration would resolve to the newest only. Not testRuntimeOnly: on the test classpath they
 // would clash with android.jar.
 val robolectricAndroidJars =
@@ -172,11 +172,11 @@ dependencies {
   implementation(libs.androidx.datastore.preferences)
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.core.splashscreen)
-  // Prescription scan (US-10): camera preview and capture
+  // Prescription scan: camera preview and capture
   implementation(libs.androidx.camera.camera2)
   implementation(libs.androidx.camera.lifecycle)
   implementation(libs.androidx.camera.compose)
-  // Prescription scan (US-10): reads the photo's text on the device, with the model bundled in the
+  // Prescription scan: reads the photo's text on the device, with the model bundled in the
   // app so it works offline from the first scan
   implementation(libs.mlkit.text.recognition)
   // Reads the photo's EXIF orientation more reliably than the platform version (already in the

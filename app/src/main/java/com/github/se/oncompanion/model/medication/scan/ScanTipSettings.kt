@@ -6,8 +6,8 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 
 /**
- * Whether the scan still shows its tip to hold the phone upright (#356): a prescription
- * photographed sideways is read less well. Kept on this phone, for each user who signs in on it.
+ * Whether the scan still shows its tip to hold the phone upright: a prescription photographed
+ * sideways is read less well. Kept on this phone, for each user who signs in on it.
  */
 interface ScanTipSettings {
   /** False once the user asked not to see the tip again. */

@@ -1,4 +1,5 @@
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.domain.reminder
 
@@ -34,7 +35,7 @@ enum class AppointmentReminderSync {
  * Reconciles the signed-in patient's appointment snapshots with device alarms. Nothing starts until
  * [observe] is collected by the Activity-owned integration. Receipts suppress repeated immediate
  * scheduling across normal process recreation, not a device reboot or an atomic transaction between
- * preferences and AlarmManager (recovery remains #454).
+ * preferences and AlarmManager. Alarms are not restored after the phone restarts.
  */
 class ReconcileAppointmentReminders(
     private val text: AppointmentReminderText,

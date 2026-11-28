@@ -6,10 +6,10 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
 /**
- * The doses of their medications a patient ticked each day on the Overview (US-28): for each day,
- * how many doses of each medication were taken. The patient records them; a caregiver who sees the
- * patient's prescriptions only reads them. The app records what the patient ticked, nothing more:
- * how many doses a day a medication has comes from its frequency (`DoseCount`).
+ * The doses of their medications a patient ticked each day on the Overview: for each day, how many
+ * doses of each medication were taken. The patient records them; a caregiver who sees the patient's
+ * prescriptions only reads them. The app records what the patient ticked, nothing more: how many
+ * doses a day a medication has comes from its frequency (`DoseCount`).
  */
 interface TakenDosesRepository {
 

@@ -18,8 +18,8 @@ import java.time.ZoneId
  * @property entry the entry itself, for its ID and the names of its symptoms ("Other" may have one)
  * @property at when the patient felt it, in the Overview's time zone
  * @property symptoms each symptom with its strength out of 10, when the entry has one per symptom
- * @property overall the entry's single intensity, for entries saved before a strength per symptom
- *   (#615); `null` when the symptoms have their own
+ * @property overall the entry's single intensity, for entries saved before a strength per symptom;
+ *   `null` when the symptoms have their own
  */
 data class LatestEntry(
     val entry: SymptomEntry,
@@ -57,7 +57,7 @@ internal fun entrySummary(latest: LatestEntry): String {
   return stringResource(R.string.overview_entry_overall, list, overall)
 }
 
-/** Between symptoms that each have a strength, as in the Figma. */
+/** Between symptoms that each have a strength. */
 private const val STRENGTH_SEPARATOR = " · "
 
 /** Between the names alone, as in the journal's titles. */

@@ -51,8 +51,8 @@ import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.lakeColors
 
 /**
- * The caregiver's own Overview (Figma M3, "Home · Caregiver"): "Good morning, Marc" on the Paper
- * lake header, then "Alex's day", with only what Alex shares.
+ * The caregiver's own Overview (design: M3, "Overview · Caregiver · Alex's day"): "Good morning,
+ * Marc" on the Paper lake header, then "Alex's day", with only what Alex shares.
  *
  * @param patient the patient the caregiver follows
  * @param onOpenAppointment opens the appointment in Next up
@@ -131,7 +131,18 @@ fun CaregiverOverviewScreen(
   }
 }
 
-/** What the caregiver can do from their Overview. */
+/**
+ * What the caregiver can do from their Overview.
+ *
+ * @property onOpenPlanning opens the patient's Planning
+ * @property onOpenAppointment opens the appointment with this ID
+ * @property onOpenEvent opens the event with this ID
+ * @property onOpenJournal opens the patient's symptom journal
+ * @property onRetry loads the Overview again after an error
+ * @property onSwitchPatient opens "Whose care?" to follow another patient
+ * @property onOpenProfile opens the caregiver's profile
+ * @property onOpenShortcut opens the section of a shortcut tile
+ */
 data class CaregiverOverviewActions(
     val onOpenPlanning: () -> Unit = {},
     val onOpenAppointment: (String) -> Unit = {},

@@ -65,8 +65,8 @@ private val nextUpDayFormatter
 internal const val MEDICATIONS_SHOWN = 2
 
 /**
- * The patient's day on the Overview (Overview UX Refactor): "Next up" and "Today's medications", or
- * a single "Nothing planned today" card when there is neither.
+ * The patient's day on the Overview: "Next up" and "Today's medications", or a single "Nothing
+ * planned today" card when there is neither.
  *
  * @param onTickDose ticks a dose of a medication, by its ID (see [OverviewViewModel.tickDose])
  * @param onOpenDoses opens the sheet to correct a medication's doses, by its ID
@@ -148,8 +148,9 @@ internal fun CardBadge(@DrawableRes icon: Int) {
 }
 
 /**
- * The check-in's heart, 20 dp, in a disc of its own: teal by day, warm at night (Figma M3, Home ·
- * Dusk). Its own composable rather than a choice made from the icon, so no other card turns warm.
+ * The check-in's heart, 20 dp, in a disc of its own: teal by day, warm at night (design: M3, "Home
+ * · Dusk"). Its own composable rather than a choice made from the icon, so no other card turns
+ * warm.
  */
 @Composable
 internal fun HeartBadge() {
@@ -172,7 +173,7 @@ private fun Badge(@DrawableRes icon: Int, iconSize: Dp, container: Color, conten
   }
 }
 
-/** The small title at the top of a card ("Next up", "Today"): the Figma's 14/18 eyebrow. */
+/** The small title at the top of a card ("Next up", "Today"): the 14/18 eyebrow. */
 @Composable
 internal fun Eyebrow(text: String, modifier: Modifier = Modifier) {
   Text(
@@ -252,8 +253,8 @@ private fun nextUpWhen(nextUp: NextUp, today: LocalDate): String {
  * More rows would push the cards under it and squeeze the lake header, so the count goes in the
  * title instead.
  *
- * Without [doseActions], it is the caregiver's read-only card (Figma M3, Alex's day · Medications,
- * read-only): "Medications today", and its links open the patient's prescriptions, which a
+ * Without [doseActions], it is the caregiver's read-only card (design: M3, "Medications,
+ * read-only"): "Medications today", and its links open the patient's prescriptions, which a
  * caregiver may see without their planning.
  *
  * @param onOpenLink opens Planning, or the patient's prescriptions on the caregiver's card
@@ -313,7 +314,8 @@ internal fun MedicationsCard(
 
 /**
  * The medications card's title: "Today's medications" for the patient, "Medications today" on a
- * [readOnly] caregiver's card (Figma M3), with the [count] when not all of them show.
+ * [readOnly] caregiver's card (design: M3, "Medications, read-only"), with the [count] when not all
+ * of them show.
  */
 @Composable
 private fun medicationsTitle(count: Int, withCount: Boolean, readOnly: Boolean): String =
@@ -394,10 +396,10 @@ internal fun NothingPlannedCard(
   }
 }
 
-/** The Figma's teal disc behind each card's icon, and the icon in it. */
+/** The teal disc behind each card's icon, and the icon in it. */
 private val BADGE_SIZE = 36.dp
 
-/** The hairline around the patient's cards (Figma M3: 1 dp, ink at 8 %). */
+/** The hairline around the patient's cards (1 dp, ink at 8 %). */
 private val CARD_BORDER_WIDTH = 1.dp
 private val BADGE_ICON_SIZE = 18.dp
 

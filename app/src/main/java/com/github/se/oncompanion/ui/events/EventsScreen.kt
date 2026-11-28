@@ -55,12 +55,12 @@ import com.github.se.oncompanion.ui.navigation.Screen
 import com.github.se.oncompanion.ui.navigation.Tab
 import com.github.se.oncompanion.ui.theme.Spacing
 
-/** "Sat 3 Oct · 10:00", as in the mockup. Day and month names follow the app language. */
+/** "Sat 3 Oct · 10:00". Day and month names follow the app language. */
 private val eventDateFormatter
   @Composable get() = rememberAppDateFormatter("EEE d MMM · HH:mm")
 
 /**
- * The Events tab (Figma: "US-03 / Events"): the Ligue's upcoming events.
+ * The Events tab (design: M2, "Events"): the Ligue's upcoming events.
  *
  * @param bottomBar what the bottom bar shows on every tab: its tabs and the Prescriptions badge
  */
@@ -147,7 +147,10 @@ private fun EventList(
   }
 }
 
-/** An event in the list (Figma: "Event card"): image, date and place, title and a short summary. */
+/**
+ * An event in the list (design: M2, "Event card"): image, date and place, title and a short
+ * summary.
+ */
 @Composable
 private fun EventCard(event: Event, onClick: () -> Unit) {
   Surface(
@@ -160,7 +163,7 @@ private fun EventCard(event: Event, onClick: () -> Unit) {
         modifier = Modifier.padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-      // Events have no picture yet: every card shows the mockup's placeholder image
+      // Events have no picture yet: every card shows a placeholder image
       Image(
           painter = painterResource(R.drawable.event_image_placeholder),
           contentDescription = null,

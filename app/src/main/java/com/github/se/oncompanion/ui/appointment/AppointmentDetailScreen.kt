@@ -76,8 +76,7 @@ fun AppointmentDetailScreen(
 }
 
 /**
- * Figma entry details adapted to recorded fields, with the saved reminder choice, without inferring
- * an end time.
+ * The appointment's recorded fields, with the saved reminder choice, without inferring an end time.
  *
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
  */
@@ -150,7 +149,7 @@ fun AppointmentDetailContent(
     }
   }
   if (state.isDeleteDialogShown) {
-    // A caregiver deletes the patient's appointment: the dialog says whose it is (US-46)
+    // A caregiver deletes the patient's appointment: the dialog says whose it is
     DeleteConfirmationDialog(
         title =
             caregiverOf?.let { stringResource(R.string.appointment_delete_title_for, it) }
@@ -212,9 +211,9 @@ private fun AppointmentFields(
         style = MaterialTheme.typography.titleSmall,
     )
     Text(appointment.title, style = MaterialTheme.typography.headlineMedium)
-    // An appointment a caregiver added for the patient says who did (US-41)
+    // An appointment a caregiver added for the patient says who did
     addedByName?.let { AddedBy(it) }
-    // And who last edited it, if a caregiver did (US-46)
+    // And who last edited it, if a caregiver did
     editedByName?.let { EditedBy(it) }
   }
   // Appointments display the start instant in the app language and phone clock format.

@@ -77,10 +77,9 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 
 /**
- * One invitation to the care circle (#150), following the Figma "US-15 / Invite code" frames: its
- * invite code to send by email, share or copy, what the person will see, and "Cancel invitation".
- * An expired invitation offers a new invite code instead. When the person joins while the screen is
- * open, it says so.
+ * One invitation to the care circle (design: M2, "Invite code"): its invite code to send by email,
+ * share or copy, what the person will see, and "Cancel invitation". An expired invitation offers a
+ * new invite code instead. When the person joins while the screen is open, it says so.
  *
  * @param onBack leaves the screen (back arrow, "Back to circle", or after cancelling)
  * @param onRenewed opens the invitation [inviteCode] that replaced this expired one
@@ -146,7 +145,7 @@ fun CareCircleInviteScreen(
 }
 
 /**
- * The invite code for the clipboard, labelled "Invite code". The code gives access to the patient's
+ * The invite code for the clipboard, labeled "Invite code". The code gives access to the patient's
  * care, so the clip is marked sensitive: Android 13+ then hides it in the clipboard preview.
  */
 private fun inviteCodeClip(resources: Resources, invite: CareCircleInvite): ClipData =
@@ -584,6 +583,7 @@ private fun CancelDialog(firstName: String, onConfirm: () -> Unit, onDismiss: ()
   )
 }
 
+/** Preview: an invitation waiting for its invite code to be used. */
 @Preview(showBackground = true)
 @Composable
 fun CareCircleInviteScreenPreview() {

@@ -48,7 +48,7 @@ import java.time.format.DateTimeFormatter
 internal val reminderTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 /**
- * What the patient does with a medication's reminders in the prescription form (US-32).
+ * What the patient does with a medication's reminders in the prescription form.
  *
  * @property onRemindChange turns them on, at suggested times, or off
  * @property onTimeChange moves the reminder at an index to a time
@@ -63,9 +63,9 @@ data class ReminderActions(
 )
 
 /**
- * The reminders of the open medication (US-32, Figma M3 "Reminders · in the form"): Remind me, then
- * one time per dose, each opening a time picker. Only the patient chooses them: a caregiver sees
- * the patient's times, or that the patient will choose them after checking the prescription
+ * The reminders of the open medication (design: M3, "Reminders · Add · Remind me on"): Remind me,
+ * then one time per dose, each opening a time picker. Only the patient chooses them: a caregiver
+ * sees the patient's times, or that the patient will choose them after checking the prescription
  * ([caregiverOf]).
  *
  * @param caregiverOf the patient's first name when a caregiver fills in the form; `null` for the

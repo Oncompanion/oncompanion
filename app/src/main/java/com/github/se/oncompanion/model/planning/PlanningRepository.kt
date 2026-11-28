@@ -8,7 +8,13 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
 
-/** Calendar range with an inclusive start and exclusive end, in the requested display zone. */
+/**
+ * Calendar range with an inclusive start and exclusive end, in the requested display zone.
+ *
+ * @property startDateInclusive the first day of the range
+ * @property endDateExclusive the day after the last day of the range
+ * @property zoneId the time zone the days are in
+ */
 data class PlanningRange(
     val startDateInclusive: LocalDate,
     val endDateExclusive: LocalDate,
@@ -54,9 +60,9 @@ fun interface PlanningRepository {
   /**
    * Observes [ownerUid]'s entries within [range], including its zone for future timed-source
    * adapters, with only the entries of [sections]: a caregiver gets the sections the patient shares
-   * with them (US-20), and the others are not read at all, so the server never refuses a read. A
-   * source that belongs to no section gives all its entries, and a source that is the same for
-   * everyone (the Ligue's events) ignores [ownerUid].
+   * with them, and the others are not read at all, so the server never refuses a read. A source
+   * that belongs to no section gives all its entries, and a source that is the same for everyone
+   * (the Ligue's events) ignores [ownerUid].
    */
   fun observeItems(
       ownerUid: String,
