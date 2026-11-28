@@ -48,6 +48,7 @@ import com.github.se.oncompanion.model.symptom.SymptomType.NAUSEA
 import com.github.se.oncompanion.model.symptom.SymptomType.OTHER
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.LANDSCAPE_PHONE
+import com.github.se.oncompanion.ui.SMALL_LANDSCAPE_PHONE
 import com.github.se.oncompanion.ui.assertIsFullyVisible
 import com.github.se.oncompanion.ui.assertSameColor
 import com.github.se.oncompanion.ui.carecircle.ChosenPatient
@@ -775,6 +776,17 @@ class CaregiverOverviewScreenTest {
   @Test
   @Config(qualifiers = LANDSCAPE_PHONE)
   fun whoseCare_phoneHeldSideways_opensWhole_notJustTheFirstPerson() {
+    assertWhoseCareOpensWhole()
+  }
+
+  @Test
+  @Config(qualifiers = SMALL_LANDSCAPE_PHONE)
+  fun whoseCare_smallPhoneHeldSideways_opensWhole_notJustTheFirstPerson() {
+    assertWhoseCareOpensWhole()
+  }
+
+  /** Every row of the sheet can be scrolled to and is shown whole on the screen. */
+  private fun assertWhoseCareOpensWhole() {
     showAlexsOverview()
 
     openWhoseCare()
@@ -783,7 +795,7 @@ class CaregiverOverviewScreenTest {
     // Measured in the window: half open, the sheet's own root still holds Anne's row whole while
     // the screen cuts it
     listOf(C.Tag.whoseCarePatient("p-anne"), C.Tag.whose_care_follow_new).forEach {
-      val row = compose.onNodeWithTag(it).fetchSemanticsNode()
+      val row = compose.onNodeWithTag(it).performScrollTo().fetchSemanticsNode()
       assertEquals(it, row.size.height.toFloat(), row.boundsInWindow.height)
     }
   }
