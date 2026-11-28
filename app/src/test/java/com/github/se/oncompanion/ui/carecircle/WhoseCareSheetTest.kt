@@ -70,12 +70,22 @@ class WhoseCareSheetTest {
     var state by mutableStateOf(fourPeople)
     compose.setContent { WhoseCareSheetContent(state, alex.uid, {}, {}, {}, {}) }
     val content =
-        listOf(C.Tag.whose_care_loading, C.Tag.whose_care_error, C.Tag.whoseCarePatient(alex.uid))
+        listOf(
+            C.Tag.whose_care_loading,
+            C.Tag.whose_care_error,
+            C.Tag.whose_care_unconfirmed,
+            C.Tag.whose_care_empty,
+            C.Tag.whoseCarePatient(alex.uid),
+        )
+    val nobody = fourPeople.copy(patients = emptyList())
     val cases =
         listOf(
             WhoseCareUiState() to C.Tag.whose_care_loading,
             // An error wins over a list left from before
             fourPeople.copy(hasError = true) to C.Tag.whose_care_error,
+            // Nobody yet, but the circles may still be on their way
+            nobody.copy(isConfirmed = false) to C.Tag.whose_care_unconfirmed,
+            nobody to C.Tag.whose_care_empty,
             fourPeople to C.Tag.whoseCarePatient(alex.uid),
         )
     for ((shown, expected) in cases) {
@@ -112,12 +122,18 @@ class WhoseCareSheetTest {
 
   @Test
   fun followSomeoneNew_andRetry_doWhatTheySay() {
-    show(fourPeople.copy(hasError = true))
+    var state by mutableStateOf(fourPeople.copy(hasError = true))
+    compose.setContent {
+      WhoseCareSheetContent(state, alex.uid, {}, {}, { calls += "follow" }, { calls += "retry" })
+    }
 
     compose.onNodeWithTag(C.Tag.whose_care_action).performClick()
     compose.onNodeWithTag(C.Tag.whose_care_follow_new).performClick()
+    // Not confirmed yet: Retry reads the circles again
+    state = fourPeople.copy(patients = emptyList(), isConfirmed = false)
+    compose.onNodeWithTag(C.Tag.whose_care_action).performClick()
 
-    assertEquals(listOf("retry", "follow"), calls)
+    assertEquals(listOf("retry", "follow", "retry"), calls)
   }
 
   @Test

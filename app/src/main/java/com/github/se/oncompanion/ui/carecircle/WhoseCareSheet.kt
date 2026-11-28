@@ -143,6 +143,21 @@ internal fun WhoseCareSheetContent(
               actionTestTag = C.Tag.whose_care_action,
               modifier = Modifier.testTag(C.Tag.whose_care_error),
           )
+      // As on the full screen; without its Join button, since "Follow someone new" is below
+      uiState.patients.isEmpty() && !uiState.isConfirmed ->
+          LakeMessageState(
+              title = stringResource(R.string.whose_care_unconfirmed_title),
+              actionLabel = stringResource(R.string.whose_care_retry),
+              onAction = onRetry,
+              actionTestTag = C.Tag.whose_care_action,
+              modifier = Modifier.testTag(C.Tag.whose_care_unconfirmed),
+          )
+      uiState.patients.isEmpty() ->
+          LakeMessageState(
+              title = stringResource(R.string.whose_care_empty_title),
+              message = stringResource(R.string.whose_care_empty_body),
+              modifier = Modifier.testTag(C.Tag.whose_care_empty),
+          )
       else ->
           uiState.patients.forEach { patient ->
             val isCurrent = patient.uid == currentUid
