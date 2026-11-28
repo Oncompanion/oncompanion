@@ -61,7 +61,8 @@ enum class AppointmentFormLoad {
  * @property location where it takes place, if the patient enters it
  * @property type the kind of appointment
  * @property notes the patient's notes, if any
- * @property reminder how long before the appointment the patient is reminded
+ * @property reminder how long before the appointment the patient is reminded, or `NONE` for no
+ *   reminder
  * @property titleTouched the title was ever changed: a blank title only shows as an error then
  * @property chosenOffset the UTC offset the patient chose for a time that happens twice, when the
  *   clocks go back; `null` when [time] has only one

@@ -94,9 +94,8 @@ val OnHorizonDark = Color(0xFFE3E6E7)
 val LakeHullLight = Color(0xFF1F2A30)
 val LakeHullDark = Color(0xFF3B4448)
 
-// Stone: the patient's Overview (design: M3, "Home · Dawn" and "Home · Dusk"). A
-// warm gray page under off-white cards by day; by night, black cards on a slate page and a lighter
-// check-in dock.
+// Stone: the patient's Overview (design: M3, "Home · Dawn" and "Home · Dusk"). A warm gray page
+// under off-white cards by day; by night, black cards on a slate page and a lighter check-in dock.
 val StonePageLight = Color(0xFFE2DDD5)
 val StoneCardLight = Color(0xFFFAF8F5)
 val StoneCardBorderLight = Color(0x141C252A)

@@ -137,8 +137,7 @@ fun SignInContent(
       },
   ) { innerPadding ->
     val layoutDirection = LocalLayoutDirection.current
-    // The lake goes under the status bar; the rest keeps clear of the system bars
-    // and of the button
+    // The lake goes under the status bar; the rest keeps clear of the system bars and of the button
     val clear =
         Modifier.padding(
             end = innerPadding.calculateEndPadding(layoutDirection),

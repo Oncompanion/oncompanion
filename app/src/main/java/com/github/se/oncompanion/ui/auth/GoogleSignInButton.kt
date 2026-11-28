@@ -30,7 +30,8 @@ import com.github.se.oncompanion.ui.theme.full
 /**
  * "Continue with Google" button following Google's Sign in with Google branding guidelines (pill
  * shape, multicolor "G", light or dark theme), 56 dp tall like the app's other buttons. Its colors
- * are Google's rather than the theme's teal (design: M2, "Login"): the guidelines ask for this one.
+ * are Google's: the design (M2, "Login") draws a teal button, but Google's guidelines ask for this
+ * one.
  */
 @Composable
 fun GoogleSignInButton(

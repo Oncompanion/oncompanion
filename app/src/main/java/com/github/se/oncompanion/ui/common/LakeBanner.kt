@@ -69,8 +69,8 @@ fun LakeBanner(
     ) {
       // The message says what it is about
       Icon(painterResource(R.drawable.ic_info), contentDescription = null, Modifier.size(ICON_SIZE))
-      // The 4 dp above and below go around the message only, so the action keeps the
-      // banner's whole 48 dp as its touch target
+      // The 4 dp above and below go around the message only, so the action keeps the banner's whole
+      // 48 dp as its touch target
       MessageAndAction(
           message = {
             Text(

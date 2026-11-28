@@ -509,9 +509,8 @@ private fun PlanningRow(
             {
               Column {
                 supportingText?.let { Text(it) }
-                // An entry a caregiver added says who did, and whether the patient
-                // confirmed
-                // it, for a prescription
+                // An entry a caregiver added says who did, and whether the patient confirmed it,
+                // for a prescription
                 item.addedByName?.let { AddedBy(it, isConfirmed = item.isConfirmed) }
               }
             }

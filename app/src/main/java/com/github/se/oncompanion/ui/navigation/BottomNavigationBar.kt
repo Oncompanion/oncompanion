@@ -259,8 +259,8 @@ private fun CountBadge(count: Int, modifier: Modifier) {
 // The pill behind the selected tab's icon
 private val INDICATOR_SIZE = DpSize(64.dp, 32.dp)
 
-// The tab badge (design: M3, "Tab badge"): from the indicator's top left corner, half above its
-// top edge
+// The tab badge (design: M3, "Tab badge"): from the indicator's top left corner, half above its top
+// edge
 private val BADGE_OFFSET = DpOffset(38.dp, (-6).dp)
 private val BADGE_SIZE = 20.dp
 

@@ -47,8 +47,8 @@ fun LakeSnackbar(data: SnackbarData, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-      // The 4 dp above and below go around the message only, so the action keeps the
-      // snackbar's whole 48 dp as its touch target
+      // The 4 dp above and below go around the message only, so the action keeps the snackbar's
+      // whole 48 dp as its touch target
       MessageAndAction(
           message = {
             Text(
