@@ -41,7 +41,10 @@ class WhoseCareSheetTest {
   private val alex = patient("p-alex", "Alex")
   private val anne = patient("p-anne", "Anne")
 
-  /** Alex, shown now, and Anne, as in the Figma; then Jean and Léa for the four people frame. */
+  /**
+   * Alex, shown now, and Anne (design: M3, "Overview · Caregiver · Whose care? · Whose care?
+   * sheet"); then Jean and Léa (design: M3, "Overview · Caregiver · Whose care? · Four people").
+   */
   private val fourPeople =
       WhoseCareUiState(
           patients = listOf(alex, anne, patient("p-jean", "Jean"), patient("p-lea", "Léa")),

@@ -63,10 +63,11 @@ class WhoseCareSwitch(
 )
 
 /**
- * "Whose care?" as a sheet over the caregiver's Overview, opened from the boat in its header (Figma
- * M3: "Whose care? sheet", #564): the people the caregiver follows, the one shown now ticked, then
- * "Follow someone new".
+ * "Whose care?" as a sheet over the caregiver's Overview, opened from the three-people button in
+ * its header (design: M3, "Overview · Caregiver · Whose care? · Whose care? sheet"): the people the
+ * caregiver follows, the one shown now ticked, then "Follow someone new".
  *
+ * @param viewModel the people the caregiver follows
  * @param currentUid the patient whose day the Overview shows
  * @param onDismiss closes the sheet
  * @param onChoose shows another person's day
@@ -267,6 +268,6 @@ private fun FollowSomeoneNew(onClick: () -> Unit) {
   }
 }
 
-// The Figma's 64 dp rows
+// 64 dp rows (design: M3, "Overview · Caregiver · Whose care? · Whose care? sheet")
 private val ROW_HEIGHT = 64.dp
 private val PROGRESS = 32.dp

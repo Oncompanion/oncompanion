@@ -500,6 +500,7 @@ object C {
     /** The row of the followed patient [uid] in "Whose care?". */
     fun whoseCarePatient(uid: String) = "whose_care_patient_$uid"
 
+    /** The "Whose care?" sheet over the caregiver's Overview, and its "Follow someone new" row. */
     const val whose_care_sheet = "whose_care_sheet"
     const val whose_care_follow_new = "whose_care_follow_new"
 
