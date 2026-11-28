@@ -81,6 +81,14 @@ object C {
 
     fun planningItem(key: String) = "planning_item_$key"
 
+    const val planning_today_chip = "planning_today_chip"
+
+    fun planningDayLine(date: String) = "planning_day_line_$date"
+
+    fun planningDoses(date: String) = "planning_doses_$date"
+
+    fun planningMonth(month: String) = "planning_month_$month"
+
     const val main_screen_container = "main_screen_container"
 
     const val sign_in_screen = "sign_in_screen"
