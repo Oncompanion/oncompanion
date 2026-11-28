@@ -6,8 +6,8 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * The symptoms the user can pick from (Figma: "Log symptoms"). With [OTHER], the user names the
- * symptom ([SymptomEntry.otherName]). Keep in sync with the two lists of symptoms in
+ * The symptoms the user can pick from (design: M3, "Check-in · One symptom"). With [OTHER], the
+ * user names the symptom ([SymptomEntry.otherName]). Keep in sync with the two lists of symptoms in
  * `firestore.rules` (`isValidSymptom`): one missing from the strengths' list would refuse every
  * edit.
  */
@@ -33,11 +33,11 @@ enum class SymptomType {
  * @property types the symptoms felt, at least one and each at most once, in the order the user
  *   picked them
  * @property strengths how strong each symptom was, from [MIN_INTENSITY] to [MAX_INTENSITY], for
- *   those the user gave a strength (Overview UX Refactor, #543); a symptom without one is absent
+ *   those the user gave a strength; a symptom without one is absent
  * @property intensity how bad the user felt overall, from [MIN_INTENSITY] to [MAX_INTENSITY], or
  *   `null`. Only for entries saved before [strengths] existed and those older app versions write:
- *   once the form asks a strength per symptom (#543) it stops writing it, and an edit that gives
- *   strengths clears it
+ *   once the form asks a strength per symptom it stops writing it, and an edit that gives strengths
+ *   clears it
  * @property occurredAt when the user felt it (defaults to now when logging, can be earlier but not
  *   later, see [isValid])
  * @property otherName which symptom [SymptomType.OTHER] is ("Hiccups"), at most
@@ -46,11 +46,11 @@ enum class SymptomType {
  * @property notes free text
  * @property createdAt set by the server when the entry is saved; until the server has it, the time
  *   the device saved it. `null` only for an entry not read from the repository
- * @property addedBy the uid of the caregiver who logged it for the patient (US-22), or `null` when
- *   the patient did
+ * @property addedBy the uid of the caregiver who logged it for the patient, or `null` when the
+ *   patient did
  * @property addedByName that caregiver's first name, shown as "Added by Sam"
- * @property editedBy the uid of the caregiver who last edited it for the patient (US-46), or `null`
- *   when nobody did or the patient edited it last
+ * @property editedBy the uid of the caregiver who last edited it for the patient, or `null` when
+ *   nobody did or the patient edited it last
  * @property editedByName that caregiver's first name, shown as "Edited by Sam"
  */
 data class SymptomEntry(

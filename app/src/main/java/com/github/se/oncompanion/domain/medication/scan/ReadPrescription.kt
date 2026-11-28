@@ -34,6 +34,8 @@ enum class MedicationDetail {
  * must check because they may have been read wrong or not found. A detail not in [toCheck] was read
  * clearly; nothing is saved until the patient confirms the draft.
  *
+ * @property draft the prescription as read, for the form to start from
+ * @property toCheck the details the patient must check
  * @property leftOut how many more medications were read than a prescription can hold
  *   ([Prescription.MAX_MEDICATIONS]): they aren't in [draft], so the patient must be told
  * @property dateFound whether a date was read; if not, the draft's date is today's, to check
