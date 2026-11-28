@@ -41,8 +41,8 @@ enum class MedicationReminderSync {
 }
 
 /**
- * Keeps the phone's alarms in step with the signed-in patient's medication reminders (US-32): one
- * per reminder time, every day from the start date to the end of the duration. Only the next
+ * Keeps the phone's alarms in step with the signed-in patient's medication reminders: one per
+ * reminder time, every day from the start date to the end of the duration. Only the next
  * [WINDOW_DAYS] days are scheduled, as each alarm rings once: collecting [observe] again, when the
  * app opens, schedules the following days. A time already passed is never caught up.
  *
@@ -61,8 +61,8 @@ class ReconcileMedicationReminders(
   /**
    * Follows the signed-in account's medications and schedules or cancels their reminders after each
    * change. Only confirmed prescriptions count: one a caregiver added reminds of nothing until the
-   * patient confirms it (US-43). After [MedicationReminderSync.FAILED] the observation ends, and
-   * the caller collects again.
+   * patient confirms it. After [MedicationReminderSync.FAILED] the observation ends, and the caller
+   * collects again.
    */
   @OptIn(ExperimentalCoroutinesApi::class)
   fun observe(): Flow<MedicationReminderSync> =

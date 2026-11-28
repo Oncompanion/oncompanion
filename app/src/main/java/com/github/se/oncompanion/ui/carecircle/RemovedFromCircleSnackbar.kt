@@ -18,9 +18,9 @@ import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
 
 /**
- * Tells a caregiver why they were moved to "Whose care?" or Join (Figma "#204 / Join – Removed from
- * a circle"): "You're no longer in Anne's care circle." Placed as the screen's bottom bar, so it
- * never covers an action, and gone on its own after a few seconds.
+ * Tells a caregiver why they were moved to "Whose care?" or Join (design: Brand & Theme, "Join –
+ * Removed from a circle"): "You're no longer in Anne's care circle." Placed as the screen's bottom
+ * bar, so it never covers an action, and gone on its own after a few seconds.
  *
  * @param removedFrom the first name of the patient who removed the caregiver; nothing shows when
  *   null

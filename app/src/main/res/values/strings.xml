@@ -95,7 +95,7 @@
         <item quantity="one">%1$d more</item>
         <item quantity="other">%1$d more</item>
     </plurals>
-    <!-- Doses ticked on the Overview (US-28): "1 of 3", then "All taken" -->
+    <!-- Doses ticked on the Overview: "1 of 3", then "All taken" -->
     <string name="overview_doses_taken">%1$d of %2$d</string>
     <string name="overview_doses_all_taken">All taken</string>
     <!-- The round dose button, for TalkBack: "Tick a dose of Ondansetron 8 mg, 1 of 3 taken" -->
@@ -106,7 +106,7 @@
     <string name="overview_dose_tick_once">Tick %1$s as taken</string>
     <string name="overview_dose_untick">%1$s taken today, untick it</string>
     <string name="overview_doses_all_taken_of">All doses of %1$s taken today, correct them</string>
-    <!-- A frequency in the Overview's own words (#546): "Once a day", "3 times a day if nauseous" -->
+    <!-- A frequency in the Overview's own words: "Once a day", "3 times a day if nauseous" -->
     <string name="overview_frequency_once">Once a day</string>
     <string name="overview_frequency_twice">Twice a day</string>
     <plurals name="overview_frequency_times">
@@ -122,7 +122,7 @@
     <string name="overview_condition_if_vomiting">if vomiting</string>
     <string name="overview_condition_for_sleep">for sleep</string>
     <string name="overview_doses_correct">Correct the doses of %1$s</string>
-    <!-- The sheet to correct a medication's doses (#546): its frequency, then today -->
+    <!-- The sheet to correct a medication's doses: its frequency, then today -->
     <string name="overview_doses_sheet_subtitle">%1$s · today</string>
     <plurals name="overview_doses_sheet_count">
         <item quantity="one">%1$d of %2$d taken</item>
@@ -151,9 +151,9 @@
         <item quantity="one">%1$d of %2$d dose taken today</item>
         <item quantity="other">%1$d of %2$d doses taken today</item>
     </plurals>
-    <!-- US-73: the check-in's button to say how you feel instead of tapping a tile -->
+    <!-- The check-in's button to say how you feel instead of tapping a tile -->
     <string name="overview_speak">Speak how you feel</string>
-    <!-- The check-in's sheet (#544), opened by a tile: what was felt, how strong, when, a note -->
+    <!-- The check-in's sheet, opened by a tile: what was felt, how strong, when, a note -->
     <string name="overview_check_in_sheet_title">What do you feel?</string>
     <string name="overview_check_in_sheet_close">Close without saving</string>
     <!-- When the symptom was felt, then the link to change it, e.g. "Now, 09:30 · Change" -->
@@ -162,7 +162,7 @@
     <string name="overview_check_in_sheet_when">%1$s, %2$s · Change</string>
     <string name="overview_check_in_sheet_note">Add a note (optional)</string>
     <string name="overview_check_in_sheet_save">Save to my journal</string>
-    <!-- The check-in once the patient saved a symptom today (Figma M3: Check-in · After saving) -->
+    <!-- The check-in once the patient saved a symptom today (design: M3, "Check-in · After saving") -->
     <string name="overview_saved_title">Saved to your journal</string>
     <string name="overview_saved_subtitle">Your notes today</string>
     <string name="overview_saved_undo">Undo</string>
@@ -185,7 +185,7 @@
     <string name="caregiver_overview_journal_at">%1$s at %2$s</string>
     <string name="caregiver_overview_private">%1$s keeps this private</string>
     <string name="caregiver_overview_error_title">Couldn\'t load %1$s\'s day</string>
-    <!-- The caregiver's read-only medications card (Figma M3): "Medications today · 4" -->
+    <!-- The caregiver's read-only medications card (design: M3, "Medications, read-only"): "Medications today · 4" -->
     <string name="caregiver_overview_medications">Medications today</string>
     <string name="caregiver_overview_medications_count">Medications today · %1$d</string>
 
@@ -256,10 +256,10 @@
     <string name="symptom_edit_error_title">Couldn\'t load this entry</string>
     <string name="symptom_detail_edit">Edit entry</string>
     <string name="symptom_edit_error_hint">Please try again.</string>
-    <!-- Caregiver mode (US-20): the journal of the patient they follow, e.g. "Couldn\'t load Anne\'s symptoms" -->
+    <!-- Caregiver mode: the journal of the patient they follow, e.g. "Couldn\'t load Anne\'s symptoms" -->
     <string name="symptom_journal_error_title_for">Couldn\'t load %1$s\'s symptoms</string>
     <string name="symptom_journal_empty_hint_for">The symptoms logged for %1$s will appear here, newest first.</string>
-    <!-- A caregiver logs a symptom for the patient (US-22), e.g. "Log symptoms for Anne" -->
+    <!-- A caregiver logs a symptom for the patient, e.g. "Log symptoms for Anne" -->
     <string name="symptom_add_title_for">Log symptoms for %1$s</string>
     <!-- Under a symptom a caregiver logged, e.g. "Added by Sam" -->
     <string name="symptom_added_by">Added by %1$s</string>
@@ -281,7 +281,7 @@
     <string name="symptom_week_day_intensity">%1$s, %2$s</string>
     <string name="symptom_week_day_no_intensity">%1$s, logged without an intensity</string>
     <string name="symptom_week_day_nothing">%1$s, nothing logged</string>
-    <!-- Logging a symptom by voice (US-44) -->
+    <!-- Logging a symptom by voice -->
     <string name="symptom_voice_speak_instead">Speak instead</string>
     <string name="symptom_voice_drafted">Filled in from what you said. Check it before saving.</string>
     <string name="symptom_voice_title">Speak your symptoms</string>
@@ -312,7 +312,7 @@
     <string name="symptom_voice_unavailable_message">You can type your symptoms instead.</string>
     <string name="symptom_voice_failed_title">Voice didn\'t work</string>
     <string name="symptom_voice_failed_message">Try again, or type instead.</string>
-    <!-- Voice without a connection (US-45); %1$s is a language name below, e.g. "English" -->
+    <!-- Voice without a connection; %1$s is a language name below, e.g. "English" -->
     <string name="symptom_voice_offline_offer_title">Use voice without a connection?</string>
     <string name="symptom_voice_offline_offer_message">Your phone can download %1$s to understand you even without signal, like in a waiting room. You only need to do it once.</string>
     <string name="symptom_voice_download">Download %1$s</string>
@@ -325,7 +325,7 @@
     <!-- A symptom's strength in the journal, e.g. "mild" "nausea" -->
     <string name="symptom_strength_in_words">%1$s %2$s</string>
     <string name="symptom_strength_description">Intensity %1$d out of 10, %2$s</string>
-    <!-- The voice screen's close button when it was opened from "Speak how you feel" on the Overview (US-73) -->
+    <!-- The voice screen's close button when it was opened from "Speak how you feel" on the Overview -->
     <string name="symptom_voice_leave">Close</string>
     <!-- The question over the slider, e.g. "How strong is your fatigue? (optional)" -->
     <string name="symptom_add_strength_question">How strong is your %1$s? (optional)</string>
@@ -377,7 +377,7 @@
 
     <!-- Bottom navigation bar (Planning, Prescriptions and Events use their screen titles) -->
     <string name="tab_overview">Overview</string>
-    <!-- US-43: the Prescriptions tab's badge, read by screen readers, e.g. "1 prescription to confirm" -->
+    <!-- The Prescriptions tab's badge, read by screen readers, e.g. "1 prescription to confirm" -->
     <plurals name="tab_prescriptions_to_confirm">
         <item quantity="one">%1$d prescription to confirm</item>
         <item quantity="other">%1$d prescriptions to confirm</item>
@@ -464,7 +464,7 @@
     <string name="relationship_home_nurse">Home nurse</string>
     <string name="relationship_other">Other</string>
 
-    <!-- Care circle member details (US-14) -->
+    <!-- Care circle member details -->
     <string name="care_circle_member_title">Member</string>
     <!-- Relationship · when they joined, e.g. "Son · Member since Aug 2026" -->
     <string name="care_circle_member_since">%1$s · Member since %2$s</string>
@@ -489,7 +489,7 @@
     <string name="permission_events_description">Activities you join</string>
     <string name="permission_symptoms_description">Your symptom log</string>
     <string name="permission_prescriptions_description">Your saved prescriptions</string>
-    <!-- Letting a member add to a section they see (US-22), under that section's switch -->
+    <!-- Letting a member add to a section they see, under that section's switch -->
     <string name="permission_symptoms_add">Allow adding symptoms</string>
     <string name="permission_symptoms_add_description">They can log a symptom for you</string>
     <string name="permission_planning_add">Allow adding appointments</string>
@@ -498,7 +498,7 @@
     <string name="permission_events_add_description">They can confirm that you registered for an event. It shows right away, with their name.</string>
     <string name="permission_prescriptions_add">Allow adding prescriptions</string>
     <string name="permission_prescriptions_add_description">They can add a prescription. It waits for you to confirm it.</string>
-    <!-- Letting a member edit and delete in a section they add to (US-46), only when editing them -->
+    <!-- Letting a member edit and delete in a section they add to, only when editing them -->
     <string name="permission_planning_edit_delete">Allow editing and deleting appointments</string>
     <string name="permission_planning_edit_delete_description">They can change or delete any appointment, yours included.</string>
     <string name="permission_events_edit_delete">Allow removing confirmations</string>
@@ -510,7 +510,7 @@
     <!-- Under an edit-and-delete switch that is greyed out because adding is off -->
     <string name="permission_edit_delete_needs_adding">Allow adding first</string>
 
-    <!-- Add a care circle member (#79) -->
+    <!-- Add a care circle member -->
     <string name="care_circle_form_add_title">Add a member</string>
     <string name="care_circle_form_back">Back</string>
     <string name="care_circle_form_first_name">First name</string>
@@ -536,14 +536,14 @@
     <string name="care_circle_form_open_invite">Open the invitation</string>
     <!-- Under the email, when the patient typed their own -->
     <string name="care_circle_form_own_email">This is your own email. Enter the email of the person you want to invite.</string>
-    <!-- Edit a care circle member (#75) -->
+    <!-- Edit a care circle member -->
     <string name="care_circle_form_edit_title">Edit member</string>
     <string name="care_circle_form_account_email">Account email. It can\'t be changed.</string>
     <string name="care_circle_form_save_changes">Save changes</string>
     <string name="care_circle_form_missing_first_name_edit">Add a first name to save the changes.</string>
     <string name="care_circle_form_update_error">Couldn\'t save the changes. Try again.</string>
 
-    <!-- Join a care circle with an invite code (#137) -->
+    <!-- Join a care circle with an invite code -->
     <string name="join_circle_title">Join a care circle</string>
     <string name="join_circle_subtitle">Enter the invite code that the person you support shared with you.</string>
     <string name="join_circle_code">Invite code</string>
@@ -563,7 +563,7 @@
     <string name="join_circle_joined_hint">You\'ll see what they choose to share with you.</string>
     <string name="join_circle_continue">Continue</string>
 
-    <!-- Whose care?: the patients a caregiver follows (#239) -->
+    <!-- Whose care?: the patients a caregiver follows -->
     <string name="whose_care_title">Whose care?</string>
     <string name="whose_care_back">Back</string>
     <string name="whose_care_intro">Choose the person whose care you want to follow. You only see what they chose to share.</string>
@@ -580,15 +580,15 @@
     <!-- The "Whose care?" sheet over the caregiver's Overview -->
     <string name="whose_care_follow_new">Follow someone new</string>
     <string name="whose_care_follow_new_hint">Enter the invite code they shared</string>
-    <!-- After the patient removed the caregiver from their circle (#204), e.g. "You\'re no longer in Anne\'s care circle." -->
+    <!-- After the patient removed the caregiver from their circle, e.g. "You\'re no longer in Anne\'s care circle." -->
     <string name="removed_from_circle">You\'re no longer in %1$s\'s care circle.</string>
     <string name="removed_from_circle_unnamed">You\'re no longer in this care circle.</string>
 
-    <!-- Caregiver mode: a section the patient doesn\'t share, e.g. "Anne doesn\'t share Planning with you" (#240) -->
+    <!-- Caregiver mode: a section the patient doesn\'t share, e.g. "Anne doesn\'t share Planning with you" -->
     <string name="not_shared_title">%1$s doesn\'t share %2$s with you</string>
     <string name="not_shared_body">Only they can choose what you see.</string>
 
-    <!-- Care circle invite code (#150) -->
+    <!-- Care circle invite code -->
     <string name="care_circle_invite_title">Invitation</string>
     <string name="care_circle_invite_back">Back</string>
     <string name="care_circle_invite_code_label">Invite code</string>
@@ -677,7 +677,7 @@
     <string name="prescriptions_error_hint">Please try again.</string>
     <string name="prescriptions_retry">Retry</string>
     <string name="prescriptions_scan">Scan</string>
-    <!-- Medication detail (US-35) -->
+    <!-- Medication detail -->
     <string name="medication_detail_title">Medication</string>
     <string name="medication_detail_view_prescription">View prescription</string>
     <string name="medication_detail_prescription_date">Prescription date</string>
@@ -724,19 +724,19 @@
     <string name="prescription_already_saved_save_anyway">Save anyway</string>
     <string name="prescription_renewal_by">Same medications as %2$s\'s prescription from %1$s: this looks like a renewal. Saving adds it as a new prescription.</string>
     <string name="prescription_renewal">Same medications as your prescription from %1$s: this looks like a renewal. Saving adds it as a new prescription.</string>
-    <!-- Caregiver mode (US-20): the list of the patient they follow, e.g. "Anne\'s prescriptions" -->
+    <!-- Caregiver mode: the list of the patient they follow, e.g. "Anne\'s prescriptions" -->
     <string name="prescriptions_list_title_for">%1$s\'s prescriptions</string>
     <string name="prescriptions_empty_hint_for">When %1$s saves a prescription, it will appear here.</string>
     <string name="prescriptions_error_title_for">Couldn\'t load %1$s\'s prescriptions</string>
-    <!-- US-43: above the other groups, the prescriptions a caregiver added that wait for the patient -->
+    <!-- Above the other groups, the prescriptions a caregiver added that wait for the patient -->
     <string name="prescriptions_added_by_a_caregiver">Added by a caregiver</string>
     <string name="prescriptions_added_by_you">Added by you</string>
-    <!-- US-43: under "Added by you", where each prescription is, e.g. "Waiting for Anne" -->
+    <!-- Under "Added by you", where each prescription is, e.g. "Waiting for Anne" -->
     <string name="prescriptions_waiting_for">Waiting for %1$s</string>
     <string name="prescriptions_accepted_by">Accepted by %1$s</string>
     <string name="prescriptions_rejected_by">Rejected by %1$s</string>
     <string name="prescriptions_dismiss">Close</string>
-    <!-- US-43: the patient reviews a prescription a caregiver added, then confirms or rejects it -->
+    <!-- The patient reviews a prescription a caregiver added, then confirms or rejects it -->
     <string name="prescription_confirm_title">Review the prescription</string>
     <string name="prescription_confirm_notice">A caregiver added this prescription. Check each field and correct it if needed, then confirm.</string>
     <string name="prescription_confirm_save">Confirm prescription</string>
@@ -746,28 +746,28 @@
     <string name="prescription_reject_cancel">Cancel</string>
     <string name="prescription_form_error_reject_failed">Couldn\'t reject this prescription. Please try again.</string>
     <string name="prescription_form_already_confirmed">This prescription was already confirmed, so it can\'t be rejected any more.</string>
-    <!-- #277: the list and the detail when nothing can be read, so retrying can't help -->
+    <!-- The list and the detail when nothing can be read, so retrying can't help -->
     <string name="prescriptions_signed_out_title">You\'re signed out</string>
     <string name="prescriptions_signed_out_hint">Sign in again to see your prescriptions.</string>
-    <!-- #277: a caregiver the patient removed from their circle, e.g. "You can\'t see Anne\'s prescriptions anymore" -->
+    <!-- A caregiver the patient removed from their circle, e.g. "You can\'t see Anne\'s prescriptions anymore" -->
     <string name="prescriptions_no_access_title_for">You can\'t see %1$s\'s prescriptions anymore</string>
     <string name="prescriptions_no_access_hint_for">You\'re no longer in %1$s\'s care circle.</string>
-    <!-- #490: the same, in the instant after the app forgot the patient\'s name -->
+    <!-- The same, in the instant after the app forgot the patient\'s name -->
     <string name="prescriptions_no_access_title_unnamed">You can\'t see these prescriptions anymore</string>
     <string name="prescriptions_no_access_hint_unnamed">You\'re no longer in this care circle.</string>
 
-    <!-- Caregiver prescription edits (US-46) -->
+    <!-- Caregiver prescription edits -->
     <string name="prescription_form_edit_title_for">Edit %1$s\'s prescription</string>
     <string name="prescription_delete_title_for">Delete %1$s\'s prescription?</string>
     <string name="prescription_delete_message_for">It will be removed from %1$s\'s prescriptions with all its medications. You can\'t undo this.</string>
     <string name="prescription_form_not_allowed_title">This prescription can\'t be edited</string>
     <string name="prescription_form_not_allowed_hint">You don\'t currently have permission to edit this patient\'s prescriptions.</string>
-    <!-- #549: the eyebrow of the card holding the doctor and the date, shown in capitals -->
+    <!-- The eyebrow of the card holding the doctor and the date, shown in capitals -->
     <string name="prescription_form_prescription_section">Prescription</string>
-    <!-- #549: above the medications, with their number, e.g. "Medications (2)" -->
+    <!-- Above the medications, with their number, e.g. "Medications (2)" -->
     <string name="prescription_form_medications_heading">Medications (%1$d)</string>
 
-    <!-- Prescription scan (US-10) -->
+    <!-- Prescription scan -->
     <string name="prescription_scan_title">Scan prescription</string>
     <string name="prescription_scan_close">Close</string>
     <string name="prescription_scan_frame_hint">Place the prescription inside the frame</string>
@@ -793,13 +793,13 @@
     <string name="prescription_scan_photo_description">Photo of the prescription</string>
     <string name="prescription_scan_photo_unreadable">Couldn\'t show the photo. Please retake it.</string>
     <string name="prescription_scan_capture_failed">Couldn\'t take the photo. Please try again.</string>
-    <!-- #356: the tip shown before the camera opens -->
+    <!-- The tip shown before the camera opens -->
     <string name="prescription_scan_tip_title">Hold your phone upright</string>
     <string name="prescription_scan_tip_message">Take the photo with the phone upright and the prescription the right way up. A prescription photographed sideways is read less well, and its lines can come out in the wrong order.</string>
     <string name="prescription_scan_tip_dont_show_again">Don\'t show this again</string>
     <string name="prescription_scan_tip_got_it">Got it</string>
 
-    <!-- US-10: reviewing the prescription read from a scan, in the prescription form -->
+    <!-- Reviewing the prescription read from a scan, in the prescription form -->
     <string name="prescription_review_title">Review prescription</string>
     <string name="prescription_review_read">We read these details from your scan.</string>
     <string name="prescription_review_partly_read">We could only read part of the prescription.</string>
@@ -829,10 +829,10 @@
         <item quantity="one">Please check 1 detail</item>
         <item quantity="other">Please check %1$d details</item>
     </plurals>
-    <!-- A caregiver adds a prescription for the patient (US-43), e.g. "Add a prescription for Anne" -->
+    <!-- A caregiver adds a prescription for the patient, e.g. "Add a prescription for Anne" -->
     <string name="prescription_form_add_title_for">Add a prescription for %1$s</string>
     <string name="prescription_review_title_for">Review %1$s\'s prescription</string>
-    <!-- US-39 for a caregiver: their patient's prescriptions, e.g. "Already in Anne\'s prescriptions" -->
+    <!-- A duplicate prescription, for a caregiver: their patient's prescriptions, e.g. "Already in Anne\'s prescriptions" -->
     <string name="prescription_already_saved_title_for">Already in %1$s\'s prescriptions</string>
 
     <!-- Hospital field -->
@@ -898,7 +898,7 @@
     <string name="appointment_edit">Edit appointment</string>
     <string name="appointment_save_changes">Save changes</string>
     <string name="appointment_edit_signed_out">Sign in again to edit this appointment.</string>
-    <!-- A caregiver adds an appointment for the patient (US-41), e.g. "Add an appointment for Anne" -->
+    <!-- A caregiver adds an appointment for the patient, e.g. "Add an appointment for Anne" -->
     <string name="appointment_add_for">Add an appointment for %1$s</string>
 
     <!-- A change the server rejected and was undone, shown over every screen -->
@@ -915,10 +915,10 @@
     <!-- Shared text field: what screen readers say about a field in error -->
     <string name="field_error">Invalid input</string>
 
-    <!-- Shared "Added by": a prescription a caregiver added, not confirmed by the patient yet (US-43) -->
+    <!-- Shared "Added by": a prescription a caregiver added, not confirmed by the patient yet -->
     <string name="added_by_not_confirmed">Added by %1$s · Not confirmed</string>
 
-    <!-- Editing and deleting for the patient (US-46) -->
+    <!-- Editing and deleting for the patient -->
     <!-- Shared: under an entry a caregiver edited, e.g. "Edited by Sam" -->
     <string name="edited_by">Edited by %1$s</string>
     <!-- A caregiver edits the patient's appointment, e.g. "Edit Anne's appointment" -->
@@ -987,7 +987,7 @@
     <string name="settings_text_size_percent">%1$d%% · Phone setting</string>
     <string name="settings_text_size_unavailable">Couldn\'t open your phone\'s text size settings.</string>
 
-    <!-- Medication reminders in the prescription form (US-32) -->
+    <!-- Medication reminders in the prescription form -->
     <string name="medication_reminders_section">Reminders</string>
     <string name="medication_reminders_remind_me">Remind me</string>
     <string name="medication_reminders_off">Off</string>
@@ -1008,7 +1008,7 @@
     <!-- What a caregiver sees of the patient's reminders: "Anne's reminders: 09:00 · 18:00…" -->
     <string name="medication_reminders_of_patient">%1$s\'s reminders: %2$s. Only %1$s can change them.</string>
 
-    <!-- The "Your circle" sheet over the Overview, and its cards: what the care circle did for the patient (US-50, #457) -->
+    <!-- The "Your circle" sheet over the Overview, and its cards: what the care circle did for the patient -->
     <!-- Who added it and when, e.g. "Marc · 08:05 · added" -->
     <string name="circle_sheet_added">%1$s · %2$s · added</string>
     <!-- The card's title when the prescription doesn't say who prescribed it -->

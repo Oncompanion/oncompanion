@@ -40,11 +40,11 @@ import kotlinx.coroutines.launch
  * @property hasError true if it couldn't be loaded (or nobody is signed in)
  * @property delete where the deletion of the symptom is at
  * @property canEdit whether the symptom can be edited or deleted: in the user's own journal, or in
- *   the patient's when they let the caregiver edit and delete symptoms (US-46)
+ *   the patient's when they let the caregiver edit and delete symptoms
  * @property isNotShared in caregiver mode, the patient doesn't share their symptoms: no symptom
  * @property addedByName who added the symptom, if a caregiver did: for the patient, the name they
  *   gave that member in their circle
- * @property editedByName who last edited it, if a caregiver did (US-46), named like [addedByName]
+ * @property editedByName who last edited it, if a caregiver did, named like [addedByName]
  */
 data class SymptomDetailUiState(
     val entry: SymptomEntry? = null,
@@ -66,10 +66,9 @@ data class SymptomDetailUiState(
 }
 
 /**
- * Loads one symptom of the signed-in user's journal (US-8), keeps it up to date, and deletes it
- * once the user confirms (US-9). In caregiver mode (US-20), the symptom is the followed patient's,
- * when they share their symptoms: read-only, unless they let the caregiver edit and delete them
- * (US-46).
+ * Loads one symptom of the signed-in user's journal, keeps it up to date, and deletes it once the
+ * user confirms. In caregiver mode, the symptom is the followed patient's, when they share their
+ * symptoms: read-only, unless they let the caregiver edit and delete them.
  *
  * @param patientUid in caregiver mode, the patient whose symptom is shown; null for the user's own
  */
@@ -201,9 +200,9 @@ class SymptomDetailViewModel(
 
   /**
    * Deletes the symptom: the user's own, or in caregiver mode the patient's, which the rules only
-   * accept while the patient lets them edit and delete symptoms (US-46). Like logging one, this
-   * returns once it is deleted on the device, also offline: the journal no longer shows it and the
-   * server deletes it when there is a connection.
+   * accept while the patient lets them edit and delete symptoms. Like logging one, this returns
+   * once it is deleted on the device, also offline: the journal no longer shows it and the server
+   * deletes it when there is a connection.
    */
   fun confirmDelete() =
       deletion.confirm(

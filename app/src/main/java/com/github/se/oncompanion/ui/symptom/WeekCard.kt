@@ -41,10 +41,10 @@ import com.github.se.oncompanion.ui.theme.full
 import java.time.format.TextStyle
 
 /**
- * The "This week" card at the top of the journal (Figma: "Symptoms – History"): how many symptoms
- * were logged this calendar week and, unless several tie, which one most often, then a bar per day
- * whose height is the highest intensity the user entered that day. Nothing is judged: the bars
- * share one colour and the app draws no conclusion from them.
+ * The "This week" card at the top of the journal (design: M3, "This week"): how many symptoms were
+ * logged this calendar week and, unless several tie, which one most often, then a bar per day whose
+ * height is the highest intensity the user entered that day. Nothing is judged: the bars share one
+ * color and the app draws no conclusion from them.
  */
 @Composable
 fun WeekCard(summary: WeekSummary, modifier: Modifier = Modifier) {
@@ -95,7 +95,7 @@ private fun WeekBars(days: List<WeekDay>, modifier: Modifier = Modifier) {
 /**
  * One day: a bar as high as its intensity, an open dot if something was logged without one, or a
  * short baseline if nothing was (or the day hasn't come yet). TalkBack reads the day and what was
- * logged, never a colour or a height.
+ * logged, never a color or a height.
  */
 @Composable
 private fun DayBar(day: WeekDay, modifier: Modifier = Modifier) {
@@ -170,7 +170,7 @@ private fun barHeight(intensity: Int): Dp =
             ((intensity - SymptomEntry.MIN_INTENSITY).toFloat() /
                 (SymptomEntry.MAX_INTENSITY - SymptomEntry.MIN_INTENSITY))
 
-// The chart of the Figma's "This week" card
+// The chart of the "This week" card
 private val BAR_AREA_HEIGHT = 56.dp
 private val MIN_BAR_HEIGHT = 12.dp
 private val BAR_WIDTH = 20.dp

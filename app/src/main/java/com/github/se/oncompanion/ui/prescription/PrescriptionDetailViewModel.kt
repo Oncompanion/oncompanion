@@ -64,7 +64,7 @@ data class PrescriptionDetailUiState(
  * What the detail shows while the prescription is read again, with the access known: the
  * prescription kept from before, a read error over it, or a spinner while nothing is kept. After
  * the access was lost, the read has to show the prescription again first, even if one were still
- * held (#490).
+ * held.
  */
 internal fun PrescriptionDetailUiState.loadWhileReading(): PrescriptionsLoad =
     when (load) {
@@ -83,9 +83,9 @@ internal fun PrescriptionDetailUiState.loadWhileReading(): PrescriptionsLoad =
 /**
  * Loads one prescription of the signed-in user and keeps it up to date, so a correction saved in
  * the form shows when the user comes back. The repository reads from the local cache, so the detail
- * also works offline. Deletes the prescription once the user confirms (US-12). In caregiver mode
- * (US-20), the prescription is the followed patient's when shared; editing and deleting require the
- * patient's permission for Prescriptions (US-46).
+ * also works offline. Deletes the prescription once the user confirms. In caregiver mode, the
+ * prescription is the followed patient's when shared; editing and deleting require the patient's
+ * permission for Prescriptions.
  *
  * @param patientUid in caregiver mode, the patient whose prescription is shown; null for the user's
  *   own
@@ -137,7 +137,7 @@ class PrescriptionDetailViewModel(
     observation = viewModelScope.launch {
       var hasShown = false
       observeSection(CarePermission.PRESCRIPTIONS, patientUid) { ownerUid ->
-            // A rejected prescription is gone for everyone, as a deleted one (US-43)
+            // A rejected prescription is gone for everyone, as a deleted one
             val prescription =
                 medicationRepository.observePrescription(ownerUid, prescriptionId).map {
                   it?.takeUnless(Prescription::isRejected)

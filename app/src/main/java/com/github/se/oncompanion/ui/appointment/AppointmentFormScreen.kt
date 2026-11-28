@@ -40,8 +40,8 @@ import java.time.format.FormatStyle
 /**
  * Collects the appointment draft and forwards confirmed input to its ViewModel.
  *
- * @param caregiverOf the first name of the patient a caregiver adds (US-41) or edits (US-46) the
- *   appointment for, `null` for the user's own
+ * @param caregiverOf the first name of the patient a caregiver adds or edits the appointment for,
+ *   `null` for the user's own
  */
 @Composable
 fun AppointmentFormScreen(
@@ -138,7 +138,7 @@ fun AppointmentFormContent(
         title = {
           Text(
               when {
-                // A caregiver edits the patient's appointment (US-46)
+                // A caregiver edits the patient's appointment
                 state.isEditing && caregiverOf != null ->
                     stringResource(R.string.appointment_edit_for, caregiverOf)
                 state.isEditing -> stringResource(R.string.appointment_edit)

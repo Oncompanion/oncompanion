@@ -35,6 +35,14 @@ enum class EditProfileStatus {
 /**
  * Profile draft with optional patient hospital text; an empty hospital never prevents saving.
  *
+ * @property status where reading the profile is, or why the form can't show it
+ * @property firstName the first name, required to save
+ * @property familyName the family name, optional
+ * @property cancerType the cancer type, only asked to a patient
+ * @property save where saving is
+ * @property saveFailed the last save failed; the draft is kept so the user can retry
+ * @property hospital the patient's hospital, optional
+ * @property isPatient the user is a patient, so the form asks the patient's fields
  * @property dateOfBirth the optional date of birth, `null` when not set or cleared
  * @property dateOfBirthTyped the digits the user typed as the date of birth, or `null` when the
  *   field shows [dateOfBirth] (as saved, or as picked)

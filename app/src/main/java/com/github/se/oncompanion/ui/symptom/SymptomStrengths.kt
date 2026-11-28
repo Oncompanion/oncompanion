@@ -67,10 +67,10 @@ private val SliderStopInset = 8.dp
 private val THUMB_TRACK_GAP = 6.dp
 
 /**
- * How strong each picked symptom was (Figma: "Edit entry"), shared by the symptom form and the
- * Overview's check-in sheet (#544). With several symptoms picked, a chip per symptom ("Nausea ·
- * 4/10") chooses which one the slider sets; then the question for that symptom ("How strong is your
- * fatigue? (optional)") and the slider. Nothing shows until a symptom is picked.
+ * How strong each picked symptom was (design: M3, "Edit and delete · Edit entry"), shared by the
+ * symptom form and the Overview's check-in sheet. With several symptoms picked, a chip per symptom
+ * ("Nausea · 4/10") chooses which one the slider sets; then the question for that symptom ("How
+ * strong is your fatigue? (optional)") and the slider. Nothing shows until a symptom is picked.
  *
  * @param types the symptoms picked, in the order they were picked
  * @param strengths the strength given to each of them, if any

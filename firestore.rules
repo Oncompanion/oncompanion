@@ -43,7 +43,7 @@ service cloud.firestore {
           && data.createdAt is timestamp;
     }
     // Who added an entry: nothing when the patient did, or the signed-in caregiver's uid and first
-    // name when a caregiver did (US-22, US-41), so nobody can add one in someone else's name.
+    // name when a caregiver did, so nobody can add one in someone else's name.
     // Keep in sync with SymptomEntry and Appointment (MAX_ADDED_BY_NAME_LENGTH).
     function isValidAttribution(ownerUid, data) {
       return isOwner(ownerUid)
@@ -54,7 +54,7 @@ service cloud.firestore {
               && data.addedByName.size() <= 50;
     }
     // Who last edited an entry: nothing when the patient did, or the signed-in caregiver's uid and
-    // first name when a caregiver did (US-46), so nobody can edit in someone else's name. The
+    // first name when a caregiver did, so nobody can edit in someone else's name. The
     // patient may also leave the editor as it was: older versions of the app don't remove it.
     // Keep in sync with Appointment and SymptomEntry (MAX_ADDED_BY_NAME_LENGTH).
     function isValidEditor(ownerUid, data, previous) {
@@ -81,9 +81,9 @@ service cloud.firestore {
     // The fields of each medication are not checked here: rules have no loops, and checking 20
     // entries one by one exceeds the limit of 1000 expressions per request (about 4 fit). The app
     // checks them before saving (Medication.isValid) and skips the ones it can't read.
-    // A caregiver's prescription (US-43) also says who added it and whether the patient confirmed
+    // A caregiver's prescription also says who added it and whether the patient confirmed
     // it; the patient's own is always confirmed. Keep in sync with PrescriptionConfirmation.
-    // The reminder times the patient chose (US-32) are a map from a medication's ID to its times,
+    // The reminder times the patient chose are a map from a medication's ID to its times,
     // only on a confirmed prescription; their entries are checked by the app, like the medications
     // (Medication.isValidReminderTimes).
     function isValidPrescription(data) {
@@ -112,7 +112,7 @@ service cloud.firestore {
                   && confirmationOf(data) == 'CONFIRMED'));
     }
 
-    // Saved before US-43 without the field: the patient's own, so confirmed
+    // Saved before prescriptions recorded who added them: the patient's own, so confirmed
     function confirmationOf(data) {
       return data.get('confirmation', 'CONFIRMED');
     }
@@ -162,7 +162,7 @@ service cloud.firestore {
           // The intensity is optional
           && (data.get('intensity', null) == null
               || (data.intensity is int && data.intensity >= 1 && data.intensity <= 10))
-          // A strength per symptom (#543), optional, each a whole number from 1 to 10, or 0 for a
+          // A strength per symptom, optional, each a whole number from 1 to 10, or 0 for a
           // strength an edit removed (a deletion inside a map doesn't show offline). Its keys are
           // checked against every symptom, not this entry's: an older app version doesn't know
           // strengths, and removing a symptom there must stay allowed (the app ignores the strength
@@ -179,7 +179,7 @@ service cloud.firestore {
           // request.time is then even later.
           && data.occurredAt <= request.time + duration.value(5, 'm')
           && optionalString(data, 'notes', 1000)
-          // The name of the "Other" symptom (#545), never blank. Allowed without "Other": an older
+          // The name of the "Other" symptom, never blank. Allowed without "Other": an older
           // app version removing it from an entry keeps the name (the app then ignores it).
           && optionalString(data, 'otherName', 40)
           && (data.get('otherName', null) == null || data.otherName.trim().size() > 0)
@@ -238,7 +238,7 @@ service cloud.firestore {
           && data.get('canAdd', []) is list
           && data.permissions.hasAll(data.get('canAdd', []));
     }
-    // What the patient lets a member edit and delete (US-46), only on a member: invites and
+    // What the patient lets a member edit and delete, only on a member: invites and
     // redeeming never carry it. Optional (missing on members saved before it existed, who can't
     // edit or delete), and only sections the member can also add to.
     // Keep in sync with CareCircleMemberDetails.canEditAndDelete.
@@ -312,7 +312,7 @@ service cloud.firestore {
           && section in member.data.canAdd;
     }
     // The owner, or a member who adds to `section` and whom the owner also lets edit and delete
-    // there (canEditAndDelete, US-46): any entry of the section, the patient's included.
+    // there (canEditAndDelete): any entry of the section, the patient's included.
     function canEditIn(ownerUid, section) {
       return isOwner(ownerUid) || (signedIn() && memberEdits(get(memberDoc(ownerUid)), section));
     }
@@ -341,7 +341,7 @@ service cloud.firestore {
         allow read: if canRead(uid, 'PRESCRIPTIONS');
         allow delete: if canEditIn(uid, 'PRESCRIPTIONS');
         // A caregiver the patient lets add prescriptions creates one waiting for the patient,
-        // signed with their identity (US-43)
+        // signed with their identity
         allow create: if canAddTo(uid, 'PRESCRIPTIONS')
                       && isValidPrescription(request.resource.data)
                       && isValidAttribution(uid, request.resource.data)
@@ -364,7 +364,7 @@ service cloud.firestore {
 
       // ---------- Rejected prescriptions ----------
       // /users/{uid}/rejectedPrescriptions/{prescriptionId}: a prescription a caregiver added that
-      // the patient rejected (US-43), moved out of their prescriptions so no other member sees it.
+      // the patient rejected, moved out of their prescriptions so no other member sees it.
       // The patient and the caregiver who added it read it; only that caregiver deletes it, once
       // they saw it, even without the right to edit the patient's prescriptions.
       match /rejectedPrescriptions/{prescriptionId} {
@@ -379,7 +379,7 @@ service cloud.firestore {
 
       // ---------- Doses taken ----------
       // /users/{uid}/takenDoses/{day}: how many doses of each medication the patient ticked on a
-      // day (US-28), {taken: {<medicationId>: count}, updatedAt}, the day as yyyy-MM-dd. Only the
+      // day, {taken: {<medicationId>: count}, updatedAt}, the day as yyyy-MM-dd. Only the
       // patient records them; a caregiver who sees their prescriptions reads them. A count is a
       // whole number from 0 to 24 (keep in sync with TakenDosesRepository.MAX_TAKEN_PER_DAY): how
       // many doses a medication has comes from its frequency text, which the rules can't read, so
@@ -404,8 +404,8 @@ service cloud.firestore {
       // ---------- Symptoms ----------
       // /users/{uid}/symptoms/{symptomId}: the symptom journal. Editing an entry follows the same
       // validation as logging it, and keeps when it was first logged and who logged it. Edited and
-      // deleted by the owner, or by a member the owner lets edit and delete there (US-46), who
-      // signs their edit.
+      // deleted by the owner, or by a member the owner lets edit and delete there, who signs
+      // their edit.
       match /symptoms/{symptomId} {
         allow read: if canRead(uid, 'SYMPTOMS');
         allow delete: if canEditIn(uid, 'SYMPTOMS');
@@ -423,9 +423,9 @@ service cloud.firestore {
 
       // ---------- Appointments ----------
       // /users/{uid}/appointments/{appointmentId}: read by the owner and by members the owner
-      // shares Planning with. Created by the owner, or by a member the owner lets add to Planning
-      // (US-41), signed with their uid. Edited and deleted by the owner, or by a member the owner
-      // lets edit and delete there (US-46), who signs their edit; who added it never changes.
+      // shares Planning with. Created by the owner, or by a member the owner lets add to Planning,
+      // signed with their uid. Edited and deleted by the owner, or by a member the owner lets edit
+      // and delete there, who signs their edit; who added it never changes.
       match /appointments/{appointmentId} {
         allow read: if canRead(uid, 'PLANNING');
         allow delete: if canEditIn(uid, 'PLANNING');
@@ -445,9 +445,9 @@ service cloud.firestore {
       // /users/{uid}/eventRegistrations/{eventId}: the user's own statement that they registered
       // with the organizer of /events/{eventId}. It is keyed by the event, so confirming twice
       // writes the same document instead of a duplicate. Members the owner shares Events with
-      // can read it. A member with Events edit/delete permission can remove it (US-46).
-      // A member the owner lets confirm events (US-42)
-      // can save one that doesn't exist yet, signed with their identity, never replace one.
+      // can read it. A member with Events edit/delete permission can remove it. A member the
+      // owner lets confirm events can save one that doesn't exist yet, signed with their
+      // identity, never replace one.
       // Saving needs an existing event that hasn't started yet, by the server's clock: a
       // confirmation made offline that only syncs once the event has started is rejected.
       match /eventRegistrations/{eventId} {
@@ -514,9 +514,9 @@ service cloud.firestore {
       }
 
       // ---------- Notifications ----------
-      // /users/{uid}/notifications/{kind}_{itemId}: what the user's care circle did for them
-      // (US-50), e.g. a caregiver added a prescription for them to review. The caregiver's phone
-      // creates it right after the item, about their own item only, signed with their uid; it
+      // /users/{uid}/notifications/{kind}_{itemId}: what the user's care circle did for them,
+      // e.g. a caregiver added a prescription for them to review. The caregiver's phone creates
+      // it right after the item, about their own item only, signed with their uid; it
       // never holds the item's content. Its ID is the kind and the item, so it is sent once: only
       // the owner changes it afterwards, to mark it seen. Nobody deletes it: Firestore does,
       // through a TTL policy on `expiresAt` (firestore.indexes.json). Keep in sync with
@@ -585,7 +585,7 @@ service cloud.firestore {
 
     // ---------- Ligue events ----------
     // /events/{eventId}: the Ligue's support events, the same for every user. They are added from
-    // the Firebase console for now, so the app can only read them.
+    // the Firebase console, so the app only reads them.
     match /events/{eventId} {
       allow read: if signedIn();
     }

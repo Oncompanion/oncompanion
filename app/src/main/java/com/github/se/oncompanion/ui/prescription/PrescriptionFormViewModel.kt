@@ -57,7 +57,7 @@ enum class PrescriptionFormError {
    * [PrescriptionFormViewModel.save].
    */
   SAVE_FAILED,
-  /** Rejecting a prescription a caregiver added failed on the device (US-43). */
+  /** Rejecting a prescription a caregiver added failed on the device. */
   REJECT_FAILED,
   /**
    * The prescription to reject was confirmed meanwhile (e.g. on another device): nothing changed.
@@ -106,11 +106,11 @@ enum class PrescriptionFormLoad {
  * @property leftOut how many medications the scan read beyond what a prescription can hold
  * @property dateFound whether the scan read a date; if not, the date is today's
  * @property renewalOf a saved prescription with the same medications on another date: this one
- *   looks like its renewal (US-39), said above the form
+ *   looks like its renewal, said above the form
  * @property alreadySaved a saved prescription this one is the same as: Save asked first whether to
- *   save it anyway (US-39)
- * @property isToConfirm the saved prescription was added by a caregiver and waits for the patient
- *   (US-43): saving it confirms it, and it can be rejected instead
+ *   save it anyway
+ * @property isToConfirm the saved prescription was added by a caregiver and waits for the patient:
+ *   saving it confirms it, and it can be rejected instead
  * @property isConfirmingRejection the patient asked to reject it and hasn't confirmed or cancelled
  *   yet
  * @property canChange whether editing and saving are currently authorized
@@ -168,12 +168,12 @@ data class PrescriptionFormUiState(
 }
 
 /**
- * The prescription form (US-24): the user types a prescription and its medications, one open for
- * editing at a time, then saves it. Nothing is saved before the user confirms with Save.
+ * The prescription form: the user types a prescription and its medications, one open for editing at
+ * a time, then saves it. Nothing is saved before the user confirms with Save.
  *
- * Given a [prescriptionId], the form corrects that saved prescription instead (US-12): it reads it
- * (see [load]), starts from what was saved, and Save replaces it. The fields and their validation
- * are the same as for a new prescription.
+ * Given a [prescriptionId], the form corrects that saved prescription instead: it reads it (see
+ * [load]), starts from what was saved, and Save replaces it. The fields and their validation are
+ * the same as for a new prescription.
  *
  * @param medicationRepository reads the prescription to correct. Writes go through
  *   [manageMedicationSchedule].
@@ -185,11 +185,10 @@ data class PrescriptionFormUiState(
  * @param prescriptionId the saved prescription to correct; `null` to add a new one
  * @param scan the prescription read from a scan, which the form starts from instead of
  *   [initialDraft]: the patient reviews it, with the details to check marked
- * @param patientUid in caregiver mode (US-43), the patient whose prescriptions get the new one;
- *   null for the user's own. It is saved waiting for the patient to confirm it, signed with the
- *   caregiver's first name, and the rules only accept it if the patient lets them add
- *   prescriptions. A saved one may be edited with the patient's edit permission, preserving its
- *   confirmation status.
+ * @param patientUid in caregiver mode, the patient whose prescriptions get the new one; null for
+ *   the user's own. It is saved waiting for the patient to confirm it, signed with the caregiver's
+ *   first name, and the rules only accept it if the patient lets them add prescriptions. A saved
+ *   one may be edited with the patient's edit permission, preserving its confirmation status.
  * @param profileRepository the caregiver's profile, for the first name their prescription is signed
  *   with
  */
@@ -247,7 +246,7 @@ class PrescriptionFormViewModel(
   // The draft the form last started from: while the form still shows it, the user changed nothing
   private var shownDraft: PrescriptionDraft? = null
 
-  // The prescriptions already saved, which a new one is compared with (US-39)
+  // The prescriptions already saved, which a new one is compared with
   private var saved: List<Prescription> = emptyList()
 
   init {
@@ -279,9 +278,9 @@ class PrescriptionFormViewModel(
   /**
    * Follows the prescriptions already saved, from the device's cache when offline, so a new one can
    * be compared with them: the patient's, confirmed or not, also when a caregiver adds one. A
-   * rejected prescription is no longer a duplicate, also for the patient, so it is left out; the
-   * list doesn't hide it yet (#339 does). Comparing is only a warning: if they can't be read, the
-   * form works as before.
+   * rejected prescription is no longer a duplicate, also for the patient, so it is left out, as the
+   * list leaves it out. Comparing is only a warning: if they can't be read, the form works as
+   * before.
    */
   private fun observeSaved() {
     val uid = authRepository.signedInUid(TAG) ?: return
@@ -415,7 +414,7 @@ class PrescriptionFormViewModel(
     val state = _uiState.value
     // Once saved, the form is done: what arrives next is its own save
     if (state.save == SavePhase.SAVED) return
-    // The form's own rejection moves the prescription apart (#396): it leaves before reject()
+    // The form's own rejection moves the prescription apart: it leaves before reject()
     // returns, which isn't a deletion
     val rejecting = state.save == SavePhase.SAVING && state.isConfirmingRejection
     if (saved == null && rejecting) return
@@ -506,9 +505,9 @@ class PrescriptionFormViewModel(
 
   /**
    * Text longer than a medication can store is cut. Reminders already on follow the new frequency:
-   * one per dose it says, from the times the patient chose (US-32), so a frequency typed letter by
-   * letter or changed and back keeps them. A caregiver's change leaves them as they are: only the
-   * patient chooses them.
+   * one per dose it says, from the times the patient chose, so a frequency typed letter by letter
+   * or changed and back keeps them. A caregiver's change leaves them as they are: only the patient
+   * chooses them.
    */
   fun onFrequencyChange(value: String) {
     editOpenMedication(MedicationDetail.FREQUENCY) {
@@ -523,8 +522,8 @@ class PrescriptionFormViewModel(
   }
 
   /**
-   * Turns the open medication's reminders on, at the times suggested by its frequency, or off
-   * (US-32). A frequency the app can't read suggests none: the patient chooses the first time
+   * Turns the open medication's reminders on, at the times suggested by its frequency, or off. A
+   * frequency the app can't read suggests none: the patient chooses the first time
    * ([onReminderTimeChange]). Nothing is scheduled before the prescription is saved.
    */
   fun onRemindChange(on: Boolean) {
@@ -679,7 +678,7 @@ class PrescriptionFormViewModel(
 
   /**
    * Saves, unless a new prescription is the same as a saved one and the patient hasn't [confirmed]
-   * it: [PrescriptionFormUiState.alreadySaved] then asks first (US-39).
+   * it: [PrescriptionFormUiState.alreadySaved] then asks first.
    */
   private fun save(confirmed: Boolean) {
     val state = _uiState.value
@@ -809,7 +808,7 @@ class PrescriptionFormViewModel(
   }
 
   /**
-   * Rejects the prescription, once the patient confirmed it (US-43): it disappears from their
+   * Rejects the prescription, once the patient confirmed it: it disappears from their
    * prescriptions, Planning and the Overview, and is never reminded. The form is then done, as
    * after saving. If it was deleted or decided elsewhere meanwhile, nothing is rejected: the form
    * then shows what is saved, as it follows the prescription.
@@ -889,7 +888,7 @@ class PrescriptionFormViewModel(
 
   /**
    * Changes the reminder times of the open medication. Only the patient chooses them: a caregiver's
-   * form leaves them as they are (US-32, US-43).
+   * form leaves them as they are.
    */
   private fun editReminders(times: (MedicationDraft) -> List<LocalTime>) {
     if (patientUid != null) return
@@ -903,8 +902,8 @@ class PrescriptionFormViewModel(
 
   /**
    * Sets [PrescriptionFormUiState.renewalOf] to the saved prescription with the same medications on
-   * another date (US-39), or to null when there is none. A correction of a saved prescription is
-   * never compared, so its renewalOf stays null.
+   * another date, or to null when there is none. A correction of a saved prescription is never
+   * compared, so its renewalOf stays null.
    */
   private fun PrescriptionFormUiState.withRenewal() =
       copy(

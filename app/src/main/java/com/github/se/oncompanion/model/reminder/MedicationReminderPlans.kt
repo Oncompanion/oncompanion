@@ -13,8 +13,8 @@ import org.json.JSONException
 import org.json.JSONObject
 
 /**
- * A medication reminder the scheduler accepted (US-32): when it rings, and a hash of its text, so
- * the phone never keeps a second copy of the medication's name or dosage.
+ * A medication reminder the scheduler accepted: when it rings, and a hash of its text, so the phone
+ * never keeps a second copy of the medication's name or dosage.
  */
 data class MedicationReminderPlan(val due: Instant, val content: String)
 

@@ -22,7 +22,7 @@ import com.github.se.oncompanion.R
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.lakeColors
 
-/** The tones of the Figma "Inline banner". */
+/** The tones of the inline banner (design: Brand & Theme, "Inline banner"). */
 enum class LakeBannerTone {
   /** On a neutral container: a notice, e.g. a refresh failed but the list stays on screen. */
   Neutral,
@@ -34,8 +34,8 @@ enum class LakeBannerTone {
 }
 
 /**
- * A lasting note at the top of content that stays on screen (Figma: "Inline banner" in Shared
- * patterns): the info icon, [message], then an optional [actionLabel] such as "Retry", below the
+ * A lasting note at the top of content that stays on screen (design: Brand & Theme, "Inline
+ * banner"): the info icon, [message], then an optional [actionLabel] such as "Retry", below the
  * message when it doesn't fit beside it. The icon is a neutral notice on purpose, not a red warning
  * sign.
  *
@@ -69,8 +69,8 @@ fun LakeBanner(
     ) {
       // The message says what it is about
       Icon(painterResource(R.drawable.ic_info), contentDescription = null, Modifier.size(ICON_SIZE))
-      // The Figma's 4 dp above and below go around the message only, so the action keeps the
-      // banner's whole 48 dp as its touch target
+      // The 4 dp above and below go around the message only, so the action keeps the banner's whole
+      // 48 dp as its touch target
       MessageAndAction(
           message = {
             Text(
@@ -97,8 +97,8 @@ fun LakeBanner(
   }
 }
 
-// The height of a one-line banner in the Figma
+// The height of a one-line banner
 private val MIN_HEIGHT = 48.dp
 
-// The size of the info icon in the Figma
+// The size of the info icon
 private val ICON_SIZE = 24.dp

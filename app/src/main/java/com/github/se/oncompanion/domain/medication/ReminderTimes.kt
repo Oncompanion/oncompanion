@@ -6,9 +6,9 @@ import com.github.se.oncompanion.model.medication.Medication
 import java.time.LocalTime
 
 /**
- * The reminder times the prescription form suggests for a medication (US-32): one per dose its
- * frequency says, at times the patient can change. They only help to remember: they never say when
- * to take the medication, and the prescription stays as recorded.
+ * The reminder times the prescription form suggests for a medication: one per dose its frequency
+ * says, at times the patient can change. They only help to remember: they never say when to take
+ * the medication, and the prescription stays as recorded.
  *
  * When the frequency says no count ([DoseCount] answers none), the patient adds or removes times,
  * up to [Medication.MAX_REMINDER_TIMES]. A missing frequency suggests one reminder a day; one the

@@ -9,8 +9,8 @@ Humans on the team follow the same rules. See [README.md](README.md) for what th
 
 - Android app in Kotlin with Jetpack Compose (Material 3). `minSdk 28`, `targetSdk 34`, JVM target 17.
 - Backend: Firebase Authentication (Google Sign-In), Cloud Firestore, and Cloud Functions in TypeScript (`functions/`, the hospital search proxy, checked with App Check). Firebase project: `oncompanion-c4144`.
-- Package root: `com.github.se.oncompanion`. User-visible text writes the app's name **oncompanion**, all lowercase (never "OnCompanion"); #297 renames the strings that still say "Oncompanion".
-- Users are cancer patients in active therapy. **The app is an organizational tool, not a medical device**: never add code that diagnoses, gives medical advice, or changes a treatment. Anything drafted automatically (e.g. from a scanned prescription) must be confirmed by the user before it is saved. A prescription a caregiver adds for the patient (US-43) is saved unconfirmed and triggers no reminder until the patient reviews and confirms it.
+- Package root: `com.github.se.oncompanion`. User-visible text writes the app's name **oncompanion**, all lowercase (never "OnCompanion").
+- Users are cancer patients in active therapy. **The app is an organizational tool, not a medical device**: never add code that diagnoses, gives medical advice, or changes a treatment. Anything drafted automatically (e.g. from a scanned prescription) must be confirmed by the user before it is saved. A prescription a caregiver adds for the patient is saved unconfirmed and triggers no reminder until the patient reviews and confirms it.
 
 ## Before you start a task
 
@@ -77,12 +77,24 @@ com.github.se.oncompanion/
 
     package com.github.se.oncompanion
     ```
-- KDoc on every public class and function: what it does and why, not how.
-- A short one-line comment above each non-obvious block (what this part of the screen or function does), so reviewers can find their way quickly. No comments that repeat the code.
+- Comments and KDoc follow [Documentation](#documentation).
 - All user-visible text goes in `res/values/strings.xml`, in English. Escape apostrophes: `Couldn\'t`.
 - Every element that a test needs to find gets a test tag declared in `resources/C.kt`, named `<feature>_<element>`.
-- **Logging**: never log secrets or personal data (invite codes, tokens, emails, health details): log what failed, not the value. An exception's message can contain the value (e.g. a failed write names its document path, `invites/<code>`, #288): log the exception's type, not its message, when the path or message can hold a secret. Uids and generated record IDs may be logged: they identify nothing outside the app.
+- **Logging**: never log secrets or personal data (invite codes, tokens, emails, health details): log what failed, not the value. An exception's message can contain the value (e.g. a failed write names its document path, `invites/<code>`): log the exception's type, not its message, when the path or message can hold a secret. Uids and generated record IDs may be logged: they identify nothing outside the app.
 - Dates: store calendar days at midnight `Europe/Zurich` so they never shift by a day; display dates and times in the phone's time zone (`ZoneId.systemDefault()`), never in UTC.
+
+## Documentation
+
+Comments and docs describe the code as it is, for someone who has never seen our board.
+
+- **KDoc on every public declaration**: class, interface, object, function and property. Its first sentence says what it is and why it exists, not how it works. In a class's KDoc, each constructor parameter gets `@property` when it is a `val` or `var` (so every field of a data class) and `@param` when it isn't. For a function, mention its parameters in the prose as `[links]`, and use `@param` and `@return` only when the prose isn't enough; `@throws` when it throws.
+- **Groups of constants** (test tags in `C.kt`, colors, routes) get one KDoc for the group and a comment per section, not one per constant.
+- **Tests**: one KDoc per test class, `/** Tests of [TheClass]. */`, or a sentence on what it covers when it tests several things. Test functions get none: their names say what they check. Fakes and shared test helpers document their public fields.
+- **Comments** say why, never what the code already says: a short line above each non-obvious block, so reviewers find their way.
+- **No history or plans**: no issue, pull request, user-story, sprint or milestone numbers, no "for now", "later", "used to" or "until X lands". Say the behavior instead ("saved before prescriptions recorded who added them", not "saved before US-<n>"). The history belongs in commits and pull requests. No TODOs: open an issue instead.
+- **Figma**: cite a frame that exists, as `(design: M3, "<frame>")`, `(design: M2, "<frame>")` for a screen M3 doesn't draw (its name without the `US-<n> /` prefix), or `(design: Brand & Theme, "<component>")`. When there's no frame to cite, say nothing about the design.
+- **Spelling**: American ("color", "center").
+- The same rules apply to `firestore.rules`, the comments of `strings.xml` (which give translators context), the Gradle scripts and the Markdown docs. The deployment runbooks in `functions/` and `docs/hospital-proxy-iam-follow-up.md` keep their links to the deployment records.
 
 ## Firebase and data
 
@@ -97,7 +109,7 @@ com.github.se.oncompanion/
 
 ## Tests
 
-- New code needs tests: M3 requires **≥ 95% line coverage on `main`**, so aim for 95% on new code too. SonarCloud's quality gate still blocks a PR below 90% on new code; that threshold is a SonarCloud setting, not in this repo. The `functions/` code needs tests too: SonarCloud doesn't measure it, so the Hospital proxy job requires 90% of its lines, branches and functions. Don't add coverage exclusions to `app/build.gradle.kts` to make the gate pass; ask the team first.
+- New code needs tests: the project requires **≥ 95% line coverage on `main`**, so aim for 95% on new code too. SonarCloud's quality gate still blocks a PR below 90% on new code; that threshold is a SonarCloud setting, not in this repo. The `functions/` code needs tests too: SonarCloud doesn't measure it, so the Hospital proxy job requires 90% of its lines, branches and functions. Don't add coverage exclusions to `app/build.gradle.kts` to make the gate pass; ask the team first.
 - Write tests from the issue's definition of done and the expected behavior, not by reading the implementation.
 - Test the different states of a screen (loading, empty, error, filled) on `XContent`, plus one test of `XScreen` with its ViewModel. Compose adds hidden branches, so "it renders" isn't enough.
 - Where tests go:
@@ -110,7 +122,7 @@ com.github.se.oncompanion/
 - Every screen and dialog gets a test at `LANDSCAPE_PHONE`: its main actions can be reached and are fully visible (`assertIsFullyVisible`). Dialogs are also tested at `SMALL_LANDSCAPE_PHONE` (both in `ui/KeyboardInsets.kt`). A rotation test checks state, not layout: it wouldn't catch overlapping buttons.
 - Anything a user can add (a symptom, a member, a prescription...): the issue says whether a duplicate is rejected, merged, warned about or allowed, and a test checks that behavior.
 - **Fix the whole bug**: before fixing a bug, look for the same pattern on the other screens, fix them too, and add a regression test.
-- Tests worth their lines: cases that differ only by their input go in one test that runs through a list of cases (`for ((input, expected) in cases)`), not one test each. A fake is never tested on its own: test the code that uses it (cleanup in #296).
+- Tests worth their lines: cases that differ only by their input go in one test that runs through a list of cases (`for ((input, expected) in cases)`), not one test each. A fake is never tested on its own: test the code that uses it.
 - A feature that works with others extends `M1EndToEndTest` (`app/src/androidTest`).
 - Coroutines: use `StandardTestDispatcher` with `runTest` and virtual time (`advanceTimeBy`, `advanceUntilIdle`). Never `Thread.sleep` or real delays.
 - To prove a write is saved on the device first, run it with the network off (`assertReturnsOffline`, or `assertReturnsWithoutServer` in a test that's already offline, both in `utils/OfflineAssertions.kt`), never with a time limit.
@@ -144,8 +156,8 @@ Run these before every push and make sure they pass:
 
 ## Issues and the Scrum board
 
-- **Epics are user goals that can be finished**, not areas of the app: an epic is a few stories that together let a user reach one goal (e.g. `Epic: A caregiver can follow the patient's care`, #412). It is done when all its stories are closed and its whole flow works in the release APK; then close it. Its issue states the goal, that definition of done and the flow (copy an existing epic, #409 to #417). A new story joins the epic whose goal it serves; if none fits, propose a new epic to the team rather than stretching one.
-- **Titles**: an epic is `Epic: <the user goal>`; a user story is `US-<n>: <what the user can do>` (e.g. `US-39: Be warned before adding a prescription I already have`); a bug is `fix: <what to fix>`; a technical task is an imperative sentence (e.g. `Make CI faster`).
+- **Epics are user goals that can be finished**, not areas of the app: an epic is a few stories that together let a user reach one goal (e.g. `Epic: A caregiver can follow the patient's care`). It is done when all its stories are closed and its whole flow works in the release APK; then close it. Its issue states the goal, that definition of done and the flow (copy an existing epic). A new story joins the epic whose goal it serves; if none fits, propose a new epic to the team rather than stretching one.
+- **Titles**: an epic is `Epic: <the user goal>`; a user story is `US-<n>: <what the user can do>` (e.g. `US-<n>: Be warned before adding a prescription I already have`); a bug is `fix: <what to fix>`; a technical task is an imperative sentence (e.g. `Make CI faster`).
 - Use the issue templates. A user story belongs to an epic: link it as a **sub-issue** of the epic. A task belongs to a user story: link it as a **sub-issue** of the story and write `Part of US-<n>`. A technical task writes "Parent user story: None (technical task)".
 - **Labels**: `enhancement` for stories and tasks, `bug` for bugs, `documentation` for docs, plus the `area: <feature>` label of the part of the app it touches. An area label is for filtering, not an epic.
 - **Every item on the board, stories included,** has its board fields: `Nature` (User Story or Sprint Task), `Epic` (the epic its story belongs to; empty for a technical task), `Priority`, and for a task `Types`, an estimate and an assignee. Its `Sprint` matches its column: empty in the Product Backlog, the current sprint in Sprint Backlog, In Development and In review, the sprint it was done in for Done. Fill in **Actual Time** when you close a task, so we can check our estimates.
@@ -175,7 +187,7 @@ Run these before every push and make sure they pass:
 - Keep at most 2 to 3 of your own PRs waiting for review; get them merged before opening more.
 - Before opening a PR: merge the latest `main`, run the checks above, tick the definition of done.
 - If your PR adds or changes a screen, use case or repository, or builds something drawn as planned, update its feature diagram in `docs/` in the same PR (see "To edit a diagram" in [docs/architecture.md](docs/architecture.md)). Update the overview only when a core flow changes.
-  - The overview shows how the layers call each other and two numbered core flows (offline writes, what a caregiver may see), so someone new understands the app from it alone (#264). Details stay in the feature diagrams, and a box appears once per diagram.
+  - The overview shows how the layers call each other and two numbered core flows (offline writes, what a caregiver may see), so someone new understands the app from it alone. Details stay in the feature diagrams, and a box appears once per diagram.
   - **Stay ahead of the code**: draw a new feature as planned in its diagram, and in Figma, before implementing it.
   - Agents update the diagrams themselves by editing the `.excalidraw` JSON:
     - Copy an existing box, label or arrow that already has the style you need (see the colours in architecture.md: one per layer, grey dashed for planned), give the copy a new unique `id`, then change its position and text. Keep the layout: screens on top, then use cases, repositories and the backend, and no crossing arrows.

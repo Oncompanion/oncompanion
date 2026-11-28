@@ -1,6 +1,7 @@
 <!-- Co-authored-by: Codex <noreply@openai.com> -->
+<!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
 
-# Compact-height layouts (#260)
+# Compact-height layouts
 
 These device-rendered images compare `main` at `b5bcab45` with this fix, using the same fictional
 data, landscape window and scrolling actions. Every image is **2282 × 880 pixels**.

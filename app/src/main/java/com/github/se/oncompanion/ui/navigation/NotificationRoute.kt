@@ -9,7 +9,7 @@ import com.github.se.oncompanion.model.notification.NotificationKind
 
 /**
  * Where tapping this notification leads, given its item [prescription] as it is now, or `null` if
- * it no longer exists (US-50). It is decided at the tap, not when the notification was sent: the
+ * it no longer exists. It is decided at the tap, not when the notification was sent: the
  * notification stays in the "Your circle" sheet for days, and the patient may have reviewed the
  * prescription elsewhere since.
  *

@@ -21,10 +21,10 @@ import com.github.se.oncompanion.ui.common.DialogTags
 import com.github.se.oncompanion.ui.common.LakeDialog
 
 /**
- * Asks before saving a prescription that is the same as [saved] (Figma "US-39 / Save – Same
- * prescription already saved"). Keep editing, like tapping outside, goes back to the form; to
- * discard it, the patient closes the form. For a caregiver, it names the patient ([caregiverOf]):
- * "Already in Anne's prescriptions".
+ * Asks before saving a prescription that is the same as [saved] (design: M3, "Review · Already
+ * saved"). Keep editing, like tapping outside, goes back to the form; to discard it, the patient
+ * closes the form. For a caregiver, it names the patient ([caregiverOf]): "Already in Anne's
+ * prescriptions".
  */
 @Composable
 internal fun AlreadySavedDialog(
@@ -59,8 +59,8 @@ internal fun AlreadySavedDialog(
 }
 
 /**
- * Says that the prescription looks like a renewal of [previous] (Figma "US-39 / Review – Looks like
- * a renewal"), in another color than the scan's notice: it's information, nothing to check. For a
+ * Says that the prescription looks like a renewal of [previous] (design: M3, "Review · Looks like a
+ * renewal"), in another color than the scan's notice: it's information, nothing to check. For a
  * caregiver, a prescription without a doctor is named after the patient ([caregiverOf]).
  */
 @Composable

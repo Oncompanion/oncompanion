@@ -102,12 +102,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Scan a paper prescription with the camera (US-10, Figma "US-10 / Prescription scan"). The camera
- * permission is asked when the screen opens, the first time the user scans: asked at app start,
- * without context, it is refused more often. If it's refused, the screen explains why the camera is
- * needed and offers to enter the prescription manually instead.
+ * Scan a paper prescription with the camera (design: M3, "Scan · Camera"). The camera permission is
+ * asked when the screen opens, the first time the user scans: asked at app start, without context,
+ * it is refused more often. If it's refused, the screen explains why the camera is needed and
+ * offers to enter the prescription manually instead.
  *
- * @param onEnterManually opens the manual entry form (US-24)
+ * @param onEnterManually opens the manual entry form
  * @param onBack leaves the scan screen
  * @param onRead opens the form with the prescription read on the photo, which is now its own
  * @param camera the camera; replaced by a fake in tests
@@ -287,7 +287,7 @@ fun ScanContent(
           (uiState.permission == CameraPermission.GRANTED &&
               uiState.camera == CameraStatus.UNAVAILABLE)
 
-  // A camera screen stays dark whatever the phone's theme, as in the mockup: the photo is easier to
+  // A camera screen stays dark whatever the phone's theme: the photo is easier to
   // judge on a dark background
   OncompanionTheme(darkTheme = true) {
     if (uiState.showUprightTip) UprightTip(onUprightTipDismissed)
@@ -338,7 +338,7 @@ fun ScanContent(
       val content = Modifier.fillMaxSize().padding(padding)
       when {
         // Android's dialog is on top: nothing to show behind it. Behind the tip, the camera
-        // being turned on, as in the Figma
+        // being turned on
         uiState.permission == CameraPermission.UNKNOWN && !uiState.showUprightTip ->
             Box(content.testTag(C.Tag.prescription_scan_permission_pending))
         uiState.permission == CameraPermission.REFUSED ->
@@ -384,7 +384,7 @@ fun ScanContent(
 }
 
 /**
- * Before the camera opens (Figma "US-10 / Scan – Hold the phone upright"): a prescription
+ * Before the camera opens (design: M2, "Scan – Hold the phone upright"): a prescription
  * photographed sideways is read less well, so the user is asked to hold the phone upright, with a
  * way to not be told again. Only "Got it" keeps that choice: Back and a tap outside close the tip
  * without it, so a box ticked by mistake can still be left behind.
@@ -432,8 +432,8 @@ private fun UprightTip(onDismiss: (dontShowAgain: Boolean) -> Unit) {
 }
 
 /**
- * The camera (Figma "US-10 / Prescription scan"): its preview on a darker panel, with the framing
- * guide over it and a spinner in the guide while the camera starts, then the framing hint and the
+ * The camera (design: M3, "Scan · Camera"): its preview on a darker panel, with the framing guide
+ * over it and a spinner in the guide while the camera starts, then the framing hint and the
  * shutter.
  */
 @Composable
@@ -455,7 +455,7 @@ private fun CameraView(
       // Shown while the camera starts too: CameraX only reports it open once the preview has
       // somewhere to draw
       viewfinder(Modifier.fillMaxSize())
-      // The guide shows where the page goes even before the camera is ready, as in the Figma
+      // The guide shows where the page goes even before the camera is ready
       FramingGuide(
           Modifier.fillMaxSize().padding(Spacing.xl).testTag(C.Tag.prescription_scan_framing_guide)
       )
@@ -474,14 +474,14 @@ private fun CameraView(
 }
 
 /**
- * The four corners of an A4 page in portrait, as in the mockup, so the user fills the photo with
- * the prescription: the bigger the text, the easier it is to read.
+ * The four corners of an A4 page in portrait, so the user fills the photo with the prescription:
+ * the bigger the text, the easier it is to read.
  */
 @Composable
 private fun FramingGuide(modifier: Modifier) {
   val color = MaterialTheme.colorScheme.primary
   Canvas(modifier) {
-    // The largest A4 rectangle (1 : 1.41) that fits, centred
+    // The largest A4 rectangle (1 : 1.41) that fits, centered
     val pageWidth = minOf(size.width, size.height / A4_RATIO)
     val pageHeight = pageWidth * A4_RATIO
     val left = (size.width - pageWidth) / 2
@@ -501,8 +501,8 @@ private fun FramingGuide(modifier: Modifier) {
 private const val A4_RATIO = 1.414f
 
 /**
- * The shutter (Figma "Shutter"): a disc inside a ring, faded as a whole while a photo can't be
- * taken yet (camera starting), but not while one is being taken, when a spinner shows on the disc.
+ * The shutter: a disc inside a ring, faded as a whole while a photo can't be taken yet (camera
+ * starting), but not while one is being taken, when a spinner shows on the disc.
  */
 @Composable
 private fun Shutter(enabled: Boolean, isCapturing: Boolean, onClick: () -> Unit) {
@@ -533,13 +533,13 @@ private fun Shutter(enabled: Boolean, isCapturing: Boolean, onClick: () -> Unit)
   }
 }
 
-// The Figma's shutter: a 56 dp disc in a ring 4 dp wide, 72 dp across
+// The shutter: a 56 dp disc in a ring 4 dp wide, 72 dp across
 private val SHUTTER_SIZE = 72.dp
 private val SHUTTER_DISC_SIZE = 56.dp
 private val SHUTTER_RING_WIDTH = 4.dp
 
 /**
- * The photo just taken (Figma "US-10 / Scan – Photo preview"): the photo at the top, [message]
+ * The photo just taken (design: M3, "Scan · Check the photo"): the photo at the top, [message]
  * under it, and [actions] at the bottom of the screen. On a short screen the photo shrinks first,
  * so the message and the buttons stay whole.
  */
@@ -581,7 +581,7 @@ private fun PhotoPreview(
                   contentDescription = stringResource(R.string.prescription_scan_photo_description),
                   contentScale = ContentScale.Fit,
                   // As large as the space allows, at the photo's own shape, so the message sits
-                  // right under it. Dimmed while it is being read, as in the Figma, so the spinner
+                  // right under it. Dimmed while it is being read, so the spinner
                   // below stands out
                   modifier =
                       Modifier.aspectRatio(image.bitmap.width.toFloat() / image.bitmap.height)
@@ -596,10 +596,7 @@ private fun PhotoPreview(
   }
 }
 
-/**
- * A sentence under the photo, as wide as the Figma's (32 dp from the edges), [top] under what is
- * above it.
- */
+/** A sentence under the photo, 32 dp from the edges, [top] under what is above it. */
 @Composable
 private fun PhotoMessage(text: String, modifier: Modifier = Modifier, top: Dp = Spacing.lg) {
   // The space around the text is outside it, so the text's own node is only the text
@@ -614,15 +611,15 @@ private fun PhotoMessage(text: String, modifier: Modifier = Modifier, top: Dp = 
 }
 
 /**
- * Under the photo just taken: the user checks it is sharp and complete before it's used (Figma
- * "US-10 / Scan – Photo preview").
+ * Under the photo just taken: the user checks it is sharp and complete before it's used (design:
+ * M3, "Scan · Check the photo").
  */
 @Composable
 private fun CheckPhoto() {
   PhotoMessage(stringResource(R.string.prescription_scan_check_hint))
 }
 
-/** "Use this photo" first, as in the Figma: it's the expected next step. */
+/** "Use this photo" first: it's the expected next step. */
 @Composable
 private fun CheckPhotoActions(onUsePhoto: () -> Unit, onRetake: () -> Unit) {
   PhotoActions(
@@ -636,8 +633,8 @@ private fun CheckPhotoActions(onUsePhoto: () -> Unit, onRetake: () -> Unit) {
 }
 
 /**
- * Under the photo while the prescription is read on it (Figma "US-10 / Scan – Reading the
- * prescription"): a spinner, then what is happening.
+ * Under the photo while the prescription is read on it (design: M3, "Scan · Reading"): a spinner,
+ * then what is happening.
  */
 @Composable
 private fun Reading() {
@@ -651,8 +648,8 @@ private fun Reading() {
 }
 
 /**
- * Under the photo when no prescription could be read on it, saying [why] (Figma "US-10 / Scan –
- * Nothing read" and "Not a prescription").
+ * Under the photo when no prescription could be read on it, saying [why] (design: M3, "Scan ·
+ * Couldn't read" and "Scan · Not a prescription").
  */
 @Composable
 private fun NothingRead(why: NothingRead) {
@@ -715,10 +712,10 @@ private fun BottomActions(buttons: @Composable ColumnScope.() -> Unit) {
   )
 }
 
-// The Figma's photo: 300 dp wide on a 390 dp screen, 45 dp from each edge
+// The photo: 300 dp wide on a 390 dp screen, 45 dp from each edge
 private val PHOTO_INSET = 45.dp
 
-// The Figma's reading state: a 48 dp spinner, 52 dp under the photo
+// The reading state: a 48 dp spinner, 52 dp under the photo
 private val READING_SPINNER_SIZE = 48.dp
 private val READING_GAP = 52.dp
 
@@ -765,7 +762,7 @@ private fun rememberPhoto(photo: File, dispatcher: CoroutineDispatcher): PhotoIm
         }
         .value
 
-// How much of the photo shows while it is being read (Figma: 50%)
+// How much of the photo shows while it is being read (50%)
 private const val READING_ALPHA = 0.5f
 
 /** Longest side of the photo on screen, in pixels: enough to check it, light enough to load. */
@@ -773,7 +770,7 @@ private const val MAX_PREVIEW_SIZE = 2048f
 
 /**
  * The camera can't be used (refused, or no camera): why, and that the photo stays on the phone, as
- * the shared message state (Figma "US-10 / Scan – Camera access refused").
+ * the shared message state (design: M3, "Scan · Camera access off").
  */
 @Composable
 private fun CameraOff(modifier: Modifier, title: Int, explanation: Int) {
@@ -788,8 +785,8 @@ private fun CameraOff(modifier: Modifier, title: Int, explanation: Int) {
 
 /**
  * The ways forward, stacked at the bottom: after a refusal "Open settings" first, since it brings
- * the camera back, then "Enter manually" (Figma); without a camera, "Enter manually" alone, as the
- * main button.
+ * the camera back, then "Enter manually"; without a camera, "Enter manually" alone, as the main
+ * button.
  */
 @Composable
 private fun CameraOffActions(onEnterManually: () -> Unit, onOpenSettings: (() -> Unit)?) {

@@ -14,11 +14,11 @@ import com.github.se.oncompanion.ui.theme.elevation1
 import com.github.se.oncompanion.ui.theme.lakeColors
 
 /**
- * An off-white card on the stone page (DESIGN.md, Overview; Figma M3): the card color, a hairline
- * so it stays distinct from the page by day, and the shared shadow. Used for the sections of a form
- * laid out on the stone page, such as the prescription form.
+ * An off-white card on the stone page (DESIGN.md, Overview): the card color, a hairline so it stays
+ * distinct from the page by day, and the shared shadow. Used for the sections of a form laid out on
+ * the stone page, such as the prescription form.
  *
- * @param shape the card's corners: the M3 form sections use Medium
+ * @param shape the card's corners: the form sections use Medium
  */
 @Composable
 fun StoneCard(

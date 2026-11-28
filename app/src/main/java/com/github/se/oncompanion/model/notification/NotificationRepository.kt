@@ -5,8 +5,8 @@ package com.github.se.oncompanion.model.notification
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Tells a patient what their care circle did for them (US-50), and remembers which notifications
- * they have seen.
+ * Tells a patient what their care circle did for them, and remembers which notifications they have
+ * seen.
  *
  * Reads work offline from the local cache, and writes return as soon as they are saved on the
  * device (also offline); they reach the server when there is a connection.

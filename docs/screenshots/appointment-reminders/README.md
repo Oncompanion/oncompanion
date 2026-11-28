@@ -1,6 +1,7 @@
 <!-- Co-authored-by: ChatGPT <noreply@openai.com> -->
+<!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
 
-# Appointment reminder choice (#489)
+# Appointment reminder choice
 
 Captured from `AppointmentEditTest` on an isolated Android emulator with fictional appointment
 information and local Firebase Auth/Firestore emulators. No live account or cloud data is used.

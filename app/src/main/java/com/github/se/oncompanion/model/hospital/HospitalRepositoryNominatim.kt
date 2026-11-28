@@ -1,3 +1,6 @@
+// Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
+
 package com.github.se.oncompanion.model.hospital
 
 import java.io.IOException

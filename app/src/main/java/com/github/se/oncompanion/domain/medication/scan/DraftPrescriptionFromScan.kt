@@ -23,9 +23,9 @@ sealed interface ScanOutcome {
 }
 
 /**
- * Reads the prescription on the photo of a scan (US-10): its text on the device, then the draft the
- * form starts from, with the details to check (see [readPrescription]). Nothing is saved: the
- * patient confirms the draft in the form.
+ * Reads the prescription on the photo of a scan: its text on the device, then the draft the form
+ * starts from, with the details to check (see [readPrescription]). Nothing is saved: the patient
+ * confirms the draft in the form.
  *
  * @param recognizer reads the photo's text; ML Kit by default
  * @param clock today's date, used when no date is read

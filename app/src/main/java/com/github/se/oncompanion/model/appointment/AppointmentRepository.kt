@@ -36,7 +36,7 @@ interface AppointmentRepository {
 
   /**
    * Enqueues changes to the existing [appointment] for [uid], preserving its stored creation time
-   * and who added it. Its `editedBy` signs a caregiver's edit (US-46); without it, the edit is the
+   * and who added it. Its `editedBy` signs a caregiver's edit; without it, the edit is the
    * patient's and no caregiver shows as the last editor. Returns without waiting for server
    * acknowledgement, including offline. An absent document is never created; its deferred update
    * rejection is reported, not thrown to the caller.

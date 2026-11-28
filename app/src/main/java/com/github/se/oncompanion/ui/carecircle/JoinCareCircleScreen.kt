@@ -37,9 +37,9 @@ import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeTextField
 
 /**
- * "Join a care circle" (US-15): a caregiver enters the invite code the patient shared, then sees
- * whose circle they joined. It is also where a caregiver without a circle waits for a code: opened
- * at the end of their onboarding, and each time they open the app until they join one.
+ * "Join a care circle": a caregiver enters the invite code the patient shared, then sees whose
+ * circle they joined. It is also where a caregiver without a circle waits for a code: opened at the
+ * end of their onboarding, and each time they open the app until they join one.
  *
  * @param onDone called with Continue, once joined
  * @param onOpenProfile opens the profile, from which the caregiver can also sign out

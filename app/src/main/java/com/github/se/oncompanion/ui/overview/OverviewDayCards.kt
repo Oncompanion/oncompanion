@@ -55,9 +55,9 @@ private val appointmentFormatter
 private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)
 
 /**
- * The next appointment (Figma: "Appointment card"), or "No upcoming appointment": a white card with
- * the title, the place and when it is in a pill. Tapping it opens its detail; the empty card opens
- * Planning.
+ * The next appointment (design: Brand & Theme, "Appointment card"), or "No upcoming appointment": a
+ * white card with the title, the place and when it is in a pill. Tapping it opens its detail; the
+ * empty card opens Planning.
  *
  * @param modifier e.g. to overlap the header's lower edge
  */
@@ -89,7 +89,7 @@ internal fun NextAppointmentCard(
         Modifier.padding(horizontal = Spacing.lgPlus, vertical = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-      // Kept from before the Figma: without it, the card only says "Oncology check-up"
+      // The "Next appointment" label: without it, the card only says "Oncology check-up"
       Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = stringResource(R.string.overview_next_appointment),
@@ -125,10 +125,10 @@ internal fun NextAppointmentCard(
   }
 }
 
-/** The Figma's height of the pill saying when the appointment is. */
+/** The height of the pill saying when the appointment is. */
 private val WHEN_PILL_HEIGHT = 32.dp
 
-/** "Tomorrow, Sun 4 Oct · 09:30" with a clock, in a pill (Figma: "When"). */
+/** "Tomorrow, Sun 4 Oct · 09:30" with a clock, in a pill (design: M3, "When"). */
 @Composable
 private fun WhenPill(text: String) {
   Row(
@@ -154,7 +154,7 @@ private fun WhenPill(text: String) {
   }
 }
 
-/** The Figma's clock in the pill. */
+/** The clock in the pill. */
 private val WHEN_ICON_SIZE = 18.dp
 
 /** "Tomorrow, Sun 4 Oct · 09:30" ("Today, ..." / "Tomorrow, ..." when that's the case). */
@@ -170,8 +170,8 @@ private fun appointmentWhen(appointment: NextAppointment, today: LocalDate): Str
 }
 
 /**
- * "Today" with a link to Planning, and today's items in one white card (Figma: "Today list"), or
- * the Empty lake with a message.
+ * "Today" with a link to Planning, and today's items in one white card (design: Brand & Theme,
+ * "Today list"), or the Empty lake with a message.
  */
 @Composable
 internal fun TodaySection(entries: List<TodayEntry>, onOpenPlanning: () -> Unit) {
@@ -218,7 +218,7 @@ internal fun TodaySection(entries: List<TodayEntry>, onOpenPlanning: () -> Unit)
   }
 }
 
-/** The Empty lake next to "Nothing planned today" (Figma: "Nothing today"). */
+/** The Empty lake next to "Nothing planned today" (design: Brand & Theme, "Nothing today"). */
 @Composable
 private fun NothingToday() {
   Row(
@@ -244,14 +244,14 @@ private fun NothingToday() {
 /** The column of times, so titles line up (DESIGN.md: at least 52 dp, growing with the text). */
 private val TIME_COLUMN_WIDTH = 52.dp
 
-/** The Figma's filled circle of a done entry, inside its 48 dp target. */
+/** The filled circle of a done entry, inside its 48 dp target. */
 private val CHECK_SIZE = 28.dp
 private val CHECK_ICON_SIZE = 18.dp
 
 /**
- * One of today's entries (Figma: "Today row"): time (or "No set time"), icon, title, detail and,
- * for a timed entry, its status. The kind's icon is kept, unlike the Figma: the detail line doesn't
- * say whether it's a medication, an event or an appointment.
+ * One of today's entries (design: Brand & Theme, "Today row"): time (or "No set time"), icon,
+ * title, detail and, for a timed entry, its status. The kind's icon is kept: the detail line
+ * doesn't say whether it's a medication, an event or an appointment.
  */
 @Composable
 private fun TodayRow(entry: TodayEntry) {
@@ -328,7 +328,7 @@ private fun TodayRow(entry: TodayEntry) {
   }
 }
 
-/** A done entry's check, white in a filled circle (Figma: "Check"). */
+/** A done entry's check, white in a filled circle. */
 @Composable
 private fun DoneCheck() {
   Box(

@@ -73,7 +73,7 @@ jobs:
           distribution: "temurin"
           java-version: "21"
 
-      # Also keeps Robolectric's Android jars: Gradle downloads them like any dependency (#324)
+      # Also keeps Robolectric's Android jars: Gradle downloads them like any dependency
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v6
 
@@ -381,7 +381,7 @@ jobs:
 
       # At most 20 min, every 30 s (GITHUB_TOKEN has 1,000 API calls per hour for the whole repo).
       # A failed job stops here: its reports are missing, and SonarCloud would show a wrong
-      # coverage. "Re-run failed jobs" runs it and this job again (#300)
+      # coverage. "Re-run failed jobs" runs it and this job again
       - name: Wait for the tests
         env:
           GH_TOKEN: ${{ github.token }}

@@ -10,9 +10,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
 /**
- * The prescriptions a caregiver added whose acceptance by the patient they closed (US-43), so
- * "Accepted by Anne" no longer shows. Kept on the phone only, as decided for #396: it works offline
- * and the patient's prescriptions stay theirs to write.
+ * The prescriptions a caregiver added whose acceptance by the patient they closed, so "Accepted by
+ * Anne" no longer shows. Kept on the phone only: it works offline and the patient's prescriptions
+ * stay theirs to write.
  */
 interface SeenPrescriptions {
 
@@ -69,5 +69,6 @@ class SeenPrescriptionsInMemory : SeenPrescriptions {
 
 /** Holds the app's [SeenPrescriptions]; MainActivity installs the phone's. */
 object SeenPrescriptionsProvider {
+  /** The store the app uses; tests replace it with their own. */
   @Volatile var store: SeenPrescriptions = SeenPrescriptionsInMemory()
 }
