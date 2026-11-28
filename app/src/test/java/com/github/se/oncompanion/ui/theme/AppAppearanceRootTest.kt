@@ -52,13 +52,14 @@ class AppAppearanceRootTest {
       compose.onNodeWithText("05/03/2026 · 2:30 PM").assertExists()
       val initial = compose.runOnIdle { screen }
       compose.runOnIdle {
-        repository.settings.value =
-            first.copy(
-                dateFormat = DateFormatPreference.YEAR_MONTH_DAY,
-                timeFormat = TimeFormatPreference.TWENTY_FOUR_HOUR,
-            )
+        repository.settings.value = first.copy(dateFormat = DateFormatPreference.YEAR_MONTH_DAY)
       }
+      compose.onNodeWithText("2026-03-05 · 2:30 PM").assertExists()
 
+      compose.runOnIdle {
+        repository.settings.value =
+            repository.settings.value.copy(timeFormat = TimeFormatPreference.TWENTY_FOUR_HOUR)
+      }
       compose.onNodeWithText("2026-03-05 · 14:30").assertExists()
       compose.runOnIdle { assertSame(initial, screen) }
     } finally {

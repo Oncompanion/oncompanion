@@ -2,8 +2,9 @@
 
 package com.github.se.oncompanion.ui.common
 
-import android.content.res.Configuration
+import android.content.Context
 import android.content.res.Resources
+import android.provider.Settings
 import android.text.format.DateFormat
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
@@ -74,20 +75,27 @@ internal fun rememberDateTimeFormats(
   // Use the system locale even when Oncompanion has its own language override.
   val deviceLocale = Resources.getSystem().configuration.locales[0]
   val pattern = remember(deviceLocale) { DateFormat.getBestDateTimePattern(deviceLocale, "yMMMd") }
-  val deviceContext =
-      remember(context, deviceLocale) {
-        context.createConfigurationContext(Configuration().apply { setLocale(deviceLocale) })
-      }
   var use24Hours by
-      remember(deviceContext) { mutableStateOf(DateFormat.is24HourFormat(deviceContext)) }
-  LifecycleResumeEffect(deviceContext) {
-    use24Hours = DateFormat.is24HourFormat(deviceContext)
+      remember(context, deviceLocale) { mutableStateOf(phoneUses24Hours(context, deviceLocale)) }
+  LifecycleResumeEffect(context, deviceLocale) {
+    use24Hours = phoneUses24Hours(context, deviceLocale)
     onPauseOrDispose {}
   }
-  return remember(locale, pattern, use24Hours, dateChoice, timeChoice) {
+  // The clock and saved choices together select the active formats.
+  val choices = Triple(use24Hours, dateChoice, timeChoice)
+  return remember(locale, pattern, choices) {
     DateTimeFormats(locale, pattern, use24Hours, dateChoice, timeChoice)
   }
 }
+
+// The phone's clock override takes precedence over the locale's preferred hour cycle.
+private fun phoneUses24Hours(context: Context, deviceLocale: Locale): Boolean {
+  val setting = Settings.System.getString(context.contentResolver, Settings.System.TIME_12_24)
+  return setting?.let { it == "24" }
+      ?: hour24Pattern.containsMatchIn(DateFormat.getBestDateTimePattern(deviceLocale, "j"))
+}
+
+private val hour24Pattern = Regex("[Hk]")
 
 /** The resolved date and time preferences supplied by the app root. */
 internal val LocalDateTimeFormats = compositionLocalOf<DateTimeFormats?> { null }

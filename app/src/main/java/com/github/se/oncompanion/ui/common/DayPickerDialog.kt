@@ -92,7 +92,7 @@ fun DayPickerDialog(
           )
         },
         headline = {
-          val selectedDay = pickerState.selectedDateMillis?.toPickerDate() ?: date
+          val selectedDay = (pickerState.selectedDateMillis ?: date.toPickerMillis()).toPickerDate()
           val formats = LocalDateTimeFormats.current
           Text(
               formats?.date(selectedDay)

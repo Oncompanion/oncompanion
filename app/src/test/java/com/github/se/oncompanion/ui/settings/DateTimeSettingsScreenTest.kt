@@ -2,14 +2,17 @@
 
 package com.github.se.oncompanion.ui.settings
 
+import android.content.res.Configuration
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.lifecycle.Lifecycle
@@ -122,18 +125,40 @@ class DateTimeSettingsScreenTest {
 
   @Test
   fun followDeviceUsesThePhonesDateOrder() {
-    var phone by mutableStateOf("")
+    val resolver = compose.activity.contentResolver
+    Settings.System.putString(resolver, Settings.System.TIME_12_24, null)
+    var appLocale by mutableStateOf(Locale.US)
+    var refresh by mutableStateOf(0)
     lateinit var currentPreviews: DateTimePreviews
-    compose.setContent { key(phone) { currentPreviews = rememberDateTimePreviews() } }
+    compose.setContent {
+      val current = LocalConfiguration.current
+      val configuration =
+          remember(current, appLocale, refresh) {
+            Configuration(current).apply { setLocale(appLocale) }
+          }
+      CompositionLocalProvider(LocalConfiguration provides configuration) {
+        currentPreviews = rememberDateTimePreviews()
+      }
+    }
 
-    for ((language, expected) in listOf("en-rUS" to "Nov 18, 2026", "en-rGB" to "18 Nov 2026")) {
-      compose.runOnIdle {
-        RuntimeEnvironment.setQualifiers(language)
-        phone = language
-      }
-      compose.runOnIdle {
-        assertEquals(language, expected, currentPreviews.date(DateFormatPreference.FOLLOW_DEVICE))
-      }
+    compose.runOnIdle {
+      RuntimeEnvironment.setQualifiers("en-rUS")
+      refresh++
+    }
+    compose.runOnIdle {
+      assertEquals("Nov 18, 2026", currentPreviews.date(DateFormatPreference.FOLLOW_DEVICE))
+      assertEquals("2:30 PM", currentPreviews.time(TimeFormatPreference.FOLLOW_DEVICE))
+      RuntimeEnvironment.setQualifiers("en-rGB")
+      refresh++
+    }
+    compose.runOnIdle {
+      assertEquals("18 Nov 2026", currentPreviews.date(DateFormatPreference.FOLLOW_DEVICE))
+      assertEquals("14:30", currentPreviews.time(TimeFormatPreference.FOLLOW_DEVICE))
+      appLocale = Locale.FRANCE
+    }
+    compose.runOnIdle {
+      assertEquals("18 nov. 2026", currentPreviews.date(DateFormatPreference.FOLLOW_DEVICE))
+      assertEquals("14:30", currentPreviews.time(TimeFormatPreference.FOLLOW_DEVICE))
     }
   }
 
