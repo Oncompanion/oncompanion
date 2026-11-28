@@ -22,6 +22,8 @@ internal typealias Phrase = List<String>
  * @property determiners small words a list of symptoms may have before each one ("the", "de")
  * @property clauseBreaks words that end what a negation applies to ("but", "mais")
  * @property groupJoins words that join symptoms said together ("the nausea and pain")
+ * @property stateVerbs verbs that say the symptom after them is a state ("I'm tired"), which is
+ *   never part of a group of symptoms said together
  * @property endings phrases that say the symptom said just before them is over ("the nausea is
  *   gone")
  * @property pluralEndings phrases that say the symptoms said together just before them are over
@@ -59,6 +61,7 @@ internal class SpokenVocabulary(
     val determiners: Set<String>,
     val clauseBreaks: Set<String>,
     val groupJoins: Set<String>,
+    val stateVerbs: Set<String>,
     endings: List<String>,
     pluralEndings: List<String>,
     pronounEndings: List<String>,
@@ -181,6 +184,8 @@ internal class SpokenVocabulary(
                 phraseList("but, and, though, although, however, except, then, otherwise, just")
                     .toSet() + ",",
             groupJoins = setOf(",", "and"),
+            // "m" is what is left of "I'm"
+            stateVerbs = setOf("m", "am", "was", "been", "feel", "feeling", "felt"),
             // "went away" and "disappeared" could be either: only the last symptom is over
             endings =
                 phraseList(
@@ -320,6 +325,7 @@ internal class SpokenVocabulary(
             clauseBreaks =
                 phraseList("mais, et, cependant, pourtant, sauf, puis, sinon, juste").toSet() + ",",
             groupJoins = setOf(",", "et"),
+            stateVerbs = setOf("suis", "sens", "sentais", "etais", "ete"),
             endings =
                 phraseList(
                     "est passé*, est parti*, a disparu, est tombé*, s'est arrêté*, est fini*"
