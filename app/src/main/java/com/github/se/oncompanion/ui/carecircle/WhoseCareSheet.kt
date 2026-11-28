@@ -38,13 +38,19 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.common.LakeMessageState
+import com.github.se.oncompanion.ui.overview.entrySummary
+import com.github.se.oncompanion.ui.symptom.dayLabel
+import com.github.se.oncompanion.ui.symptom.symptomTimeFormatter
 import com.github.se.oncompanion.ui.theme.Spacing
 import com.github.se.oncompanion.ui.theme.lakeColors
+import java.time.LocalDate
 import kotlinx.coroutines.launch
 
 /**
@@ -65,7 +71,8 @@ class WhoseCareSwitch(
 /**
  * "Whose care?" as a sheet over the caregiver's Overview, opened from the three-people button in
  * its header (design: M3, "Overview · Caregiver · Whose care? · Whose care? sheet"): the people the
- * caregiver follows, the one shown now ticked, then "Follow someone new".
+ * caregiver follows, each with what they logged last ("New ·" and a dot when the caregiver hasn't
+ * seen it), the one shown now ticked, then "Follow someone new".
  *
  * @param viewModel the people the caregiver follows
  * @param currentUid the patient whose day the Overview shows
@@ -187,6 +194,8 @@ internal fun WhoseCareSheetContent(
             PersonRow(
                 patient,
                 isCurrent,
+                news = uiState.news[patient.uid],
+                today = uiState.today,
                 onClick = { if (isCurrent) onDismiss() else onChoose(patient) },
             )
           }
@@ -195,9 +204,18 @@ internal fun WhoseCareSheetContent(
   }
 }
 
-/** One person: their initial and first name, then a tick if shown now, a chevron otherwise. */
+/**
+ * One person: their initial, first name and what they logged last, then a tick if shown now, a
+ * chevron otherwise. Someone who shares nothing, or hasn't logged anything, has only their name.
+ */
 @Composable
-private fun PersonRow(patient: FollowedPatient, isCurrent: Boolean, onClick: () -> Unit) {
+private fun PersonRow(
+    patient: FollowedPatient,
+    isCurrent: Boolean,
+    news: PatientNews?,
+    today: LocalDate?,
+    onClick: () -> Unit,
+) {
   val highlight = if (isCurrent) MaterialTheme.colorScheme.surfaceContainerHigh else null
   Row(
       modifier =
@@ -213,12 +231,23 @@ private fun PersonRow(patient: FollowedPatient, isCurrent: Boolean, onClick: () 
       horizontalArrangement = Arrangement.spacedBy(Spacing.md),
   ) {
     Monogram(patient.firstName.take(1).uppercase())
-    Text(
-        patient.firstName,
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.weight(1f),
-    )
+    Column(Modifier.weight(1f).padding(vertical = Spacing.sm)) {
+      Row(
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+      ) {
+        Text(
+            patient.firstName,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        // Decorative: "New ·" in the line under the name says it
+        if (news?.isNew == true)
+            NewsDot(ROW_DOT, Modifier.testTag(C.Tag.whoseCareNewDot(patient.uid)))
+      }
+      if (news != null && today != null) NewsLine(news, today, patient.uid)
+    }
     // Decorative: "selected" already says which one is shown
     Icon(
         painterResource(if (isCurrent) R.drawable.ic_check else R.drawable.ic_chevron_right),
@@ -226,6 +255,42 @@ private fun PersonRow(patient: FollowedPatient, isCurrent: Boolean, onClick: () 
         tint = MaterialTheme.lakeColors.primaryText,
     )
   }
+}
+
+/**
+ * "Nausea 3/10 · 09:15", with "Yesterday at" or the day before the time when it wasn't today, and
+ * "New ·" in bold when the caregiver hasn't seen it.
+ */
+@Composable
+private fun NewsLine(news: PatientNews, today: LocalDate, uid: String) {
+  val at = news.latest.at
+  val time = at.format(symptomTimeFormatter)
+  val whenLogged =
+      if (at.toLocalDate() == today) time
+      else
+          stringResource(
+              R.string.caregiver_overview_journal_at,
+              dayLabel(at.toLocalDate(), today),
+              time,
+          )
+  val summary = entrySummary(news.latest)
+  Text(
+      stringResource(
+          if (news.isNew) R.string.whose_care_news_new else R.string.whose_care_news,
+          summary,
+          whenLogged,
+      ),
+      style = MaterialTheme.typography.bodyMedium,
+      fontWeight = if (news.isNew) FontWeight.SemiBold else null,
+      color = MaterialTheme.colorScheme.onSurfaceVariant,
+      modifier = Modifier.testTag(C.Tag.whoseCareNews(uid)),
+  )
+}
+
+/** The dot that says someone logged something the caregiver hasn't seen; [size] across. */
+@Composable
+internal fun NewsDot(size: Dp, modifier: Modifier = Modifier) {
+  Box(modifier.size(size).background(MaterialTheme.colorScheme.primary, CircleShape))
 }
 
 /** "+", "Follow someone new" and "Enter the invite code they shared". */
@@ -270,4 +335,5 @@ private fun FollowSomeoneNew(onClick: () -> Unit) {
 
 // 64 dp rows (design: M3, "Overview · Caregiver · Whose care? · Whose care? sheet")
 private val ROW_HEIGHT = 64.dp
+private val ROW_DOT = 10.dp
 private val PROGRESS = 32.dp

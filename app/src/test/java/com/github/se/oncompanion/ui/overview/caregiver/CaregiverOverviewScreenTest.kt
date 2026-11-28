@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
@@ -35,6 +36,7 @@ import com.github.se.oncompanion.model.carecircle.CarePermission.PRESCRIPTIONS
 import com.github.se.oncompanion.model.carecircle.CarePermission.SYMPTOMS
 import com.github.se.oncompanion.model.carecircle.FakeCareCircleInviteRepository
 import com.github.se.oncompanion.model.carecircle.JoinedCareCircle
+import com.github.se.oncompanion.model.carecircle.LastOpenedInMemory
 import com.github.se.oncompanion.model.medication.FakeTakenDosesRepository
 import com.github.se.oncompanion.model.planning.FakePlanningRepository
 import com.github.se.oncompanion.model.planning.PlanningItem
@@ -69,6 +71,7 @@ import com.github.se.oncompanion.ui.theme.StoneCardLight
 import java.time.Clock
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -672,13 +675,26 @@ class CaregiverOverviewScreenTest {
 
   // ----- "Whose care?" over the Overview -----
 
-  /** "Whose care?" for "caregiver", who follows [patient] ("patient", Alex) and Anne. */
-  private fun whoseCareOf(patient: FollowedPatient): WhoseCareViewModel {
+  /** What the people followed logged, for the news in "Whose care?". */
+  private val journals = FakeSymptomRepository()
+
+  /** When the caregiver last had each day open; this test's own, never the app's. */
+  private val lastOpened = LastOpenedInMemory()
+
+  /** The Overview's morning, as an instant. */
+  private val morningInstant = morning.toInstant(ZoneOffset.UTC)
+
+  /**
+   * "Whose care?" for "caregiver", who follows [patient] ("patient", Alex) and Anne, who shares
+   * [annesSections].
+   */
+  private fun whoseCareOf(
+      patient: FollowedPatient,
+      annesSections: Set<CarePermission> = setOf(PLANNING),
+  ): WhoseCareViewModel {
     patient.circle.setMembers(
         "p-anne",
-        listOf(
-            CareCircleMember(uid = "caregiver", firstName = "Sam", permissions = setOf(PLANNING))
-        ),
+        listOf(CareCircleMember(uid = "caregiver", firstName = "Sam", permissions = annesSections)),
     )
     val invites =
         FakeCareCircleInviteRepository().apply {
@@ -687,14 +703,28 @@ class CaregiverOverviewScreenTest {
               listOf(JoinedCareCircle("patient", "Alex"), JoinedCareCircle("p-anne", "Anne")),
           )
         }
-    return WhoseCareViewModel(patient.auth, invites, patient.circle)
+    return WhoseCareViewModel(
+        patient.auth,
+        invites,
+        patient.circle,
+        journals,
+        lastOpened,
+        Clock.fixed(morningInstant, ZoneOffset.UTC),
+        ZoneOffset.UTC,
+    )
   }
+
+  /** The "Whose care?" ViewModel of the Overview last shown. */
+  private lateinit var whoseCareViewModel: WhoseCareViewModel
 
   /** What the header's "Whose care?" was asked to do, in order. */
   private val whoseCareCalls = mutableListOf<String>()
 
   /** Alex's Overview with its ViewModels, as the app shows it; returns how to show it again. */
-  private fun showAlexsOverview(patient: FollowedPatient = FollowedPatient(PLANNING)): () -> Unit {
+  private fun showAlexsOverview(
+      patient: FollowedPatient = FollowedPatient(PLANNING),
+      annesSections: Set<CarePermission> = setOf(PLANNING),
+  ): () -> Unit {
     val viewModel =
         CaregiverOverviewViewModel(
             patientUid = "patient",
@@ -716,7 +746,7 @@ class CaregiverOverviewScreenTest {
         )
     val whoseCare =
         WhoseCareSwitch(
-            viewModel = whoseCareOf(patient),
+            viewModel = whoseCareOf(patient, annesSections).also { whoseCareViewModel = it },
             onChoose = { whoseCareCalls += "choose ${it.firstName}" },
             onFollowSomeoneNew = { whoseCareCalls += "follow" },
             onSignedOut = { whoseCareCalls += "signed out" },
@@ -863,6 +893,55 @@ class CaregiverOverviewScreenTest {
     compose.waitForIdle()
 
     assertEquals(listOf("signed out"), whoseCareCalls)
+  }
+
+  /** A journal entry [uid] logged [minutesAgo] before the Overview's morning. */
+  private fun logged(uid: String, id: String, minutesAgo: Long) =
+      journals.seed(
+          uid,
+          SymptomEntry(
+              id = id,
+              types = listOf(NAUSEA),
+              strengths = mapOf(NAUSEA to 3),
+              occurredAt = morningInstant.minusSeconds(minutesAgo * 60),
+              createdAt = morningInstant.minusSeconds(minutesAgo * 60),
+          ),
+      )
+
+  @Test
+  fun whoseCare_annesNewEntry_putsANewLineInTheSheet() {
+    lastOpened.markOpened("caregiver", "p-anne", morningInstant.minusSeconds(2 * 3600))
+    logged("p-anne", "anne-1", minutesAgo = 60)
+    showAlexsOverview(annesSections = setOf(PLANNING, SYMPTOMS))
+
+    openWhoseCare()
+    compose
+        .onNodeWithTag(C.Tag.whoseCareNewDot("p-anne"), useUnmergedTree = true)
+        .assertIsDisplayed()
+    compose
+        .onNodeWithTag(C.Tag.whoseCareNews("p-anne"), useUnmergedTree = true)
+        .assertTextContains("New · ", substring = true)
+  }
+
+  @Test
+  fun whoseCare_alexsDayShown_isSeen_andWhatTheyLogAfterItCloses_isNew() {
+    val alex = FollowedPatient(PLANNING, SYMPTOMS)
+    // Last opened before Alex's entry: only showing their day makes it seen
+    lastOpened.markOpened("caregiver", "patient", morningInstant.minusSeconds(2 * 3600))
+    logged("patient", "alex-1", minutesAgo = 30)
+    showAlexsOverview(alex)
+    compose.waitForIdle()
+
+    // Seen while shown: remembered, and not new
+    assertEquals(morningInstant, runBlocking { lastOpened.observe("caregiver").first() }["patient"])
+    assertEquals(false, whoseCareViewModel.uiState.value.news["patient"]?.isNew)
+
+    compose.runOnUiThread { compose.activity.setContent {} }
+    compose.waitForIdle()
+    logged("patient", "alex-2", minutesAgo = -1)
+    compose.waitForIdle()
+
+    assertEquals(true, whoseCareViewModel.uiState.value.news["patient"]?.isNew)
   }
 }
 

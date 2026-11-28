@@ -58,7 +58,7 @@ import com.github.se.oncompanion.ui.theme.lakeColors
  * @param patient the patient the caregiver follows
  * @param onOpenAppointment opens the appointment in Next up
  * @param onOpenEvent opens the event in Next up
- * @param whoseCare what the boat in the header opens: "Whose care?", as a sheet
+ * @param whoseCare what the three-people button in the header opens: "Whose care?", as a sheet
  * @param bottomBar what the bottom bar shows: a caregiver's has no Prescriptions tab
  */
 @Composable
@@ -79,6 +79,11 @@ fun CaregiverOverviewScreen(
   LifecycleResumeEffect(viewModel) {
     val following = viewModel.followToday()
     onPauseOrDispose { following.cancel() }
+  }
+  // Only while it is on screen: what the person logs with the phone locked isn't seen yet
+  LifecycleResumeEffect(whoseCare.viewModel, patient.uid) {
+    whoseCare.viewModel.show(patient.uid)
+    onPauseOrDispose { whoseCare.viewModel.show(null) }
   }
   CaregiverOverviewContent(
       uiState = uiState,

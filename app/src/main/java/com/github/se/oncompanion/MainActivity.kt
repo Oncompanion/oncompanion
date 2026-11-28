@@ -16,6 +16,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.oncompanion.domain.auth.SignOutProvider
 import com.github.se.oncompanion.domain.reminder.AppointmentRemindersProvider
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
+import com.github.se.oncompanion.model.carecircle.LastOpenedPreferences
+import com.github.se.oncompanion.model.carecircle.LastOpenedProvider
 import com.github.se.oncompanion.model.hospital.HospitalRepositoryProvider
 import com.github.se.oncompanion.model.medication.SeenPrescriptionsPreferences
 import com.github.se.oncompanion.model.medication.SeenPrescriptionsProvider
@@ -49,6 +51,8 @@ class MainActivity : AppCompatActivity() {
     // Which accepted prescriptions a caregiver closed is kept on the phone
     SeenPrescriptionsProvider.store =
         SeenPrescriptionsPreferences(getSharedPreferences("seen_prescriptions", MODE_PRIVATE))
+    LastOpenedProvider.store =
+        LastOpenedPreferences(getSharedPreferences("last_opened", MODE_PRIVATE))
     // Never restore an authenticated navigation stack after interrupted or completed sign-out.
     val restore =
         !journal.pending &&

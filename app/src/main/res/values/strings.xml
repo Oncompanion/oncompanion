@@ -580,6 +580,10 @@
     <!-- The "Whose care?" sheet over the caregiver's Overview -->
     <string name="whose_care_follow_new">Follow someone new</string>
     <string name="whose_care_follow_new_hint">Enter the invite code they shared</string>
+    <!-- What someone logged last, under their name: e.g. "Nausea 3/10 · 09:15" or "Fatigue 4/10 · Yesterday at 20:15" -->
+    <string name="whose_care_news">%1$s · %2$s</string>
+    <!-- The same, when the caregiver hasn't seen it yet -->
+    <string name="whose_care_news_new">New · %1$s · %2$s</string>
     <!-- After the patient removed the caregiver from their circle, e.g. "You\'re no longer in Anne\'s care circle." -->
     <string name="removed_from_circle">You\'re no longer in %1$s\'s care circle.</string>
     <string name="removed_from_circle_unnamed">You\'re no longer in this care circle.</string>

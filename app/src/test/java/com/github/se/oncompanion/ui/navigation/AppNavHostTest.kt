@@ -61,6 +61,8 @@ import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.carecircle.FakeCareCircleInviteRepository
 import com.github.se.oncompanion.model.carecircle.FakeCareCircleRepository
 import com.github.se.oncompanion.model.carecircle.JoinedCareCircle
+import com.github.se.oncompanion.model.carecircle.LastOpenedInMemory
+import com.github.se.oncompanion.model.carecircle.LastOpenedProvider
 import com.github.se.oncompanion.model.carecircle.Relationship
 import com.github.se.oncompanion.model.event.Event
 import com.github.se.oncompanion.model.event.EventRegistrationRepositoryProvider
@@ -148,6 +150,7 @@ class AppNavHostTest {
   private val appSymptomRepository = SymptomRepositoryProvider.repository
   private val appUserProfileRepository = UserProfileRepositoryProvider.repository
   private val appNotificationRepository = NotificationRepositoryProvider.repository
+  private val appLastOpened = LastOpenedProvider.store
 
   @After
   fun restoreProviders() {
@@ -161,6 +164,7 @@ class AppNavHostTest {
     SymptomRepositoryProvider.repository = appSymptomRepository
     UserProfileRepositoryProvider.repository = appUserProfileRepository
     NotificationRepositoryProvider.repository = appNotificationRepository
+    LastOpenedProvider.store = appLastOpened
     SpeechRecognizerProvider.reset()
   }
 
@@ -195,6 +199,8 @@ class AppNavHostTest {
     SymptomRepositoryProvider.repository = symptomRepository
     // The patient's Overview reads the care circle's notifications for its sailboat
     NotificationRepositoryProvider.repository = notificationRepository
+    // "Whose care?" remembers which days the caregiver opened: each test starts with none
+    LastOpenedProvider.store = LastOpenedInMemory()
     // MainActivity installs the phone's recognizer, which this test doesn't start
     SpeechRecognizerProvider.recognizer = FakeSpeechRecognizer()
     // Restoring the state needs the app's own NavController, which saves where the user was
