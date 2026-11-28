@@ -26,7 +26,7 @@ data class WeekDay(val date: LocalDate, val intensity: Int?, val hasEntries: Boo
 data class WeekSymptom(val type: SymptomType, val otherName: String? = null)
 
 /**
- * The calendar week of the journal's "This week" card (Figma: "Symptoms – History").
+ * The calendar week of the journal's "This week" card (design: M3, "This week").
  *
  * @property days Monday to Sunday; the days after today are empty
  * @property entryCount how many symptoms were logged this week

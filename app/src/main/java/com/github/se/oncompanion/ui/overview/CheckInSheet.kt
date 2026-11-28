@@ -61,13 +61,13 @@ import com.github.se.oncompanion.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.LocalTime
 
-/** Every symptom, in the form's order: the sheet offers them all (Figma: "Check-in sheet"). */
+/** Every symptom, in the form's order: the sheet offers them all (design: M3, "Check-in sheet"). */
 private val sheetTiles: List<SymptomType?> = SymptomType.entries
 
 /**
- * The check-in's sheet (#544, Figma M3: "Check-in · One symptom / Two symptoms"), shown over the
- * Overview while [viewModel] logs a new entry. Saving closes it; so do ✕, Back, a swipe down or a
- * tap outside, without saving, except while the entry is being saved.
+ * The check-in's sheet (design: M3, "Check-in · One symptom" and "Check-in · Two symptoms"), shown
+ * over the Overview while [viewModel] logs a new entry. Saving closes it; so do ✕, Back, a swipe
+ * down or a tap outside, without saving, except while the entry is being saved.
  *
  * @param onSaved called once the entry is saved, to close the sheet
  * @param onClose closes the sheet without saving
@@ -186,7 +186,7 @@ private fun CheckInSheetBody(
           modifier = Modifier.testTag(C.Tag.overview_check_in_sheet_error),
       )
     }
-    // As wide as the fields above it (Figma), not inset like the form's Save
+    // As wide as the fields above it, not inset like the form's Save
     LakeButton(
         text = stringResource(R.string.overview_check_in_sheet_save),
         onClick = actions.onSave,
@@ -279,8 +279,8 @@ private fun WhenRow(
 }
 
 /**
- * "Add a note (optional)" (Figma: "Note"). No microphone: speaking a symptom starts from the
- * Overview's "Speak how you feel", not from inside the sheet.
+ * "Add a note (optional)". No microphone: speaking a symptom starts from the Overview's "Speak how
+ * you feel", not from inside the sheet.
  */
 @Composable
 private fun NoteField(uiState: AddSymptomUiState, onNotesChange: (String) -> Unit) {

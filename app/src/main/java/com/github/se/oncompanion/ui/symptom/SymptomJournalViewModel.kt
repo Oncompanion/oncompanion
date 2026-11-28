@@ -36,6 +36,8 @@ import kotlinx.coroutines.launch
 /**
  * An entry of the journal, with the local [time] it happened at.
  *
+ * @property entry the symptom entry itself
+ * @property time when it happened, in the phone's time zone
  * @property addedByName who added it, if a caregiver did: for the patient, the name they gave that
  *   member in their circle
  */
@@ -51,7 +53,7 @@ data class JournalDay(val date: LocalDate, val entries: List<JournalEntry>)
 /**
  * What the symptom journal shows.
  *
- * @property days the days with symptoms, newest first (Figma: "Symptoms – History")
+ * @property days the days with symptoms, newest first (design: M3, "Journal · My symptoms")
  * @property today the current date, to call the days "Today" and "Yesterday"
  * @property isLoading true until the entries arrive
  * @property hasError true if they couldn't be loaded (or nobody is signed in)
@@ -69,9 +71,9 @@ data class SymptomJournalUiState(
 )
 
 /**
- * Loads a symptom journal (US-8), grouped by day, and keeps it up to date: the signed-in user's, or
- * in caregiver mode (US-20) that of the patient they follow, when shared. The caregiver can also
- * add to it if the patient allows it (US-22).
+ * Loads a symptom journal, grouped by day, and keeps it up to date: the signed-in user's, or in
+ * caregiver mode that of the patient they follow, when shared. The caregiver can also add to it if
+ * the patient allows it.
  *
  * @param clock the current time and the time zone the days are counted in
  * @param patientUid in caregiver mode, the patient whose journal is shown; null for the user's own

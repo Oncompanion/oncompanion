@@ -1,5 +1,6 @@
 // Co-authored-by: Codex <noreply@openai.com>
 // Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
 
 package com.github.se.oncompanion.model.settings
 
@@ -25,7 +26,13 @@ enum class TimeFormatPreference {
   TWENTY_FOUR_HOUR,
 }
 
-/** Preferences shared by accounts on this phone, independently of patient data. */
+/**
+ * Preferences shared by accounts on this phone, independently of patient data.
+ *
+ * @property appearance the light or dark theme, or the phone's own
+ * @property dateFormat how dates are written
+ * @property timeFormat whether times use a 12-hour or 24-hour clock
+ */
 data class DeviceSettings(
     val appearance: AppearancePreference = AppearancePreference.FOLLOW_DEVICE,
     val dateFormat: DateFormatPreference = DateFormatPreference.FOLLOW_DEVICE,

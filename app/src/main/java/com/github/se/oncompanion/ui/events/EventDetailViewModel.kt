@@ -39,7 +39,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** What the event page offers about the patient's registration with the organizer (US-25). */
+/** What the event page offers about the patient's registration with the organizer. */
 enum class RegistrationStatus {
   /** Not known yet. */
   LOADING,
@@ -71,7 +71,7 @@ enum class RegistrationStatus {
  * @property hasError true if the event couldn't be loaded
  * @property registration what the screen offers about the patient's registration
  * @property isConfirmingRemoval the viewer asked to remove the confirmation and has yet to decide
- * @property caregiverCanConfirm a caregiver the patient lets confirm events (US-42) may confirm the
+ * @property caregiverCanConfirm a caregiver the patient lets confirm events may confirm the
  *   registration for them
  * @property caregiverCanRemove whether the patient lets the caregiver remove confirmations
  * @property addedByName who confirmed it, if a caregiver did: for the patient, the name they gave
@@ -91,7 +91,7 @@ data class EventDetailUiState(
 /**
  * Loads one of the Ligue's events for its detail screen, with whether the patient confirmed their
  * registration for it: the signed-in patient, or the patient a caregiver follows when they share
- * Events (US-20). Caregiver actions depend on the patient’s Events permissions.
+ * Events. Caregiver actions depend on the patient’s Events permissions.
  *
  * @param patientUid the followed patient in caregiver mode, null for the user's own registration
  * @param clock the current time, in the time zone the event's times are given in

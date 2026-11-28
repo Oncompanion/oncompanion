@@ -34,11 +34,11 @@ enum class AppointmentReminder {
  * @property location optional free text, also usable without hospital search
  * @property notes optional information the patient wants to keep
  * @property createdAt the server creation timestamp; null before acknowledgement
- * @property addedBy the uid of the caregiver who added it for the patient (US-41), or `null` when
- *   the patient did
+ * @property addedBy the uid of the caregiver who added it for the patient, or `null` when the
+ *   patient did
  * @property addedByName that caregiver's first name, shown as "Added by Sam"
- * @property editedBy the uid of the caregiver who last edited it for the patient (US-46), or `null`
- *   when nobody did or the patient edited it last
+ * @property editedBy the uid of the caregiver who last edited it for the patient, or `null` when
+ *   nobody did or the patient edited it last
  * @property editedByName that caregiver's first name, shown as "Edited by Sam"
  * @property reminder the appointment reminder choice; older records default to one hour
  */

@@ -6,9 +6,9 @@ import com.github.se.oncompanion.model.medication.TakenDosesRepository.Companion
 import com.github.se.oncompanion.model.medication.scan.comparable
 
 /**
- * How many doses a day a medication's frequency says, so the patient can tick them on the Overview
- * (US-28). The frequency is free text, typed by the patient or kept as read from a scanned
- * prescription, so English, French and German wordings and the Swiss scheme are read.
+ * How many doses a day a medication's frequency says, so the patient can tick them on the Overview.
+ * The frequency is free text, typed by the patient or kept as read from a scanned prescription, so
+ * English, French and German wordings and the Swiss scheme are read.
  *
  * It only counts what the text says plainly: anything taken only if needed, up to a maximum or as a
  * range of doses, less often than daily (weekly, every few days, a cycle) or not understood has no

@@ -97,9 +97,9 @@ private val shortDateFormatter
   @Composable get() = rememberAppDateFormatter("d MMM")
 
 /**
- * The prescription form (US-24): the user types a prescription and its medications, then saves it.
- * Given a view model that corrects a saved prescription (US-12), it shows that prescription once
- * read, or why it can't.
+ * The prescription form: the user types a prescription and its medications, then saves it. Given a
+ * view model that corrects a saved prescription, it shows that prescription once read, or why it
+ * can't.
  *
  * @param onClose called when the user leaves the form without saving
  * @param onSaved called once the prescription is saved
@@ -162,19 +162,19 @@ fun PrescriptionFormScreen(
 }
 
 /**
- * Stateless content of the prescription form (Figma "US-24 / Add prescription"), so each state can
- * be tested without a ViewModel.
+ * Stateless content of the prescription form (design: M3, "Add and review · Add prescription"), so
+ * each state can be tested without a ViewModel.
  *
  * @param onErrorShown called once the error snackbar is gone
  * @param onRetry reads the saved prescription again after it couldn't be loaded
  * @param onKeepEditing closes the "already saved" question without saving
  * @param onSaveAnyway saves although the prescription is already saved
- * @param onReject asks to reject the prescription a caregiver added (US-43)
+ * @param onReject asks to reject the prescription a caregiver added
  * @param onConfirmRejection rejects it, once asked
  * @param onCancelRejection keeps reviewing it
  * @param caregiverOf the patient's first name when a caregiver adds for them: the title says whose
  *   prescriptions it goes to
- * @param reminderActions what the patient does with the open medication's reminders (US-32)
+ * @param reminderActions what the patient does with the open medication's reminders
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -203,9 +203,9 @@ fun PrescriptionFormContent(
     caregiverOf: String? = null,
     reminderActions: ReminderActions = ReminderActions(),
 ) {
-  // Asks before saving a prescription already saved (US-39)
+  // Asks before saving a prescription already saved
   uiState.alreadySaved?.let { AlreadySavedDialog(it, onKeepEditing, onSaveAnyway, caregiverOf) }
-  // Asks before rejecting a prescription a caregiver added (US-43)
+  // Asks before rejecting a prescription a caregiver added
   if (uiState.isConfirmingRejection) {
     DeleteConfirmationDialog(
         title = stringResource(R.string.prescription_reject_title),
@@ -241,7 +241,7 @@ fun PrescriptionFormContent(
   Scaffold(
       // Ends the screen at the keyboard (the activity is adjustResize): Save sits just above it
       modifier = modifier.testTag(C.Tag.prescription_form_screen).imePadding(),
-      // The cards of the form sit on the stone page (Figma M3, "Add and review")
+      // The cards of the form sit on the stone page (design: M3, "Add and review")
       containerColor = MaterialTheme.lakeColors.stone.page,
       // Without fields there is no keyboard, so the top bar can stay fixed
       topBar = { if (!scrollsEverything || !isReady) FormTopBar(uiState, onClose, caregiverOf) },
@@ -263,11 +263,11 @@ fun PrescriptionFormContent(
           modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
           verticalArrangement = Arrangement.spacedBy(Spacing.md),
       ) {
-        // Same medications as a saved prescription: most likely its renewal (US-39)
+        // Same medications as a saved prescription: most likely its renewal
         uiState.renewalOf?.let { RenewalNotice(it, caregiverOf) }
         // A scanned prescription says what was read and what the patient should check
         if (uiState.isScanned) ReviewNotice(uiState)
-        // A prescription a caregiver added asks the patient to check it before confirming (US-43)
+        // A prescription a caregiver added asks the patient to check it before confirming
         if (uiState.isToConfirm) ConfirmNotice()
         // A caregiver can correct a pending prescription, but saving never confirms it.
         uiState.pendingAddedByName?.let { AddedBy(it, isConfirmed = false) }
@@ -369,7 +369,9 @@ private fun PrescriptionCard(
   }
 }
 
-/** A section of the form: a stone card with its fields 12 dp apart (Figma M3, "Add and review"). */
+/**
+ * A section of the form: a stone card with its fields 12 dp apart (design: M3, "Add and review").
+ */
 @Composable
 private fun FormCard(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
   StoneCard(modifier, shape = MaterialTheme.shapes.medium) {
@@ -382,8 +384,8 @@ private fun FormCard(modifier: Modifier, content: @Composable ColumnScope.() -> 
 }
 
 /**
- * The title and the button that leaves the form without saving, on the Paper lake band (Figma
- * "US-10 / Review – Partly read", "US-24 / Add prescription", "US-12 / Edit prescription").
+ * The title and the button that leaves the form without saving, on the Paper lake band (design: M3,
+ * "Add and review").
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -410,7 +412,7 @@ private fun FormTopAppBar(
 ) {
   val onHorizon = MaterialTheme.lakeColors.onHorizon
   TopAppBar(
-      // The band shows through, and its text colour reads on it at any time of day
+      // The band shows through, and its text color reads on it at any time of day
       colors =
           TopAppBarDefaults.topAppBarColors(
               containerColor = Color.Transparent,
@@ -424,7 +426,7 @@ private fun FormTopAppBar(
               uiState.isEditing && caregiverOf != null ->
                   stringResource(R.string.prescription_form_edit_title_for, caregiverOf)
               uiState.isEditing -> stringResource(R.string.prescription_form_edit_title)
-              // A caregiver's title says whose prescriptions it goes to (US-43)
+              // A caregiver's title says whose prescriptions it goes to
               caregiverOf != null && uiState.isScanned ->
                   stringResource(R.string.prescription_review_title_for, caregiverOf)
               caregiverOf != null ->
@@ -591,7 +593,7 @@ private fun OpenMedication(
     // A duration that can't be saved gets a red warning, which comes before a detail to check
     val durationInvalid = !Medication.isValidDuration(medication.durationDays)
     val durationCheck = checks[MedicationDetail.DURATION]?.takeUnless { durationInvalid }
-    // Side by side as in the frame; stacked where both wouldn't fit whole (a small phone, a large
+    // Side by side; stacked where both wouldn't fit whole (a small phone, a large
     // font), or when the duration shows one of those messages, so it has the whole width
     StartAndDuration(
         stacked = durationInvalid || durationCheck != null,
@@ -608,7 +610,7 @@ private fun OpenMedication(
           DurationField(medication, durationInvalid, durationCheck, onDurationChange, it)
         },
     )
-    // When the patient is reminded of it (US-32), after what was prescribed
+    // When the patient is reminded of it, after what was prescribed
     reminders()
   }
 }
@@ -755,7 +757,7 @@ private fun DateField(
 
 /**
  * The bottom of the screen while the fields scroll: Save on a card whose top corners are rounded,
- * raised over the stone page (Figma M3: "Save (thumb zone)").
+ * raised over the stone page (design: M3, "Save (thumb zone)").
  */
 @Composable
 private fun SaveBar(uiState: PrescriptionFormUiState, onSave: () -> Unit, onReject: () -> Unit) {
@@ -793,7 +795,7 @@ private fun FormSaveButton(
     )
     return
   }
-  // A prescription a caregiver added: Reject next to Confirm, which saves and confirms it (US-43)
+  // A prescription a caregiver added: Reject next to Confirm, which saves and confirms it
   Row(verticalAlignment = Alignment.CenterVertically) {
     LakeButton(
         text = stringResource(R.string.prescription_reject),
@@ -817,8 +819,8 @@ private fun FormSaveButton(
 }
 
 /**
- * Asks the patient to check a prescription a caregiver added before confirming it (US-43): the
- * neutral banner with the info icon, as in the frame "Review Marc's prescription".
+ * Asks the patient to check a prescription a caregiver added before confirming it: the neutral
+ * banner with the info icon, (design: M3, "Review Marc's prescription").
  */
 @Composable
 private fun ConfirmNotice() {

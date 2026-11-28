@@ -29,16 +29,16 @@ import com.github.se.oncompanion.ui.theme.Spacing
 import java.time.LocalTime
 
 /**
- * The frame of an onboarding step (Figma "US-1 / Onboarding – Role" and "– Information"): the Paper
- * lake band, the step's question and why it's asked, its [content], then its [actions] at the
- * bottom of the screen when there's room.
+ * The frame of an onboarding step (design: M2, "Onboarding – Role" and "Onboarding – Information"):
+ * the Paper lake band, the step's question and why it's asked, its [content], then its [actions] at
+ * the bottom of the screen when there's room.
  *
  * Everything scrolls together, the band and the margins too: on a small phone held sideways, fixed
- * ones would take most of the height left above the keyboard. A strip in the sky's colour stays
+ * ones would take most of the height left above the keyboard. A strip in the sky's color stays
  * behind the status bar, so the scrolled step never passes under the clock and icons.
  *
  * @param innerPadding the Scaffold's: kept clear of the system bars, except the band, which goes
- *   under the status bar as in the Figma
+ *   under the status bar
  */
 @Composable
 internal fun OnboardingStep(

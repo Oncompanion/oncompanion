@@ -16,9 +16,8 @@ import androidx.compose.ui.Modifier
 
 /**
  * Centers a replacement message when it fits and scrolls when it overflows, so its action stays
- * reachable on short windows and at large font sizes (#490). The message supplies its own side
- * padding so it wraps consistently across screens. Use this only outside existing vertical scroll
- * containers.
+ * reachable on short windows and at large font sizes. The message supplies its own side padding so
+ * it wraps consistently across screens. Use this only outside existing vertical scroll containers.
  */
 @Composable
 internal fun MessageArea(modifier: Modifier = Modifier, content: @Composable () -> Unit) {

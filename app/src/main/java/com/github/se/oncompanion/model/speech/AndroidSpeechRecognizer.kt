@@ -37,8 +37,8 @@ import kotlinx.coroutines.withContext
  * Listens with the phone's own speech recognizer (usually Google's), so the app needs no speech
  * model or server of its own. Recognition on the phone is preferred, so it works offline when the
  * language is installed on the phone; otherwise the phone's recognizer may go online. On Android
- * 13+, the app can also ask which languages work offline and have one downloaded (US-45), then
- * listen with that same on-device recognizer.
+ * 13+, the app can also ask which languages work offline and have one downloaded, then listen with
+ * that same on-device recognizer.
  *
  * Nothing is recorded by the app: Android only hands back the text.
  *
@@ -125,7 +125,7 @@ class AndroidSpeechRecognizer(
    * is ready to listen, or until the next [offlineSupport] if the patient didn't listen. Destroying
    * it as soon as it answered, or when the app stopped waiting for a slow phone, shut the phone's
    * speech service down under the session starting right after, which then failed, or found the
-   * service busy with what was left of it (#675).
+   * service busy with what was left of it.
    */
   private var checker: AndroidRecognizer? = null
 
@@ -187,10 +187,10 @@ class AndroidSpeechRecognizer(
    *
    * A recognizer that fails before the patient starts speaking gets a second start when it may then
    * work. The on-device one, after an error from the phone's speech service, which can drop a
-   * session while it restarts though the language is on the phone (#675, see [checker]). The
-   * phone's default one, asked to prefer offline, fails for a language it hasn't downloaded even
-   * when the phone is online: it starts again without that preference. Both can say they are ready
-   * before failing, so only speech counts, not being ready.
+   * session while it restarts though the language is on the phone (see [checker]). The phone's
+   * default one, asked to prefer offline, fails for a language it hasn't downloaded even when the
+   * phone is online: it starts again without that preference. Both can say they are ready before
+   * failing, so only speech counts, not being ready.
    *
    * @param useOnDevice whether it listens with the on-device recognizer
    * @param events where the session sends what it hears, closed when it ends
@@ -419,7 +419,7 @@ internal fun speechErrorOf(code: Int, onDevice: Boolean = false): SpeechError =
       AndroidRecognizer.ERROR_NETWORK_TIMEOUT,
       AndroidRecognizer.ERROR_SERVER,
       AndroidRecognizer.ERROR_SERVER_DISCONNECTED ->
-          // The on-device recognizer needs no connection: its service failed (#675)
+          // The on-device recognizer needs no connection: its service failed
           if (onDevice) SpeechError.FAILED else SpeechError.NEEDS_CONNECTION
       AndroidRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED,
       AndroidRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> SpeechError.LANGUAGE_UNAVAILABLE
@@ -430,7 +430,7 @@ private const val TAG = "AndroidSpeechRecognizer"
 
 /**
  * Android's errors that come from the phone's speech service rather than from the patient, the
- * microphone or the language: the on-device recognizer is started again once after one (#675).
+ * microphone or the language: the on-device recognizer is started again once after one.
  */
 @SuppressLint("InlinedApi")
 private val SERVICE_ERRORS =

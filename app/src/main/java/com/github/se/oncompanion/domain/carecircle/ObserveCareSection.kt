@@ -33,10 +33,11 @@ sealed interface CareSection<out T> {
   /**
    * The section's [data].
    *
+   * @property data what the section shows
    * @property canEdit whether edit and delete may be offered: only for the user's own data
-   * @property canAdd whether adding may be offered (US-22)
+   * @property canAdd whether adding may be offered
    * @property canEditEntries whether its entries may be edited and deleted, also by a caregiver the
-   *   patient allows (US-46)
+   *   patient allows
    */
   data class Shown<T>(
       val data: T,
@@ -63,9 +64,8 @@ sealed interface CareSection<out T> {
 
 /**
  * Follows one section of the data the signed-in user may see: their own, or what the patient they
- * follow shares with them (US-20). Every screen that shows a section of patient data reads it here,
- * so each only maps the result to its state and none can forget to reset a flag after an access
- * change (#323).
+ * follow shares with them. Every screen that shows a section of patient data reads it here, so each
+ * only maps the result to its state and none can forget to reset a flag after an access change.
  */
 class ObserveCareSection(
     private val resolveSection: ResolveSectionAccess = ResolveSectionAccess()

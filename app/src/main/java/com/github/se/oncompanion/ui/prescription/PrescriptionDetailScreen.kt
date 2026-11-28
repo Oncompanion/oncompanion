@@ -69,11 +69,11 @@ private val deleteDialogTags =
     )
 
 /**
- * The detail of one saved prescription (US-11, Figma: "US-11 / Prescription detail"), opened from
- * the prescriptions list: every saved field, so the patient can check a dosage at any time, also
- * offline.
+ * The detail of one saved prescription (design: M3, "List and detail · Detail · Two medications"),
+ * opened from the prescriptions list: every saved field, so the patient can check a dosage at any
+ * time, also offline.
  *
- * @param onEdit opens the prescription in the form, to correct it (US-12)
+ * @param onEdit opens the prescription in the form, to correct it
  * @param onDeleted called once the prescription is deleted, to leave the screen
  * @param caregiverOf the first name of the patient a caregiver follows, `null` for a patient
  */
@@ -194,7 +194,7 @@ fun PrescriptionDetailContent(
                       message = stringResource(R.string.prescription_detail_not_found_hint),
                   )
                 }
-            // Edit and Delete at the bottom, away from the back arrow, as in the Figma mockup
+            // Edit and Delete at the bottom, away from the back arrow
             else
                 DetailWithActions(
                     showActions = uiState.canEdit,
@@ -235,7 +235,7 @@ fun PrescriptionDetailContent(
   }
 }
 
-/** Every field of [prescription], as in the Figma mockup. */
+/** Every field of [prescription]. */
 @Composable
 private fun PrescriptionDetail(prescription: Prescription) {
   Column(Modifier.padding(vertical = 8.dp)) {
@@ -244,7 +244,7 @@ private fun PrescriptionDetail(prescription: Prescription) {
         style = MaterialTheme.typography.headlineSmall,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
     )
-    // A prescription a caregiver added says who did, and whether the patient confirmed it (US-43)
+    // A prescription a caregiver added says who did, and whether the patient confirmed it
     prescription.addedByName?.let {
       AddedBy(
           it,

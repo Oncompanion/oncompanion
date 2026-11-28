@@ -35,6 +35,7 @@ sealed interface CareCircleInviteUiState {
   /**
    * The invitation, waiting for its invite code to be used.
    *
+   * @property invite the invitation shown
    * @property expired whether the invite code can no longer be used, as of the last check
    * @property confirmingCancel whether the "Cancel invitation?" dialog is open
    * @property isWorking whether cancelling or renewing is under way; the actions are disabled
@@ -73,9 +74,9 @@ sealed interface CareCircleInviteUiState {
 }
 
 /**
- * Shows one invitation of the signed-in patient's care circle (#150): its invite code, to send or
- * share, until the person uses it. The invite code is the [Screen.CARE_CIRCLE_INVITE_ARG]
- * navigation argument, read from [savedStateHandle].
+ * Shows one invitation of the signed-in patient's care circle: its invite code, to send or share,
+ * until the person uses it. The invite code is the [Screen.CARE_CIRCLE_INVITE_ARG] navigation
+ * argument, read from [savedStateHandle].
  *
  * A used invitation is deleted (see docs/architecture.md, "Care circle invitations"), so it looks
  * like a cancelled one. The circle's members tell them apart: someone who joined with this invite

@@ -1,6 +1,17 @@
+// Co-authored-by: ChatGPT <noreply@openai.com>
+// Co-authored-by: Claude Code <noreply@anthropic.com>
+
 package com.github.se.oncompanion.model.hospital
 
-/** A hospital's OpenStreetMap identity, name, full address label and coordinates. */
+/**
+ * A hospital's OpenStreetMap identity, name, full address label and coordinates.
+ *
+ * @property id the hospital's OpenStreetMap type and ID, e.g. "way/123"
+ * @property name the hospital's name, or the first part of its address when it has none
+ * @property address its full address, on one line
+ * @property latitude its latitude, in degrees
+ * @property longitude its longitude, in degrees
+ */
 data class Hospital(
     val id: String,
     val name: String,

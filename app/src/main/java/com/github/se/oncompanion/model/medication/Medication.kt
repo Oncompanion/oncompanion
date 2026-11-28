@@ -16,8 +16,8 @@ import java.time.LocalTime
  * @property frequency optional free text (e.g. "Twice a day")
  * @property startDate first day of intake; it can be later than [Prescription.prescribedOn]
  * @property durationDays number of days of intake counting [startDate]; `null` if there is no end
- * @property reminderTimes the times of day the patient chose to be reminded of it (US-32), in the
- *   phone's time zone; empty when they set no reminder. Only the patient sets them, and only on a
+ * @property reminderTimes the times of day the patient chose to be reminded of it, in the phone's
+ *   time zone; empty when they set no reminder. Only the patient sets them, and only on a
  *   prescription they confirmed, see [Prescription.isValid]
  */
 data class Medication(

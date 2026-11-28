@@ -46,7 +46,7 @@ enum class PrescriptionsLoad {
 /**
  * Why nothing can be read when the access check finds no access: nobody is signed in, or the user
  * is signed in but not in the patient's circle. Asked of the sign-in itself, so a caregiver who
- * signs out is never told they were removed (#490).
+ * signs out is never told they were removed.
  */
 internal fun noAccessLoad(auth: AuthRepository): PrescriptionsLoad =
     if (runCatching { auth.currentUser }.getOrNull() == null) PrescriptionsLoad.NOT_SIGNED_IN

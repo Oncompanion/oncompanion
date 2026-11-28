@@ -17,9 +17,10 @@ import kotlinx.coroutines.flow.first
 
 /**
  * Saves a prescription the user has confirmed, with its medications, and changes or deletes a saved
- * one. Every medication write goes through this use case, so that the reminders can later be kept
- * in sync with the stored schedule in one place. There are no reminders yet: for now it only
- * writes, and tells the patient when a caregiver adds a prescription for them (US-50).
+ * one. Every medication write goes through this use case, which also tells the patient when a
+ * caregiver adds a prescription for them. It doesn't schedule reminders:
+ * [com.github.se.oncompanion.domain.reminder.ReconcileMedicationReminders] does that from the saved
+ * medications.
  *
  * Unlike the other use cases, it has no single `invoke`: [add], [update] and [delete] are named
  * operations of one class rather than use cases of their own, so that the three writes can't be
@@ -36,15 +37,15 @@ class ManageMedicationSchedule(
    * Saves [draft] as a new prescription of [uid]. Returns once it is saved on the device, also
    * offline.
    *
-   * A caregiver adding it for the patient (US-43) signs it with [addedBy] and [addedByName]: it is
-   * then [PrescriptionConfirmation.PENDING] until the patient checks it, and none of its
-   * medications are reminded before. The patient also gets a notification asking them to review it,
-   * once: a correction or the review itself sends none.
+   * A caregiver adding it for the patient signs it with [addedBy] and [addedByName]: it is then
+   * [PrescriptionConfirmation.PENDING] until the patient checks it, and none of its medications are
+   * reminded before. The patient also gets a notification asking them to review it, once: a
+   * correction or the review itself sends none.
    *
    * @throws IllegalArgumentException if the draft is not [PrescriptionDraft.isValid], if one of its
    *   medications already has an ID (it comes from a saved prescription, which must be changed, not
    *   added a second time), if only one of [addedBy] and [addedByName] is given, or if a caregiver
-   *   gives reminder times: only the patient chooses them, once they confirmed it (US-32)
+   *   gives reminder times: only the patient chooses them, once they confirmed it
    */
   suspend fun add(
       uid: String,
@@ -82,9 +83,9 @@ class ManageMedicationSchedule(
 
   /**
    * Tells patient [uid] that the caregiver who signed [signature] added prescription
-   * [prescriptionId] for them to review (US-50). Sent after the prescription: the server applies
-   * the two writes in that order, and its rules only accept a notification about a prescription it
-   * already has.
+   * [prescriptionId] for them to review. Sent after the prescription: the server applies the two
+   * writes in that order, and its rules only accept a notification about a prescription it already
+   * has.
    *
    * The prescription is saved whatever happens here: a notification that can't be written is only
    * logged, as the repository does when the server refuses one.
@@ -122,7 +123,7 @@ class ManageMedicationSchedule(
    * wrong prescription can be corrected. A medication of the draft that has an ID stays the same
    * saved medication, one without an ID is added, and a saved one that the draft leaves out is
    * removed. Returns once it is saved on the device, also offline. Who added it stays the same, and
-   * a patient saving a prescription a caregiver added confirms it (US-43). A caregiver editing with
+   * a patient saving a prescription a caregiver added confirms it. A caregiver editing with
    * [editedBy] and [editedByName] keeps the saved confirmation state, signing the last edit. The
    * patient's edit clears an earlier caregiver editor.
    *
@@ -168,7 +169,7 @@ class ManageMedicationSchedule(
   }
 
   /**
-   * Rejects the prescription [prescriptionId] a caregiver added to [uid]'s (US-43): it leaves their
+   * Rejects the prescription [prescriptionId] a caregiver added to [uid]'s: it leaves their
    * prescriptions and is kept apart as [PrescriptionConfirmation.REJECTED], where only the
    * caregiver who added it sees it was rejected. None of its medications are ever reminded. Returns
    * once it is saved on the device, also offline. The caller asks the patient to confirm first.
@@ -185,7 +186,7 @@ class ManageMedicationSchedule(
 
   /**
    * Deletes the rejected prescription [prescriptionId] of [patientUid], once the caregiver who
-   * added it saw it was rejected (US-43). Returns once it is deleted on the device, also offline.
+   * added it saw it was rejected. Returns once it is deleted on the device, also offline.
    */
   suspend fun dismissRejected(patientUid: String, prescriptionId: String) {
     medicationRepository.deleteRejectedPrescription(patientUid, prescriptionId)

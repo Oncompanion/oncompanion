@@ -6,19 +6,21 @@ import com.github.se.oncompanion.model.carecircle.CarePermission
 import java.time.Duration
 import java.time.Instant
 
-/** What someone in the care circle did that a notification tells the user about (US-50). */
-enum class NotificationKind(
-    /** The section of the patient's data the item belongs to, for the counts on its tab. */
-    val section: CarePermission
-) {
-  /** A caregiver added a prescription that waits for the patient's review (US-43). */
+/**
+ * What someone in the care circle did that a notification tells the user about.
+ *
+ * @property section the section of the patient's data the item belongs to, for the counts on its
+ *   tab
+ */
+enum class NotificationKind(val section: CarePermission) {
+  /** A caregiver added a prescription that waits for the patient's review. */
   PRESCRIPTION_ADDED(CarePermission.PRESCRIPTIONS),
 }
 
 /**
- * Something a member of the user's care circle did for them, shown in the "Your circle" sheet
- * (US-50). The caregiver's phone creates it right after saving the item; the recipient reads it and
- * marks it [seen].
+ * Something a member of the user's care circle did for them, shown in the "Your circle" sheet. The
+ * caregiver's phone creates it right after saving the item; the recipient reads it and marks it
+ * [seen].
  *
  * It never holds the item's content (no medication names): the screen reads the item [itemId] live,
  * so it always shows its current state and no health detail is copied.

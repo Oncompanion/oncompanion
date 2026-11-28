@@ -21,12 +21,13 @@ import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.ui.theme.Spacing
 
 /**
- * The Figma "Filter chip": 48 dp tall, a full touch target (Material's chip is 32 dp), with Medium
- * corners. White with an Outline border, or dawn without it once [selected]. There is no check, so
- * picking a chip doesn't make it wider and push the chips after it along.
+ * The filter chip (design: Brand & Theme, "Filter chip"): 48 dp tall, a full touch target
+ * (Material's chip is 32 dp), with Medium corners. White with an Outline border, or dawn without it
+ * once [selected]. There is no check, so picking a chip doesn't make it wider and push the chips
+ * after it along.
  *
  * @param onClick toggles the chip; `null` shows a read-only chip (e.g. what was logged, on a
- *   detail): the same colours, but it can't be tapped nor is it announced as a checkbox
+ *   detail): the same colors, but it can't be tapped nor is it announced as a checkbox
  * @param role what screen readers call it: a checkbox when several chips can be picked, as on
  *   Material's chip, or [Role.RadioButton] when only one can
  * @param widestLabel the longest [label] the chip can show, if it changes: the chip is always as

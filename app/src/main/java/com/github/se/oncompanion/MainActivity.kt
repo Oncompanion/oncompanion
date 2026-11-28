@@ -48,7 +48,7 @@ class MainActivity : AppCompatActivity() {
     SignOutProvider.signOut.initialize(journal)
     // The phone's speech recognizer keeps the app's context, so ViewModels never handle one
     SpeechRecognizerProvider.install(applicationContext)
-    // Which accepted prescriptions a caregiver closed is kept on the phone (US-43)
+    // Which accepted prescriptions a caregiver closed is kept on the phone
     SeenPrescriptionsProvider.store =
         SeenPrescriptionsPreferences(getSharedPreferences("seen_prescriptions", MODE_PRIVATE))
     LastOpenedProvider.store =

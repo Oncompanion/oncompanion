@@ -161,8 +161,8 @@ internal fun KeepNowCurrent(viewModel: AddSymptomViewModel) {
 }
 
 /**
- * "Which symptom?", the name of the "Other" symptom, required to save it (Figma: "Check-in · Other,
- * not named yet"). A name of the list says to pick that symptom instead.
+ * "Which symptom?", the name of the "Other" symptom, required to save it (design: M3, "Check-in ·
+ * Other, not named yet"). A name of the list says to pick that symptom instead.
  */
 @Composable
 internal fun OtherNameField(uiState: AddSymptomUiState, onOtherNameChange: (String) -> Unit) {

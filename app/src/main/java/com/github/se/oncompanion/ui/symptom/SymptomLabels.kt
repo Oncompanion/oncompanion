@@ -19,7 +19,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-/** The label of a symptom type, as shown in the app (Figma: "Add symptom"). */
+/** The label of a symptom type, as shown in the app. */
 @get:StringRes
 val SymptomType.label: Int
   get() =
@@ -35,10 +35,7 @@ val SymptomType.label: Int
         SymptomType.OTHER -> R.string.symptom_type_other
       }
 
-/**
- * The icon of a symptom type, as on the check-in tiles (Figma: "Symptom tile"); "Other" has the
- * dots of "More…".
- */
+/** The icon of a symptom type, as on the check-in tiles; "Other" has the dots of "More…". */
 @get:DrawableRes
 val SymptomType.icon: Int
   get() =
@@ -54,7 +51,7 @@ val SymptomType.icon: Int
         SymptomType.OTHER -> R.drawable.ic_symptom_more
       }
 
-/** The label of a severity level, as shown in the journal (Figma: "Symptoms – History"). */
+/** The label of a severity level, as shown in the journal (design: M3, "Journal · My symptoms"). */
 @get:StringRes
 val Severity.label: Int
   get() =
@@ -64,7 +61,7 @@ val Severity.label: Int
         Severity.SEVERE -> R.string.symptom_severity_severe
       }
 
-/** "Mon 28 Sep", as in the mockups. Day and month names follow the app language. */
+/** "Mon 28 Sep". Day and month names follow the app language. */
 private val dayFormatter
   @Composable get() = rememberAppDateFormatter("EEE d MMM")
 
@@ -111,7 +108,7 @@ fun nameInSentence(type: SymptomType, otherName: String?): String =
 /**
  * The question over the slider for [type]: "How strong is your fatigue? (optional)", "How strong
  * are your sleep problems? (optional)", or "How strong is it? (optional)" for "Other" not named yet
- * (Figma: "Check-in · Other, not named yet"). A name the user gave "Other" takes "is".
+ * (design: M3, "Check-in · Other, not named yet"). A name the user gave "Other" takes "is".
  */
 @Composable
 fun strengthQuestion(type: SymptomType, otherName: String?): String =
@@ -135,8 +132,8 @@ private val PLURAL_LABELS = setOf(SymptomType.SLEEP_PROBLEMS)
 
 /**
  * The symptoms given a strength, said in words in the order they were picked: "Moderate fatigue ·
- * mild nausea" (Figma: journal). The name of "Other" is kept as the user typed it. `null` for an
- * entry without strengths, as one saved before them.
+ * mild nausea" (design: M3, "Journal · My symptoms"). The name of "Other" is kept as the user typed
+ * it. `null` for an entry without strengths, as one saved before them.
  */
 @Composable
 fun SymptomEntry.strengthsInWords(): String? {

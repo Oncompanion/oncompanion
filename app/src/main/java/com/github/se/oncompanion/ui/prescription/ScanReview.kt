@@ -25,7 +25,7 @@ import com.github.se.oncompanion.domain.medication.scan.ScannedField
 import com.github.se.oncompanion.model.medication.Prescription
 import com.github.se.oncompanion.resources.C
 
-// The review of a prescription read from a scan (Figma "US-10 / Review extracted information" and
+// The review of a prescription read from a scan (design: M3, "Review scanned · Please check" and
 // "Review / Partly read"): the details to check are in dawn, not red, since they don't block Save.
 
 /** A field to check, and why: [notFound] when the scan has nothing for it, else it was unsure. */

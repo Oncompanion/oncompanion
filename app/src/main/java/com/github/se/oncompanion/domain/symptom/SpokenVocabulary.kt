@@ -11,44 +11,45 @@ internal typealias Phrase = List<String>
  * The words [parseSpokenSymptom] understands in one language. Phrases are written as spoken and
  * compared after [spokenWords], so accents, case and apostrophes don't matter.
  *
- * @property symptoms phrases for each symptom; [SymptomType.OTHER] is never drafted
+ * @param symptoms phrases for each symptom; [SymptomType.OTHER] is never drafted
  * @property negations words that negate the symptom said soon after them, in the same clause
  * @property negationsAfterNe words that only negate after "ne" ("je n'ai plus de fièvre"), as
  *   "plus" alone also means "more"
- * @property clauseNegations phrases that negate every symptom up to the end of their clause ("I
- *   don't think I have a fever")
+ * @param clauseNegations phrases that negate every symptom up to the end of their clause ("I don't
+ *   think I have a fever")
  * @property listJoins words that join the last item of a list ("no fever, nausea or pain"): a
  *   negation goes on through the list
  * @property determiners small words a list of symptoms may have before each one ("the", "de")
  * @property clauseBreaks words that end what a negation applies to ("but", "mais")
  * @property groupJoins words that join symptoms said together ("the nausea and pain")
- * @property endings phrases that say the symptom said just before them is over ("the nausea is
- *   gone")
- * @property pluralEndings phrases that say the symptoms said together just before them are over
- *   ("the nausea and pain are gone")
- * @property pronounEndings phrases that say the symptoms said before them are over, even in the
- *   clause before ("I had a headache but it's gone")
- * @property ignored phrases that look like a negation or a symptom but are neither
- * @property fillers words that may come between the words of a symptom or ignored phrase ("feel a
- *   bit sick", "pas très faim") without changing what it says
+ * @param endings phrases that say the symptom said just before them is over ("the nausea is gone")
+ * @param pluralEndings phrases that say the symptoms said together just before them are over ("the
+ *   nausea and pain are gone")
+ * @param pronounEndings phrases that say the symptoms said before them are over, even in the clause
+ *   before ("I had a headache but it's gone")
+ * @param ignored phrases that look like a negation or a symptom but are neither
+ * @param fillers words that may come between the words of a symptom or ignored phrase ("feel a bit
+ *   sick", "pas très faim") without changing what it says
  * @property numbers numbers said as words; digits are always understood
- * @property outOf what joins an intensity and its scale ("7 out of 10")
- * @property strengthLinks what may come between a symptom and a strength said as a number alone
+ * @param outOf what joins an intensity and its scale ("7 out of 10")
+ * @param strengthLinks what may come between a symptom and a strength said as a number alone
  *   ("nausea is about 6"); never "at", which says a time ("headache at 6")
- * @property strengthFor what says a strength is for the symptom said after it ("7 out of 10 for the
+ * @param strengthFor what says a strength is for the symptom said after it ("7 out of 10 for the
  *   nausea")
- * @property strengthEnds what may follow a strength said as a number alone ("nausée à 6, voilà"),
+ * @param strengthEnds what may follow a strength said as a number alone ("nausée à 6, voilà"),
  *   besides the end, a clause break or another symptom; never a unit ("à 6 heures", "3 fois")
  * @property articles words that mean "one" before a duration ("an hour ago")
- * @property agoBefore what comes before a duration in the past ("il y a 2 heures")
- * @property agoAfter what comes after a duration in the past ("2 hours ago")
- * @property halfHour half an hour, as one phrase
- * @property minuteUnits, hourUnits the units of a duration
- * @property daysAgo days said by name, with how many days ago they are
- * @property otherDays days the parser can't place ("tomorrow", "lundi"): when one is said, the day
- *   and time stay empty rather than default to today
- * @property clockWords what makes a number a time of day ("9 o'clock", "9 heures")
- * @property morning, afternoon what says whether a time is before or after noon
+ * @param agoBefore what comes before a duration in the past ("il y a 2 heures")
+ * @param agoAfter what comes after a duration in the past ("2 hours ago")
+ * @param halfHour half an hour, as one phrase
+ * @property minuteUnits the words for minutes in a duration
+ * @property hourUnits the words for hours in a duration
+ * @param daysAgo days said by name, with how many days ago they are
+ * @param otherDays days the parser can't place ("tomorrow", "lundi"): when one is said, the day and
+ *   time stay empty rather than default to today
+ * @param clockWords what makes a number a time of day ("9 o'clock", "9 heures")
+ * @param morning what says a time is before noon
+ * @param afternoon what says a time is after noon
  */
 internal class SpokenVocabulary(
     symptoms: Map<SymptomType, List<String>>,

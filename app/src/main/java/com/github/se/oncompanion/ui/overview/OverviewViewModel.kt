@@ -85,12 +85,14 @@ data class NextAppointment(
  * One entry of the Overview's "Today" list, taken from the planning data.
  *
  * @property key identifies the entry, the same as in Planning
+ * @property kind whether it is a medication, an event or an appointment
+ * @property title what the entry is (e.g. "Oncology check-up")
  * @property time when it starts, or `null` for an entry with a date but no time (a medication)
  * @property subtitle a short detail line (place, recorded frequency...), if any
  * @property status where a timed entry stands now; `null` for an entry without a time, since the
  *   app never decides whether a medication was taken
  * @property notConfirmedAddedBy who added a medication whose prescription the patient hasn't
- *   confirmed yet (US-43), shown as "Added by Sam · Not confirmed"; `null` otherwise
+ *   confirmed yet, shown as "Added by Sam · Not confirmed"; `null` otherwise
  */
 data class TodayEntry(
     val key: String,
@@ -108,6 +110,7 @@ data class TodayEntry(
  *
  * @property kind [TodayItemKind.EVENT] or [TodayItemKind.APPOINTMENT], which decides what opens
  * @property id the event's or the appointment's ID, to open its page
+ * @property title what the event or the appointment is
  * @property dateTime when it starts, in the phone's time zone
  * @property place where it takes place, if known
  */
@@ -124,6 +127,7 @@ data class NextUp(
  *
  * @property now the current time, for the greeting, today's date and the entries' status
  * @property firstName the user's first name, or `null` for a greeting without a name
+ * @property nextAppointment the next appointment, shown when a caregiver sees the patient's day
  * @property nextUp the patient's next event or appointment, see [NextUp]
  * @property todayMedications the medications to take today, in Planning's order
  * @property todayEntries today's entries: those without a time first, then by time
@@ -132,9 +136,9 @@ data class NextUp(
  * @property isNotShared in caregiver mode, the patient doesn't share their planning: no entries
  * @property sharedSections in caregiver mode, the sections behind the shortcuts the patient shares
  * @property dosesSheet the sheet correcting a medication's doses, or `null` when it is closed
- * @property canSpeak the phone can listen, so the check-in offers to speak a symptom (US-73)
+ * @property canSpeak the phone can listen, so the check-in offers to speak a symptom
  * @property savedToday the entry the patient saved last among those of today, shown by the check-in
- *   instead of its tiles until the day ends (#544); `null` when there is none
+ *   instead of its tiles until the day ends; `null` when there is none
  * @property undoFailed undoing [savedToday] failed: the screen says so once, then calls
  *   [OverviewViewModel.undoFailureShown]
  */
@@ -156,18 +160,17 @@ data class OverviewUiState(
 )
 
 /**
- * Loads the user's day for the Overview (US-23): their first name, their next appointment and
- * today's entries. The appointment and the entries come from the same planning data as the Planning
- * screen, so both always agree.
+ * Loads the user's day for the Overview: their first name, their next appointment and today's
+ * entries. The appointment and the entries come from the same planning data as the Planning screen,
+ * so both always agree.
  *
- * In caregiver mode (US-20), the day is that of [patientUid], when the patient shares their
- * planning.
+ * In caregiver mode, the day is that of [patientUid], when the patient shares their planning.
  *
  * @param clock the current time
  * @param zoneId the time zone the day is shown in
  * @param patientUid in caregiver mode, the patient whose day is shown; null for the user's own
  * @param resolveAccess which sections the patient shares, for the shortcuts
- * @param takenDosesRepository the doses the patient ticks on their medications (US-28)
+ * @param takenDosesRepository the doses the patient ticks on their medications
  * @param speechRecognizer the phone's recognizer, for whether the patient can speak a symptom;
  *   `null` before the app installed it, so the check-in doesn't offer to speak
  * @param symptomRepository the patient's journal, for the entry they saved today and its Undo
@@ -399,9 +402,8 @@ class OverviewViewModel(
 
   /**
    * The entry the patient saved last among those they felt on [day], or `null`. One a caregiver
-   * added for them (US-46) isn't theirs to undo. One still being saved has the time the device
-   * saved it, so several saved offline keep their order; one without any creation time is the
-   * newest.
+   * added for them isn't theirs to undo. One still being saved has the time the device saved it, so
+   * several saved offline keep their order; one without any creation time is the newest.
    */
   private fun savedOn(day: LocalDate): LatestEntry? =
       journal

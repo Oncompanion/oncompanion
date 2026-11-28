@@ -9,9 +9,9 @@ import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
 import kotlinx.coroutines.flow.first
 
 /**
- * The first name a caregiver signs what they add for the patient with (a symptom in US-22, an
- * appointment in US-41), shown to the patient as "Added by Sam". Every form a caregiver adds from
- * signs the same way.
+ * The first name a caregiver signs what they add for the patient with (a symptom or an appointment,
+ * for example), shown to the patient as "Added by Sam". Every form a caregiver adds from signs the
+ * same way.
  */
 class CaregiverName(
     private val profile: UserProfileRepository = UserProfileRepositoryProvider.repository,

@@ -108,7 +108,7 @@ object Screen {
   fun symptomAdd(type: SymptomType? = null) =
       if (type == null) "symptoms_add" else "symptoms_add?type=${type.name}"
 
-  /** The [SYMPTOM_ADD] screen already listening (US-73, "Speak how you feel" on the Overview). */
+  /** The [SYMPTOM_ADD] screen already listening ("Speak how you feel" on the Overview). */
   fun symptomSpeak() = "symptoms_add?$SYMPTOM_SPEAK=true"
 
   const val SYMPTOM_EDIT = "symptoms_edit/{$SYMPTOM_DETAIL_ID}"

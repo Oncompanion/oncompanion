@@ -29,7 +29,14 @@ import androidx.compose.ui.unit.dp
 import com.github.se.oncompanion.resources.C
 import com.github.se.oncompanion.ui.theme.Spacing
 
-/** Test tags declared in `C.kt`; [cancel] can be omitted when no tag is needed for that action. */
+/**
+ * Test tags declared in `C.kt`; [cancel] can be omitted when no tag is needed for that action.
+ *
+ * @property dialog the dialog's tag
+ * @property confirm the confirm button's tag
+ * @property cancel the cancel button's tag, if a test needs it
+ * @property error the error message's tag
+ */
 class DialogTags(
     val dialog: String,
     val confirm: String,
@@ -38,7 +45,7 @@ class DialogTags(
 )
 
 /**
- * A dialog of the Figma ("Dialog" in Shared patterns), for a decision: a title, a [message], then
+ * A dialog (design: Brand & Theme, "Dialog"), for a decision: a title, a [message], then
  * [cancelLabel] and [confirmLabel] at its end, so every decision looks the same. While [isWorking],
  * both buttons and Back do nothing, and a spinner next to Cancel shows the action is on its way.
  *
@@ -145,10 +152,10 @@ fun LakeDialog(
 }
 
 /**
- * A dialog's buttons at its end, [dismiss] then [confirm], with [progress] before them (Figma:
- * Actions=Inline). When they don't fit on one line, [confirm] goes on top of [dismiss]
- * (Actions=Stacked), so the main action stays first. [progress] is always next to [dismiss], which
- * leaves it room, so it stays in the dialog however long [confirm]'s label is.
+ * A dialog's buttons at its end, [dismiss] then [confirm], with [progress] before them. When they
+ * don't fit on one line, [confirm] goes on top of [dismiss] (Actions=Stacked), so the main action
+ * stays first. [progress] is always next to [dismiss], which leaves it room, so it stays in the
+ * dialog however long [confirm]'s label is.
  */
 @Composable
 private fun DialogButtons(
@@ -192,5 +199,5 @@ private fun DialogButtons(
   }
 }
 
-// The width of every dialog in the Figma
+// The width of every dialog
 private val DIALOG_WIDTH = 312.dp

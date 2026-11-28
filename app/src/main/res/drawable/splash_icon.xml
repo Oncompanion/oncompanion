@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
-<!-- The splash screen's icon, exported from the Figma (page M2, "US-2 / Splash – Signing you in"):
+<!-- The splash screen's icon, exported from the design (design: M2, "Splash – Signing you in"):
      the ribbon standing in the dawn Paper lake, cut to a 160 dp circle as in the Figma, in the
      middle of the 288 dp Android gives a splash icon without a background. Android scales the icon
      to those 288 dp, so it declares 200 dp, lint's limit for vectors. The same in light and dark

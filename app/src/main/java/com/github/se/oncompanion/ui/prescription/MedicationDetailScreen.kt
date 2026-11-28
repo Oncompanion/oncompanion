@@ -39,8 +39,8 @@ fun MedicationDetailScreen(
 }
 
 /**
- * Read-only recorded fields using the current appointment-detail layout for M2: the standard
- * toolbar and shared adaptive detail content, without the later Paper lake restyle.
+ * Read-only recorded fields in the appointment detail's layout: the standard toolbar and the shared
+ * adaptive detail content, without the Paper lake header.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -159,7 +159,7 @@ private fun MedicationFields(state: MedicationDetailUiState.Loaded) {
         R.string.prescription_form_duration,
     )
   }
-  // The times the patient chose to be reminded at (US-32), as in the form
+  // The times the patient chose to be reminded at, as in the form
   if (medication.reminderTimes.isNotEmpty()) {
     MedicationField(
         medication.reminderTimes.joinToString(" · ") { it.format(reminderTimeFormatter) },

@@ -12,8 +12,8 @@ import com.github.se.oncompanion.R
 import com.github.se.oncompanion.resources.C
 
 /**
- * "Edited by Sam" under an entry a caregiver edited for the patient (US-46), so the patient knows
- * who changed it. It sits under [AddedBy], which never changes, and looks the same. Shared by every
+ * "Edited by Sam" under an entry a caregiver edited for the patient, so the patient knows who
+ * changed it. It sits under [AddedBy], which never changes, and looks the same. Shared by every
  * section a caregiver can edit.
  */
 @Composable
