@@ -272,6 +272,20 @@ class SpokenSymptomParserTest {
             // Words aren't turned into a number
             Case("a lot of pain", listOf(PAIN)),
             Case("a mild headache", listOf(HEADACHE)),
+            // A decimal or a range isn't one strength: not rounded or picked
+            Case("pain 7.5 out of 10", listOf(PAIN)),
+            Case("pain 7 and a half out of 10", listOf(PAIN)),
+            Case("headache 7 or 8 out of 10", listOf(HEADACHE)),
+            Case("headache 7 to 8 out of 10", listOf(HEADACHE)),
+            Case("headache 7-8/10", listOf(HEADACHE)),
+            Case("headache between 7 and 8 out of 10", listOf(HEADACHE)),
+            Case("headache 7 or 8", listOf(HEADACHE)),
+            Case("headache 7 or 8 out of 20", listOf(HEADACHE)),
+            Case("headache 7 or 8 on my scale", listOf(HEADACHE)),
+            // A temperature with a decimal doesn't take the next symptom's strength
+            Case("fever 38.5, headache 6", listOf(FEVER, HEADACHE), mapOf(HEADACHE to 6)),
+            // A decimal duration isn't read either
+            Case("nausea 1.5 hours ago", listOf(NAUSEA)),
         ),
     )
     check(
@@ -317,6 +331,11 @@ class SpokenSymptomParserTest {
             Case("j'ai vomi 3 fois", listOf(NAUSEA)),
             Case("fièvre à 38", listOf(FEVER)),
             Case("un peu nauséeuse", listOf(NAUSEA)),
+            Case("douleur 7,5 sur 10", listOf(PAIN)),
+            Case("douleur sept et demi sur dix", listOf(PAIN)),
+            Case("mal à la tête 7 ou 8 sur 10", listOf(HEADACHE)),
+            Case("mal à la tête 7 à 8 sur 10", listOf(HEADACHE)),
+            Case("mal à la tête entre 7 et 8 sur 10", listOf(HEADACHE)),
         ),
     )
   }

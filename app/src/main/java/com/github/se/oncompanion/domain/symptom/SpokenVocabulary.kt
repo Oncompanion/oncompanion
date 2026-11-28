@@ -33,6 +33,8 @@ internal typealias Phrase = List<String>
  *   bit sick", "pas très faim") without changing what it says
  * @property numbers numbers said as words; digits are always understood
  * @property outOf what joins an intensity and its scale ("7 out of 10")
+ * @property rangeJoins what joins the two ends of a range of intensities ("7 or 8"); two numbers in
+ *   a row ("7-8") are one too
  * @property strengthLinks what may come between a symptom and a strength said as a number alone
  *   ("nausea is about 6"); never "at", which says a time ("headache at 6")
  * @property strengthFor what says a strength is for the symptom said after it ("7 out of 10 for the
@@ -69,6 +71,7 @@ internal class SpokenVocabulary(
     fillers: List<String>,
     val numbers: Map<String, Int>,
     outOf: List<String>,
+    rangeJoins: List<String>,
     strengthLinks: List<String>,
     strengthFor: List<String>,
     strengthEnds: List<String>,
@@ -96,6 +99,7 @@ internal class SpokenVocabulary(
   val pronounEndings: List<Phrase> = phrases(pronounEndings)
   val fillers: List<Phrase> = phrases(fillers)
   val outOf: List<Phrase> = phrases(outOf)
+  val rangeJoins: List<Phrase> = phrases(rangeJoins)
   val strengthLinks: List<Phrase> = phrases(strengthLinks)
   val strengthFor: List<Phrase> = phrases(strengthFor)
   val strengthEnds: List<Phrase> = phrases(strengthEnds)
@@ -243,6 +247,8 @@ internal class SpokenVocabulary(
                     "ten" to 10,
                 ),
             outOf = listOf("out of", "on", "over", "/"),
+            // "and" for "between 7 and 8"
+            rangeJoins = listOf("or", "to", "and"),
             strengthLinks =
                 phraseList(
                     """
@@ -374,6 +380,8 @@ internal class SpokenVocabulary(
                     "dix" to 10,
                 ),
             outOf = listOf("sur", "/"),
+            // "et" for "entre 7 et 8"
+            rangeJoins = listOf("ou", "à", "et"),
             // "à 6" says a strength, but "à 6 heures" a time: a strength ends what is said of it
             strengthLinks =
                 phraseList(

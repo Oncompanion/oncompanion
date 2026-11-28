@@ -35,8 +35,9 @@ fun parseSpokenSymptom(transcript: String, locale: Locale, now: ZonedDateTime): 
 
 /**
  * [text] as words to compare with a [SpokenVocabulary]: lowercase, without accents or apostrophes,
- * with "3:30" as "3h30", "p.m." as "pm", and punctuation that ends a clause kept as ",". The
- * recognizer adds punctuation on some phones and not on others, so it is never required.
+ * with "3:30" as "3h30", "p.m." as "pm", a decimal ("7.5", "7,5") as "7d5", which is no number, and
+ * punctuation that ends a clause kept as ",". The recognizer adds punctuation on some phones and
+ * not on others, so it is never required.
  */
 internal fun spokenWords(text: String): List<String> {
   val marked =
@@ -46,6 +47,7 @@ internal fun spokenWords(text: String): List<String> {
           .replace(Regex("\\b([ap])\\.\\s?m\\b\\.?"), "$1m")
           .replace(Regex("(\\d)(am|pm)\\b"), "$1 $2")
           .replace(Regex("(\\d{1,2})[:.](\\d{2})"), "$1h$2")
+          .replace(Regex("(\\d)[.,](\\d)"), "$1d$2")
   return Normalizer.normalize(marked, Normalizer.Form.NFD)
       .replace(Regex("\\p{Mn}+"), "")
       .replace(Regex("[.,;:!?]+"), " , ")
@@ -317,11 +319,17 @@ private class SpokenSymptoms(
    * ("nausea is about 6", "nausée à 6"). Elsewhere a number alone could be a time, a temperature or
    * a count ("headache at 6", "threw up 3 times"), so it is never a strength. "N out of 10" is for
    * the symptoms said shortly before it (see [STRENGTH_REACH]), or for those said after it when it
-   * comes before any symptom or before "for" ("7 out of 10 for the nausea"). Returns how many words
-   * it takes, or 0.
+   * comes before any symptom or before "for" ("7 out of 10 for the nausea"). A range or a half ("7
+   * or 8", "7 and a half") isn't one strength, so none is drafted. Returns how many words it takes,
+   * or 0.
    */
   private fun readStrength(i: Int): Int {
     val value = numberAt(words, i, vocabulary) ?: return 0
+    val notOne = notOneStrengthAt(i)
+    if (notOne > 0) {
+      reach = maxOf(0, reach - notOne)
+      return notOne
+    }
     val outOf = anyAt(words, i + 1, vocabulary.outOf)
     val sinceSymptom = wordsSinceSymptom(i)
     val length =
@@ -342,6 +350,24 @@ private class SpokenSymptoms(
           strengths += SaidStrength(value, group.toList())
     }
     return length
+  }
+
+  /**
+   * How many words a strength that isn't one number takes from the number at [i], with its "out of
+   * 10" if said, or 0: a range ("7 or 8", "7-8") or a half ("7 and a half").
+   */
+  private fun notOneStrengthAt(i: Int): Int {
+    val half = anyAt(words, i + 1, vocabulary.andAHalf)
+    val join = anyAt(words, i + 1, vocabulary.rangeJoins)
+    val end =
+        when {
+          half > 0 -> i + 1 + half
+          numberAt(words, i + 1 + join, vocabulary) != null -> i + 2 + join
+          else -> return 0
+        }
+    val outOf = anyAt(words, end, vocabulary.outOf)
+    val scale = if (outOf > 0 && numberAt(words, end + outOf, vocabulary) == 10) outOf + 1 else 0
+    return end + scale - i
   }
 
   /**
