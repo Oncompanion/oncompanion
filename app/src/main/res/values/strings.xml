@@ -584,6 +584,8 @@
     <string name="whose_care_news">%1$s · %2$s</string>
     <!-- The same, when the caregiver hasn't seen it yet -->
     <string name="whose_care_news_new">New · %1$s · %2$s</string>
+    <!-- The header's "Whose care?" button when someone logged something the caregiver hasn't seen -->
+    <string name="overview_switch_patient_new">Choose whose care to follow, something new</string>
     <!-- After the patient removed the caregiver from their circle, e.g. "You\'re no longer in Anne\'s care circle." -->
     <string name="removed_from_circle">You\'re no longer in %1$s\'s care circle.</string>
     <string name="removed_from_circle_unnamed">You\'re no longer in this care circle.</string>
