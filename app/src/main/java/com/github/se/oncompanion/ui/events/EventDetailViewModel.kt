@@ -148,8 +148,8 @@ class EventDetailViewModel(
   /** Loads (or, after an error, reloads) the event, then observes the patient's registration. */
   fun loadEvent() {
     registrationObservation?.cancel()
-    signing?.cancel()
     confirmationAccess.invalidate()
+    signing?.cancel()
     removalAccess.invalidate()
     lastRegistration = null
     editableOwner = null
@@ -187,14 +187,13 @@ class EventDetailViewModel(
     }
     // A caregiver signs it with their first name, read once per confirmation
     if (signing?.isActive == true) return
-    val caregiverUid = authRepository.currentUser?.uid ?: return
+    val caregiverUid = authRepository.signedInUid(TAG) ?: return
     val attempt = confirmationAccess.generation
     signing = viewModelScope.launch {
       if (!confirmationAccess.permits(caregiverUid, attempt)) return@launch
       val by = EventRegistration(caregiverUid, caregiverName(caregiverUid))
       if (
-          authRepository.currentUser?.uid != caregiverUid ||
-              !confirmationAccess.permits(caregiverUid, attempt)
+          !confirmationAccess.permitsCurrent(authRepository.signedInUid(TAG), caregiverUid, attempt)
       )
           return@launch
       // The patient may have taken the permission away, or confirmed it, while the name was read

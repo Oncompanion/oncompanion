@@ -18,6 +18,7 @@ import com.github.se.oncompanion.model.appointment.AppointmentRepositoryProvider
 import com.github.se.oncompanion.model.appointment.AppointmentType
 import com.github.se.oncompanion.model.auth.AuthRepository
 import com.github.se.oncompanion.model.auth.AuthRepositoryProvider
+import com.github.se.oncompanion.model.auth.signedInUid
 import com.github.se.oncompanion.model.carecircle.CarePermission
 import com.github.se.oncompanion.model.user.UserProfileRepository
 import com.github.se.oncompanion.model.user.UserProfileRepositoryProvider
@@ -187,7 +188,7 @@ class AppointmentFormViewModel(
           .catch { resetOwner(null) }
           .collect { uid ->
             if (uid != ownerUid) resetOwner(uid)
-            if (appointmentId != null) observeAppointment(uid)
+            appointmentId?.let { observeAppointment(uid, it) }
           }
     }
   }
@@ -215,21 +216,21 @@ class AppointmentFormViewModel(
     observeAuthentication()
   }
 
-  private fun observeAppointment(uid: String?) {
+  private fun observeAppointment(uid: String?, id: String) {
     observation?.cancel()
     if (uid == null) {
       state.update { it.copy(load = AppointmentFormLoad.NOT_SIGNED_IN) }
       return
     }
     if (caregiverEdit) {
-      observeCaregiverAppointment(uid)
+      observeCaregiverAppointment(uid, id)
       return
     }
     val attempt = session
     observation = viewModelScope.launch {
       // A caregiver edits the patient's appointment
       val owner = patientUid ?: uid
-      flow { emitAll(repository.observeAppointment(owner, requireNotNull(appointmentId))) }
+      flow { emitAll(repository.observeAppointment(owner, id)) }
           .catch {
             if (isCurrentAttempt(uid, attempt))
                 state.update { it.copy(load = AppointmentFormLoad.FAILED) }
@@ -238,13 +239,13 @@ class AppointmentFormViewModel(
     }
   }
 
-  private fun observeCaregiverAppointment(uid: String) {
+  private fun observeCaregiverAppointment(uid: String, id: String) {
     observation = viewModelScope.launch {
       observeSection(CarePermission.PLANNING, patientUid) { owner ->
-            repository.observeAppointment(owner, requireNotNull(appointmentId))
+            repository.observeAppointment(owner, id)
           }
           .collect { section ->
-            if (authRepository.currentUser?.uid != uid) return@collect
+            if (authRepository.signedInUid("AppointmentForm") != uid) return@collect
             when (section) {
               is CareSection.Shown ->
                   if (section.canEditEntries && section.data != null) {
@@ -357,7 +358,6 @@ class AppointmentFormViewModel(
     if (!draft.canSave) return
     val uid = validatedOwner() ?: return
     val attempt = mutationAttempt()
-    if (!isCurrentAttempt(uid, attempt)) return
     val appointment = draft.toAppointment()
     state.update { it.copy(save = SavePhase.SAVING, error = null) }
     viewModelScope.launch { writeAppointment(uid, appointment, attempt) }

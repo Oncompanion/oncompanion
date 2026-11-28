@@ -33,4 +33,17 @@ class CaregiverEditSessionTest {
     assertFalse(session.permits("second", pending))
     assertTrue(session.permits("second"))
   }
+
+  /** Only the account that started the mutation can use the original grant. */
+  @Test
+  fun currentAccountMustMatchTheCapturedActor() {
+    val session = CaregiverEditSession()
+    session.grant("caregiver")
+    val attempt = session.generation
+    assertFalse(session.permitsCurrent(null, "caregiver", attempt))
+    assertFalse(session.permitsCurrent("other", "caregiver", attempt))
+    assertTrue(session.permitsCurrent("caregiver", "caregiver", attempt))
+    session.invalidate()
+    assertFalse(session.permitsCurrent("caregiver", "caregiver", attempt))
+  }
 }

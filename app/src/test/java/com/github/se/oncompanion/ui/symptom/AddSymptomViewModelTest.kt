@@ -18,6 +18,7 @@ import com.github.se.oncompanion.model.speech.SpeechLanguage
 import com.github.se.oncompanion.model.speech.SpeechRecognizerProvider
 import com.github.se.oncompanion.model.symptom.FakeSymptomRepository
 import com.github.se.oncompanion.model.symptom.SymptomEntry
+import com.github.se.oncompanion.model.symptom.SymptomRepository
 import com.github.se.oncompanion.model.symptom.SymptomRepositoryProvider
 import com.github.se.oncompanion.model.symptom.SymptomType
 import com.github.se.oncompanion.model.user.FakeUserProfileRepository
@@ -2228,11 +2229,12 @@ class AddSymptomViewModelTest {
               canAdd = setOf(SYMPTOMS),
               canEditAndDelete = setOf(SYMPTOMS),
           ),
+      writes: SymptomRepository = symptoms,
   ): AddSymptomViewModel {
     symptoms.seed("patient", entry)
     return AddSymptomViewModel(
         patient.auth,
-        symptoms,
+        writes,
         clock,
         symptomId = entry.id,
         patientUid = "patient",
@@ -2242,6 +2244,97 @@ class AddSymptomViewModelTest {
         resolveSection = patient.sectionAccess,
     )
   }
+
+  /** A suspended save cannot restore its success or error after membership is removed. */
+  @Test
+  fun caregiverSaveResultAfterRemovalIsIgnored() =
+      runTest(dispatcher) {
+        for (fail in listOf(false, true)) {
+          val patient =
+              FollowedPatient(
+                  SYMPTOMS,
+                  canAdd = setOf(SYMPTOMS),
+                  canEditAndDelete = setOf(SYMPTOMS),
+              )
+          val release = CompletableDeferred<Unit>()
+          val started = CompletableDeferred<Unit>()
+          val writes =
+              object : SymptomRepository by repository {
+                override suspend fun updateSymptom(uid: String, entry: SymptomEntry) {
+                  started.complete(Unit)
+                  release.await()
+                  if (fail) throw IOException("Write failed")
+                }
+              }
+          val vm = caregiverEditing(patient = patient, writes = writes)
+          advanceUntilIdle()
+          vm.onStrengthChange(6)
+          vm.save()
+          advanceUntilIdle()
+          assertTrue(started.isCompleted)
+
+          patient.removesTheCaregiver()
+          advanceUntilIdle()
+          release.complete(Unit)
+          advanceUntilIdle()
+          assertTrue(vm.state.types.isEmpty())
+          assertEquals(SavePhase.EDITING, vm.state.save)
+          assertNull(vm.state.error)
+        }
+      }
+
+  /** A failed caregiver read can be retried, including when the record no longer exists. */
+  @Test
+  fun caregiverRetryAfterReadFailure() =
+      runTest(dispatcher) {
+        repository.observeError = IOException("Read failed")
+        val viewModel = caregiverEditing()
+        advanceUntilIdle()
+        assertTrue(viewModel.state.hasLoadError)
+
+        repository.observeError = null
+        repository.deleteSymptom("patient", logged.id)
+        viewModel.load()
+        advanceUntilIdle()
+        assertTrue(viewModel.state.isNotFound)
+        assertTrue(viewModel.state.types.isEmpty())
+
+        repository.seed("patient", logged)
+        advanceUntilIdle()
+        assertEquals(logged.types, viewModel.state.types)
+      }
+
+  /** Read-only access cannot load a caregiver edit form. */
+  @Test
+  fun caregiverReadOnlyAccessCannotEdit() =
+      runTest(dispatcher) {
+        val patient = FollowedPatient(SYMPTOMS, canAdd = setOf(SYMPTOMS))
+        val vm = caregiverEditing(patient = patient)
+        advanceUntilIdle()
+        assertTrue(vm.state.isNotFound)
+        assertTrue(vm.state.types.isEmpty())
+        assertFalse(vm.state.canSave)
+      }
+
+  /** Signing out while a caregiver draft is open clears the patient's details. */
+  @Test
+  fun caregiverSignOutClearsOpenDraft() =
+      runTest(dispatcher) {
+        val patient =
+            FollowedPatient(
+                SYMPTOMS,
+                canAdd = setOf(SYMPTOMS),
+                canEditAndDelete = setOf(SYMPTOMS),
+            )
+        val viewModel = caregiverEditing(patient = patient)
+        advanceUntilIdle()
+        viewModel.onStrengthChange(6)
+
+        patient.auth.signOut()
+        advanceUntilIdle()
+        assertTrue(viewModel.state.hasLoadError)
+        assertTrue(viewModel.state.types.isEmpty())
+      }
 
   /** Removing membership clears the open symptom draft and prevents an update. */
   @Test

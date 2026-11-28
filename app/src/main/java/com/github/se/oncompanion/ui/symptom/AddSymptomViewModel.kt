@@ -361,7 +361,7 @@ class AddSymptomViewModel(
   }
 
   private fun canFinishEdit(uid: String, attempt: Int): Boolean =
-      !caregiverEdit || (authRepository.currentUser?.uid == uid && editAccess.permits(uid, attempt))
+      !caregiverEdit || editAccess.permitsCurrent(authRepository.signedInUid(TAG), uid, attempt)
 
   /** The form showing [entry], the symptom being edited. */
   private fun AddSymptomUiState.filledWith(entry: SymptomEntry): AddSymptomUiState {
@@ -528,7 +528,6 @@ class AddSymptomViewModel(
       return
     }
     val attempt = editAccess.generation
-    if (!canFinishEdit(uid, attempt)) return
     val entry =
         SymptomEntry(
             id = symptomId.orEmpty(),
@@ -856,7 +855,11 @@ class AddSymptomViewModel(
           val name = caregiverName(uid)
           // Reading the name can take a while: the account may have changed meanwhile
           currentCoroutineContext().ensureActive()
-          if (authRepository.signedInUid(TAG) != uid || !canFinishEdit(uid, attempt)) return false
+          val currentUid = authRepository.signedInUid(TAG)
+          val canWrite =
+              if (caregiverEdit) editAccess.permitsCurrent(currentUid, uid, attempt)
+              else currentUid == uid
+          if (!canWrite) return false
           if (symptomId != null) entry.copy(editedBy = uid, editedByName = name)
           else entry.copy(addedBy = uid, addedByName = name)
         }

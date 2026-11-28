@@ -219,18 +219,15 @@ class SymptomDetailViewModel(
    * deletes it when there is a connection.
    */
   fun confirmDelete() {
-    val actor = if (patientUid == null) null else authRepository.signedInUid(TAG)
     val attempt = editAccess.generation
     deletion.confirm(
         signedInUid = { authRepository.signedInUid(TAG) },
         stopObserving = { if (patientUid == null) observation?.cancel() },
         delete = { uid -> symptomRepository.deleteSymptom(patientUid ?: uid, symptomId) },
         onFailure = { if (patientUid == null) observe() },
-        isCurrent = {
+        isCurrent = { uid ->
           patientUid == null ||
-              (actor != null &&
-                  authRepository.currentUser?.uid == actor &&
-                  editAccess.permits(actor, attempt))
+              editAccess.permitsCurrent(authRepository.signedInUid(TAG), uid, attempt)
         },
     )
   }

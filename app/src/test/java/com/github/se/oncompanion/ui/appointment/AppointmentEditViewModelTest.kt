@@ -362,6 +362,61 @@ class AppointmentEditViewModelTest {
           resolveSection = patient.sectionAccess,
       )
 
+  /** A failed read can be retried, and a later membership removal clears the loaded record. */
+  @Test
+  fun caregiverRetryThenMembershipRemoval() =
+      runTest(dispatcher) {
+        val patient =
+            FollowedPatient(PLANNING, canAdd = setOf(PLANNING), canEditAndDelete = setOf(PLANNING))
+        repository.observeError = IOException("Read failed")
+        val vm = caregiverForm(patient = patient)
+        advanceUntilIdle()
+        assertEquals(AppointmentFormLoad.FAILED, vm.uiState.value.load)
+
+        repository.observeError = null
+        vm.load()
+        advanceUntilIdle()
+        assertEquals(AppointmentFormLoad.UNAVAILABLE, vm.uiState.value.load)
+
+        repository.seed("patient", appointment)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.editable)
+        patient.shares()
+        advanceUntilIdle()
+        assertEquals(AppointmentFormLoad.UNAVAILABLE, vm.uiState.value.load)
+        patient.shares(PLANNING, canAdd = setOf(PLANNING), canEditAndDelete = setOf(PLANNING))
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.editable)
+        patient.removesTheCaregiver()
+        advanceUntilIdle()
+        assertEquals(AppointmentFormLoad.UNAVAILABLE, vm.uiState.value.load)
+        assertEquals("", vm.uiState.value.title)
+      }
+
+  /** A local write completing after revocation cannot trigger a success or navigation. */
+  @Test
+  fun caregiverSaveCompletionAfterRevocationIsIgnored() =
+      runTest(dispatcher) {
+        val patient =
+            FollowedPatient(PLANNING, canAdd = setOf(PLANNING), canEditAndDelete = setOf(PLANNING))
+        repository.seed("patient", appointment)
+        val pending = CompletableDeferred<Unit>()
+        repository.writeGate = pending
+        val vm = caregiverForm(patient = patient)
+        advanceUntilIdle()
+        vm.onTitleChange("New title")
+        vm.save()
+        advanceUntilIdle()
+        assertEquals(SavePhase.SAVING, vm.uiState.value.save)
+
+        patient.shares(PLANNING)
+        advanceUntilIdle()
+        pending.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(AppointmentFormLoad.UNAVAILABLE, vm.uiState.value.load)
+        assertFalse(vm.onCompletionHandled())
+      }
+
   /** Revoking only edit access drops the draft and regrant loads the saved appointment. */
   @Test
   fun caregiverEditRevocationDiscardsDraft() =

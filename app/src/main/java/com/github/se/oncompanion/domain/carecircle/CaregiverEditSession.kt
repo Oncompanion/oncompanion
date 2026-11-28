@@ -27,4 +27,8 @@ internal class CaregiverEditSession {
   /** Whether the mutation still belongs to the current permission grant. */
   fun permits(uid: String, attempt: Int = generation): Boolean =
       actor == uid && attempt == generation
+
+  /** Checks the captured actor against both the current account and permission grant. */
+  fun permitsCurrent(currentUid: String?, expectedUid: String, attempt: Int): Boolean =
+      currentUid == expectedUid && permits(expectedUid, attempt)
 }
