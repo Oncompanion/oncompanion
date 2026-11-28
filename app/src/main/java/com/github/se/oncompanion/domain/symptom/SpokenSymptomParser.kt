@@ -148,6 +148,8 @@ private enum class GroupState {
   AFTER_SYMPTOM,
   /** After a symptom and a word joining another one to it ("the nausea and"). */
   AFTER_JOIN,
+  /** After a verb that makes the next symptom a state ("I'm", "je me sens"). */
+  AFTER_STATE_VERB,
 }
 
 /**
@@ -225,7 +227,8 @@ private class SpokenSymptoms(
 
   /** A word joining a symptom to the ones before it keeps them together. */
   private fun joined(state: GroupState) =
-      if (state == GroupState.NONE) GroupState.NONE else GroupState.AFTER_JOIN
+      if (state == GroupState.AFTER_SYMPTOM || state == GroupState.AFTER_JOIN) GroupState.AFTER_JOIN
+      else GroupState.NONE
 
   /** "," or "but": ends the clause, unless a negated list goes on ("no fever, nausea or pain"). */
   private fun readBreak(i: Int, state: GroupState): Int {
@@ -298,13 +301,16 @@ private class SpokenSymptoms(
     val isNegated = !negatesItself && negationReaches()
     if (isNegated) negated += type else said += type
     clause += type
-    if (state == GroupState.AFTER_JOIN) {
+    // A state ("I'm tired", "feel sick") is a group of its own that nothing said after joins:
+    // "I'm tired and the nausea and pain are gone" says nothing of the fatigue
+    val isState = state == GroupState.AFTER_STATE_VERB || words[i] in vocabulary.stateVerbs
+    if (state == GroupState.AFTER_JOIN && !isState) {
       group += type
     } else {
       group = mutableListOf(type)
       groups += i to group
     }
-    groupState = GroupState.AFTER_SYMPTOM
+    groupState = if (isState) GroupState.NONE else GroupState.AFTER_SYMPTOM
     symptomEnd = i + length
     // A negated list reaches as far again after each of its symptoms ("no loss of appetite or
     // nausea"), however many words the symptom takes
@@ -377,11 +383,13 @@ private class SpokenSymptoms(
       anyAt(words, i, vocabulary.fillers).also { if (it > 0) groupState = state }
 
   /**
-   * A negation, "or" in a negated list, "the" between symptoms said together, or any other word.
+   * A negation, "or" in a negated list, "the" between symptoms said together, a verb before a state
+   * ("I'm"), or any other word.
    */
   private fun readWord(i: Int, state: GroupState): Int {
     val word = words[i]
     if (word in vocabulary.determiners) groupState = joined(state)
+    if (word in vocabulary.stateVerbs) groupState = GroupState.AFTER_STATE_VERB
     val negates =
         isNegation(word, vocabulary) &&
             (word !in vocabulary.negationsAfterNe ||

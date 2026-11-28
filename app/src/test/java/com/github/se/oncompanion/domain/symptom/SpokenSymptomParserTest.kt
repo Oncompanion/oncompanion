@@ -408,6 +408,10 @@ class SpokenSymptomParserTest {
             Case("the nausea and pain are gone"),
             Case("the nausea is gone, but I still have pain", listOf(PAIN)),
             Case("I'm tired and the nausea is gone", listOf(FATIGUE)),
+            // A symptom said as a state ("I'm tired") isn't part of the group said to be over
+            Case("I'm tired and the nausea and pain are gone", listOf(FATIGUE)),
+            Case("I feel really tired and the nausea and pain are gone", listOf(FATIGUE)),
+            Case("I feel sick and the headache and pain are gone", listOf(NAUSEA)),
             // "has gone" right after a symptom only
             Case("headache since my husband has gone", listOf(HEADACHE)),
             Case("pain since the nurses have gone", listOf(PAIN)),
@@ -423,6 +427,16 @@ class SpokenSymptomParserTest {
             Case("pas de fièvre, de nausées, ni de douleur"),
             Case("la nausée est passée"),
             Case("les nausées et les douleurs sont passées"),
+            Case(
+                "je suis fatiguée et les nausées et les douleurs sont passées",
+                listOf(FATIGUE),
+            ),
+            Case(
+                "je me sens très fatiguée et les nausées et les douleurs sont passées",
+                listOf(FATIGUE),
+            ),
+            // "la fatigue" is a symptom named, not a state: it is over with the others
+            Case("la fatigue et les nausées sont passées"),
             Case("la fièvre est tombée, je suis fatiguée", listOf(FATIGUE)),
             Case("j'avais mal à la tête mais c'est passé"),
             Case("j'ai mal depuis que le médecin est passé", listOf(PAIN)),
