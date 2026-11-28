@@ -98,6 +98,7 @@ import com.github.se.oncompanion.ui.PlannedDay
 import com.github.se.oncompanion.ui.auth.FakeAuthRepository
 import com.github.se.oncompanion.ui.auth.FakeGoogleCredentialProvider
 import com.github.se.oncompanion.ui.auth.GoogleCredentialProvider
+import com.github.se.oncompanion.ui.carecircle.WhoseCareViewModel
 import com.github.se.oncompanion.ui.overview.OverviewShortcut
 import java.time.Clock
 import java.time.Duration
@@ -113,6 +114,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -524,7 +526,23 @@ class AppNavHostTest {
     composeTestRule
         .onNodeWithTag(C.Tag.caregiver_overview_day_title)
         .assertTextContains(context.getString(R.string.caregiver_overview_day, "Paul"))
+    // Ready on the Overview before its sheet opens, so the list is confirmed by then
+    composeTestRule.runOnIdle { assertTrue(overviewHasWhoseCare()) }
   }
+
+  @Test
+  fun patientsOverview_neverListensForWhoseCare() {
+    setNavHost(Route.OVERVIEW)
+    composeTestRule.onNodeWithTag(C.Tag.overview_screen).assertIsDisplayed()
+
+    composeTestRule.runOnIdle { assertFalse(overviewHasWhoseCare()) }
+  }
+
+  /** Whether the Overview's entry holds a [WhoseCareViewModel]. */
+  private fun overviewHasWhoseCare(): Boolean =
+      navController.getBackStackEntry(Screen.OVERVIEW).viewModelStore.keys().any {
+        "$it".endsWith(WhoseCareViewModel::class.java.canonicalName!!)
+      }
 
   /** Waits until a node with [tag] is on screen. */
   private fun waitForTag(tag: String) =

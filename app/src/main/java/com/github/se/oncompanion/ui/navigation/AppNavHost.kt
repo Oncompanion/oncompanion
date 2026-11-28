@@ -1,5 +1,4 @@
 // Co-authored-by: ChatGPT <noreply@openai.com>
-// Co-authored-by: Claude Code <noreply@anthropic.com>
 
 // Co-authored-by: ChatGPT <noreply@openai.com>
 // Co-authored-by: Claude Code <noreply@anthropic.com>
@@ -314,15 +313,17 @@ private fun SessionNavHost(
 
     navigation(startDestination = Screen.OVERVIEW, route = Route.OVERVIEW) {
       composable(Screen.OVERVIEW) {
-        val whoseCare =
-            WhoseCareSwitch(
-                viewModel = viewModel { WhoseCareViewModel() },
-                // The Overview's ViewModel is keyed by the patient: their day replaces this one
-                onChoose = caregiverMode::choose,
-                // Back from the invite code returns to the Overview
-                onFollowSomeoneNew = { navigationActions.navigateTo(Screen.JOIN_CIRCLE) },
-                onSignedOut = signOut,
-            )
+        // Only in caregiver mode: a patient never opens "Whose care?", so it never listens
+        val whoseCare: @Composable () -> WhoseCareSwitch = {
+          WhoseCareSwitch(
+              viewModel = viewModel { WhoseCareViewModel() },
+              // The Overview's ViewModel is keyed by the patient: their day replaces this one
+              onChoose = caregiverMode::choose,
+              // Back from the invite code returns to the Overview
+              onFollowSomeoneNew = { navigationActions.navigateTo(Screen.JOIN_CIRCLE) },
+              onSignedOut = signOut,
+          )
+        }
         OverviewRoute(navigationActions, chosenPatient, clock, bottomBar, whoseCare)
       }
     }
@@ -875,7 +876,7 @@ private fun OverviewRoute(
     patient: ChosenPatient?,
     clock: Clock,
     bottomBar: BottomBarUiState,
-    whoseCare: WhoseCareSwitch,
+    whoseCare: @Composable () -> WhoseCareSwitch,
 ) {
   val onOpenAppointment = appointmentOpener(navigationActions)
   val onOpenEvent = eventOpener(navigationActions)
@@ -898,7 +899,7 @@ private fun OverviewRoute(
       navigationActions = navigationActions,
       onOpenAppointment = onOpenAppointment,
       onOpenEvent = onOpenEvent,
-      whoseCare = whoseCare,
+      whoseCare = whoseCare(),
       bottomBar = bottomBar,
   )
 }
