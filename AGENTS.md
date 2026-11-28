@@ -92,7 +92,7 @@ Comments and docs describe the code as it is, for someone who has never seen our
 - **Tests**: one KDoc per test class, `/** Tests of [TheClass]. */`, or a sentence on what it covers when it tests several things. Test functions get none: their names say what they check. Fakes and shared test helpers document their public fields.
 - **Comments** say why, never what the code already says: a short line above each non-obvious block, so reviewers find their way.
 - **No history or plans**: no issue, pull request, user-story, sprint or milestone numbers, no "for now", "later", "used to" or "until X lands". Say the behavior instead ("saved before prescriptions recorded who added them", not "saved before US-<n>"). The history belongs in commits and pull requests. No TODOs: open an issue instead.
-- **Figma**: cite a frame that exists, by its name in the file, as `(design: M3, "<frame>")`, `(design: M2, "<frame>")` for a screen M3 doesn't draw, or `(design: Brand & Theme, "<component>")`. When there's no frame to cite, say nothing about the design.
+- **Figma**: cite a frame that exists, as `(design: M3, "<frame>")`, `(design: M2, "<frame>")` for a screen M3 doesn't draw (its name without the `US-<n> /` prefix), or `(design: Brand & Theme, "<component>")`. When there's no frame to cite, say nothing about the design.
 - **Spelling**: American ("color", "center").
 - The same rules apply to `firestore.rules`, the comments of `strings.xml` (which give translators context), the Gradle scripts and the Markdown docs. The deployment runbooks in `functions/` and `docs/hospital-proxy-iam-follow-up.md` keep their links to the deployment records.
 
