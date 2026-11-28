@@ -9,7 +9,7 @@ import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** What an appointment's row says at each moment of its day (#349, R3 · Parts). */
+/** What an appointment's row says at each moment of its day (R3 · Parts). */
 class PlanningRowStatusTest {
 
   private val zone = ZoneId.of("Europe/Zurich")

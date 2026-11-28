@@ -157,7 +157,7 @@ private fun RowCard(
 }
 
 /**
- * The kind's icon in its colour (appointment violet, event dawn, medication teal); grey once over.
+ * The kind's icon in its color (appointment violet, event dawn, medication teal); gray once over.
  */
 @Composable
 private fun KindDisc(source: PlanningSource, past: Boolean) {
@@ -270,7 +270,7 @@ private fun StatusLine(
     } else {
       StatusText(text, state, style)
     }
-    // The live dot of Happening now (R3: teal, without a halo), centred on the first line
+    // The live dot of Happening now (R3: teal, without a halo), centered on the first line
     if (live) {
       val lineHeight = with(LocalDensity.current) { style.lineHeight.toDp() }
       Box(

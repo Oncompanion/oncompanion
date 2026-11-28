@@ -56,7 +56,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The rows of the Planning list (#349, Figma R3 · Parts and R4): status, layout, colours. */
+/** The rows of the Planning list (Figma R3 · Parts and R4): status, layout, colors. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class PlanningRowTest {
@@ -230,7 +230,7 @@ class PlanningRowTest {
   }
 
   @Test
-  fun inLightAndDark_theCardAndTheKindsDiscUseTheThemesColours() {
+  fun inLightAndDark_theCardAndTheKindsDiscUseTheThemesColors() {
     render(listOf(physio))
     for (isDark in listOf(false, true)) {
       dark = isDark
