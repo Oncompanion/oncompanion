@@ -179,7 +179,12 @@ class PlanningAppointmentsTest {
         patient
       }
     }
-    compose.setContent { OncompanionTheme { AppNavHost(startRoute = Route.PLANNING) } }
+    // Planning starts from noon, when the form's time picker starts too: the new row's status is
+    // known whenever the test runs
+    val clock = noonOn(LocalDate.now())
+    compose.setContent {
+      OncompanionTheme { AppNavHost(startRoute = Route.PLANNING, clock = clock) }
+    }
     awaitPlanning()
     compose.onNodeWithTag(C.Tag.planning_add).performClick()
     compose.awaitDisplayed(hasTestTag(C.Tag.appointment_title))
@@ -193,7 +198,8 @@ class PlanningAppointmentsTest {
     awaitPlanning()
     compose.awaitDisplayed(hasText("Offline form visit"))
     compose.onNodeWithText("Offline form visit").assertIsDisplayed()
-    compose.onNodeWithText("Room 12").assertIsDisplayed()
+    // Its row says "Happening now" in place of the place (R3); the place is checked saved below
+    compose.onNodeWithText("Happening now", substring = true).assertIsDisplayed()
     runBlocking {
       withTimeout(10_000) {
         val query = db.collection("users").document(uid).collection("appointments")
