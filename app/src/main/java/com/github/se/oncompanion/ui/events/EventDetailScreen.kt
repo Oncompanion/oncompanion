@@ -62,7 +62,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.launch
 
-/** "Sat 3 Oct · 10:00", as in the mockup. Day and month names follow the app language. */
+/** "Sat 3 Oct · 10:00". Day and month names follow the app language. */
 private val startFormatter
   @Composable get() = rememberAppDateFormatter("EEE d MMM · HH:mm")
 
@@ -70,9 +70,9 @@ private val startFormatter
 private val endTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)
 
 /**
- * The detail of one of the Ligue's events (Figma: "US-03 / Event details"), opened from the Events
- * list or from Planning. The patient can open the organizer's website and confirm here that they
- * registered there (Figma: "US-25 / Event detail").
+ * The detail of one of the Ligue's events (design: M2, "Event detail"), opened from the Events list
+ * or from Planning. The patient can open the organizer's website and confirm here that they
+ * registered there.
  *
  * @param caregiverOf the followed patient's first name in caregiver mode, null for the patient
  */
@@ -193,7 +193,7 @@ private fun EventDetails(
     if (registration == RegistrationStatus.CONFIRMED) {
       ConfirmedBanner(caregiverOf, uiState.addedByName)
     }
-    // Events have no picture yet: the mockup's placeholder image
+    // Events have no picture yet: a placeholder image
     Image(
         painter = painterResource(R.drawable.event_image_placeholder),
         contentDescription = null,
@@ -250,7 +250,7 @@ private fun EventDetails(
 }
 
 /**
- * "Registration confirmed", above the event once the patient confirmed it (Figma). When a caregiver
+ * "Registration confirmed", above the event once the patient confirmed it. When a caregiver
  * confirmed it for them, it says who ([addedByName]); otherwise a caregiver reads that
  * [caregiverOf] (the patient) confirmed it, not themselves.
  */
@@ -359,7 +359,7 @@ private fun RegistrationActions(
       RegistrationStatus.CAN_CONFIRM,
       RegistrationStatus.CLOSED -> {
         val canConfirm = registration == RegistrationStatus.CAN_CONFIRM
-        // The main action when there is no website to visit first (Figma: "No website link")
+        // The main action when there is no website to visit first (design: M2, "No website link")
         // A caregiver says the patient registered, not themselves
         LakeButton(
             text =
@@ -446,7 +446,9 @@ private fun RemoveDialog(caregiverOf: String?, onConfirm: () -> Unit, onCancel: 
   )
 }
 
-/** The event was deleted, e.g. cancelled by the organizer (Figma: "Event no longer exists"). */
+/**
+ * The event was deleted, e.g. cancelled by the organizer (design: M2, "Event no longer exists").
+ */
 @Composable
 private fun MissingEvent(onBack: () -> Unit, modifier: Modifier = Modifier) {
   DetailMessage(
@@ -463,7 +465,7 @@ private fun MissingEvent(onBack: () -> Unit, modifier: Modifier = Modifier) {
   }
 }
 
-/** A two-line list item with an icon (Figma: "Date & time", "Location"). */
+/** A two-line list item with an icon (design: M2, "Date & time"). */
 @Composable
 private fun InfoRow(icon: Int, text: String, label: String, testTag: String) {
   ListItem(

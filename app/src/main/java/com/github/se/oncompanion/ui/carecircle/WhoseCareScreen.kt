@@ -42,8 +42,8 @@ import com.github.se.oncompanion.ui.common.LakeButton
 import com.github.se.oncompanion.ui.common.LakeButtonStyle
 
 /**
- * "Whose care?" (US-20, Figma: "US-20 / Whose care?"): the patients a caregiver follows, with what
- * each one shares, to choose whose care to look at.
+ * "Whose care?" (design: M2, "Whose care?"): the patients a caregiver follows, with what each one
+ * shares, to choose whose care to look at.
  *
  * @param onBack goes back, or `null` when the screen is the first one (no back arrow)
  * @param onPatientChosen called with the chosen patient

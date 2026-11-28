@@ -46,9 +46,9 @@ import kotlinx.coroutines.launch
 
 /**
  * The sheet where the patient corrects how many doses of a medication taken several times a day
- * they took today (Figma M3, Overview: "Medications · sheet"), on any screen where the patient
- * ticks their doses. − and + change the count shown, and only Done saves it: swiping the sheet
- * down, Back or a tap outside closes it without saving.
+ * they took today (design: M3, "Doses"), on any screen where the patient ticks their doses. − and +
+ * change the count shown, and only Done saves it: swiping the sheet down, Back or a tap outside
+ * closes it without saving.
  *
  * @param sheet the medication and the count set so far
  * @param onLess one dose fewer, see [DosesSheet.withDraftChangedBy]
@@ -200,11 +200,11 @@ private fun RoundButton(
   }
 }
 
-/** The Figma's bar under the count, wider and thicker than the card's. */
+/** The bar under the count, wider and thicker than the card's. */
 private val SHEET_BAR_WIDTH = 132.dp
 private val SHEET_SEGMENT_HEIGHT = 10.dp
 
-/** The Figma's 48 dp − and + with their 24 dp icons. */
+/** The 48 dp − and + with their 24 dp icons. */
 private val ROUND_BUTTON_SIZE = 48.dp
 private val ROUND_ICON_SIZE = 24.dp
 

@@ -22,9 +22,9 @@ import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.stateIn
 
 /**
- * Counts the prescriptions a caregiver added that wait for the signed-in patient (US-43), for the
- * badge on the bottom bar's Prescriptions tab. One instance serves every tab, so they all show the
- * same count.
+ * Counts the prescriptions a caregiver added that wait for the signed-in patient, for the badge on
+ * the bottom bar's Prescriptions tab. One instance serves every tab, so they all show the same
+ * count.
  *
  * It outlives sign-out, so it follows whoever is signed in rather than the first account. The count
  * comes from the device's cache when offline. It is only a reminder: while the prescriptions can't

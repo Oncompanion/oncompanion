@@ -40,10 +40,14 @@ enum class AccountSwitch {
 }
 
 /**
+ * What the user entered during onboarding, and where saving their profile is.
+ *
  * @property role the chosen role; patient by default
  * @property firstName required (see [canSave])
+ * @property familyName the family name, optional
  * @property cancerType only asked to patients (see [asksCancerType])
  * @property save where saving the profile is; once [SavePhase.SAVED], onboarding is done
+ * @property error why the last save failed, if it did
  * @property email the signed-in account's email, so the user sees which account they picked
  * @property accountSwitch where switching to another account is, if the user chose to
  */
@@ -71,12 +75,12 @@ data class OnboardingUiState(
 }
 
 /**
- * Onboarding (US-1): the role step, then the user's information, then the profile is saved. Shared
- * by both onboarding screens.
+ * Onboarding: the role step, then the user's information, then the profile is saved. Shared by both
+ * onboarding screens.
  *
  * The first name is pre-filled from the Google account (the user can change it). Until the profile
- * is saved, the user can sign out to pick another Google account (#281): nothing was saved for this
- * one yet.
+ * is saved, the user can sign out to pick another Google account: nothing was saved for this one
+ * yet.
  */
 class OnboardingViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,

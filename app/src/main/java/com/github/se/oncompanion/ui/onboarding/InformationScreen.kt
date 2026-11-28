@@ -37,7 +37,7 @@ import com.github.se.oncompanion.ui.common.SavePhase
 import com.github.se.oncompanion.ui.theme.Spacing
 
 /**
- * Second onboarding step (Figma "US-1 / Onboarding – Information"): first name (required), family
+ * Second onboarding step (design: M2, "Onboarding – Information"): first name (required), family
  * name and, for a patient, cancer type (optional, with suggestions). Continue saves the profile.
  *
  * @param onSaved called with the chosen role once the profile is saved: onboarding is done, and

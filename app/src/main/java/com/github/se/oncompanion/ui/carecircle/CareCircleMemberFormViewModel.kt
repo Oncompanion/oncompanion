@@ -45,15 +45,17 @@ import kotlinx.coroutines.withTimeoutOrNull
 /**
  * The draft of the care circle member form: what the patient typed and chose, and where saving is.
  *
+ * @property firstName the person's first name, required
+ * @property familyName the person's family name, optional
  * @property relationship null until the patient picks one, so a missing relationship can be shown
  * @property email in edit mode, the member's account email, shown but not editable
  * @property permissions what the person will see; none until the patient turns them on
  * @property canAdd the sections the person can also add to; only sections they see, none until the
  *   patient turns them on
  * @property canEditAndDelete editing: the sections the member can also edit and delete in; only
- *   sections they can add to. Never offered when adding someone (US-46)
- * @property duplicate adding: who in the circle already has this email, if anyone (#257). Kept up
- *   to date as the email, the circle and the time change; never set when editing
+ *   sections they can add to. Never offered when adding someone
+ * @property duplicate adding: who in the circle already has this email, if anyone. Kept up to date
+ *   as the email, the circle and the time change; never set when editing
  * @property accountEmail adding: the signed-in patient's own email, null when editing or if their
  *   account has none
  * @property firstNameTouched whether the first name was ever changed: a blank first name is only
@@ -62,6 +64,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  * @property isLoading in edit mode, waiting for the member's details to fill in the form
  * @property notFound in edit mode, the member isn't in the circle (anymore), e.g. removed elsewhere
  * @property loadFailed in edit mode, the member couldn't be read
+ * @property save where saving is
  * @property loadedDetails in edit mode, the member's details as filled in, to tell whether anything
  *   changed
  * @property savedInviteCode the invite code of the invitation just created, once [save] is
@@ -157,11 +160,11 @@ data class CareCircleMemberFormUiState(
 }
 
 /**
- * The form to add someone to the signed-in patient's care circle (#79), or to edit a member (#75):
- * their name, relationship, an email and what they can see.
+ * The form to add someone to the signed-in patient's care circle, or to edit a member: their name,
+ * relationship, an email and what they can see.
  * - Adding: saving creates an invitation; the person becomes a member once they use its invite code
  *   (see docs/architecture.md, "Care circle invitations"). An email already in the circle is
- *   refused, and its invitation, if any, can be opened instead (#257).
+ *   refused, and its invitation, if any, can be opened instead.
  * - Editing [memberUid]: the form is filled in with the member's details once, then saving updates
  *   them. The email is their account email, which the patient can't change.
  *
@@ -375,8 +378,8 @@ class CareCircleMemberFormViewModel(
   }
 
   /**
-   * Lets the member edit and delete every entry in [section], the patient's own included, or not
-   * (US-46). Only when editing a member, and only for a section they can add to.
+   * Lets the member edit and delete every entry in [section], the patient's own included, or not.
+   * Only when editing a member, and only for a section they can add to.
    */
   fun onCanEditAndDeleteChange(section: CarePermission, allowed: Boolean) = edit {
     if (!allowed) it.copy(canEditAndDelete = it.canEditAndDelete - section)

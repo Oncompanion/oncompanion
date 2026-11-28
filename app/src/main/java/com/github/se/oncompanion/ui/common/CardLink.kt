@@ -23,9 +23,9 @@ import com.github.se.oncompanion.ui.theme.lakeColors
 /**
  * A link to another screen on a card or a sheet, with a chevron: "Planning ›" on the Overview's
  * cards, "Full journal ›" on the caregiver's, "See prescription ›" and "Manage ›" in the "Your
- * circle" sheet. On the Overview it keeps the Figma's 20 dp row: Compose extends the touch target
- * of a smaller clickable to 48 dp. The sheet's Figma draws its links as full rows, so the sheet
- * makes them taller with [modifier].
+ * circle" sheet. On the Overview it keeps a 20 dp row: Compose extends the touch target of a
+ * smaller clickable to 48 dp. The sheet's links are full rows (design: M3, "Care circle · Note and
+ * prescription"), so the sheet makes them taller with [modifier].
  */
 @Composable
 internal fun CardLink(label: String, onClick: () -> Unit, modifier: Modifier) {
@@ -50,12 +50,11 @@ internal fun CardLink(label: String, onClick: () -> Unit, modifier: Modifier) {
   }
 }
 
-/** The Figma's chevron after a link ("Planning ›", "N more ›"). */
+/** The chevron after a link ("Planning ›", "N more ›"). */
 internal val CHEVRON_SIZE = 18.dp
 
 /**
  * The touch height of a link, or of a banner's or snackbar's text action: Android's 48 dp minimum,
- * even where it looks smaller. The "Your circle" sheet's links are full rows of it (44 dp in the
- * Figma).
+ * even where it looks smaller. The "Your circle" sheet's links are full rows of it (44 dp).
  */
 internal val LINK_HEIGHT = 48.dp

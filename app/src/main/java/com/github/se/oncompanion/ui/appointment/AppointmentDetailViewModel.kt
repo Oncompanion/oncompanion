@@ -50,12 +50,13 @@ sealed interface AppointmentDetailUiState : HasDeletePhase {
   /**
    * All recorded patient fields are available for display.
    *
+   * @property appointment the appointment shown
    * @property isOwn whether it is the user's own appointment, not the patient's a caregiver follows
    * @property canChange whether it can be edited and deleted: the user's own, or the patient's when
-   *   they let the caregiver edit and delete in Planning (US-46)
-   * @property addedByName who added it, if a caregiver did (US-41): for the patient, the name they
-   *   gave that member in their circle; otherwise the name stored with it
-   * @property editedByName who last edited it, if a caregiver did (US-46), named like [addedByName]
+   *   they let the caregiver edit and delete in Planning
+   * @property addedByName who added it, if a caregiver did: for the patient, the name they gave
+   *   that member in their circle; otherwise the name stored with it
+   * @property editedByName who last edited it, if a caregiver did, named like [addedByName]
    */
   data class Loaded(
       val appointment: Appointment,
@@ -78,8 +79,8 @@ sealed interface AppointmentDetailUiState : HasDeletePhase {
 
 /**
  * Observes one appointment while ensuring account changes clear the previous patient's data. In
- * caregiver mode (US-20), the appointment is the followed patient's, when they share their
- * planning: read-only, unless they let the caregiver edit and delete in Planning (US-46).
+ * caregiver mode, the appointment is the followed patient's, when they share their planning:
+ * read-only, unless they let the caregiver edit and delete in Planning.
  *
  * @param patientUid in caregiver mode, the patient whose appointment is shown; null for the user's
  *   own
@@ -146,8 +147,8 @@ class AppointmentDetailViewModel(
 
   /**
    * In caregiver mode, deletes the patient's appointment, which the rules only accept while the
-   * patient lets the caregiver edit and delete in Planning (US-46). A failure reads it again,
-   * keeping the dialog and its error.
+   * patient lets the caregiver edit and delete in Planning. A failure reads it again, keeping the
+   * dialog and its error.
    */
   private fun confirmPatientDelete(patientUid: String) {
     deletion.confirm(

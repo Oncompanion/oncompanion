@@ -9,10 +9,10 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 
 /**
- * A [message] with its [action] (e.g. Retry) beside it, [gap] apart, as in the Figma's banner and
- * snackbar. When the action would take more than half the width, or leave a word of the message no
- * room, the action goes below the message at the end instead: with a long action or a large font on
- * a narrow phone, both stay readable.
+ * A [message] with its [action] (e.g. Retry) beside it, [gap] apart, as in the banner and snackbar.
+ * When the action would take more than half the width, or leave a word of the message no room, the
+ * action goes below the message at the end instead: with a long action or a large font on a narrow
+ * phone, both stay readable.
  */
 @Composable
 internal fun MessageAndAction(

@@ -12,11 +12,11 @@ import androidx.compose.ui.platform.testTag
 import com.github.se.oncompanion.ui.theme.Spacing
 
 /**
- * The Save button at the bottom of a form, as the form's bottom bar (Figma: "Button", Style=Filled,
- * pinned 16 dp from the sides and 24 dp from the bottom). While [isSaving], a spinner tagged
- * [savingTestTag] replaces [text] on the full teal button, so the user sees the tap was taken into
- * account; otherwise a disabled button fades. An [icon], if given, leads the label (the
- * prescription form's check, Figma M3).
+ * The Save button at the bottom of a form, as the form's bottom bar (design: Brand & Theme,
+ * "Button", pinned 16 dp from the sides and 24 dp from the bottom). While [isSaving], a spinner
+ * tagged [savingTestTag] replaces [text] on the full teal button, so the user sees the tap was
+ * taken into account; otherwise a disabled button fades. An [icon], if given, leads the label (the
+ * prescription form's check).
  */
 @Composable
 fun SaveButton(

@@ -340,7 +340,7 @@ private fun SessionNavHost(
         PlanningScreen(
             navigationActions,
             planningViewModel,
-            // A caregiver only sees "Add" when the patient lets them add appointments (US-41)
+            // A caregiver only sees "Add" when the patient lets them add appointments
             onAddAppointment = { navigationActions.navigateTo(Screen.appointmentAdd(it)) },
             onOpenAppointment = appointmentOpener(navigationActions),
             onOpenEvent = eventOpener(navigationActions),
@@ -359,7 +359,7 @@ private fun SessionNavHost(
       ) { entry ->
         val id = requireNotNull(entry.arguments?.getString(Screen.APPOINTMENT_ID))
         // In caregiver mode, the chosen patient's appointment, which the patient may let the
-        // caregiver edit and delete (US-46)
+        // caregiver edit and delete
         val detail: AppointmentDetailViewModel = viewModel {
           AppointmentDetailViewModel(id, patientUid = chosenPatient?.uid)
         }
@@ -379,7 +379,7 @@ private fun SessionNavHost(
           arguments = listOf(navArgument(Screen.APPOINTMENT_ID) { type = NavType.StringType }),
       ) { entry ->
         val id = requireNotNull(entry.arguments?.getString(Screen.APPOINTMENT_ID))
-        // In caregiver mode, the chosen patient's appointment (US-46)
+        // In caregiver mode, the chosen patient's appointment
         val form: AppointmentFormViewModel = viewModel {
           AppointmentFormViewModel(
               LocalDate.now(clock),
@@ -412,7 +412,7 @@ private fun SessionNavHost(
             runCatching { LocalDate.parse(entry.arguments?.getString(Screen.APPOINTMENT_DATE)) }
                 .getOrNull()
                 ?.takeIf { it.year in 1..9999 } ?: LocalDate.now(clock)
-        // In caregiver mode, the appointment goes in the chosen patient's planning (US-41)
+        // In caregiver mode, the appointment goes in the chosen patient's planning
         val form: AppointmentFormViewModel = viewModel {
           AppointmentFormViewModel(date, patientUid = chosenPatient?.uid)
         }
@@ -507,11 +507,11 @@ private fun SessionNavHost(
             entry.arguments?.getString(Screen.SYMPTOM_TYPE)?.let { name ->
               SymptomType.entries.firstOrNull { it.name == name }
             }
-        // "Speak how you feel" on the Overview opens it already listening (US-73)
+        // "Speak how you feel" on the Overview opens it already listening
         val speak = entry.arguments?.getBoolean(Screen.SYMPTOM_SPEAK) == true
         // Saving returns to where the form was opened: the journal, where the new entry is at the
         // top, or the Overview
-        // In caregiver mode, the symptom goes in the chosen patient's journal (US-22)
+        // In caregiver mode, the symptom goes in the chosen patient's journal
         // The app's context, not the activity's: the ViewModel outlives a rotation
         val app = LocalContext.current.applicationContext
         AddSymptomScreen(
@@ -535,7 +535,7 @@ private fun SessionNavHost(
       ) { entry ->
         val symptomId = entry.arguments?.getString(Screen.SYMPTOM_DETAIL_ID).orEmpty()
         // Saving returns to the detail, which shows the change
-        // In caregiver mode, the chosen patient's symptom (US-46)
+        // In caregiver mode, the chosen patient's symptom
         val app = LocalContext.current.applicationContext
         AddSymptomScreen(
             viewModel =
@@ -566,7 +566,7 @@ private fun SessionNavHost(
             onScan = dropUnlessResumed { navigationActions.navigateTo(Screen.PRESCRIPTION_SCAN) },
             onOpen = { id -> navigationActions.navigateTo(Screen.prescriptionDetail(id)) },
             caregiverOf = chosenPatient?.firstName,
-            // The patient reviews a prescription a caregiver added in the form (US-43)
+            // The patient reviews a prescription a caregiver added in the form
             onReview = { id -> navigationActions.navigateTo(Screen.prescriptionEdit(id)) },
             bottomBar = {
               if (chosenPatient == null) {
@@ -639,7 +639,7 @@ private fun SessionNavHost(
             onClose = dropUnlessResumed { navigationActions.goBack() },
             // Saving returns to the detail, which shows the correction
             onSaved = navigationActions::goBack,
-            // A rejected prescription has no detail any more: back to the list (US-43)
+            // A rejected prescription has no detail any more: back to the list
             onRejected = { navController.popBackStack(Screen.PRESCRIPTIONS, inclusive = false) },
         )
       }
@@ -665,7 +665,7 @@ private fun SessionNavHost(
         val handoff = scanHandoffViewModel(navController, entry)
         PrescriptionFormScreen(
             // Reviews the scanned prescription if it was just read, empty otherwise. In caregiver
-            // mode, it goes in the chosen patient's prescriptions, waiting for them (US-43)
+            // mode, it goes in the chosen patient's prescriptions, waiting for them
             viewModel =
                 viewModel {
                   PrescriptionFormViewModel(
