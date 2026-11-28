@@ -1,4 +1,5 @@
 <!-- Co-authored-by: Codex <noreply@openai.com> -->
+<!-- Co-authored-by: Claude Code <noreply@anthropic.com> -->
 <resources>
     <string name="settings_language">Langue</string>
     <string name="settings_title">Paramètres</string>
@@ -31,6 +32,12 @@
     <string name="planning_type_medication">Médicament</string>
     <string name="planning_date_unavailable">Date hors de la plage prise en charge</string>
     <string name="planning_title">Planning</string>
+    <string name="planning_today_chip">Aujourd’hui · %1$s</string>
+    <plurals name="planning_day_doses">
+        <item quantity="one">%d dose</item>
+        <item quantity="many">%d doses</item>
+        <item quantity="other">%d doses</item>
+    </plurals>
     <string name="day_picker_title">Choisir une date</string>
     <string name="time_picker_title">Choisir une heure</string>
 

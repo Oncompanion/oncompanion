@@ -23,6 +23,11 @@
     <string name="planning_type_event">Support event</string>
     <string name="planning_type_medication">Medication</string>
     <string name="planning_date_unavailable">Date outside supported range</string>
+    <string name="planning_today_chip">Today · %1$s</string>
+    <plurals name="planning_day_doses">
+        <item quantity="one">%d dose</item>
+        <item quantity="other">%d doses</item>
+    </plurals>
 
     <!-- Placeholder titles, replaced when each screen is implemented -->
     <string name="onboarding_role_title">Who are you?</string>
